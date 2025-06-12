@@ -1,0 +1,2 @@
+/Users/bottleman/studioprojects/stream-bird/android/app/.cxx/Debug/19j4d192/x86_64/CMakeFiles/edit_cache.dir
+/Users/bottleman/studioprojects/stream-bird/android/app/.cxx/Debug/19j4d192/x86_64/CMakeFiles/rebuild_cache.dir

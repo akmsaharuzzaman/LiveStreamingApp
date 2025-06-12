@@ -1,0 +1,2 @@
+/Users/bottleman/studioprojects/stream-bird/android/app/.cxx/RelWithDebInfo/15163v3u/armeabi-v7a/CMakeFiles/edit_cache.dir
+/Users/bottleman/studioprojects/stream-bird/android/app/.cxx/RelWithDebInfo/15163v3u/armeabi-v7a/CMakeFiles/rebuild_cache.dir

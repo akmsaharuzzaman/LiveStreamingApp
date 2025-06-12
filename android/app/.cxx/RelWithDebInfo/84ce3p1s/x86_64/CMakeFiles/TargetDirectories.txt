@@ -1,0 +1,2 @@
+/Users/bottleman/studioprojects/streaming_djlive/android/app/.cxx/RelWithDebInfo/84ce3p1s/x86_64/CMakeFiles/edit_cache.dir
+/Users/bottleman/studioprojects/streaming_djlive/android/app/.cxx/RelWithDebInfo/84ce3p1s/x86_64/CMakeFiles/rebuild_cache.dir

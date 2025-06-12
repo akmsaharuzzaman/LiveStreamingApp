@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "1049172139596",
+    "project_id": "streamingdjlive-2fd7d",
+    "storage_bucket": "streamingdjlive-2fd7d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1049172139596:android:f052162f7e5f5a1058dee9",
+        "android_client_info": {
+          "package_name": "com.example.streaming_djlive"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1049172139596-e4o756d9safd1g9mtumb4b2be6qf2nst.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.streaming_djlive",
+            "certificate_hash": "2fff0a727d04452db61be10f20fedea9f8f024a7"
+          }
+        },
+        {
+          "client_id": "1049172139596-9osu2odrqd12eb7ejb36bkhogqvtm7t9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAUjh-f4OY3mLiAer8gUsk0aZ-C1AsQrgk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1049172139596-9osu2odrqd12eb7ejb36bkhogqvtm7t9.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1049172139596-l3esbdinvhgkntus1khst2j4821hmn1s.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.streamingDjlive"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
