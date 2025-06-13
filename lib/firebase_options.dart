@@ -51,19 +51,20 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAUjh-f4OY3mLiAer8gUsk0aZ-C1AsQrgk',
-    appId: '1:1049172139596:android:f052162f7e5f5a1058dee9',
-    messagingSenderId: '1049172139596',
-    projectId: 'streamingdjlive-2fd7d',
-    storageBucket: 'streamingdjlive-2fd7d.firebasestorage.app',
+    apiKey: 'AIzaSyA4jhQyFXZ2KZshCIY7kHd19SW66Uy9PLg',
+    appId: '1:535295172490:android:d559b1e1cae88578edb273',
+    messagingSenderId: '535295172490',
+    projectId: 'dlstarlive',
+    storageBucket: 'dlstarlive.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAr-JvjYVZ3Zgf6nNV_6BrsLs1efBsdWqM',
-    appId: '1:1049172139596:ios:4246fef106589da458dee9',
-    messagingSenderId: '1049172139596',
-    projectId: 'streamingdjlive-2fd7d',
-    storageBucket: 'streamingdjlive-2fd7d.firebasestorage.app',
+    apiKey: 'AIzaSyDWkW9boj3aJU1f7kVup6POURKFuews_6Q',
+    appId: '1:535295172490:ios:e29c7e68a4de1ec9edb273',
+    messagingSenderId: '535295172490',
+    projectId: 'dlstarlive',
+    storageBucket: 'dlstarlive.firebasestorage.app',
+    iosClientId: '535295172490-677vdaha37q85st984kc0ti4rp26g27p.apps.googleusercontent.com',
     iosBundleId: 'com.example.streamingDjlive',
   );
 

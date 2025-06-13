@@ -109,7 +109,7 @@ dependencies:
   reels_viewer: ^2.0.0
   video_player: ^2.9.5
   path_provider: ^2.1.5
-  ffmpeg_kit_flutter:
+  # ffmpeg_kit_flutter:
 
 
 
