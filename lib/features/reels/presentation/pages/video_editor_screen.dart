@@ -10,6 +10,7 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:video_editor/video_editor.dart';
 import 'package:video_player/video_player.dart';
+import 'package:easy_video_editor/easy_video_editor.dart';
 
 class VideoEditorScreen extends StatefulWidget {
   const VideoEditorScreen({super.key});
@@ -70,6 +71,26 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
 
     final String command =
         '-i ${videoEditorController!.file.path} -ss $start -to $end -c copy $outputPath';
+    EasyVideoEditorPlatform.instance
+        .trimVideo(
+           videoEditorController!.file.path,
+           videoEditorController!.startTrim.inMilliseconds,
+           videoEditorController!.endTrim.inMilliseconds,
+          
+        )
+        .then((value) {
+      if (value != null) {
+        setState(() {
+          trimVideos.add(value);
+        });
+        log("Filename: $filename");
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Video exported to : $outputPath")));
+      } else {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("Failed to export video ")));
+      }
+    });
     // await FFmpegKit.execute(command).then((session) async {
     //   final returnCode = await session.getReturnCode();
     //   if (ReturnCode.isSuccess(returnCode)) {
@@ -100,6 +121,21 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
 
     final String command =
         '-f concat -safe 0 -i $fileListPath -c copy $mergedVideoPath';
+    log("Merge command: $command");
+
+    EasyVideoEditorPlatform.instance
+        .mergeVideos([trimVideos.join(',')], )
+        .then((value) {
+      if (value != null) {
+        log("Merge video saved to: $value");
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Final video exported to : $value")));
+      } else {
+        log("Failed to merge video");
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("Failed to merge video ")));
+      }
+    });
 
     // await FFmpegKit.execute(command).then((session) async {
     //   final returnCode = await session.getReturnCode();
