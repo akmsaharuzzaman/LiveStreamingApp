@@ -60,12 +60,12 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
     final result = context.read<LogInBloc>().state.userInfoProfile.result;
     //  final result = state.userInfoProfile.result;
     if (result == null) return false;
-    print('Result: $result');
-    print('Result First Name: "${result.firstName}"');
-    print('Result Last Name: "${result.lastName}"');
-    print('Result Birthday: ${result.birthday}');
-    print('Result Bio: "${result.bio}"');
-    print('Result Bio: "${result.country}"');
+    debugPrint('Result: $result');
+    debugPrint('Result First Name: "${result.firstName}"');
+    debugPrint('Result Last Name: "${result.lastName}"');
+    debugPrint('Result Birthday: ${result.birthday}');
+    debugPrint('Result Bio: "${result.bio}"');
+    debugPrint('Result Country: "${result.country}"');
 
     return (_firstNameController.text.isNotEmpty) &&
         (_lastNameController.text.isNotEmpty) &&
@@ -481,7 +481,7 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                                             if ((selectedCountry?.isNotEmpty ??
                                                 false)) ...[
                                               Text(
-                                                selectedFlag!,
+                                                selectedFlag,
                                                 style: TextStyle(
                                                     color: Colors.black,
                                                     fontSize: 20.sp,

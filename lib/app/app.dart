@@ -47,7 +47,6 @@ class _MyAppState extends State<MyApp> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
   }
 
@@ -71,7 +70,7 @@ class _MyAppState extends State<MyApp> {
               BlocProvider(create: (context) => ProfileBloc()),
             ],
             child: MaterialApp.router(
-              title: 'djlive',
+              title: 'DLStar',
               routerConfig: _router,
               debugShowCheckedModeBanner: false,
               locale: const Locale('en'),
