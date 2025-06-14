@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-// ignore: unused_import
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_static/shelf_static.dart';
@@ -15,7 +14,7 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-    final files = [
+  final files = [
     'index.html',
     'Build/d2822e4a9f0d71c41427f922e253050a.framework.js.unityweb',
     'Build/ff1050a13c2847cee173916bd9c265cb.wasm.unityweb',
@@ -52,9 +51,7 @@ Future<void> main() async {
   //Load environment variables
   await dotenv.load(fileName: ".env");
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(MyApp());
 }
