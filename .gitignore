@@ -30,3 +30,7 @@ coverage/
 *.local
 # Environment variables
 .env
+.flutter-plugins-dependencies
+.dart_tool/package_config_subset
+.dart_tool/package_config.json
+macos/Flutter/GeneratedPluginRegistrant.swift
