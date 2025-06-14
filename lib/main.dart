@@ -46,8 +46,10 @@ Future<void> main() async {
   }
 
   // Start the server on port 8080
-  final server = await shelf_io.serve(handler, InternetAddress.loopbackIPv4, 8080);
-  debugPrint('Serving at http://${server.address.host}:${server.port}');
+  // final server = await shelf_io.serve(handler, InternetAddress.loopbackIPv4, 8080);
+  // debugPrint('Serving at http://${server.address.host}:${server.port}');
+
+  //Load environment variables
   await dotenv.load(fileName: ".env");
 
   await Firebase.initializeApp(
