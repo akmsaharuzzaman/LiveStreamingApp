@@ -70,7 +70,7 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
     return (_firstNameController.text.isNotEmpty) &&
         (_lastNameController.text.isNotEmpty) &&
         (_genderController.text.isNotEmpty) &&
-        (selectedCountry!.isNotEmpty) &&
+        (selectedCountry?.isNotEmpty ?? false) &&
         (_birthdayController.text.isNotEmpty);
   }
 
