@@ -369,6 +369,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.1"
+  easy_video_editor:
+    dependency: "direct main"
+    description:
+      name: easy_video_editor
+      sha256: "47ab3bb74feb0ef92bbdcf9a4285bc25e62fa398fdae437ffa3df7d6caea395b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.2"
   emoji_picker_flutter:
     dependency: "direct main"
     description:
@@ -718,6 +726,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.6.0"
+  flutter_isolate:
+    dependency: "direct main"
+    description:
+      name: flutter_isolate
+      sha256: "36a84e1a22371d8092ea2121145b330c24fb272acb951fb30c60ba44926b8fb3"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0"
   flutter_keyboard_visibility:
     dependency: "direct main"
     description:
@@ -1561,13 +1577,21 @@ packages:
     source: hosted
     version: "2.4.1"
   shelf:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: shelf
       sha256: e7dd780a7ffb623c57850b33f43309312fc863fb6aa3d276a754bb299839ef12
       url: "https://pub.dev"
     source: hosted
     version: "1.4.2"
+  shelf_static:
+    dependency: "direct main"
+    description:
+      name: shelf_static
+      sha256: c87c3875f91262785dade62d135760c2c69cb217ac759485334c5857ad89f6e3
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.3"
   shelf_web_socket:
     dependency: transitive
     description:

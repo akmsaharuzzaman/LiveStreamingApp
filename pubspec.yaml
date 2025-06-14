@@ -29,6 +29,9 @@ dependencies:
   # Form validation
   formz:
   
+  # Background processing and isolates
+  flutter_isolate: ^2.1.0
+  
   # ============================
   # NETWORKING & HTTP
   # ============================
@@ -36,6 +39,10 @@ dependencies:
   # HTTP clients
   http:
   dio:
+  
+  # HTTP server framework and static file serving
+  shelf: ^1.4.2
+  shelf_static: ^1.1.3
   
   # ============================
   # FIREBASE SERVICES
@@ -70,6 +77,9 @@ dependencies:
   # Video processing (replacing video_thumbnail)
   video_compress: ^3.1.4
   # flutter_ffmpeg_utils: ^1.0.3
+  
+  # Video editing capabilities
+  easy_video_editor: ^0.1.2
   
   # ============================
   # UI & DESIGN COMPONENTS
