@@ -1,8 +1,8 @@
 import 'dart:developer';
 import 'dart:io';
 
-import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
-import 'package:ffmpeg_kit_flutter/return_code.dart';
+// import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
+// import 'package:ffmpeg_kit_flutter/return_code.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
@@ -70,20 +70,20 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
 
     final String command =
         '-i ${videoEditorController!.file.path} -ss $start -to $end -c copy $outputPath';
-    await FFmpegKit.execute(command).then((session) async {
-      final returnCode = await session.getReturnCode();
-      if (ReturnCode.isSuccess(returnCode)) {
-        setState(() {
-          trimVideos.add(outputPath);
-        });
-        log("Filename: $filename");
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Video exported to : $outputPath")));
-      } else {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("Failed to export video ")));
-      }
-    });
+    // await FFmpegKit.execute(command).then((session) async {
+    //   final returnCode = await session.getReturnCode();
+    //   if (ReturnCode.isSuccess(returnCode)) {
+    //     setState(() {
+    //       trimVideos.add(outputPath);
+    //     });
+    //     log("Filename: $filename");
+    //     ScaffoldMessenger.of(context).showSnackBar(
+    //         SnackBar(content: Text("Video exported to : $outputPath")));
+    //   } else {
+    //     ScaffoldMessenger.of(context)
+    //         .showSnackBar(SnackBar(content: Text("Failed to export video ")));
+    //   }
+    // });
   }
 
   Future<void> _mergeVideos() async {
@@ -101,19 +101,19 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
     final String command =
         '-f concat -safe 0 -i $fileListPath -c copy $mergedVideoPath';
 
-    await FFmpegKit.execute(command).then((session) async {
-      final returnCode = await session.getReturnCode();
-      if (ReturnCode.isSuccess(returnCode)) {
-        log("Merge video saved to: $mergedVideoPath");
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text("Final video exported to : $mergedVideoPath")));
-      } else {
-        log("Merge video saved to: ${session.getOutput()}");
-        log("Merge video saved to: ${session.getOutput()}");
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("Failed to merge video ")));
-      }
-    });
+    // await FFmpegKit.execute(command).then((session) async {
+    //   final returnCode = await session.getReturnCode();
+    //   if (ReturnCode.isSuccess(returnCode)) {
+    //     log("Merge video saved to: $mergedVideoPath");
+    //     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    //         content: Text("Final video exported to : $mergedVideoPath")));
+    //   } else {
+    //     log("Merge video saved to: ${session.getOutput()}");
+    //     log("Merge video saved to: ${session.getOutput()}");
+    //     ScaffoldMessenger.of(context)
+    //         .showSnackBar(SnackBar(content: Text("Failed to merge video ")));
+    //   }
+    // });
   }
 
   @override

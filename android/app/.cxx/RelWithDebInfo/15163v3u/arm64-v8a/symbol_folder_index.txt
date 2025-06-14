@@ -1,1 +1,0 @@
-/Users/bottleman/studioprojects/stream-bird/build/app/intermediates/cxx/RelWithDebInfo/15163v3u/obj/arm64-v8a
