@@ -232,7 +232,8 @@ flutter:
     - assets/lottie/
     - assets/images/new_images/
     - .env
-    - assets/unityweb/.
+    - assets/unityweb/
+    - assets/unityweb/Build/
 
 # ============================
 # APP BRANDING & SPLASH SCREEN

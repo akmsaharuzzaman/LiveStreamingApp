@@ -45,33 +45,38 @@ Future<void> main() async {
   }
 
   // Start the server on port 8080
-  // final server = await shelf_io.serve(handler, InternetAddress.loopbackIPv4, 8080);
-  // debugPrint('Serving at http://${server.address.host}:${server.port}');
+  final server = await shelf_io.serve(
+    handler,
+    InternetAddress.loopbackIPv4,
+    8080,
+  );
+  debugPrint('Serving at http://${server.address.host}:${server.port}');
 
   //Load environment variables
   await dotenv.load(fileName: ".env");
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(MyApp());
+  // runApp(MyApp());
+  runApp(MyAppTest());
 }
 
+class MyAppTest extends StatelessWidget {
+  const MyAppTest({super.key});
 
-// class MyAppTest extends StatelessWidget {
-//   const MyAppTest({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       home: Scaffold(
-//         body: InAppWebView(
-//           initialUrlRequest:
-//           URLRequest(url: WebUri("http://127.0.0.1:8080/index.html")),
-//           initialOptions: InAppWebViewGroupOptions(
-//             crossPlatform: InAppWebViewOptions(javaScriptEnabled: true),
-//           )
-//         ),
-//       ),
-//     );
-//   }
-// }
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        body: InAppWebView(
+          initialUrlRequest: URLRequest(
+            url: WebUri("http://127.0.0.1:8080/index.html"),
+          ),
+          initialOptions: InAppWebViewGroupOptions(
+            crossPlatform: InAppWebViewOptions(javaScriptEnabled: true),
+          ),
+        ),
+      ),
+    );
+  }
+}

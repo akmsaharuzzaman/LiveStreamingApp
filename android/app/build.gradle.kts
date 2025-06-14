@@ -24,6 +24,7 @@ android {
         applicationId = "com.example.streaming_djlive"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
+        multiDexEnabled = true
         minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
