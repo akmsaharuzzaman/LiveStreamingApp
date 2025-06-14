@@ -43,6 +43,7 @@ dependencies:
   # HTTP server framework and static file serving
   shelf: ^1.4.2
   shelf_static: ^1.1.3
+  webview_flutter: ^4.13.0
   
   # ============================
   # FIREBASE SERVICES
@@ -231,6 +232,7 @@ flutter:
     - assets/lottie/
     - assets/images/new_images/
     - .env
+    - assets/unityweb/.
 
 # ============================
 # APP BRANDING & SPLASH SCREEN
