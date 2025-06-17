@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,7 +20,26 @@ class _GoliveScreenState extends State<GoliveScreen> {
   // final StorageService _storageService = StorageService();
   bool _isLoading = false;
 
-  void _goLive() async {}
+  void _goLive() async {
+    _initializeSocket();
+    _setupSocketListeners();
+  }
+
+  void _checkRoom() {
+    if (_currentRoomId != null) {
+      _showSnackBar(
+        'You are already in a room: $_currentRoomId',
+        Colors.orange,
+      );
+      _createRoom();
+      Timer(Duration(seconds: 2), () {
+        _deleteRoom();
+      });
+    } else {
+      _createRoom();
+    }
+  }
+
   final SocketService _socketService = SocketService.instance;
   bool _isConnected = false;
   bool _isConnecting = false;
@@ -32,8 +53,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUidAndDispatchEvent();
-      _initializeSocket();
     });
+    _initializeSocket();
   }
 
   Future<void> _loadUidAndDispatchEvent() async {
@@ -96,6 +117,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   /// Setup socket event listeners
   void _setupSocketListeners() {
     // Connection status
+    print("Setting up socket listeners");
     _socketService.connectionStatusStream.listen((isConnected) {
       setState(() {
         _isConnected = isConnected;
@@ -165,8 +187,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   /// Create a new room (for hosts)
   Future<void> _createRoom() async {
-    final roomId = 'room_${userId}_${DateTime.now().millisecondsSinceEpoch}';
-    final success = await _socketService.createRoom(roomId);
+    // final roomId = 'room_${userId}_${DateTime.now().millisecondsSinceEpoch}';
+    final roomId = userId;
+    final success = await _socketService.createRoom(roomId!);
 
     if (success) {
       setState(() {
@@ -217,7 +240,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   /// End the stream and navigate back
   void _endStream() {
     // Additional cleanup for live streaming
-    Navigator.of(context).pop();
+    // Navigator.of(context).pop();
   }
 
   /// Show snackbar message
@@ -296,6 +319,38 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             const SizedBox(width: 8),
                             const Text(
                               'You are ready to go live',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _checkRoom,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.play_circle_fill, size: 24),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Check Room Status',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,

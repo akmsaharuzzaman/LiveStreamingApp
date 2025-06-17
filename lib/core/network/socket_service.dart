@@ -16,6 +16,8 @@ class SocketService {
       StreamController<List<String>>.broadcast();
   final StreamController<String> _roomCreatedController =
       StreamController<String>.broadcast();
+  final StreamController<List<String>> _roomUpdatedController =
+      StreamController<List<String>>.broadcast();
   final StreamController<String> _roomDeletedController =
       StreamController<String>.broadcast();
   final StreamController<Map<String, dynamic>> _userJoinedController =
@@ -48,6 +50,7 @@ class SocketService {
   /// Stream getters for listening to events
   Stream<List<String>> get roomListStream => _roomListController.stream;
   Stream<String> get roomCreatedStream => _roomCreatedController.stream;
+  Stream<List<String>> get roomUpdatedStream => _roomUpdatedController.stream;
   Stream<String> get roomDeletedStream => _roomDeletedController.stream;
   Stream<Map<String, dynamic>> get userJoinedStream =>
       _userJoinedController.stream;
@@ -214,6 +217,7 @@ class SocketService {
       if (data is List) {
         final rooms = data.map((room) => room.toString()).toList();
         _roomListController.add(rooms);
+        _roomUpdatedController.add(rooms);
       }
     });
 
