@@ -226,7 +226,7 @@ class ApiService {
       for (int i = 0; i < filePaths.length; i++) {
         formData.files.add(
           MapEntry(
-            '${fieldName}[$i]',
+            '$fieldName[$i]',
             await MultipartFile.fromFile(filePaths[i]),
           ),
         );
