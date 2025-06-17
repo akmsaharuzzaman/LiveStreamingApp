@@ -4,9 +4,9 @@ import 'package:iconsax/iconsax.dart';
 
 class MyTabBar extends StatefulWidget {
   const MyTabBar({
-    Key? key,
+    super.key,
     required this.tabController,
-  }) : super(key: key);
+  });
 
   final TabController tabController;
 
@@ -95,9 +95,9 @@ class _MyTabBarState extends State<MyTabBar> {
                     alignment: Alignment.center,
                     children: [
                       AnimatedBuilder(
-                        animation: widget.tabController!,
+                        animation: widget.tabController,
                         builder: (context, child) {
-                          return widget.tabController!.index == 2
+                          return widget.tabController.index == 2
                               ? Container(
                                   width: 25,
                                   height: 25,
