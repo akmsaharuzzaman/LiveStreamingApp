@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'app_router_new.dart';
+import 'app_router.dart';
 
 /// 🚀 NAVIGATION EXAMPLES
 ///
@@ -7,7 +7,7 @@ import 'app_router_new.dart';
 /// with different types of pages and navigation patterns.
 
 class NavigationExamples extends StatelessWidget {
-  const NavigationExamples({Key? key}) : super(key: key);
+  const NavigationExamples({super.key});
 
   @override
   Widget build(BuildContext context) {
