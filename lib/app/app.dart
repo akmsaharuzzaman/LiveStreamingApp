@@ -12,6 +12,7 @@ import 'package:streaming_djlive/features/auth/presentation/pages/user_policy.da
 import 'package:streaming_djlive/features/chat/presentation/pages/chatpage.dart';
 import 'package:streaming_djlive/features/home/presentation/pages/homepage.dart';
 import 'package:streaming_djlive/features/leaderboard/presentation/pages/leaderboard.dart';
+import 'package:streaming_djlive/features/live-streaming/presentation/pages/golive_screen.dart';
 import 'package:streaming_djlive/features/newsfeed/presentation/pages/newsfeed.dart';
 import 'package:streaming_djlive/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:streaming_djlive/features/profile/presentation/pages/profile_main.dart';
@@ -30,10 +31,12 @@ import '../features/profile/presentation/pages/edit_profile.dart';
 import '../features/profile/presentation/pages/profile_details.dart';
 import '../features/reels/presentation/pages/video_editor_screen.dart';
 
-final GlobalKey<NavigatorState> rootNavigatorKey =
-    GlobalKey<NavigatorState>(debugLabel: 'root');
-final GlobalKey<NavigatorState> _shellNavigatorKey =
-    GlobalKey<NavigatorState>(debugLabel: 'shell');
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'root',
+);
+final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'shell',
+);
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -65,8 +68,9 @@ class _MyAppState extends State<MyApp> {
             providers: [
               ChangeNotifierProvider(create: (_) => NavBarProvider()),
               BlocProvider(
-                  create: (context) =>
-                      LogInBloc(logInRepository: LogInRepository())),
+                create: (context) =>
+                    LogInBloc(logInRepository: LogInRepository()),
+              ),
               BlocProvider(create: (context) => ProfileBloc()),
             ],
             child: MaterialApp.router(
@@ -90,7 +94,10 @@ class _MyAppState extends State<MyApp> {
   List<User> allUsers = [
     User(id: 0, name: 'You', avatar: 'assets/images/new_images/person.png'),
     User(
-        id: 1, name: 'Addison', avatar: 'assets/images/new_images/profile.png'),
+      id: 1,
+      name: 'Addison',
+      avatar: 'assets/images/new_images/profile.png',
+    ),
     User(id: 2, name: 'Angel', avatar: 'assets/images/new_images/person.png'),
     User(id: 3, name: 'Deanna', avatar: 'assets/images/new_images/profile.png'),
     User(id: 4, name: 'Json', avatar: 'assets/images/new_images/profile.png'),
@@ -98,7 +105,10 @@ class _MyAppState extends State<MyApp> {
     User(id: 6, name: 'Leslie', avatar: 'assets/images/new_images/person.png'),
     User(id: 7, name: 'Nathan', avatar: 'assets/images/new_images/profile.png'),
     User(
-        id: 8, name: 'Stanley', avatar: 'assets/images/new_images/profile.png'),
+      id: 8,
+      name: 'Stanley',
+      avatar: 'assets/images/new_images/profile.png',
+    ),
     User(
       id: 9,
       name: 'Shahadat Vai Astha',
@@ -120,7 +130,13 @@ class _MyAppState extends State<MyApp> {
     routes: <RouteBase>[
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
-        builder: (context, state, child) => ScaffoldWithNavBar(child: child),
+        builder: (context, state, child) {
+          if (state.path == "go-live" || state.path == "live-chat") {
+            return child;
+          } else {
+            return ScaffoldWithNavBar(child: child);
+          }
+        },
         routes: [
           GoRoute(
             name: "home",
@@ -133,9 +149,9 @@ class _MyAppState extends State<MyApp> {
             builder: (context, state) => NewsFeedScreen(),
           ),
           GoRoute(
-            name: "live",
-            path: "/live",
-            builder: (context, state) => const HomePageScreen(),
+            name: "go-live",
+            path: "/go-live",
+            builder: (context, state) => const GoliveScreen(),
           ),
           GoRoute(
             name: "live-chat",
@@ -190,9 +206,8 @@ class _MyAppState extends State<MyApp> {
       GoRoute(
         name: "chat-details",
         path: "/chat-details/:userId",
-        builder: (BuildContext context, GoRouterState state) => ChatRoom(
-          userId: state.pathParameters["userId"] ?? "",
-        ),
+        builder: (BuildContext context, GoRouterState state) =>
+            ChatRoom(userId: state.pathParameters["userId"] ?? ""),
       ),
       GoRoute(
         name: "leaderboard",
@@ -228,7 +243,8 @@ class _MyAppState extends State<MyApp> {
         Logger().i("Matched Location: ${state.matchedLocation}");
       }
       final bool loggedIn = _loginInfo.loggedIn;
-      final bool loggingIn = state.matchedLocation == '/welcome-screen' ||
+      final bool loggingIn =
+          state.matchedLocation == '/welcome-screen' ||
           state.matchedLocation == "/home" ||
           state.matchedLocation == "/splash" ||
           state.matchedLocation == "/newsfeed" ||

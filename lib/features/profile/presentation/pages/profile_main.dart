@@ -426,7 +426,7 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                               backgroundColor:
                                   item.gradientColor ?? Colors.grey,
                               onTap: () {
-                                if (item.title == 'Logout') {
+                                if (item.title == 'Sign Out') {
                                   final LoginInfo _loginInfo = LoginInfo();
                                   _loginInfo.logout();
                                   context.push('/welcome-screen');
