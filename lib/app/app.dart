@@ -7,7 +7,7 @@ import 'package:streaming_djlive/features/auth/presentation/bloc/log_in_bloc/log
 import 'package:streaming_djlive/features/profile/presentation/bloc/profile_bloc.dart';
 
 // Import the new router
-import '../core/routing/app_router_new.dart';
+import '../core/routing/app_router.dart';
 import '../features/core/services/login_provider.dart';
 import '../features/core/services/navbar_provider.dart';
 import '../features/chat/data/models/user_model.dart';

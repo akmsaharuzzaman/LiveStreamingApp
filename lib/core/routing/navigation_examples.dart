@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'app_router_new.dart';
 
 /// 🚀 NAVIGATION EXAMPLES
-/// 
+///
 /// This file demonstrates how to use the new navigation structure
 /// with different types of pages and navigation patterns.
 
@@ -65,9 +65,9 @@ class NavigationExamples extends StatelessWidget {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 30),
-            
+
             const Text(
               '🎥 Full Screen Pages (NO Navigation Bar)',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -83,7 +83,9 @@ class NavigationExamples extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () => AppNavigation.goLive(),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
                     child: const Text('Go Live'),
                   ),
                 ),
@@ -91,7 +93,9 @@ class NavigationExamples extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () => AppNavigation.goToReels(),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple,
+                    ),
                     child: const Text('Reels'),
                   ),
                 ),
@@ -102,9 +106,9 @@ class NavigationExamples extends StatelessWidget {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
               child: const Text('Edit Video'),
             ),
-            
+
             const SizedBox(height: 30),
-            
+
             const Text(
               '📄 Detail/Modal Pages (WITH Back Button)',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -120,7 +124,9 @@ class NavigationExamples extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () => AppNavigation.pushChatDetails("user123"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                    ),
                     child: const Text('Chat Details'),
                   ),
                 ),
@@ -128,7 +134,9 @@ class NavigationExamples extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () => AppNavigation.pushLeaderboard(),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amber,
+                    ),
                     child: const Text('Leaderboard'),
                   ),
                 ),
@@ -139,7 +147,9 @@ class NavigationExamples extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () => AppNavigation.pushProfileDetails(),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                    ),
                     child: const Text('Profile Details'),
                   ),
                 ),
@@ -147,15 +157,17 @@ class NavigationExamples extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () => AppNavigation.pushEditProfile(),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.indigo,
+                    ),
                     child: const Text('Edit Profile'),
                   ),
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 30),
-            
+
             const Text(
               '🔙 Navigation Controls',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -174,7 +186,9 @@ class NavigationExamples extends StatelessWidget {
                         );
                       }
                     },
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey,
+                    ),
                     child: const Text('Go Back'),
                   ),
                 ),
@@ -187,15 +201,17 @@ class NavigationExamples extends StatelessWidget {
                         SnackBar(content: Text('Current: $location')),
                       );
                     },
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                    ),
                     child: const Text('Current Location'),
                   ),
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -221,11 +237,10 @@ class NavigationExamples extends StatelessWidget {
 }
 
 /// 🎯 WIDGET INTEGRATION EXAMPLES
-/// 
+///
 /// Examples of how to integrate navigation into various widgets
 
 class NavigationWidgetExamples {
-  
   /// ✅ CORRECT: Bottom navigation bar integration
   static Widget buildBottomNavBar(int currentIndex) {
     return BottomNavigationBar(
@@ -258,7 +273,7 @@ class NavigationWidgetExamples {
       ],
     );
   }
-  
+
   /// ✅ CORRECT: List item with navigation
   static Widget buildChatListItem(String userId, String userName) {
     return ListTile(
@@ -269,7 +284,7 @@ class NavigationWidgetExamples {
       onTap: () => AppNavigation.pushChatDetails(userId),
     );
   }
-  
+
   /// ✅ CORRECT: Floating action button
   static Widget buildLiveStreamFAB() {
     return FloatingActionButton(
@@ -278,7 +293,7 @@ class NavigationWidgetExamples {
       child: const Icon(Icons.live_tv),
     );
   }
-  
+
   /// ✅ CORRECT: Custom back button
   static Widget buildCustomBackButton() {
     return IconButton(
@@ -292,7 +307,7 @@ class NavigationWidgetExamples {
       },
     );
   }
-  
+
   /// ✅ CORRECT: Conditional navigation
   static void navigateBasedOnUserState(bool isProfileComplete) {
     if (isProfileComplete) {
@@ -304,55 +319,54 @@ class NavigationWidgetExamples {
 }
 
 /// 🔄 NAVIGATION FLOW EXAMPLES
-/// 
+///
 /// Common navigation patterns and flows
 
 class NavigationFlowExamples {
-  
   /// User authentication flow
   static void handleAuthFlow(bool isLoggedIn, bool isProfileComplete) {
     if (!isLoggedIn) {
       // Handled by router redirect
       return;
     }
-    
+
     if (!isProfileComplete) {
       // Handled by router redirect to /profileComplete
       return;
     }
-    
+
     AppNavigation.goToHome();
   }
-  
+
   /// Social media posting flow
   static void handlePostCreation() {
     // 1. Go to reels (full screen)
     AppNavigation.goToReels();
-    
+
     // 2. After recording, go to video editor (full screen)
     // AppNavigation.editVideo(); // Called from reels page
-    
+
     // 3. After editing, return to home with nav bar
     // AppNavigation.goToHome(); // Called from editor
   }
-  
+
   /// Chat flow
   static void handleChatFlow(String userId) {
     // 1. Go to main chat page (with nav bar)
     AppNavigation.goToChat();
-    
+
     // 2. Open specific chat (modal/detail)
     AppNavigation.pushChatDetails(userId);
   }
-  
+
   /// Profile management flow
   static void handleProfileFlow() {
     // 1. Go to profile (with nav bar)
     AppNavigation.goToProfile();
-    
+
     // 2. View details (modal)
     AppNavigation.pushProfileDetails();
-    
+
     // 3. Edit profile (modal)
     AppNavigation.pushEditProfile();
   }
