@@ -249,15 +249,15 @@
     },
     {
       "name": "device_info_plus",
-      "rootUri": "file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/device_info_plus-11.4.0",
+      "rootUri": "file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/device_info_plus-11.5.0",
       "packageUri": "lib/",
-      "languageVersion": "3.4"
+      "languageVersion": "3.7"
     },
     {
       "name": "device_info_plus_platform_interface",
-      "rootUri": "file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/device_info_plus_platform_interface-7.0.2",
+      "rootUri": "file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/device_info_plus_platform_interface-7.0.3",
       "packageUri": "lib/",
-      "languageVersion": "2.18"
+      "languageVersion": "3.7"
     },
     {
       "name": "diacritic",
@@ -615,9 +615,9 @@
     },
     {
       "name": "flutter_svg",
-      "rootUri": "file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_svg-2.1.0",
+      "rootUri": "file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_svg-2.2.0",
       "packageUri": "lib/",
-      "languageVersion": "3.4"
+      "languageVersion": "3.6"
     },
     {
       "name": "flutter_test",
@@ -1236,6 +1236,18 @@
       "rootUri": "file:///C:/src/flutter/bin/cache/pkg/sky_engine",
       "packageUri": "lib/",
       "languageVersion": "3.7"
+    },
+    {
+      "name": "socket_io_client",
+      "rootUri": "file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/socket_io_client-3.1.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
+      "name": "socket_io_common",
+      "rootUri": "file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/socket_io_common-3.1.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
     },
     {
       "name": "source_gen",
