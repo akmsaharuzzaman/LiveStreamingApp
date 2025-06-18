@@ -2,17 +2,15 @@ import 'dart:async';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:streaming_djlive/features/auth/data/models/user_profile.dart';
 
 import '../../../../core/network/socket_service.dart';
 import '../../../../core/utils/permission_helper.dart';
-import '../../../profile/presentation/bloc/profile_bloc.dart';
 
 class GoliveScreen extends StatefulWidget {
-  const GoliveScreen({super.key});
+  final String? roomId;
+  const GoliveScreen({super.key, this.roomId});
 
   @override
   State<GoliveScreen> createState() => _GoliveScreenState();
@@ -20,13 +18,7 @@ class GoliveScreen extends StatefulWidget {
 
 class _GoliveScreenState extends State<GoliveScreen> {
   final TextEditingController _titleController = TextEditingController();
-  // final StorageService _storageService = StorageService();
   bool _isLoading = false;
-
-  void _goLive() async {
-    _initializeSocket();
-    _setupSocketListeners();
-  }
 
   void _checkRoom() {
     if (_currentRoomId != null) {
@@ -52,16 +44,35 @@ class _GoliveScreenState extends State<GoliveScreen> {
   List<String> _availableRooms = [];
   String? _errorMessage;
   String? userId;
-  bool isHost = false;
+  bool isHost = true;
   String roomId = "DJLiveRoom";
 
   @override
   void initState() {
     super.initState();
+    extractRoomId();
+    initAgoraLoad();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUidAndDispatchEvent();
     });
+  }
+
+  void extractRoomId() {
+    if (widget.roomId != null && widget.roomId!.isNotEmpty) {
+      roomId = widget.roomId!;
+      isHost = false;
+      debugPrint("Extracted room ID: $roomId");
+    } else {
+      isHost = true; // Default to host if no room ID provided
+      roomId = "default_channel"; // Set a default room ID
+      debugPrint("No room ID provided, using default: $roomId");
+    }
+  }
+
+  void initAgoraLoad() async {
+    await initAgora();
     _initializeSocket();
+    _setupSocketListeners();
   }
 
   Future<void> _loadUidAndDispatchEvent() async {
@@ -72,6 +83,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
       debugPrint("Userid: $uid");
       setState(() {
         userId = uid;
+        debugPrint("User ID set: $userId");
       });
     } else {
       debugPrint("No UID found");
@@ -98,11 +110,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
         });
 
         // If roomId is provided, join the room
-        if (!(userId != null)) {
-          await _joinRoom(userId!);
-        } else if (true) {
-          // If user is host, create a new room
+        if (isHost) {
           await _createRoom();
+        } else {
+          await _joinRoom(roomId);
         }
 
         // Get list of available rooms
@@ -124,7 +135,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   /// Setup socket event listeners
   void _setupSocketListeners() {
     // Connection status
-    print("Setting up socket listeners");
+    debugPrint("Setting up socket listeners");
     _socketService.connectionStatusStream.listen((isConnected) {
       setState(() {
         _isConnected = isConnected;
@@ -157,7 +168,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     // User events
     _socketService.userJoinedStream.listen((data) {
       final userName = data['userName'] ?? 'Unknown';
-      print("User joined: $userName , console from UI");
+      debugPrint("User joined: $userName , console from UI");
       _showSnackBar('👋 $userName joined the stream', Colors.green);
     });
 
@@ -170,7 +181,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     _socketService.roomListStream.listen((rooms) {
       setState(() {
         _availableRooms = rooms;
-        print("Available rooms: $_availableRooms from Frontend");
+        debugPrint("Available rooms: $_availableRooms from Frontend");
       });
     });
 
@@ -407,152 +418,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
+      canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
         // Here you can handle the pop event, if needed
         print('Back navigation invoked: $didPop');
       },
       child: Scaffold(
-        body: Stack(
-          children: [
-
-            _buildBottomControls(),
-            if(false)
-            SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  const Text(
-                    'Set up your live stream',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Choose a thumbnail and title for your stream',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 30),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _goLive,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
-                      ),
-                      child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.play_circle_fill, size: 24),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'You are ready to go live',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _checkRoom,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
-                      ),
-                      child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.play_circle_fill, size: 24),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'Check Room Status',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Tips Section
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue[200]!),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.lightbulb_outline,
-                              color: Colors.blue[700],
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Tips for a great stream',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.blue[700],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          '• Choose an eye-catching thumbnail\n'
-                          '• Write a descriptive title\n'
-                          '• Make sure you have good lighting\n'
-                          '• Test your internet connection',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.blue[700],
-                            height: 1.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+        body: Stack(children: [_buildVideoView(), _buildBottomControls()]),
       ),
     );
   }
 
-  
   // Main video view
   Widget _buildVideoView() {
     if (isHost) {
@@ -571,7 +447,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     }
   }
 
-   Widget _remoteVideo() {
+  Widget _remoteVideo() {
     if (_remoteUid != null) {
       return AgoraVideoView(
         controller: VideoViewController.remote(
@@ -588,8 +464,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     }
   }
 
-
-    // Bottom controls for broadcaster
+  // Bottom controls for broadcaster
   Widget _buildBottomControls() {
     if (!isHost) return const SizedBox.shrink();
 
@@ -654,8 +529,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
       ),
     );
   }
-
-  
 
   @override
   void dispose() {

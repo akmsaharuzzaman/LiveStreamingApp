@@ -98,7 +98,10 @@ class AppRouter {
       GoRoute(
         name: "go-live",
         path: "/go-live",
-        builder: (context, state) => const GoliveScreen(),
+        builder: (context, state) {
+          final roomId = state.uri.queryParameters["roomId"];
+          return GoliveScreen(roomId: roomId ?? "");
+        },
       ),
       GoRoute(
         name: "reels",

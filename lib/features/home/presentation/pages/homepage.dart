@@ -6,10 +6,12 @@ import 'package:flutter_carousel_widget/flutter_carousel_widget.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../components/utilities/chat_theme.dart';
 import '../../../../components/utilities/custom_networkimage.dart';
 import '../../../../components/utilities/touchable_opacity_widget.dart';
+import '../../../../core/network/socket_service.dart';
 import '../../data/models/category_model.dart';
 import '../../data/models/live_streaming_model.dart';
 import '../../data/models/user_model.dart';
@@ -23,6 +25,11 @@ class HomePageScreen extends StatefulWidget {
 
 class _HomePageScreenState extends State<HomePageScreen> {
   int _currentIndex = 0;
+  final SocketService _socketService = SocketService.instance;
+  bool _isConnected = false;
+  bool _isConnecting = false;
+  String? _errorMessage;
+  List<String> _availableRooms = [];
 
   List<String> imageUrls = [
     'assets/images/new_images/banners1.jpg',
@@ -32,6 +39,90 @@ class _HomePageScreenState extends State<HomePageScreen> {
     "assets/images/new_images/banners4.jpg",
     "assets/images/new_images/banners5.jpg",
   ];
+
+  /// Initialize socket connection when entering live streaming page
+  Future<void> _initializeSocket() async {
+    setState(() {
+      _isConnecting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Connect to socket with user ID
+      final prefs = await SharedPreferences.getInstance();
+      final String? userId = prefs.getString('uid');
+      final connected = await _socketService.connect(userId!);
+
+      if (connected) {
+        _setupSocketListeners();
+
+        setState(() {
+          _isConnected = true;
+          _isConnecting = false;
+        });
+        // Get list of available rooms
+        await _socketService.getRooms();
+      } else {
+        setState(() {
+          _isConnecting = false;
+          _errorMessage = 'Failed to connect to server';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isConnecting = false;
+        _errorMessage = 'Connection error: $e';
+      });
+    }
+  }
+
+  /// Show a snackbar with a message
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  /// Setup socket event listeners
+  void _setupSocketListeners() {
+    // Connection status
+    debugPrint("Setting up socket listeners");
+    _socketService.connectionStatusStream.listen((isConnected) {
+      setState(() {
+        _isConnected = isConnected;
+      });
+
+      if (isConnected) {
+        _showSnackBar('✅ Connected to server', Colors.green);
+      } else {
+        _showSnackBar('❌ Disconnected from server', Colors.red);
+      }
+    });
+
+    // Room list updates
+    _socketService.roomListStream.listen((rooms) {
+      setState(() {
+        _availableRooms = rooms;
+        debugPrint("Available rooms: $_availableRooms from Frontend");
+      });
+    });
+
+    // Error handling
+    _socketService.errorStream.listen((error) {
+      _showSnackBar('❌ Error: $error', Colors.red);
+    });
+  }
+
+  @override
+  void initState() {
+    _initializeSocket();
+    _setupSocketListeners();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -183,7 +274,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
               ),
             ),
             SizedBox(height: 18.sp),
-            const ListLiveStream(),
+            ListLiveStream(availableRooms: _availableRooms),
           ],
         ),
       ),
@@ -250,7 +341,8 @@ class _ListCategoryHomeState extends State<ListCategoryHome> {
 }
 
 class ListLiveStream extends StatelessWidget {
-  const ListLiveStream({super.key});
+  final List<String> availableRooms;
+  const ListLiveStream({super.key, required this.availableRooms});
 
   @override
   Widget build(BuildContext context) {
@@ -266,14 +358,21 @@ class ListLiveStream extends StatelessWidget {
           crossAxisSpacing: 10.sp,
           childAspectRatio: 0.70,
         ),
-        itemCount: listLiveStreamFake.length,
+        // itemCount: listLiveStreamFake.length,
+        itemCount: availableRooms.length,
         itemBuilder: (context, index) {
-          return LiveStreamCard(
-            liveStreamModel: listLiveStreamFake[index],
-            onTap: (() {
-              // Navigator.of(context).push(MaterialPageRoute(
-              //     builder: (context) => const StreamScreen()));
-            }),
+          return InkWell(
+            onTap: () {
+              // Navigate to the live stream screen with the room ID
+              context.push('/go-live?roomId=${availableRooms[index]}');
+            },
+            child: LiveStreamCard(
+              liveStreamModel: listLiveStreamFake[index],
+              onTap: (() {
+                // Navigator.of(context).push(MaterialPageRoute(
+                //     builder: (context) => const StreamScreen()));
+              }),
+            ),
           );
         },
       ),
