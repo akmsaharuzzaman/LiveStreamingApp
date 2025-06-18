@@ -415,6 +415,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
       child: Scaffold(
         body: Stack(
           children: [
+
+            _buildBottomControls(),
+            if(false)
             SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -548,6 +551,111 @@ class _GoliveScreenState extends State<GoliveScreen> {
       ),
     );
   }
+
+  
+  // Main video view
+  Widget _buildVideoView() {
+    if (isHost) {
+      // Show local video for broadcaster
+      return _localUserJoined
+          ? AgoraVideoView(
+              controller: VideoViewController(
+                rtcEngine: _engine,
+                canvas: const VideoCanvas(uid: 0),
+              ),
+            )
+          : const Center(child: CircularProgressIndicator(color: Colors.white));
+    } else {
+      // Show remote video for viewers
+      return _remoteVideo();
+    }
+  }
+
+   Widget _remoteVideo() {
+    if (_remoteUid != null) {
+      return AgoraVideoView(
+        controller: VideoViewController.remote(
+          rtcEngine: _engine,
+          canvas: VideoCanvas(uid: _remoteUid),
+          connection: const RtcConnection(channelId: "default_channel"),
+        ),
+      );
+    } else {
+      return const Text(
+        'Please wait for remote user to join',
+        textAlign: TextAlign.center,
+      );
+    }
+  }
+
+
+    // Bottom controls for broadcaster
+  Widget _buildBottomControls() {
+    if (!isHost) return const SizedBox.shrink();
+
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          bottom: MediaQuery.of(context).padding.bottom + 10,
+          top: 10,
+        ),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [Colors.black.withValues(alpha: .7), Colors.transparent],
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            // Mute button
+            IconButton(
+              onPressed: _toggleMute,
+              icon: Icon(
+                _muted ? Icons.mic_off : Icons.mic,
+                color: _muted ? Colors.red : Colors.white,
+                size: 28,
+              ),
+            ),
+
+            // Camera toggle
+            IconButton(
+              onPressed: _toggleCamera,
+              icon: Icon(
+                _cameraEnabled ? Icons.videocam : Icons.videocam_off,
+                color: _cameraEnabled ? Colors.white : Colors.red,
+                size: 28,
+              ),
+            ),
+
+            // Switch camera
+            IconButton(
+              onPressed: _switchCamera,
+              icon: const Icon(
+                Icons.flip_camera_ios,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+
+            // End stream
+            IconButton(
+              onPressed: _endLiveStream,
+              icon: const Icon(Icons.call_end, color: Colors.red, size: 28),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  
 
   @override
   void dispose() {
