@@ -32,11 +32,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
         Colors.orange,
       );
       _createRoom();
-      Timer(Duration(seconds: 2), () {
-        _deleteRoom();
-      });
+      // Timer(Duration(seconds: 2), () {
+      //   _deleteRoom();
+      // });
     } else {
       _createRoom();
+      _currentRoomId = null;
+      _showSnackBar('You are not in a room', Colors.red);
     }
   }
 
@@ -91,7 +93,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
         });
 
         // If roomId is provided, join the room
-        if (userId != null) {
+        if (!(userId != null)) {
           await _joinRoom(userId!);
         } else if (true) {
           // If user is host, create a new room
@@ -150,6 +152,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     // User events
     _socketService.userJoinedStream.listen((data) {
       final userName = data['userName'] ?? 'Unknown';
+      print("User joined: $userName , console from UI");
       _showSnackBar('👋 $userName joined the stream', Colors.green);
     });
 
@@ -162,6 +165,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     _socketService.roomListStream.listen((rooms) {
       setState(() {
         _availableRooms = rooms;
+        print("Available rooms: $_availableRooms from Frontend");
       });
     });
 

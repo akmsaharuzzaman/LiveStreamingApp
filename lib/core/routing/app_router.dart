@@ -166,7 +166,7 @@ class AppRouter {
     ],
     redirect: (BuildContext context, GoRouterState state) async {
       if (kDebugMode) {
-        Logger().i("Matched Location: ${state.matchedLocation}");
+        debugPrint("Matched Location: ${state.matchedLocation}");
       }
 
       final bool loggedIn = _loginInfo.loggedIn;
@@ -181,7 +181,7 @@ class AppRouter {
       // If not logged in and trying to access protected route
       if (!loggedIn && !isPublicRoute) {
         if (kDebugMode) {
-          Logger().i("Not logged in, redirecting to welcome");
+          debugPrint("Not logged in, redirecting to welcome");
         }
         return '/welcome-screen';
       }
@@ -202,7 +202,7 @@ class AppRouter {
           }
         } catch (e) {
           if (kDebugMode) {
-            Logger().e("Error checking profile completion: $e");
+            debugPrint("Error checking profile completion: $e");
           }
         }
       }
