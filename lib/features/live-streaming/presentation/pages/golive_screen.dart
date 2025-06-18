@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:streaming_djlive/features/auth/data/models/user_profile.dart';
 
 import '../../../../core/network/socket_service.dart';
+import '../../../../core/utils/permission_helper.dart';
 import '../../../profile/presentation/bloc/profile_bloc.dart';
 
 class GoliveScreen extends StatefulWidget {
@@ -49,6 +52,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
   List<String> _availableRooms = [];
   String? _errorMessage;
   String? userId;
+  bool isHost = false;
+  String roomId = "DJLiveRoom";
 
   @override
   void initState() {
@@ -260,154 +265,285 @@ class _GoliveScreenState extends State<GoliveScreen> {
     }
   }
 
+  //Agora SDK
+  late final RtcEngine _engine;
+  int? _remoteUid;
+  bool _localUserJoined = false;
+  final List<int> _remoteUsers = [];
+  bool _muted = false;
+  bool _cameraEnabled = true;
+  int _viewerCount = 0;
+
+  Future<void> initAgora() async {
+    // retrieve permissions
+    PermissionHelper.hasLiveStreamPermissions().then((hasPermissions) {
+      if (!hasPermissions) {
+        PermissionHelper.requestLiveStreamPermissions().then((granted) {
+          if (!granted) {
+            if (mounted) {
+              PermissionHelper.showPermissionDialog(context);
+            }
+          }
+        });
+      }
+    });
+
+    //create the engine
+    _engine = createAgoraRtcEngine();
+    await _engine.initialize(
+      RtcEngineContext(
+        appId: dotenv.env['AGORA_APP_ID'] ?? '',
+        channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
+      ),
+    );
+
+    _engine.registerEventHandler(
+      RtcEngineEventHandler(
+        onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
+          debugPrint("local user ${connection.localUid} joined");
+          setState(() {
+            _localUserJoined = true;
+            _remoteUid = connection.localUid;
+          });
+        },
+        onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
+          debugPrint("remote user $remoteUid joined");
+          setState(() {
+            _remoteUid = remoteUid;
+            _remoteUsers.add(remoteUid);
+            _viewerCount = _remoteUsers.length;
+          });
+
+          // Update viewer count in Firestore
+          if (isHost) {
+            // _firestoreService.updateViewerCount(widget.streamId, _viewerCount);
+          }
+        },
+        onUserOffline:
+            (
+              RtcConnection connection,
+              int remoteUid,
+              UserOfflineReasonType reason,
+            ) {
+              debugPrint("remote user $remoteUid left channel");
+              setState(() {
+                _remoteUid = null;
+                _remoteUsers.remove(remoteUid);
+                _viewerCount = _remoteUsers.length;
+              });
+
+              // Update viewer count in Firestore
+              if (isHost) {
+                // _firestoreService.updateViewerCount(
+                //   widget.streamId,
+                //   _viewerCount,
+                // );
+              }
+            },
+        onTokenPrivilegeWillExpire: (RtcConnection connection, String token) {
+          debugPrint(
+            '[onTokenPrivilegeWillExpire] connection: ${connection.toJson()}, token: $token',
+          );
+        },
+      ),
+    );
+
+    await _engine.setClientRole(
+      role: isHost
+          ? ClientRoleType.clientRoleBroadcaster
+          : ClientRoleType.clientRoleAudience,
+    );
+    await _engine.enableVideo();
+    await _engine.startPreview();
+    await _engine.joinChannel(
+      token: dotenv.env['AGORA_TOKEN'] ?? '',
+      channelId: dotenv.env['DEFAULT_CHANNEL'] ?? roomId,
+      uid: 0,
+      options: const ChannelMediaOptions(),
+    );
+  }
+
+  // Toggle microphone
+  void _toggleMute() async {
+    await _engine.muteLocalAudioStream(!_muted);
+    setState(() {
+      _muted = !_muted;
+    });
+  }
+
+  // Toggle camera
+  void _toggleCamera() async {
+    await _engine.muteLocalVideoStream(!_cameraEnabled);
+    setState(() {
+      _cameraEnabled = !_cameraEnabled;
+    });
+  }
+
+  // Switch camera
+  void _switchCamera() async {
+    await _engine.switchCamera();
+  }
+
+  // End live stream
+  void _endLiveStream() async {
+    try {
+      if (isHost) {
+        // Update stream status to not live
+        // await _firestoreService.updateLiveStream(widget.streamId, {
+        //   'isLive': false,
+        // });
+      }
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      // Still navigate back even if update fails
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (canPop, result) {
-        // Handle back navigation
-        if (_isConnected) {
-          _leaveRoom();
-          _endStream();
-        }
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        // Here you can handle the pop event, if needed
+        print('Back navigation invoked: $didPop');
       },
       child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
-          title: const Text('Go Live'),
-          automaticallyImplyLeading: false,
-          backgroundColor: Colors.grey[100],
-          foregroundColor: Colors.black,
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              const Text(
-                'Set up your live stream',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Choose a thumbnail and title for your stream',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              const SizedBox(height: 30),
-
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _goLive,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 2,
+        body: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  const Text(
+                    'Set up your live stream',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.play_circle_fill, size: 24),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'You are ready to go live',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _checkRoom,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 2,
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Choose a thumbnail and title for your stream',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.play_circle_fill, size: 24),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Check Room Status',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
-              ),
-              const SizedBox(height: 20),
+                  const SizedBox(height: 30),
 
-              // Tips Section
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue[200]!),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _goLive,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.play_circle_fill, size: 24),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'You are ready to go live',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _checkRoom,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.play_circle_fill, size: 24),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Check Room Status',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Tips Section
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue[200]!),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.lightbulb_outline, color: Colors.blue[700]),
-                        const SizedBox(width: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.lightbulb_outline,
+                              color: Colors.blue[700],
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Tips for a great stream',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.blue[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
                         Text(
-                          'Tips for a great stream',
+                          '• Choose an eye-catching thumbnail\n'
+                          '• Write a descriptive title\n'
+                          '• Make sure you have good lighting\n'
+                          '• Test your internet connection',
                           style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
                             color: Colors.blue[700],
+                            height: 1.5,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      '• Choose an eye-catching thumbnail\n'
-                      '• Write a descriptive title\n'
-                      '• Make sure you have good lighting\n'
-                      '• Test your internet connection',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.blue[700],
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -416,6 +552,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
   @override
   void dispose() {
     _titleController.dispose();
+    _dispose();
     super.dispose();
+  }
+
+  Future<void> _dispose() async {
+    await _engine.leaveChannel();
+    await _engine.release();
   }
 }
