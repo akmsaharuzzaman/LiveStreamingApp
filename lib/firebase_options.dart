@@ -64,6 +64,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '535295172490',
     projectId: 'dlstarlive',
     storageBucket: 'dlstarlive.firebasestorage.app',
+    androidClientId: '535295172490-v3q7upds5ol9j5l2587rbe60g1h6k306.apps.googleusercontent.com',
     iosClientId: '535295172490-677vdaha37q85st984kc0ti4rp26g27p.apps.googleusercontent.com',
     iosBundleId: 'com.example.streamingDjlive',
   );
