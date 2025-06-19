@@ -8,12 +8,13 @@ class ActiveViewers extends StatelessWidget {
   Widget build(BuildContext context) {
     bool isLarge = MediaQuery.of(context).size.width > 400;
     int maxVisible = isLarge ? 3 : 2;
-    int hiddenCount = activeUserList.length - maxVisible;
+    int hiddenCount = (activeUserList.length - maxVisible) > 0
+        ? activeUserList.length - maxVisible
+        : 0;
     List visibleUsers = activeUserList.take(maxVisible).toList();
     return Row(
       // spacing: 8,
       children: [
-        // to render the user bubbles
         for (var user in visibleUsers)
           Row(
             children: [

@@ -351,6 +351,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                 _remoteUid = null;
                 _remoteUsers.remove(remoteUid);
                 _viewerCount = _remoteUsers.length;
+                generateActiveViewers(_viewerCount);
               });
 
               // Update viewer count in Firestore
@@ -409,10 +410,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
   void _endLiveStream() async {
     try {
       if (isHost) {
-        // Update stream status to not live
-        // await _firestoreService.updateLiveStream(widget.streamId, {
-        //   'isLive': false,
-        // });
+        // If host, delete the room
+        await _deleteRoom();
+      } else {
+        // If viewer, leave the room
+        await _leaveRoom();
       }
       if (mounted) {
         Navigator.of(context).pop();
@@ -646,12 +648,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
   }
 }
 
-const activeViewers = [
-  {'dp': 'https://thispersondoesnotexist.com/', 'follower': '1.1M'},
-  {'dp': 'https://thispersondoesnotexist.com/', 'follower': '100K'},
-  {'dp': 'https://thispersondoesnotexist.com/', 'follower': '5k'},
-  {'dp': 'https://thispersondoesnotexist.com/', 'follower': '550'},
-  {'dp': 'https://thispersondoesnotexist.com/', 'follower': '1.1M'},
-  {'dp': 'https://thispersondoesnotexist.com/', 'follower': '1.1M'},
-  {'dp': 'https://thispersondoesnotexist.com/', 'follower': '1.1M'},
-];
+const activeViewers = [];
+
+void generateActiveViewers(int count) {
+  activeViewers.clear();
+  for (int i = 0; i < count; i++) {
+    activeViewers.add({
+      'dp': 'https://thispersondoesnotexist.com/',
+      'follower': '${(i + 1) * 100}K',
+    });
+  }
+}
