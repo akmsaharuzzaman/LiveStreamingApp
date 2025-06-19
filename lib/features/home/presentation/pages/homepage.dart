@@ -97,9 +97,11 @@ class _HomePageScreenState extends State<HomePageScreen> {
       });
 
       if (isConnected) {
-        _showSnackBar('✅ Connected to server', Colors.green);
+        // _showSnackBar('✅ Connected to server', Colors.green);
+        debugPrint("Connected to server");
       } else {
-        _showSnackBar('❌ Disconnected from server', Colors.red);
+        // _showSnackBar('❌ Disconnected from server', Colors.red);
+        debugPrint("Disconnected from server");
       }
     });
 
@@ -113,7 +115,11 @@ class _HomePageScreenState extends State<HomePageScreen> {
 
     // Error handling
     _socketService.errorStream.listen((error) {
-      _showSnackBar('❌ Error: $error', Colors.red);
+      // _showSnackBar('❌ Error: $error', Colors.red);
+      setState(() {
+        _errorMessage = error;
+      });
+      debugPrint("Socket error: $error");
     });
   }
 

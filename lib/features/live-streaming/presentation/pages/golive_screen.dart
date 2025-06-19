@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/network/socket_service.dart';
 import '../../../../core/utils/permission_helper.dart';
 
+enum LiveScreenLeaveOptions { disconnect, muteCall, viewProfile }
+
 class GoliveScreen extends StatefulWidget {
   final String? roomId;
   const GoliveScreen({super.key, this.roomId});
