@@ -2,11 +2,18 @@ import 'dart:async';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/network/socket_service.dart';
 import '../../../../core/utils/permission_helper.dart';
+import '../../../profile/presentation/bloc/profile_bloc.dart';
+import '../component/active_viwers.dart';
+import '../component/custom_live_button.dart';
+import '../component/diamond_star_status.dart';
+import '../component/host_info.dart';
+import '../component/live_screen_menu_button.dart';
 
 enum LiveScreenLeaveOptions { disconnect, muteCall, viewProfile }
 
@@ -86,6 +93,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
       setState(() {
         userId = uid;
         debugPrint("User ID set: $userId");
+        context.read<ProfileBloc>().add(ProfileEvent.userDataLoaded(uid: uid));
       });
     } else {
       debugPrint("No UID found");
@@ -425,8 +433,101 @@ class _GoliveScreenState extends State<GoliveScreen> {
         // Here you can handle the pop event, if needed
         print('Back navigation invoked: $didPop');
       },
-      child: Scaffold(
-        body: Stack(children: [_buildVideoView(), _buildBottomControls()]),
+      child: BlocBuilder<ProfileBloc, ProfileState>(
+        builder: (context, state) {
+          return Scaffold(
+            body: Stack(
+              children: [
+                _buildVideoView(),
+
+                // * This contaimer holds the livestream options,
+                SafeArea(
+                  child: Container(
+                    margin: EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+                    child: Column(
+                      spacing: 15,
+                      children: [
+                        // this is the top row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // *shows user informations
+                            HostInfo(
+                              imageUrl: "https://thispersondoesnotexist.com/",
+                              name:
+                                  state.userProfile.result?.name ?? "Host Name",
+                              id:
+                                  state.userProfile.result?.id?.substring(
+                                    0,
+                                    4,
+                                  ) ??
+                                  "Host ID",
+                            ),
+
+                            // *show the viwers
+                            ActiveViewers(activeUserList: activeViewers),
+
+                            // * to show the leave button
+                            LiveScreenMenuButton(
+                              onDisconnect: () {
+                                _endLiveStream();
+                                print("Disconnect pressed");
+                              },
+                              onMuteCall: () {
+                                print("Mute call pressed");
+                                _toggleMute();
+                              },
+                              onViewProfile: () {
+                                print("View profile pressed");
+                              },
+                            ),
+                          ],
+                        ),
+
+                        //  this is the second row
+                        DiamondStarStatus(
+                          diamonCount: "100.0k",
+                          starCount: "2",
+                        ),
+
+                        Spacer(),
+
+                        // the bottom buttons
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            CustomLiveButton(
+                              icon: Icons.chat_bubble_outline,
+                              onTap: () {},
+                            ),
+                            CustomLiveButton(icon: Icons.call, onTap: () {}),
+                            CustomLiveButton(
+                              icon: Icons.mic_off,
+                              onTap: () {
+                                _toggleMute();
+                              },
+                            ),
+                            CustomLiveButton(icon: Icons.redeem, onTap: () {}),
+                            CustomLiveButton(
+                              icon: Icons.music_note,
+                              onTap: () {},
+                            ),
+                            CustomLiveButton(
+                              icon: Icons.more_vert,
+                              onTap: () {},
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // _buildBottomControls(),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -544,3 +645,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
     await _engine.release();
   }
 }
+
+const activeViewers = [
+  {'dp': 'https://thispersondoesnotexist.com/', 'follower': '1.1M'},
+  {'dp': 'https://thispersondoesnotexist.com/', 'follower': '100K'},
+  {'dp': 'https://thispersondoesnotexist.com/', 'follower': '5k'},
+  {'dp': 'https://thispersondoesnotexist.com/', 'follower': '550'},
+  {'dp': 'https://thispersondoesnotexist.com/', 'follower': '1.1M'},
+  {'dp': 'https://thispersondoesnotexist.com/', 'follower': '1.1M'},
+  {'dp': 'https://thispersondoesnotexist.com/', 'follower': '1.1M'},
+];
