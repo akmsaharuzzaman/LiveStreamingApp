@@ -1,4 +1,4 @@
-package com.example.streaming_djlive
+package com.dlstarlive.dlstarlive
 
 import io.flutter.embedding.android.FlutterActivity
 

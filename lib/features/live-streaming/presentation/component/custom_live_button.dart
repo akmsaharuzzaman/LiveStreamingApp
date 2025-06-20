@@ -9,7 +9,7 @@ class CustomLiveButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {},
+      onTap: onTap,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 7, vertical: 7),
         decoration: BoxDecoration(

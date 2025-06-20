@@ -152,9 +152,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
       });
 
       if (isConnected) {
-        _showSnackBar('✅ Connected to server', Colors.green);
+        // _showSnackBar('✅ Connected to server', Colors.green);
+        debugPrint("Connected to server");
       } else {
         _showSnackBar('❌ Disconnected from server', Colors.red);
+        debugPrint("Disconnected from server");
       }
     });
 
@@ -198,6 +200,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     // Error handling
     _socketService.errorStream.listen((error) {
       _showSnackBar('❌ Error: $error', Colors.red);
+      debugPrint("Error from socket: $error");
     });
 
     // Custom live streaming events
@@ -218,8 +221,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
   /// Create a new room (for hosts)
   Future<void> _createRoom() async {
     // final roomId = 'room_${userId}_${DateTime.now().millisecondsSinceEpoch}';
-    final roomId = userId;
-    final success = await _socketService.createRoom(roomId!);
+    // final roomId = userId;
+    final roomId = "default_channel";
+    final success = await _socketService.createRoom(roomId);
 
     if (success) {
       setState(() {
@@ -379,7 +383,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     await _engine.startPreview();
     await _engine.joinChannel(
       token: dotenv.env['AGORA_TOKEN'] ?? '',
-      channelId: dotenv.env['DEFAULT_CHANNEL'] ?? roomId,
+      channelId: dotenv.env['DEFAULT_CHANNEL'] ?? 'default_channel',
       uid: 0,
       options: const ChannelMediaOptions(),
     );
@@ -516,7 +520,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             ),
                             CustomLiveButton(
                               icon: Icons.more_vert,
-                              onTap: () {},
+                              onTap: () {
+                                _showMoreOptions();
+                              },
                             ),
                           ],
                         ),
@@ -531,6 +537,37 @@ class _GoliveScreenState extends State<GoliveScreen> {
           );
         },
       ),
+    );
+  }
+
+  void _showMoreOptions() {
+    print("More options pressed");
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.report),
+                title: Text('Report'),
+                onTap: () {
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.block),
+                title: Text('Block'),
+                onTap: () {
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
