@@ -8,13 +8,13 @@ import 'package:video_player/video_player.dart';
 import '../../data/repositories/log_in_repository.dart';
 
 class WelcomeScreen extends StatefulWidget {
-  const WelcomeScreen({Key? key}) : super(key: key);
+  const WelcomeScreen({super.key});
 
   @override
-  _WelcomeScreenState createState() => _WelcomeScreenState();
+  WelcomeScreenState createState() => WelcomeScreenState();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen> {
+class WelcomeScreenState extends State<WelcomeScreen> {
   late VideoPlayerController videoController;
 
   @override
@@ -56,7 +56,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             body: Stack(
               alignment: AlignmentDirectional.center,
               children: [
-                Container(
+                SizedBox(
                   width: double.infinity,
                   height: double.infinity,
                   child: VideoPlayer(videoController),

@@ -29,6 +29,9 @@ dependencies:
   # Form validation
   formz:
   
+  # Background processing and isolates
+  flutter_isolate: ^2.1.0
+  
   # ============================
   # NETWORKING & HTTP
   # ============================
@@ -36,6 +39,14 @@ dependencies:
   # HTTP clients
   http:
   dio:
+  
+  # Socket.IO client for real-time communication
+  socket_io_client: ^3.1.2
+  
+  # HTTP server framework and static file serving
+  shelf: ^1.4.2
+  shelf_static: ^1.1.3
+  webview_flutter: ^4.13.0
   
   # ============================
   # FIREBASE SERVICES
@@ -70,6 +81,9 @@ dependencies:
   # Video processing (replacing video_thumbnail)
   video_compress: ^3.1.4
   # flutter_ffmpeg_utils: ^1.0.3
+  
+  # Video editing capabilities
+  easy_video_editor: ^0.1.2
   
   # ============================
   # UI & DESIGN COMPONENTS
@@ -155,7 +169,7 @@ dependencies:
   share_plus: ^11.0.0
   
   # Device information
-  device_info_plus: ^11.4.0
+  device_info_plus: ^11.5.0
   
   # Unique identifiers
   uuid: ^4.5.1
@@ -164,7 +178,7 @@ dependencies:
   logger: ^2.5.0
 
   # Tools 
-  flutter_svg: ^2.1.0
+  flutter_svg: ^2.2.0
   image_cropper: ^9.1.0
   video_editor: ^3.0.0
   
@@ -221,6 +235,8 @@ flutter:
     - assets/lottie/
     - assets/images/new_images/
     - .env
+    - assets/unityweb/
+    - assets/unityweb/Build/
 
 # ============================
 # APP BRANDING & SPLASH SCREEN

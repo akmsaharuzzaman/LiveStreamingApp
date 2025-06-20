@@ -83,7 +83,7 @@ class LogInBloc extends Bloc<LogInEvent, LogInState> {
     emit(state.copyWith(logInStatus: LogInStatus.inProgress));
     try {
       final value =
-          await logInRepository.isProfileComplete(state.userInfoProfile!);
+          await logInRepository.isProfileComplete(state.userInfoProfile);
       emit(state.copyWith(
         isProfileComplete: value,
         logInStatus: LogInStatus.success,

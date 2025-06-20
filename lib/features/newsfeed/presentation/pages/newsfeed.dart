@@ -36,92 +36,79 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-          body: CustomScrollView(
-        controller: scrollController,
-        slivers: [
-          SliverAppBar(
-            backgroundColor: Colors.white,
-            title: Row(
-              children: [
-                Image.asset(
-                  'assets/images/new_images/ic_logo_white.png',
-                  height: 40.sp,
-                  width: 40.sp,
-                ),
-                SizedBox(width: 5.sp),
-                Text(
-                  'StreamBird',
-                  style: MyTheme.kAppTitle,
-                ),
-              ],
-            ),
-            centerTitle: false,
-            floating: true,
-            actions: [
-              GestureDetector(
-                onTap: () {
-                  context.push("/reels");
-                },
-                child: Row(
-                  children: [
-                    Icon(Iconsax.instagram, size: 16.sp),
-                    SizedBox(width: 5.sp),
-                    Text(
-                      'Reels',
-                      style: GoogleFonts.aBeeZee(
-                        fontSize: 13.sp,
-                        color: const Color(0xff2c3968),
+        body: CustomScrollView(
+          controller: scrollController,
+          slivers: [
+            SliverAppBar(
+              backgroundColor: Colors.white,
+              title: Row(
+                children: [
+                  Image.asset(
+                    'assets/images/new_images/ic_logo_white.png',
+                    height: 40.sp,
+                    width: 40.sp,
+                  ),
+                  SizedBox(width: 5.sp),
+                  Text('DLStar Live', style: MyTheme.kAppTitle),
+                ],
+              ),
+              centerTitle: false,
+              floating: true,
+              actions: [
+                GestureDetector(
+                  onTap: () {
+                    context.push("/reels");
+                  },
+                  child: Row(
+                    children: [
+                      Icon(Iconsax.instagram, size: 16.sp),
+                      SizedBox(width: 5.sp),
+                      Text(
+                        'Reels',
+                        style: GoogleFonts.aBeeZee(
+                          fontSize: 13.sp,
+                          color: const Color(0xff2c3968),
+                        ),
                       ),
-                    )
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              SizedBox(width: 20.sp),
-              Icon(
-                Icons.search,
-                size: 22.sp,
-              ),
-              SizedBox(width: 15.sp),
-              GestureDetector(
-                onTap: () {
-                  context.push("/live-chat");
-                },
-                child: Image.asset(
-                  'assets/images/new_images/messenger.png',
-                  height: 28.sp,
-                  width: 28.sp,
+                SizedBox(width: 20.sp),
+                Icon(Icons.search, size: 22.sp),
+                SizedBox(width: 15.sp),
+                GestureDetector(
+                  onTap: () {
+                    context.push("/live-chat");
+                  },
+                  child: Image.asset(
+                    'assets/images/new_images/messenger.png',
+                    height: 28.sp,
+                    width: 28.sp,
+                  ),
                 ),
-              ),
-              SizedBox(width: 15.sp),
-            ],
-            systemOverlayStyle: SystemUiOverlayStyle.dark,
-          ),
-          SliverToBoxAdapter(
-            child: CreatePostContainer(currentUser: currentUser),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
-            sliver: SliverToBoxAdapter(
-              child: Stories(
-                currentUser: currentUser,
-                stories: stories,
+                SizedBox(width: 15.sp),
+              ],
+              systemOverlayStyle: SystemUiOverlayStyle.dark,
+            ),
+            SliverToBoxAdapter(
+              child: CreatePostContainer(currentUser: currentUser),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
+              sliver: SliverToBoxAdapter(
+                child: Stories(currentUser: currentUser, stories: stories),
               ),
             ),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
+            SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
                 final Post post = posts[index];
                 return PostContainer(post: post);
-              },
-              childCount: posts.length,
+              }, childCount: posts.length),
             ),
-          ),
-          SliverPadding(
-            padding: EdgeInsets.only(top: 20.sp),
-          )
-        ],
-      )),
+            SliverPadding(padding: EdgeInsets.only(top: 20.sp)),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -157,8 +144,9 @@ class _CreatePostPageState extends State<CreatePostPage> {
   }
 
   void _selectImage() async {
-    final XFile? image =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
+    final XFile? image = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
     if (image != null) {
       setState(() {
         _selectedImage = File(image.path);
@@ -203,34 +191,45 @@ class _CreatePostPageState extends State<CreatePostPage> {
                 onChanged: _onPostChanged,
                 maxLines: 5,
                 decoration: InputDecoration(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
                   hintText: 'What\'s on your mind?',
                   hintStyle: TextStyle(
-                      color: const Color(0xff3E5057),
-                      fontWeight: FontWeight.w400,
-                      fontSize: 14.sp),
+                    color: const Color(0xff3E5057),
+                    fontWeight: FontWeight.w400,
+                    fontSize: 14.sp,
+                  ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16.sp).r,
-                    borderSide:
-                        BorderSide(width: 1.sp, color: Colors.grey.shade200),
+                    borderSide: BorderSide(
+                      width: 1.sp,
+                      color: Colors.grey.shade200,
+                    ),
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16.sp),
-                    borderSide:
-                        BorderSide(width: 1.w, color: Colors.grey.shade200),
+                    borderSide: BorderSide(
+                      width: 1.w,
+                      color: Colors.grey.shade200,
+                    ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16.sp),
-                    borderSide:
-                        BorderSide(width: 1.w, color: Colors.grey.shade200),
+                    borderSide: BorderSide(
+                      width: 1.w,
+                      color: Colors.grey.shade200,
+                    ),
                   ),
                   focusedErrorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16.sp),
-                    borderSide:
-                        BorderSide(width: 1.w, color: Colors.grey.shade200),
+                    borderSide: BorderSide(
+                      width: 1.w,
+                      color: Colors.grey.shade200,
+                    ),
                   ),
                 ),
               ),

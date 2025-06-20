@@ -8,10 +8,8 @@ import '../../services/navbar_provider.dart';
 
 class ScaffoldWithNavBar extends StatelessWidget {
   /// Constructs an [ScaffoldWithNavBar].
-  ScaffoldWithNavBar({
-    required this.child,
-    Key? key,
-  }) : super(key: key ?? const ValueKey<String>('ScaffoldWithNavBar'));
+  ScaffoldWithNavBar({required this.child, Key? key})
+    : super(key: key ?? const ValueKey<String>('ScaffoldWithNavBar'));
 
   /// The navigation shell and container for the branch Navigators.
   final Widget child;
@@ -46,8 +44,9 @@ class ScaffoldWithNavBar extends StatelessWidget {
                     ),
                     child: BottomNavigationBar(
                       showSelectedLabels: false,
+                      type: BottomNavigationBarType.fixed,
                       showUnselectedLabels: false,
-                      backgroundColor: Colors.transparent,
+                      backgroundColor: Colors.white,
                       elevation: 0,
                       currentIndex: navBarState.currentIndex,
                       onTap: (int index) {
@@ -55,9 +54,9 @@ class ScaffoldWithNavBar extends StatelessWidget {
                         List<String> routes = [
                           "home",
                           "newsfeed",
-                          "leaderboard",
+                          "go-live",
                           "live-chat",
-                          "profile"
+                          "profile",
                         ];
 
                         // if (index == 2) {
@@ -72,7 +71,11 @@ class ScaffoldWithNavBar extends StatelessWidget {
                         // } else
                         if (index >= 0 && index < routes.length) {
                           // Use GoRouter for other indexes
-                          context.goNamed(routes[index]);
+                          if (index == 2) {
+                            context.pushNamed(routes[index]);
+                          } else {
+                            context.goNamed(routes[index]);
+                          }
                         }
                       },
                       items: [
@@ -102,8 +105,10 @@ class ScaffoldWithNavBar extends StatelessWidget {
                               borderRadius: BorderRadius.circular(15),
                               color: Colors.redAccent,
                             ),
-                            child:
-                                const Icon(Iconsax.play, color: Colors.white),
+                            child: const Icon(
+                              Iconsax.play,
+                              color: Colors.white,
+                            ),
                           ),
                           label: "Go Live",
                           backgroundColor: Colors.white,
@@ -142,6 +147,8 @@ class ScaffoldWithNavBar extends StatelessWidget {
   /// Navigate to the current location of the branch at the provided index when
   /// tapping an item in the BottomNavigationBar.
 }
+
+
 /*
 class ScaffoldWithNavBar extends StatelessWidget {
   /// Constructs an [ScaffoldWithNavBar].

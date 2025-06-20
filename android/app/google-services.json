@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "535295172490-v3q7upds5ol9j5l2587rbe60g1h6k306.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.streaming_djlive",
+            "certificate_hash": "53f28979ff758db76868bbfe05d1298a0f8a67db"
+          }
+        },
+        {
           "client_id": "535295172490-9219de01tva7q4iv8l67p77295id9dvj.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -29,6 +37,13 @@
             {
               "client_id": "535295172490-9219de01tva7q4iv8l67p77295id9dvj.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "535295172490-677vdaha37q85st984kc0ti4rp26g27p.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.streamingDjlive"
+              }
             }
           ]
         }

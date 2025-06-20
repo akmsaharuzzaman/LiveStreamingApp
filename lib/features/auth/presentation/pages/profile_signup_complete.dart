@@ -60,17 +60,17 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
     final result = context.read<LogInBloc>().state.userInfoProfile.result;
     //  final result = state.userInfoProfile.result;
     if (result == null) return false;
-    print('Result: $result');
-    print('Result First Name: "${result.firstName}"');
-    print('Result Last Name: "${result.lastName}"');
-    print('Result Birthday: ${result.birthday}');
-    print('Result Bio: "${result.bio}"');
-    print('Result Bio: "${result.country}"');
+    debugPrint('Result: $result');
+    debugPrint('Result First Name: "${result.firstName}"');
+    debugPrint('Result Last Name: "${result.lastName}"');
+    debugPrint('Result Birthday: ${result.birthday}');
+    debugPrint('Result Bio: "${result.bio}"');
+    debugPrint('Result Country: "${result.country}"');
 
     return (_firstNameController.text.isNotEmpty) &&
         (_lastNameController.text.isNotEmpty) &&
         (_genderController.text.isNotEmpty) &&
-        (selectedCountry!.isNotEmpty) &&
+        (selectedCountry?.isNotEmpty ?? false) &&
         (_birthdayController.text.isNotEmpty);
   }
 
@@ -93,8 +93,11 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
       lastDate: DateTime.now(),
     );
     if (picked != null) {
-      context.read<LogInBloc>().add(LogInEvent.birthDayChanged(
-          birthDay: DateFormat('yyyy-MM-dd').format(picked).toString()));
+      context.read<LogInBloc>().add(
+        LogInEvent.birthDayChanged(
+          birthDay: DateFormat('yyyy-MM-dd').format(picked).toString(),
+        ),
+      );
       _birthdayController.text = DateFormat('yyyy-MM-dd').format(picked);
     }
   }
@@ -113,7 +116,7 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
           if (result != null) {
             _firstNameController.text = result.firstName ?? '';
             _lastNameController.text = result.lastName ?? '';
-            _bioController.text = result.bio ?? 'Welcome to StreamBird';
+            _bioController.text = result.bio ?? 'Welcome to DLStar Live';
             _birthdayController.text = result.birthday ?? '';
 
             if ((result.firstName?.isNotEmpty ?? false) &&
@@ -131,7 +134,7 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
             // _lastNameController.text =
             //     state.userInfoProfile.result?.lastName ?? "";
             // _bioController.text =
-            //     state.userInfoProfile.result?.bio ?? 'Welcome to StreamBird';
+            //     state.userInfoProfile.result?.bio ?? 'Welcome to DLStar Live';
             // _birthdayController.text =
             //     state.userInfoProfile.result?.birthday ?? '';
             final userProfile = state.userInfoProfile.result;
@@ -152,10 +155,7 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                           width: 40,
                         ),
                         SizedBox(width: 8.sp),
-                        Text(
-                          "StreamBird",
-                          style: MyTheme.kAppTitle,
-                        ),
+                        Text("DLStar Live", style: MyTheme.kAppTitle),
                       ],
                     ),
                   ),
@@ -194,8 +194,9 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                   ),
                   Expanded(
                     child: GridView.builder(
-                      padding: EdgeInsets.symmetric(horizontal: 16.sp)
-                          .add(EdgeInsets.only(bottom: 80.sp)),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.sp,
+                      ).add(EdgeInsets.only(bottom: 80.sp)),
                       itemCount: 6,
                       physics: const NeverScrollableScrollPhysics(),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -235,17 +236,16 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(
-                          height: 60.sp,
-                        ),
+                        SizedBox(height: 60.sp),
                         Padding(
                           padding: EdgeInsets.only(left: 18.0),
                           child: Text(
                             'Complete your personal data',
                             style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 22.sp,
-                                fontWeight: FontWeight.w600),
+                              color: Colors.white,
+                              fontSize: 22.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                         Padding(
@@ -253,9 +253,10 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                           child: Text(
                             'For better experience',
                             style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w600),
+                              color: Colors.white,
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                         SizedBox(height: 25.sp),
@@ -270,8 +271,10 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                             child: Form(
                               key: _formKey,
                               child: Padding(
-                                padding:
-                                    EdgeInsets.only(right: 14.sp, left: 14.sp),
+                                padding: EdgeInsets.only(
+                                  right: 14.sp,
+                                  left: 14.sp,
+                                ),
                                 child: ListView(
                                   children: [
                                     const SizedBox(height: 8),
@@ -345,24 +348,29 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                                               borderRadius:
                                                   BorderRadius.circular(16.sp),
                                               borderSide: BorderSide(
-                                                  width: 1.w,
-                                                  color: Colors.grey.shade200),
+                                                width: 1.w,
+                                                color: Colors.grey.shade200,
+                                              ),
                                             ),
                                             enabledBorder: OutlineInputBorder(
                                               borderRadius:
                                                   BorderRadius.circular(16.sp),
                                               borderSide: BorderSide(
-                                                  width: 1.w,
-                                                  color: Colors.grey.shade200),
+                                                width: 1.w,
+                                                color: Colors.grey.shade200,
+                                              ),
                                             ),
                                             focusedErrorBorder:
                                                 OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(16.sp),
-                                              borderSide: BorderSide(
-                                                  width: 1.w,
-                                                  color: Colors.red),
-                                            ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        16.sp,
+                                                      ),
+                                                  borderSide: BorderSide(
+                                                    width: 1.w,
+                                                    color: Colors.red,
+                                                  ),
+                                                ),
                                             hintText: 'YYYY-MM-DD',
                                           ),
                                           validator: (value) {
@@ -371,8 +379,9 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                                               return 'Please enter your birthday';
                                             }
                                             try {
-                                              DateFormat('yyyy-MM-dd')
-                                                  .parse(value);
+                                              DateFormat(
+                                                'yyyy-MM-dd',
+                                              ).parse(value);
                                             } catch (e) {
                                               return 'Please enter a valid date in YYYY-MM-DD format';
                                             }
@@ -387,29 +396,39 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                                         fillColor: Colors.grey.shade200,
                                         filled: true,
                                         border: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(16.sp),
+                                          borderRadius: BorderRadius.circular(
+                                            16.sp,
+                                          ),
                                           borderSide: BorderSide(
-                                              width: 1.w,
-                                              color: Colors.grey.shade200),
+                                            width: 1.w,
+                                            color: Colors.grey.shade200,
+                                          ),
                                         ),
                                         enabledBorder: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(16.sp),
+                                          borderRadius: BorderRadius.circular(
+                                            16.sp,
+                                          ),
                                           borderSide: BorderSide(
-                                              width: 1.w,
-                                              color: Colors.grey.shade200),
+                                            width: 1.w,
+                                            color: Colors.grey.shade200,
+                                          ),
                                         ),
                                         focusedErrorBorder: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(16.sp),
+                                          borderRadius: BorderRadius.circular(
+                                            16.sp,
+                                          ),
                                           borderSide: BorderSide(
-                                              width: 1.w, color: Colors.red),
+                                            width: 1.w,
+                                            color: Colors.red,
+                                          ),
                                         ),
                                         hintText: 'Select Gender',
                                       ),
                                       value: state
-                                          .userProfile.result?.first.gender,
+                                          .userProfile
+                                          .result
+                                          ?.first
+                                          .gender,
                                       items: [
                                         DropdownMenuItem(
                                           value: 'Male',
@@ -470,41 +489,44 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                                       },
                                       child: Container(
                                         padding: EdgeInsets.symmetric(
-                                            vertical: 8.h, horizontal: 12.w),
+                                          vertical: 8.h,
+                                          horizontal: 12.w,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: Colors.grey.shade200,
-                                          borderRadius:
-                                              BorderRadius.circular(16.sp),
+                                          borderRadius: BorderRadius.circular(
+                                            16.sp,
+                                          ),
                                         ),
                                         child: Row(
                                           children: [
                                             if ((selectedCountry?.isNotEmpty ??
                                                 false)) ...[
                                               Text(
-                                                selectedFlag!,
+                                                selectedFlag,
                                                 style: TextStyle(
-                                                    color: Colors.black,
-                                                    fontSize: 20.sp,
-                                                    fontWeight:
-                                                        FontWeight.normal),
+                                                  color: Colors.black,
+                                                  fontSize: 20.sp,
+                                                  fontWeight: FontWeight.normal,
+                                                ),
                                               ),
                                               SizedBox(width: 8),
                                               Text(
                                                 selectedCountry ?? '',
                                                 style: TextStyle(
-                                                    color: Colors.black,
-                                                    fontSize: 16.sp,
-                                                    fontWeight:
-                                                        FontWeight.normal),
+                                                  color: Colors.black,
+                                                  fontSize: 16.sp,
+                                                  fontWeight: FontWeight.normal,
+                                                ),
                                               ),
                                             ] else
                                               Text(
                                                 "Select Country",
                                                 style: TextStyle(
-                                                    color: Colors.black,
-                                                    fontSize: 16.sp,
-                                                    fontWeight:
-                                                        FontWeight.normal),
+                                                  color: Colors.black,
+                                                  fontSize: 16.sp,
+                                                  fontWeight: FontWeight.normal,
+                                                ),
                                               ),
                                             Spacer(),
                                             Icon(Icons.arrow_drop_down),
@@ -529,39 +551,37 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                               style: ButtonStyle(
                                 backgroundColor:
                                     MaterialStateProperty.resolveWith((states) {
-                                  if (states.contains(MaterialState.disabled)) {
-                                    return Colors.red;
-                                  }
-                                  return const Color(
-                                      0xff2c3968); // Default blue when enabled
-                                }),
+                                      if (states.contains(
+                                        MaterialState.disabled,
+                                      )) {
+                                        return Colors.red;
+                                      }
+                                      return const Color(
+                                        0xff2c3968,
+                                      ); // Default blue when enabled
+                                    }),
                               ),
                               onPressed: isFormComplete()
                                   ? () {
-                                      context
-                                          .read<LogInBloc>()
-                                          .add(
-                                              LogInEvent.saveUserProfile(
-                                                  context: context,
-                                                  firstName:
-                                                      _firstNameController.text,
-                                                  lastName:
-                                                      _lastNameController.text,
-                                                  birthday:
-                                                      _birthdayController.text,
-                                                  gender:
-                                                      _genderController.text,
-                                                  bio: _bioController.text,
-                                                  countryName: selectedCountry
-                                                      .toString(),
-                                                  countryDialCode:
-                                                      countryDialCode
-                                                          .toString(),
-                                                  countryIsoCode:
-                                                      countryIsoCode.toString(),
-                                                  countryLanguages: [
-                                                countryIsoCode.toString()
-                                              ]));
+                                      context.read<LogInBloc>().add(
+                                        LogInEvent.saveUserProfile(
+                                          context: context,
+                                          firstName: _firstNameController.text,
+                                          lastName: _lastNameController.text,
+                                          birthday: _birthdayController.text,
+                                          gender: _genderController.text,
+                                          bio: _bioController.text,
+                                          countryName: selectedCountry
+                                              .toString(),
+                                          countryDialCode: countryDialCode
+                                              .toString(),
+                                          countryIsoCode: countryIsoCode
+                                              .toString(),
+                                          countryLanguages: [
+                                            countryIsoCode.toString(),
+                                          ],
+                                        ),
+                                      );
                                     }
                                   : null,
                               child: /*state.profileSaveStatus ==
@@ -569,8 +589,7 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                                   ? const Center(
                                       child:
                                           CircularProgressIndicator.adaptive())
-                                  :*/
-                                  Text(
+                                  :*/ Text(
                                 "Submit",
                                 style: TextStyle(
                                   fontSize: 15.sp,
@@ -592,9 +611,10 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                             child: Text(
                               '“Cannot chane gender and country after confirmation”',
                               style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w600),
+                                color: Colors.white,
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
@@ -602,192 +622,196 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                     ),
                   ),
                   Positioned(
-                      top: 110.sp,
-                      left: 150.sp,
-                      child: GestureDetector(
-                        onTap: () {
-                          // context.pop();
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                contentPadding: EdgeInsets.zero,
-                                titlePadding: EdgeInsets.zero,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  side: const BorderSide(color: Colors.white),
+                    top: 110.sp,
+                    left: 150.sp,
+                    child: GestureDetector(
+                      onTap: () {
+                        // context.pop();
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              contentPadding: EdgeInsets.zero,
+                              titlePadding: EdgeInsets.zero,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: const BorderSide(color: Colors.white),
+                              ),
+                              title: SizedBox(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 24.sp,
+                                        vertical: 20.sp,
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            "Update Image",
+                                            style: GoogleFonts.notoSansBengali(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 12.sp,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                          GestureDetector(
+                                            onTap: () {
+                                              context.pop();
+                                            },
+                                            child: Icon(
+                                              Icons.close,
+                                              color: Colors.black,
+                                              size: 14.sp,
+                                              weight: 10.w,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Divider(
+                                      height: 1,
+                                      color: Color(0xffE0E0DD),
+                                    ),
+                                  ],
                                 ),
-                                title: SizedBox(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 24.sp, vertical: 20.sp),
+                              ),
+                              content: Container(
+                                alignment: Alignment.center,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 20.sp,
+                                ),
+                                height: 88.h,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.max,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      height: 40.h,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          context.pop();
+                                          context.read<LogInBloc>().add(
+                                            LogInEvent.imagePicked(
+                                              cameraImage: true,
+                                              context: context,
+                                            ),
+                                          );
+                                        },
                                         child: Row(
                                           mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
+                                              MainAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
                                           children: [
+                                            SizedBox(width: 12.w),
                                             Text(
-                                              "Update Image",
+                                              "From Camera",
                                               style:
                                                   GoogleFonts.notoSansBengali(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 12.sp,
-                                                color: Colors.black,
-                                              ),
-                                            ),
-                                            GestureDetector(
-                                              onTap: () {
-                                                context.pop();
-                                              },
-                                              child: Icon(
-                                                Icons.close,
-                                                color: Colors.black,
-                                                size: 14.sp,
-                                                weight: 10.w,
-                                              ),
+                                                    fontWeight: FontWeight.w400,
+                                                    fontSize: 11.sp,
+                                                    color: Colors.black,
+                                                  ),
                                             ),
                                           ],
                                         ),
                                       ),
-                                      const Divider(
-                                        height: 1,
-                                        color: Color(0xffE0E0DD),
+                                    ),
+                                    Divider(
+                                      height: 1.h,
+                                      color: const Color(0xffE0E0DD),
+                                    ),
+                                    SizedBox(
+                                      height: 40.h,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          context.pop();
+                                          context.read<LogInBloc>().add(
+                                            LogInEvent.imagePicked(
+                                              cameraImage: false,
+                                              context: context,
+                                            ),
+                                          );
+                                        },
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            SizedBox(width: 12.w),
+                                            Text(
+                                              "From Gallery",
+                                              style:
+                                                  GoogleFonts.notoSansBengali(
+                                                    fontWeight: FontWeight.w400,
+                                                    fontSize: 11.sp,
+                                                    color: Colors.black,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                      child: Stack(
+                        fit: StackFit.loose,
+                        children: [
+                          state.pickedImageFile != null
+                              ? CircleAvatar(
+                                  radius: 32.r,
+                                  // Size of the avatar
+                                  backgroundImage: FileImage(
+                                    File(state.pickedImageFile?.path ?? ""),
+                                  ),
+                                  // Image URL
+                                  backgroundColor: Colors
+                                      .grey[200], // Fallback background color
+                                )
+                              : userProfile?.avatar != null
+                              ? CircleAvatar(
+                                  radius: 32.r,
+                                  // Size of the avatar
+                                  backgroundImage: NetworkImage(
+                                    userProfile?.avatar?.url ?? '',
+                                  ),
+                                  // Image URL
+                                  backgroundColor: Colors
+                                      .grey[200], // Fallback background color
+                                )
+                              : CircleAvatar(
+                                  radius: 32.r, // Size of the avatar
+                                  backgroundImage: const AssetImage(
+                                    'assets/images/new_images/profile.png',
                                   ),
                                 ),
-                                content: Container(
-                                  alignment: Alignment.center,
-                                  padding:
-                                      EdgeInsets.symmetric(horizontal: 20.sp),
-                                  height: 88.h,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.max,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      SizedBox(
-                                        height: 40.h,
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            context.pop();
-                                            context
-                                                .read<LogInBloc>()
-                                                .add(LogInEvent.imagePicked(
-                                                  cameraImage: true,
-                                                  context: context,
-                                                ));
-                                          },
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.start,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.center,
-                                            children: [
-                                              SizedBox(
-                                                width: 12.w,
-                                              ),
-                                              Text(
-                                                "From Camera",
-                                                style:
-                                                    GoogleFonts.notoSansBengali(
-                                                  fontWeight: FontWeight.w400,
-                                                  fontSize: 11.sp,
-                                                  color: Colors.black,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      Divider(
-                                        height: 1.h,
-                                        color: const Color(0xffE0E0DD),
-                                      ),
-                                      SizedBox(
-                                        height: 40.h,
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            context.pop();
-                                            context.read<LogInBloc>().add(
-                                                LogInEvent.imagePicked(
-                                                    cameraImage: false,
-                                                    context: context));
-                                          },
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.start,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.center,
-                                            children: [
-                                              SizedBox(
-                                                width: 12.w,
-                                              ),
-                                              Text(
-                                                "From Gallery",
-                                                style:
-                                                    GoogleFonts.notoSansBengali(
-                                                  fontWeight: FontWeight.w400,
-                                                  fontSize: 11.sp,
-                                                  color: Colors.black,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                        child: Stack(
-                          fit: StackFit.loose,
-                          children: [
-                            state.pickedImageFile != null
-                                ? CircleAvatar(
-                                    radius: 32.r,
-                                    // Size of the avatar
-                                    backgroundImage: FileImage(File(
-                                        state.pickedImageFile?.path ?? "")),
-                                    // Image URL
-                                    backgroundColor: Colors
-                                        .grey[200], // Fallback background color
-                                  )
-                                : userProfile?.avatar != null
-                                    ? CircleAvatar(
-                                        radius: 32.r,
-                                        // Size of the avatar
-                                        backgroundImage: NetworkImage(
-                                          userProfile?.avatar?.url ?? '',
-                                        ),
-                                        // Image URL
-                                        backgroundColor: Colors.grey[
-                                            200], // Fallback background color
-                                      )
-                                    : CircleAvatar(
-                                        radius: 32.r, // Size of the avatar
-                                        backgroundImage: const AssetImage(
-                                            'assets/images/new_images/profile.png'),
-                                      ),
-                            Positioned(
-                                top: 2,
-                                right: 2,
-                                child: CircleAvatar(
-                                    radius: 10.r,
-                                    backgroundColor: Colors.blue,
-                                    child: Icon(
-                                      Icons.edit,
-                                      size: 13.sp,
-                                      color: Colors.white,
-                                    ))),
-                          ],
-                        ),
-                      )),
+                          Positioned(
+                            top: 2,
+                            right: 2,
+                            child: CircleAvatar(
+                              radius: 10.r,
+                              backgroundColor: Colors.blue,
+                              child: Icon(
+                                Icons.edit,
+                                size: 13.sp,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               );
             }

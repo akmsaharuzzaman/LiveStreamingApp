@@ -1,36 +1,46 @@
-lib\firebase_options.dart
-# Flutter/Dart specific
+# Flutter/Dart related
+lib/firebase_options.dart
 .dart_tool/
 .packages
+.pub-cache/
+build/
+pubspec.lock
+
+# Generated files
+macos/Flutter/GeneratedPluginRegistrant.swift
+
+# IDEs and editors
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Xcode
+*.xcworkspace
+*.xcuserstate
+*.xcuserdata
+
+# Android Studio
+*.iml
+
+# Miscellaneous
+*.log
+*.tmp
+
+# Coverage
+coverage/
+
+# Local configuration and environment
+*.local
+.env
+
+# Flutter plugin files
 .flutter-plugins
 .flutter-plugins-dependencies
 .flutter-plugins-dependencies.json
 .flutter-plugins.json
-# Build outputs
-build/
-# IDE specific
-.idea/
-# VS Code
-.vscode/
-# IntelliJ
-*.iml
-# Android Studio
-*.ipr
-# Xcode
-*.xcworkspace
-# Generated files
-pubspec.lock
-# Miscellaneous
-*.log
-# Coverage
-coverage/
-# Temporary files
-*.tmp
-# Local configuration files
-*.local
-# Environment variables
-.env
-.flutter-plugins-dependencies
+
+# Dart tool configs
 .dart_tool/package_config_subset
 .dart_tool/package_config.json
-macos/Flutter/GeneratedPluginRegistrant.swift

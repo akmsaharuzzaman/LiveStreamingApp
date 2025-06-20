@@ -26,20 +26,23 @@ class LogInRepository {
   final ImagePicker _imagePicker = ImagePicker();
 
   Future<void> googleLogin(BuildContext context) async {
+    debugPrint("Google Login called");
     try {
       GoogleSignIn googleSignIn = GoogleSignIn(
         scopes: ['email', 'profile', 'openid'],
       );
 
-      googleSignIn.onCurrentUserChanged
-          .listen((GoogleSignInAccount? account) async {
+      googleSignIn.onCurrentUserChanged.listen((
+        GoogleSignInAccount? account,
+      ) async {
         if (account != null) {
           final fullName = account.displayName ?? '';
           final nameParts = fullName.split(' ');
 
           final firstName = nameParts.isNotEmpty ? nameParts.first : '';
-          final lastName =
-              nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+          final lastName = nameParts.length > 1
+              ? nameParts.sublist(1).join(' ')
+              : '';
 
           //BigInt uid = BigInt.parse(account.id);
 
@@ -50,12 +53,12 @@ class LogInRepository {
             "first_name": firstName,
             "last_name": lastName,
             "uid": account.id.toString(),
-            "avater": account.photoUrl
+            "avater": account.photoUrl,
           };
 
-          context
-              .read<LogInBloc>()
-              .add(LogInEvent.googleLogIn(body: _body, context: context));
+          context.read<LogInBloc>().add(
+            LogInEvent.googleLogIn(body: _body, context: context),
+          );
 
           await googleSignIn.disconnect();
         }
@@ -63,17 +66,21 @@ class LogInRepository {
 
       await googleSignIn.signIn();
     } on Exception catch (exception) {
-      Logger().e(exception);
+      debugPrint("Google Sign In Error: $exception");
     }
   }
 
-  Future<UserResponseData> signInWithGoogle(
-      {required Map<dynamic, dynamic> body}) async {
+  Future<UserResponseData> signInWithGoogle({
+    required Map<dynamic, dynamic> body,
+  }) async {
     try {
-      final resp =
-          await dioClient.post("/api/auth/register-google", data: body);
-      UserResponseData googleUserDataSubmitted =
-          UserResponseData.fromJson(jsonDecode(jsonEncode(resp)));
+      final resp = await dioClient.post(
+        "/api/auth/register-google",
+        data: body,
+      );
+      UserResponseData googleUserDataSubmitted = UserResponseData.fromJson(
+        jsonDecode(jsonEncode(resp)),
+      );
 
       print("Google Response is ${googleUserDataSubmitted}");
       return googleUserDataSubmitted;
@@ -84,9 +91,7 @@ class LogInRepository {
 
   Future<UserProfileDataResponse> profileDataLoad({required String uid}) async {
     try {
-      final resp = await dioClient.get(
-        "/api/auth/user/$uid",
-      );
+      final resp = await dioClient.get("/api/auth/user/$uid");
       UserProfileDataResponse userDataResponse =
           UserProfileDataResponse.fromJson(jsonDecode(jsonEncode(resp)));
 
@@ -113,7 +118,8 @@ class LogInRepository {
     print('Birthday: ${profile.birthday}');
     print('Bio: "${profile.bio}"');
 
-    final isComplete = profile.firstName?.trim().isNotEmpty == true &&
+    final isComplete =
+        profile.firstName?.trim().isNotEmpty == true &&
         profile.lastName?.trim().isNotEmpty == true &&
         profile.birthday != null;
     // profile.bio?.trim().isNotEmpty == true;
@@ -126,7 +132,10 @@ class LogInRepository {
   Future<XFile?> openImagePicker(bool isCamera) async {
     final imageSource = isCamera ? ImageSource.camera : ImageSource.gallery;
     final pickedFile = await _imagePicker.pickImage(
-        source: imageSource, maxHeight: 600, maxWidth: 600);
+      source: imageSource,
+      maxHeight: 600,
+      maxWidth: 600,
+    );
     return pickedFile;
   }
 
@@ -144,24 +153,12 @@ class LogInRepository {
   }) async {
     try {
       FormData formData = FormData();
-      formData.fields.addAll([
-        MapEntry("first_name", firstName),
-      ]);
-      formData.fields.addAll([
-        MapEntry("last_name", lastName),
-      ]);
-      formData.fields.addAll([
-        MapEntry("bio", bio.toString()),
-      ]);
-      formData.fields.addAll([
-        MapEntry("birthday", birthday.toString()),
-      ]);
-      formData.fields.addAll([
-        MapEntry("gender", gender.toString()),
-      ]);
-      formData.fields.addAll([
-        MapEntry("country", countryName.toString()),
-      ]);
+      formData.fields.addAll([MapEntry("first_name", firstName)]);
+      formData.fields.addAll([MapEntry("last_name", lastName)]);
+      formData.fields.addAll([MapEntry("bio", bio.toString())]);
+      formData.fields.addAll([MapEntry("birthday", birthday.toString())]);
+      formData.fields.addAll([MapEntry("gender", gender.toString())]);
+      formData.fields.addAll([MapEntry("country", countryName.toString())]);
       formData.fields.addAll([
         MapEntry("country_dial_code", countryDialCode.toString()),
       ]);
@@ -177,8 +174,10 @@ class LogInRepository {
         print('${field.key}: ${field.value}');
       });
 
-      final resp =
-          await dioClient.put(' /api/auth/update-profile', data: formData);
+      final resp = await dioClient.put(
+        ' /api/auth/update-profile',
+        data: formData,
+      );
 
       return resp;
     } catch (e) {
@@ -192,10 +191,7 @@ class LogInRepository {
   }) async {
     try {
       final formData = FormData.fromMap({
-        "avatar": MultipartFile.fromBytes(
-          imageBytes,
-          filename: 'image.jpg',
-        ),
+        "avatar": MultipartFile.fromBytes(imageBytes, filename: 'image.jpg'),
       });
       final resp = await dioClient.put(
         ' /api/auth/update-profile',

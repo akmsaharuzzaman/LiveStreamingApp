@@ -3,10 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 
 class MyTabBar extends StatefulWidget {
-  const MyTabBar({
-    Key? key,
-    required this.tabController,
-  }) : super(key: key);
+  const MyTabBar({super.key, required this.tabController});
 
   final TabController tabController;
 
@@ -40,7 +37,7 @@ class _MyTabBarState extends State<MyTabBar> {
                           return widget.tabController.index == 0
                               ? Container(
                                   width: 25,
-                                  height: 25,
+                                  height: 24,
                                   decoration: const BoxDecoration(
                                     color: Colors.transparent,
                                     shape: BoxShape.circle,
@@ -70,7 +67,7 @@ class _MyTabBarState extends State<MyTabBar> {
                           return widget.tabController.index == 1
                               ? Container(
                                   width: 25,
-                                  height: 25,
+                                  height: 24,
                                   decoration: BoxDecoration(
                                     color: Colors.transparent,
                                     shape: BoxShape.circle,
@@ -95,12 +92,12 @@ class _MyTabBarState extends State<MyTabBar> {
                     alignment: Alignment.center,
                     children: [
                       AnimatedBuilder(
-                        animation: widget.tabController!,
+                        animation: widget.tabController,
                         builder: (context, child) {
-                          return widget.tabController!.index == 2
+                          return widget.tabController.index == 2
                               ? Container(
                                   width: 25,
-                                  height: 25,
+                                  height: 24,
                                   decoration: const BoxDecoration(
                                     color: Colors.transparent,
                                     shape: BoxShape.circle,
