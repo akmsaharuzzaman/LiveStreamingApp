@@ -444,6 +444,13 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
             lockAspectRatio: true,
             hideBottomControls: false,
             showCropGrid: true,
+            statusBarColor: Colors.black,
+            dimmedLayerColor: Colors.black.withOpacity(0.8),
+            cropFrameColor: Colors.blue,
+            cropGridColor: Colors.white.withOpacity(0.5),
+            cropFrameStrokeWidth: 2,
+            cropGridRowCount: 3,
+            cropGridColumnCount: 3,
           ),
           IOSUiSettings(
             title: 'Crop Image',
