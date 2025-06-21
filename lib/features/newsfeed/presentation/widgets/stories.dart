@@ -9,8 +9,7 @@ class Stories extends StatelessWidget {
   final User currentUser;
   final List<Story> stories;
 
-  const Stories({Key? key, required this.currentUser, required this.stories})
-    : super(key: key);
+  const Stories({super.key, required this.currentUser, required this.stories});
 
   @override
   Widget build(BuildContext context) {
@@ -25,13 +24,27 @@ class Stories extends StatelessWidget {
           if (index == 0) {
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4.0),
-              child: _StoryCard(isAddStory: true, currentUser: currentUser),
+              child: StoryCard(
+                isAddStory: true,
+                currentUser: currentUser,
+                onTap: () {
+                  // Handle add story tap
+                  print('Add Story tapped');
+                },
+              ),
             );
           }
           final Story story = stories[index - 1];
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4.0),
-            child: _StoryCard(story: story, currentUser: currentUser),
+            child: StoryCard(
+              story: story,
+              currentUser: currentUser,
+              onTap: () {
+                // Handle story tap
+                print('Story tapped: ${story.user.id}');
+              },
+            ),
           );
         },
       ),
@@ -39,89 +52,96 @@ class Stories extends StatelessWidget {
   }
 }
 
-class _StoryCard extends StatelessWidget {
+class StoryCard extends StatelessWidget {
   final bool isAddStory;
-  User? currentUser;
-  Story? story;
+  final User? currentUser;
+  final Story? story;
+  final VoidCallback? onTap;
 
-  _StoryCard({
+  const StoryCard({
     super.key,
     this.isAddStory = false,
     this.currentUser,
     this.story,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12.0),
-          child: CachedNetworkImage(
-            imageUrl: isAddStory ? currentUser!.avatar : story?.imageUrl ?? "",
+    return InkWell(
+      onTap: onTap,
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12.0),
+            child: CachedNetworkImage(
+              imageUrl: isAddStory
+                  ? currentUser!.avatar
+                  : story?.imageUrl ?? "",
+              height: double.infinity,
+              width: 110.0,
+              fit: BoxFit.cover,
+            ),
+          ),
+          Container(
             height: double.infinity,
             width: 110.0,
-            fit: BoxFit.cover,
-          ),
-        ),
-        Container(
-          height: double.infinity,
-          width: 110.0,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Colors.transparent, Colors.black26],
-            ),
-            borderRadius: BorderRadius.circular(12.0),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black26,
-                offset: Offset(0, 2),
-                blurRadius: 4.0,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, Colors.black26],
               ),
-            ],
-          ),
-        ),
-        Positioned(
-          top: 8.0,
-          left: 8.0,
-          child: isAddStory
-              ? Container(
-                  height: 40.0,
-                  width: 40.0,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(Icons.add),
-                    iconSize: 30.0,
-                    color: Colors.blue,
-                    onPressed: () => print('Add to Story'),
-                  ),
-                )
-              : ProfileAvatar(
-                  imageUrl: story?.user.avatar ?? "",
-                  hasBorder: !story!.isViewed,
+              borderRadius: BorderRadius.circular(12.0),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  offset: Offset(0, 2),
+                  blurRadius: 4.0,
                 ),
-        ),
-        Positioned(
-          bottom: 8.0,
-          left: 8.0,
-          right: 8.0,
-          child: Text(
-            isAddStory ? 'Add to Story' : story?.user.name ?? "",
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
+              ],
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
-        ),
-      ],
+          Positioned(
+            top: 8.0,
+            left: 8.0,
+            child: isAddStory
+                ? Container(
+                    height: 40.0,
+                    width: 40.0,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.add),
+                      iconSize: 30.0,
+                      color: Colors.blue,
+                      onPressed: () => print('Add to Story'),
+                    ),
+                  )
+                : ProfileAvatar(
+                    imageUrl: story?.user.avatar ?? "",
+                    hasBorder: !story!.isViewed,
+                  ),
+          ),
+          Positioned(
+            bottom: 8.0,
+            left: 8.0,
+            right: 8.0,
+            child: Text(
+              isAddStory ? 'Add to Story' : story?.user.name ?? "",
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
