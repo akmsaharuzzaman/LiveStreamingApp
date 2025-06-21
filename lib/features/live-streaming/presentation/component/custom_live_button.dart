@@ -16,7 +16,7 @@ class CustomLiveButton extends StatelessWidget {
           color: Color(0xff888686),
           borderRadius: BorderRadius.circular(100),
         ),
-        child: Icon(icon, size: 18, color: Colors.white),
+        child: Icon(icon, size: 28, color: Colors.white),
       ),
     );
   }

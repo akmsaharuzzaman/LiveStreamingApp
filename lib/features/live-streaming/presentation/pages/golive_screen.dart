@@ -12,6 +12,7 @@ import '../../../profile/presentation/bloc/profile_bloc.dart';
 import '../component/active_viwers.dart';
 import '../component/custom_live_button.dart';
 import '../component/diamond_star_status.dart';
+import '../component/game_bottomsheet.dart';
 import '../component/host_info.dart';
 import '../component/live_screen_menu_button.dart';
 
@@ -55,6 +56,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
   String? userId;
   bool isHost = true;
   String roomId = "DJLiveRoom";
+
+  // Stream subscriptions for proper cleanup
+  StreamSubscription? _connectionStatusSubscription;
+  StreamSubscription? _roomCreatedSubscription;
+  StreamSubscription? _roomJoinedSubscription;
+  StreamSubscription? _roomLeftSubscription;
+  StreamSubscription? _roomDeletedSubscription;
+  StreamSubscription? _errorSubscription;
 
   @override
   void initState() {
@@ -146,70 +155,93 @@ class _GoliveScreenState extends State<GoliveScreen> {
   void _setupSocketListeners() {
     // Connection status
     debugPrint("Setting up socket listeners");
-    _socketService.connectionStatusStream.listen((isConnected) {
-      setState(() {
-        _isConnected = isConnected;
-      });
+    _connectionStatusSubscription = _socketService.connectionStatusStream
+        .listen((isConnected) {
+          if (mounted) {
+            setState(() {
+              _isConnected = isConnected;
+            });
 
-      if (isConnected) {
-        // _showSnackBar('✅ Connected to server', Colors.green);
-        debugPrint("Connected to server");
-      } else {
-        _showSnackBar('❌ Disconnected from server', Colors.red);
-        debugPrint("Disconnected from server");
+            if (isConnected) {
+              // _showSnackBar('✅ Connected to server', Colors.green);
+              debugPrint("Connected to server");
+            } else {
+              _showSnackBar('❌ Disconnected from server', Colors.red);
+              debugPrint("Disconnected from server");
+            }
+          }
+        });
+
+    // Room events
+    _roomCreatedSubscription = _socketService.roomCreatedStream.listen((
+      roomId,
+    ) {
+      if (mounted) {
+        _showSnackBar('🏠 Room created: $roomId', Colors.blue);
+        setState(() {
+          _currentRoomId = roomId;
+        });
       }
     });
 
-    // Room events
-    _socketService.roomCreatedStream.listen((roomId) {
-      _showSnackBar('🏠 Room created: $roomId', Colors.blue);
-      setState(() {
-        _currentRoomId = roomId;
-      });
-    });
-
-    _socketService.roomDeletedStream.listen((roomId) {
-      _showSnackBar('🗑️ Room deleted: $roomId', Colors.orange);
-      if (_currentRoomId == roomId) {
-        setState(() {
-          _currentRoomId = null;
-        });
+    _roomDeletedSubscription = _socketService.roomDeletedStream.listen((
+      roomId,
+    ) {
+      if (mounted) {
+        _showSnackBar('🗑️ Room deleted: $roomId', Colors.orange);
+        if (_currentRoomId == roomId) {
+          setState(() {
+            _currentRoomId = null;
+          });
+        }
       }
     });
 
     // User events
     _socketService.userJoinedStream.listen((data) {
-      final userName = data['userName'] ?? 'Unknown';
-      debugPrint("User joined: $userName , console from UI");
-      _showSnackBar('👋 $userName joined the stream', Colors.green);
+      if (mounted) {
+        final userName = data['userName'] ?? 'Unknown';
+        debugPrint("User joined: $userName , console from UI");
+        _showSnackBar('👋 $userName joined the stream', Colors.green);
+      }
     });
 
     _socketService.userLeftStream.listen((data) {
-      final userName = data['userName'] ?? 'Unknown';
-      _showSnackBar('👋 $userName left the stream', Colors.orange);
+      if (mounted) {
+        final userName = data['userName'] ?? 'Unknown';
+        _showSnackBar('👋 $userName left the stream', Colors.orange);
+      }
     });
 
     // Room list updates
     _socketService.roomListStream.listen((rooms) {
-      setState(() {
-        _availableRooms = rooms;
-        debugPrint("Available rooms: $_availableRooms from Frontend");
-      });
+      if (mounted) {
+        setState(() {
+          _availableRooms = rooms;
+          debugPrint("Available rooms: $_availableRooms from Frontend");
+        });
+      }
     });
 
     // Error handling
-    _socketService.errorStream.listen((error) {
-      _showSnackBar('❌ Error: $error', Colors.red);
-      debugPrint("Error from socket: $error");
+    _errorSubscription = _socketService.errorStream.listen((error) {
+      if (mounted) {
+        _showSnackBar('❌ Error: $error', Colors.red);
+        debugPrint("Error from socket: $error");
+      }
     });
 
     // Custom live streaming events
     _socketService.on('stream-started', (data) {
-      _showSnackBar('🎥 Stream started!', Colors.green);
+      if (mounted) {
+        _showSnackBar('🎥 Stream started!', Colors.green);
+      }
     });
 
     _socketService.on('stream-ended', (data) {
-      _showSnackBar('🛑 Stream ended', Colors.red);
+      if (mounted) {
+        _showSnackBar('🛑 Stream ended', Colors.red);
+      }
     });
 
     _socketService.on('viewer-count-updated', (data) {
@@ -444,7 +476,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
           return Scaffold(
             body: Stack(
               children: [
-                _buildVideoView(),
+                // _buildVideoView(),
 
                 // * This contaimer holds the livestream options,
                 SafeArea(
@@ -521,7 +553,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             CustomLiveButton(
                               icon: Icons.more_vert,
                               onTap: () {
-                                _showMoreOptions();
+                                showMoreOptions(context);
                               },
                             ),
                           ],
@@ -540,36 +572,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     );
   }
 
-  void _showMoreOptions() {
-    print("More options pressed");
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Container(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(Icons.report),
-                title: Text('Report'),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.block),
-                title: Text('Block'),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+
 
   // Main video view
   Widget _buildVideoView() {
@@ -674,6 +677,15 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   @override
   void dispose() {
+    // Cancel all stream subscriptions to prevent setState calls after disposal
+    _connectionStatusSubscription?.cancel();
+    _roomCreatedSubscription?.cancel();
+    _roomJoinedSubscription?.cancel();
+    _roomLeftSubscription?.cancel();
+    _roomDeletedSubscription?.cancel();
+    _errorSubscription?.cancel();
+
+    // Dispose other resources
     _titleController.dispose();
     _dispose();
     super.dispose();

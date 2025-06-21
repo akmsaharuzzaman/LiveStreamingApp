@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -30,6 +31,11 @@ class _HomePageScreenState extends State<HomePageScreen> {
   bool _isConnecting = false;
   String? _errorMessage;
   List<String> _availableRooms = [];
+
+  // Stream subscriptions for proper cleanup
+  StreamSubscription? _connectionStatusSubscription;
+  StreamSubscription? _roomListSubscription;
+  StreamSubscription? _errorSubscription;
 
   List<String> imageUrls = [
     'assets/images/new_images/banners1.jpg',
@@ -91,35 +97,42 @@ class _HomePageScreenState extends State<HomePageScreen> {
   void _setupSocketListeners() {
     // Connection status
     debugPrint("Setting up socket listeners");
-    _socketService.connectionStatusStream.listen((isConnected) {
-      setState(() {
-        _isConnected = isConnected;
-      });
+    _connectionStatusSubscription = _socketService.connectionStatusStream
+        .listen((isConnected) {
+          if (mounted) {
+            setState(() {
+              _isConnected = isConnected;
+            });
 
-      if (isConnected) {
-        // _showSnackBar('✅ Connected to server', Colors.green);
-        debugPrint("Connected to server");
-      } else {
-        // _showSnackBar('❌ Disconnected from server', Colors.red);
-        debugPrint("Disconnected from server");
+            if (isConnected) {
+              // _showSnackBar('✅ Connected to server', Colors.green);
+              debugPrint("Connected to server");
+            } else {
+              // _showSnackBar('❌ Disconnected from server', Colors.red);
+              debugPrint("Disconnected from server");
+            }
+          }
+        });
+
+    // Room list updates
+    _roomListSubscription = _socketService.roomListStream.listen((rooms) {
+      if (mounted) {
+        setState(() {
+          _availableRooms = rooms;
+          debugPrint("Available rooms: $_availableRooms from Frontend");
+        });
       }
     });
 
-    // Room list updates
-    _socketService.roomListStream.listen((rooms) {
-      setState(() {
-        _availableRooms = rooms;
-        debugPrint("Available rooms: $_availableRooms from Frontend");
-      });
-    });
-
     // Error handling
-    _socketService.errorStream.listen((error) {
-      // _showSnackBar('❌ Error: $error', Colors.red);
-      setState(() {
-        _errorMessage = error;
-      });
-      debugPrint("Socket error: $error");
+    _errorSubscription = _socketService.errorStream.listen((error) {
+      if (mounted) {
+        // _showSnackBar('❌ Error: $error', Colors.red);
+        setState(() {
+          _errorMessage = error;
+        });
+        debugPrint("Socket error: $error");
+      }
     });
   }
 
@@ -128,6 +141,17 @@ class _HomePageScreenState extends State<HomePageScreen> {
     _initializeSocket();
     _setupSocketListeners();
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    // Cancel all stream subscriptions to prevent setState calls after disposal
+    _connectionStatusSubscription?.cancel();
+    _roomListSubscription?.cancel();
+    _errorSubscription?.cancel();
+
+    debugPrint("HomePage disposed - stream subscriptions canceled");
+    super.dispose();
   }
 
   @override

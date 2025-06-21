@@ -54,20 +54,23 @@ class ActiveViewers extends StatelessWidget {
           ),
 
         // to show the remaining user numbers
-        Transform.translate(
-          offset: Offset(-12, 0),
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 7, vertical: 7),
-            decoration: BoxDecoration(
-              color: Color(0xff888686),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              hiddenCount.toString(),
-              style: TextStyle(fontSize: 16, color: Colors.white),
+        if (hiddenCount == 0)
+          SizedBox.shrink()
+        else
+          Transform.translate(
+            offset: Offset(-12, 0),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 7, vertical: 7),
+              decoration: BoxDecoration(
+                color: Color(0xff888686),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                hiddenCount.toString(),
+                style: TextStyle(fontSize: 16, color: Colors.white),
+              ),
             ),
           ),
-        ),
       ],
     );
   }

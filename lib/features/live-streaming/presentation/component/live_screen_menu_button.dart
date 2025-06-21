@@ -31,11 +31,11 @@ class LiveScreenMenuButton extends StatelessWidget {
               value: LiveScreenLeaveOptions.disconnect,
               child: Row(
                 children: [
-                  Icon(Icons.call_end, color: Color(0xff888686)),
+                  Icon(Icons.call_end, color: Color.fromARGB(255, 253, 67, 67)),
                   SizedBox(width: 6),
                   Text(
                     "Disconnect",
-                    style: TextStyle(color: Color(0xff888686)),
+                    style: TextStyle(color: Color.fromARGB(255, 245, 69, 69)),
                   ),
                 ],
               ),
