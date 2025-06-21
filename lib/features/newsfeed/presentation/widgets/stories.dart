@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:dlstarlive/features/newsfeed/presentation/widgets/profile_avatar.dart';
+import '../pages/create_story_screen.dart';
 
 import '../../../chat/data/models/user_model.dart';
 import '../../data/models/mock_models/story_model.dart';
@@ -28,8 +29,13 @@ class Stories extends StatelessWidget {
                 isAddStory: true,
                 currentUser: currentUser,
                 onTap: () {
-                  // Handle add story tap
-                  print('Add Story tapped');
+                  // Navigate to create story screen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CreateStoryScreen(),
+                    ),
+                  );
                 },
               ),
             );
