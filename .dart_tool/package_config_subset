@@ -98,10 +98,6 @@ chewie
 3.6
 file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/chewie-1.11.3/
 file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/chewie-1.11.3/lib/
-cli_util
-3.4
-file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/cli_util-0.4.2/
-file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/cli_util-0.4.2/lib/
 clock
 3.4
 file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/clock-1.1.2/
@@ -386,10 +382,6 @@ flutter_keyboard_visibility_windows
 2.12
 file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_keyboard_visibility_windows-1.0.0/
 file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_keyboard_visibility_windows-1.0.0/lib/
-flutter_launcher_icons
-3.0
-file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_launcher_icons-0.14.3/
-file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_launcher_icons-0.14.3/lib/
 flutter_lints
 3.8
 file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_lints-6.0.0/
@@ -486,6 +478,10 @@ http_parser
 3.4
 file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/http_parser-4.1.2/
 file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/http_parser-4.1.2/lib/
+icons_launcher
+3.0
+file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/icons_launcher-3.0.1/
+file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/icons_launcher-3.0.1/lib/
 iconsax
 2.12
 file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/iconsax-0.0.8/
