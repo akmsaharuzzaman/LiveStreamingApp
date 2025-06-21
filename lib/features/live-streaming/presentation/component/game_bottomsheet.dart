@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'web_game_bottomsheet.dart';
 
 void showGameBottomSheet(BuildContext context) {
   showModalBottomSheet(
@@ -68,15 +69,29 @@ class GameBottomSheet extends StatelessWidget {
                   label: 'Greedy Stars',
                   onTap: () {
                     Navigator.pop(context);
-                    // Handle Greedy Stars game
+                    // Open Greedy Stars web game
+                    showWebGameBottomSheet(
+                      context,
+                      gameUrl:
+                          'http://147.93.103.135:8001/game/?spain_time=30&profit=0&user_id=2ufXoAdqAY',
+                      gameTitle: 'Greedy Stars',
+                      userId:
+                          '2ufXoAdqAY', // You can replace this with actual user ID
+                    );
                   },
                 ),
                 _buildGameOption(
                   icon: Icons.gamepad_outlined,
-                  label: 'Greedy Stars',
+                  label: 'Fruit Loops',
                   onTap: () {
                     Navigator.pop(context);
-                    // Handle Greedy Stars game
+                    // You can add another game URL here or show coming soon
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Fruit Loops - Coming Soon!'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
                   },
                 ),
               ],
