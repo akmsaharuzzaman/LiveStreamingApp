@@ -6,9 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:streaming_djlive/components/utilities/chat_theme.dart';
-import 'package:streaming_djlive/features/core/services/login_provider.dart';
-import 'package:streaming_djlive/features/profile/presentation/bloc/profile_bloc.dart';
+import 'package:dlstarlive/components/utilities/chat_theme.dart';
+import 'package:dlstarlive/features/core/services/login_provider.dart';
+import 'package:dlstarlive/features/profile/presentation/bloc/profile_bloc.dart';
 
 import '../../../../components/custom_widgets/quick_help.dart';
 import '../widgets/dashboardItemWidget.dart';

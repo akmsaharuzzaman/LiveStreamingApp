@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:streaming_djlive/core/network/socket_service.dart';
+import 'package:dlstarlive/core/network/socket_service.dart';
 
 /// 🎯 SOCKET SERVICE USAGE EXAMPLES
 ///

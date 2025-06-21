@@ -1598,7 +1598,7 @@
       "languageVersion": "3.4"
     },
     {
-      "name": "streaming_djlive",
+      "name": "dlstarlive",
       "rootUri": "../",
       "packageUri": "lib/",
       "languageVersion": "3.8"

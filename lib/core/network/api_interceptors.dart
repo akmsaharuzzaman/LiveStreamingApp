@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:streaming_djlive/core/network/api_constants.dart';
+import 'package:dlstarlive/core/network/api_constants.dart';
 
 /// Authentication interceptor for handling JWT tokens
 class AuthInterceptor extends Interceptor {

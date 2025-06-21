@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:streaming_djlive/components/utilities/chat_theme.dart';
+import 'package:dlstarlive/components/utilities/chat_theme.dart';
 import 'package:universal_platform/universal_platform.dart';
 
 class QuickHelp {
@@ -50,20 +50,20 @@ class QuickHelp {
     return UniversalPlatform.isWeb;
   }
 
-  static goToNavigatorScreen(BuildContext context, Widget widget,
-      {bool? finish = false, bool? back = true}) {
+  static goToNavigatorScreen(
+    BuildContext context,
+    Widget widget, {
+    bool? finish = false,
+    bool? back = true,
+  }) {
     if (finish == false) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => widget,
-        ),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => widget));
     } else {
       Navigator.pushAndRemoveUntil<dynamic>(
         context,
-        MaterialPageRoute<dynamic>(
-          builder: (BuildContext context) => widget,
-        ),
+        MaterialPageRoute<dynamic>(builder: (BuildContext context) => widget),
         (route) => back!, //if you want to disable back feature set to false
       );
     }
@@ -71,8 +71,11 @@ class QuickHelp {
 
   static Widget showLoadingAnimation({double size = 35}) {
     return Center(
-        child: LoadingAnimationWidget.progressiveDots(
-            size: size, color: MyTheme.kPrimaryColor));
+      child: LoadingAnimationWidget.progressiveDots(
+        size: size,
+        color: MyTheme.kPrimaryColor,
+      ),
+    );
   }
 
   static copyText({required String textToCopy}) {
@@ -95,11 +98,12 @@ class QuickHelp {
 
   static void showLoadingDialog(BuildContext context, {bool? isDismissible}) {
     showDialog(
-        context: context,
-        barrierDismissible: isDismissible != null ? isDismissible : false,
-        builder: (BuildContext context) {
-          return showLoadingAnimation(); //LoadingDialog();
-        });
+      context: context,
+      barrierDismissible: isDismissible != null ? isDismissible : false,
+      builder: (BuildContext context) {
+        return showLoadingAnimation(); //LoadingDialog();
+      },
+    );
   }
 
   static void hideLoadingDialog(BuildContext context, {dynamic result}) {

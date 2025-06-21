@@ -6,9 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:logger/logger.dart';
-import 'package:streaming_djlive/features/auth/data/models/user_profile_data_response/user_profile_data_response.dart';
-import 'package:streaming_djlive/features/auth/presentation/bloc/log_in_bloc/log_in_bloc.dart';
+import 'package:dlstarlive/features/auth/data/models/user_profile_data_response/user_profile_data_response.dart';
+import 'package:dlstarlive/features/auth/presentation/bloc/log_in_bloc/log_in_bloc.dart';
 
 import '../../../core/services/dio_client.dart';
 import '../models/user_profile.dart';

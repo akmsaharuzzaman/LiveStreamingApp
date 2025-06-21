@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:streaming_djlive/core/network/api_constants.dart';
-import 'package:streaming_djlive/core/network/api_interceptors.dart';
-import 'package:streaming_djlive/core/network/api_result.dart';
-import 'package:streaming_djlive/core/network/network_exceptions.dart';
+import 'package:dlstarlive/core/network/api_constants.dart';
+import 'package:dlstarlive/core/network/api_interceptors.dart';
+import 'package:dlstarlive/core/network/api_result.dart';
+import 'package:dlstarlive/core/network/network_exceptions.dart';
 
 /// Comprehensive API service using Dio for all HTTP operations
 /// Supports GET, POST, PUT, PATCH, DELETE, and file uploads

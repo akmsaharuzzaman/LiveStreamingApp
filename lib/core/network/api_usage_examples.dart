@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:streaming_djlive/core/network/api_service.dart';
-import 'package:streaming_djlive/core/network/api_result.dart';
-import 'package:streaming_djlive/core/network/api_constants.dart';
+import 'package:dlstarlive/core/network/api_service.dart';
+import 'package:dlstarlive/core/network/api_result.dart';
+import 'package:dlstarlive/core/network/api_constants.dart';
 
 /// Example repository showing how to use ApiService
 class StreamRepository {

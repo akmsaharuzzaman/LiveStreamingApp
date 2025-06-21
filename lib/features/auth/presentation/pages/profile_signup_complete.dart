@@ -9,7 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:streaming_djlive/components/custom_widgets/custom_text_form_field.dart';
+import 'package:dlstarlive/components/custom_widgets/custom_text_form_field.dart';
 
 import '../../../../components/utilities/chat_theme.dart';
 import '../bloc/log_in_bloc/log_in_bloc.dart';

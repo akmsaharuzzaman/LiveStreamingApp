@@ -2,7 +2,7 @@
 // Package imports:
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:streaming_djlive/components/utilities/placeholder_image.dart';
+import 'package:dlstarlive/components/utilities/placeholder_image.dart';
 
 import 'default_image.dart';
 // Project imports:
@@ -36,14 +36,14 @@ class CustomNetworkImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return urlToImage == null
         ? placeholderWidget ??
-            DefaultImage(
-              height: height ?? width!,
-              width: width ?? height!,
-              margin: margin,
-              shape: shape,
-              borderRadius: borderRadius,
-              childInAvatar: childInAvatar,
-            )
+              DefaultImage(
+                height: height ?? width!,
+                width: width ?? height!,
+                margin: margin,
+                shape: shape,
+                borderRadius: borderRadius,
+                childInAvatar: childInAvatar,
+              )
         : CachedNetworkImage(
             cacheKey: urlToImage,
             memCacheHeight: 1024 * 200,

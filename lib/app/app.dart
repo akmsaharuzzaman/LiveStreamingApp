@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'package:streaming_djlive/features/auth/data/repositories/log_in_repository.dart';
-import 'package:streaming_djlive/features/auth/presentation/bloc/log_in_bloc/log_in_bloc.dart';
-import 'package:streaming_djlive/features/profile/presentation/bloc/profile_bloc.dart';
+import 'package:dlstarlive/features/auth/data/repositories/log_in_repository.dart';
+import 'package:dlstarlive/features/auth/presentation/bloc/log_in_bloc/log_in_bloc.dart';
+import 'package:dlstarlive/features/profile/presentation/bloc/profile_bloc.dart';
 
 // Import the new router
 import '../core/routing/app_router.dart';

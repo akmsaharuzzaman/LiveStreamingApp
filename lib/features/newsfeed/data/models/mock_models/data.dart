@@ -1,5 +1,5 @@
-import 'package:streaming_djlive/features/newsfeed/data/models/mock_models/post_model.dart';
-import 'package:streaming_djlive/features/newsfeed/data/models/mock_models/story_model.dart';
+import 'package:dlstarlive/features/newsfeed/data/models/mock_models/post_model.dart';
+import 'package:dlstarlive/features/newsfeed/data/models/mock_models/story_model.dart';
 
 import '../../../../chat/data/models/user_model.dart';
 
@@ -54,10 +54,11 @@ final List<User> onlineUsers = [
         'https://images.unsplash.com/photo-1519631128182-433895475ffe?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
   ),
   User(
-      id: 9,
-      name: 'Elizabeth Wong',
-      avatar:
-          'https://images.unsplash.com/photo-1515077678510-ce3bdf418862?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjF9&auto=format&fit=crop&w=675&q=80'),
+    id: 9,
+    name: 'Elizabeth Wong',
+    avatar:
+        'https://images.unsplash.com/photo-1515077678510-ce3bdf418862?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjF9&auto=format&fit=crop&w=675&q=80',
+  ),
   User(
     id: 10,
     name: 'James Lathrop',
@@ -113,10 +114,11 @@ final List<User> onlineUsers = [
         'https://images.unsplash.com/photo-1519631128182-433895475ffe?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
   ),
   User(
-      id: 19,
-      name: 'Elizabeth Wong',
-      avatar:
-          'https://images.unsplash.com/photo-1515077678510-ce3bdf418862?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjF9&auto=format&fit=crop&w=675&q=80'),
+    id: 19,
+    name: 'Elizabeth Wong',
+    avatar:
+        'https://images.unsplash.com/photo-1515077678510-ce3bdf418862?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjF9&auto=format&fit=crop&w=675&q=80',
+  ),
   User(
     id: 20,
     name: 'James Lathrop',
@@ -254,5 +256,5 @@ final List<Post> posts = [
     likes: 1523,
     shares: 129,
     comments: 301,
-  )
+  ),
 ];
