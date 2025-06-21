@@ -13,6 +13,7 @@ import '../component/active_viwers.dart';
 import '../component/custom_live_button.dart';
 import '../component/diamond_star_status.dart';
 import '../component/game_bottomsheet.dart';
+import '../component/gift_bottom_sheet.dart';
 import '../component/host_info.dart';
 import '../component/live_screen_menu_button.dart';
 
@@ -540,12 +541,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             ),
                             CustomLiveButton(icon: Icons.call, onTap: () {}),
                             CustomLiveButton(
-                              icon: Icons.mic_off,
+                              icon: _muted ? Icons.mic_off : Icons.mic,
                               onTap: () {
                                 _toggleMute();
                               },
                             ),
-                            CustomLiveButton(icon: Icons.redeem, onTap: () {}),
+                            CustomLiveButton(icon: Icons.redeem, onTap: () {
+                              showGiftBottomSheet(context);
+                            }),
                             CustomLiveButton(
                               icon: Icons.music_note,
                               onTap: () {},
@@ -553,7 +556,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             CustomLiveButton(
                               icon: Icons.more_vert,
                               onTap: () {
-                                showMoreOptions(context);
+                                showGameBottomSheet(context);
                               },
                             ),
                           ],
@@ -571,8 +574,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
       ),
     );
   }
-
-
 
   // Main video view
   Widget _buildVideoView() {
