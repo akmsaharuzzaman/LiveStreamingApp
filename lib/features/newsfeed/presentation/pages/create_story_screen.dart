@@ -426,9 +426,13 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
     if (_mediaFile == null || _isVideo) return;
 
     try {
+      debugPrint('Starting image crop for: ${_mediaFile!.path}');
+
       final croppedFile = await ImageCropper().cropImage(
         sourcePath: _mediaFile!.path,
         aspectRatio: const CropAspectRatio(ratioX: 9, ratioY: 16),
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 90,
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: 'Crop Image',
@@ -436,8 +440,10 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
             toolbarWidgetColor: Colors.white,
             backgroundColor: Colors.black,
             activeControlsWidgetColor: Colors.blue,
-            initAspectRatio: CropAspectRatioPreset.ratio16x9,
+            initAspectRatio: CropAspectRatioPreset.square,
             lockAspectRatio: true,
+            hideBottomControls: false,
+            showCropGrid: true,
           ),
           IOSUiSettings(
             title: 'Crop Image',
@@ -449,13 +455,17 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
       );
 
       if (croppedFile != null) {
+        debugPrint('Image cropped successfully: ${croppedFile.path}');
         setState(() {
           _mediaFile = File(croppedFile.path);
         });
+      } else {
+        debugPrint('Image cropping was cancelled by user');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Error cropping image: $e');
-      _showErrorSnackBar('Failed to crop image');
+      debugPrint('Stack trace: $stackTrace');
+      _showErrorSnackBar('Failed to crop image: ${e.toString()}');
     }
   }
 
