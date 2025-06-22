@@ -19,7 +19,7 @@ class LoginInfo extends ChangeNotifier {
     _token = token;*/
     final prefs = await SharedPreferences.getInstance();
 
-    await prefs.setString('token', token);
+    await prefs.setString('auth_token', token);
     Logger().d("token is $token");
 
     _token = token;
@@ -29,7 +29,7 @@ class LoginInfo extends ChangeNotifier {
   Future<void> autoLogin() async {
     final prefs = await SharedPreferences.getInstance();
 
-    String? token = prefs.getString('token');
+    String? token = prefs.getString('auth_token');
     _token = token ?? "";
     Logger().d("token from storage is $_token");
 
@@ -39,7 +39,7 @@ class LoginInfo extends ChangeNotifier {
   /// Logs out the current user.
   void logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
+    await prefs.remove('auth_token');
     await prefs.remove('uid');
     _token = null;
     notifyListeners();

@@ -63,7 +63,7 @@ class LogInBloc extends Bloc<LogInEvent, LogInState> {
 
       final prefs = await SharedPreferences.getInstance();
       if (token != null) {
-        await prefs.setString("token", token);
+        await prefs.setString("auth_token", token);
         await prefs.setString(
           "uid",
           googleSignUpResponse.result?.first.id ?? "",
