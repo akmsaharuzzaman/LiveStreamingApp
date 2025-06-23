@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,6 +12,8 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../components/utilities/chat_theme.dart';
 import '../../data/models/mock_models/data.dart';
 import '../../data/models/mock_models/post_model.dart';
+import '../../injection_container.dart';
+import '../bloc/newsfeed_bloc.dart';
 import '../widgets/create_post_container.dart';
 import '../widgets/post_container.dart';
 import '../widgets/stories.dart';
@@ -24,92 +27,304 @@ class NewsFeedScreen extends StatefulWidget {
 
 class _NewsFeedScreenState extends State<NewsFeedScreen> {
   final TrackingScrollController scrollController = TrackingScrollController();
+  late NewsfeedBloc _newsfeedBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _newsfeedBloc = NewsfeedDependencyContainer.createNewsfeedBloc();
+    // Load initial posts
+    _newsfeedBloc.add(const LoadPostsEvent());
+  }
 
   @override
   void dispose() {
     scrollController.dispose();
+    _newsfeedBloc.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        body: CustomScrollView(
-          controller: scrollController,
-          slivers: [
-            SliverAppBar(
-              backgroundColor: Colors.white,
-              title: Row(
-                children: [
-                  Image.asset(
-                    'assets/images/new_images/ic_logo_white.png',
-                    height: 40.sp,
-                    width: 40.sp,
-                  ),
-                  SizedBox(width: 5.sp),
-                  Text('DLStar Live', style: MyTheme.kAppTitle),
-                ],
-              ),
-              centerTitle: false,
-              floating: true,
-              actions: [
-                GestureDetector(
-                  onTap: () {
-                    context.push("/reels");
-                  },
-                  child: Row(
+    return BlocProvider<NewsfeedBloc>(
+      create: (context) => _newsfeedBloc,
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Scaffold(
+          body: RefreshIndicator(
+            onRefresh: () async {
+              _newsfeedBloc.add(RefreshPostsEvent());
+              // Wait for the state to change
+              await Future.delayed(const Duration(milliseconds: 500));
+            },
+            child: CustomScrollView(
+              controller: scrollController,
+              slivers: [
+                SliverAppBar(
+                  backgroundColor: Colors.white,
+                  title: Row(
                     children: [
-                      Icon(Iconsax.instagram, size: 16.sp),
-                      SizedBox(width: 5.sp),
-                      Text(
-                        'Reels',
-                        style: GoogleFonts.aBeeZee(
-                          fontSize: 13.sp,
-                          color: const Color(0xff2c3968),
-                        ),
+                      Image.asset(
+                        'assets/images/new_images/ic_logo_white.png',
+                        height: 40.sp,
+                        width: 40.sp,
                       ),
+                      SizedBox(width: 5.sp),
+                      Text('DLStar Live', style: MyTheme.kAppTitle),
                     ],
                   ),
+                  centerTitle: false,
+                  floating: true,
+                  actions: [
+                    GestureDetector(
+                      onTap: () {
+                        context.push("/reels");
+                      },
+                      child: Row(
+                        children: [
+                          Icon(Iconsax.instagram, size: 16.sp),
+                          SizedBox(width: 5.sp),
+                          Text(
+                            'Reels',
+                            style: GoogleFonts.aBeeZee(
+                              fontSize: 13.sp,
+                              color: const Color(0xff2c3968),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 20.sp),
+                    Icon(Icons.search, size: 22.sp),
+                    SizedBox(width: 15.sp),
+                    GestureDetector(
+                      onTap: () {
+                        context.push("/live-chat");
+                      },
+                      child: Image.asset(
+                        'assets/images/new_images/messenger.png',
+                        height: 28.sp,
+                        width: 28.sp,
+                      ),
+                    ),
+                    SizedBox(width: 15.sp),
+                  ],
+                  systemOverlayStyle: SystemUiOverlayStyle.dark,
                 ),
-                SizedBox(width: 20.sp),
-                Icon(Icons.search, size: 22.sp),
-                SizedBox(width: 15.sp),
-                GestureDetector(
-                  onTap: () {
-                    context.push("/live-chat");
-                  },
-                  child: Image.asset(
-                    'assets/images/new_images/messenger.png',
-                    height: 28.sp,
-                    width: 28.sp,
+                SliverToBoxAdapter(
+                  child: CreatePostContainer(currentUser: currentUser),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
+                  sliver: SliverToBoxAdapter(
+                    child: Stories(currentUser: currentUser, stories: stories),
                   ),
                 ),
-                SizedBox(width: 15.sp),
+                // Use BlocBuilder to show posts from API
+                BlocBuilder<NewsfeedBloc, NewsfeedState>(
+                  builder: (context, state) {
+                    if (state is NewsfeedLoading) {
+                      return const SliverToBoxAdapter(
+                        child: Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                      );
+                    } else if (state is NewsfeedLoaded) {
+                      return SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            if (index >= state.posts.length) {
+                              // Show loading indicator at the end
+                              if (!state.hasReachedMax) {
+                                // Trigger load more posts
+                                _newsfeedBloc.add(LoadMorePostsEvent());
+                                return const Padding(
+                                  padding: EdgeInsets.all(20.0),
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+                              }
+                              return null;
+                            }
+
+                            final post = state.posts[index];
+                            return _buildApiPostContainer(post);
+                          },
+                          childCount: state.hasReachedMax
+                              ? state.posts.length
+                              : state.posts.length + 1,
+                        ),
+                      );
+                    } else if (state is NewsfeedError) {
+                      return SliverToBoxAdapter(
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Column(
+                              children: [
+                                Text(
+                                  'Error loading posts: ${state.message}',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 16.sp,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(height: 16.h),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    _newsfeedBloc.add(RefreshPostsEvent());
+                                  },
+                                  child: const Text('Retry'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    // Fallback to mock data if API is not working
+                    return SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final Post post = posts[index];
+                        return PostContainer(post: post);
+                      }, childCount: posts.length),
+                    );
+                  },
+                ),
+                SliverPadding(padding: EdgeInsets.only(top: 20.sp)),
               ],
-              systemOverlayStyle: SystemUiOverlayStyle.dark,
             ),
-            SliverToBoxAdapter(
-              child: CreatePostContainer(currentUser: currentUser),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
-              sliver: SliverToBoxAdapter(
-                child: Stories(currentUser: currentUser, stories: stories),
-              ),
-            ),
-            SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final Post post = posts[index];
-                return PostContainer(post: post);
-              }, childCount: posts.length),
-            ),
-            SliverPadding(padding: EdgeInsets.only(top: 20.sp)),
-          ],
+          ),
         ),
       ),
     );
+  }
+
+  Widget _buildApiPostContainer(post) {
+    // Convert API post model to widget
+    // For now, create a simple container with post data
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // User info
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20.r,
+                backgroundImage: post.userInfo.avatar?.url != null
+                    ? NetworkImage(post.userInfo.avatar!.url)
+                    : null,
+                child: post.userInfo.avatar?.url == null
+                    ? Icon(Icons.person, size: 20.sp)
+                    : null,
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      post.userInfo.name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16.sp,
+                      ),
+                    ),
+                    Text(
+                      _formatDate(post.createdAt),
+                      style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          // Post content
+          if (post.postCaption != null) ...[
+            SizedBox(height: 12.h),
+            Text(post.postCaption!, style: TextStyle(fontSize: 14.sp)),
+          ],
+
+          // Post image
+          if (post.mediaUrl != null) ...[
+            SizedBox(height: 12.h),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8.r),
+              child: Image.network(
+                post.mediaUrl!,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 200.h,
+                    color: Colors.grey[200],
+                    child: const Center(child: Icon(Icons.error)),
+                  );
+                },
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    height: 200.h,
+                    child: const Center(child: CircularProgressIndicator()),
+                  );
+                },
+              ),
+            ),
+          ],
+
+          // Post stats
+          SizedBox(height: 12.h),
+          Row(
+            children: [
+              Icon(Icons.favorite_border, size: 20.sp, color: Colors.grey),
+              SizedBox(width: 4.w),
+              Text('${post.reactionCount}', style: TextStyle(fontSize: 14.sp)),
+              SizedBox(width: 16.w),
+              Icon(Icons.comment_outlined, size: 20.sp, color: Colors.grey),
+              SizedBox(width: 4.w),
+              Text('${post.commentCount}', style: TextStyle(fontSize: 14.sp)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
   }
 }
 
