@@ -23,11 +23,11 @@ class _ApiStoriesState extends State<ApiStories> {
   List<StoryModel> _stories = [];
   bool _isLoading = true;
   String? _error;
+  String? _currentUserId; // TODO: Get from user profile or auth service
 
   @override
   void initState() {
-    super.initState();
-    // Initialize services
+    super.initState(); // Initialize services
     final apiService = ApiService.instance;
     final authService = AuthService();
     _postService = PostService(apiService, authService);
@@ -123,6 +123,8 @@ class _ApiStoriesState extends State<ApiStories> {
                           builder: (context) => StoryViewerPage(
                             stories: _stories,
                             initialIndex: index - 1,
+                            currentUserId:
+                                _currentUserId, // Pass current user ID for delete functionality
                           ),
                         ),
                       );
