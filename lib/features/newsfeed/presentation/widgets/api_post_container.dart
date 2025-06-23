@@ -4,11 +4,50 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 import '../../../../components/utilities/chat_theme.dart';
+import '../../../../core/services/post_service.dart';
+import '../../../../core/services/simple_auth_service.dart';
+import '../../../../core/network/api_service.dart';
+import '../pages/comments_page.dart';
 
-class ApiPostContainer extends StatelessWidget {
+class ApiPostContainer extends StatefulWidget {
   final dynamic post;
+  final Function? onPostDeleted;
+  final Function? onPostUpdated;
 
-  const ApiPostContainer({Key? key, required this.post}) : super(key: key);
+  const ApiPostContainer({
+    Key? key,
+    required this.post,
+    this.onPostDeleted,
+    this.onPostUpdated,
+  }) : super(key: key);
+
+  @override
+  State<ApiPostContainer> createState() => _ApiPostContainerState();
+}
+
+class _ApiPostContainerState extends State<ApiPostContainer> {
+  late PostService _postService;
+  bool _isReacting = false;
+  bool _hasReacted = false;
+  int _reactionCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeService();
+    _initializeReactionState();
+  }
+
+  void _initializeService() {
+    final apiService = ApiService.instance;
+    final authService = AuthService();
+    _postService = PostService(apiService, authService);
+  }
+
+  void _initializeReactionState() {
+    _hasReacted = widget.post.myReaction != null;
+    _reactionCount = widget.post.reactionCount ?? 0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,12 +68,12 @@ class ApiPostContainer extends StatelessWidget {
                   _buildPostHeader(context),
                   SizedBox(height: 4.h),
                   // Handle null postCaption with better spacing
-                  if (post.postCaption != null &&
-                      post.postCaption!.trim().isNotEmpty)
+                  if (widget.post.postCaption != null &&
+                      widget.post.postCaption!.trim().isNotEmpty)
                     Padding(
                       padding: EdgeInsets.symmetric(vertical: 4.h),
                       child: Text(
-                        post.postCaption!.trim(),
+                        widget.post.postCaption!.trim(),
                         style: TextStyle(fontSize: 14.sp),
                       ),
                     ),
@@ -42,10 +81,11 @@ class ApiPostContainer extends StatelessWidget {
               ),
             ),
             // Handle media with better error handling - only show if mediaUrl exists and is not empty
-            if (post.mediaUrl != null && post.mediaUrl!.trim().isNotEmpty)
+            if (widget.post.mediaUrl != null &&
+                widget.post.mediaUrl!.trim().isNotEmpty)
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 8.h),
-                child: _buildPostImage(post.mediaUrl!.trim()),
+                child: _buildPostImage(widget.post.mediaUrl!.trim()),
               ),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 12.w),
@@ -61,14 +101,17 @@ class ApiPostContainer extends StatelessWidget {
     return Row(
       children: [
         // Profile Avatar with null handling
-        _buildUserAvatar(post.userInfo?.avatar?.url, post.userInfo?.name),
+        _buildUserAvatar(
+          widget.post.userInfo?.avatar?.url,
+          widget.post.userInfo?.name,
+        ),
         SizedBox(width: 8.w),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                post.userInfo?.name ?? 'Unknown User',
+                widget.post.userInfo?.name ?? 'Unknown User',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15.sp),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -76,7 +119,7 @@ class ApiPostContainer extends StatelessWidget {
                 children: [
                   Flexible(
                     child: Text(
-                      '${_formatDate(post.updatedAt ?? post.createdAt)} • ',
+                      '${_formatDate(widget.post.updatedAt ?? widget.post.createdAt)} • ',
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 12.sp,
@@ -222,14 +265,11 @@ class ApiPostContainer extends StatelessWidget {
   }
 
   Widget _buildPostStats(BuildContext context) {
-    // Safely handle reaction and comment counts
-    final int safeReactionCount = (post.reactionCount ?? 0) > 0
-        ? (post.reactionCount ?? 0)
+    // Use the state variables for reaction count and status
+    final int safeCommentCount = (widget.post.commentCount ?? 0) > 0
+        ? (widget.post.commentCount ?? 0)
         : 0;
-    final int safeCommentCount = (post.commentCount ?? 0) > 0
-        ? (post.commentCount ?? 0)
-        : 0;
-    final bool hasReactions = safeReactionCount > 0;
+    final bool hasReactions = _reactionCount > 0;
     final bool hasComments = safeCommentCount > 0;
 
     return Column(
@@ -255,7 +295,7 @@ class ApiPostContainer extends StatelessWidget {
                   ),
                   SizedBox(width: 4.w),
                   Text(
-                    _formatCount(safeReactionCount),
+                    _formatCount(_reactionCount),
                     style: TextStyle(color: Colors.grey[600], fontSize: 13.sp),
                   ),
                 ],
@@ -278,8 +318,8 @@ class ApiPostContainer extends StatelessWidget {
             _buildPostButton(
               context: context,
               icon: Icon(
-                MdiIcons.thumbUpOutline,
-                color: Colors.grey[600],
+                _hasReacted ? MdiIcons.thumbUp : MdiIcons.thumbUpOutline,
+                color: _hasReacted ? Colors.blue : Colors.grey[600],
                 size: 20.sp,
               ),
               label: 'Like',
@@ -378,7 +418,7 @@ class ApiPostContainer extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 // Handle save post
-                print('Save post: ${post.id}');
+                print('Save post: ${widget.post.id}');
               },
             ),
             ListTile(
@@ -387,37 +427,153 @@ class ApiPostContainer extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 // Handle report post
-                print('Report post: ${post.id}');
+                print('Report post: ${widget.post.id}');
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.block),
-              title: const Text('Hide Post'),
-              onTap: () {
-                Navigator.pop(context);
-                // Handle hide post
-                print('Hide post: ${post.id}');
-              },
-            ),
+            // Show delete option only for own posts
+            if (_isOwnPost()) ...[
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text(
+                  'Delete Post',
+                  style: TextStyle(color: Colors.red),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showDeleteConfirmation(context);
+                },
+              ),
+            ] else ...[
+              ListTile(
+                leading: const Icon(Icons.block),
+                title: const Text('Hide Post'),
+                onTap: () {
+                  Navigator.pop(context);
+                  // Handle hide post
+                  print('Hide post: ${widget.post.id}');
+                },
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  void _handleReaction(BuildContext context) {
-    // TODO: Implement reaction functionality
-    print('React to post: ${post.id}');
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Post'),
+        content: const Text('Are you sure you want to delete this post?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deletePost();
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _isOwnPost() {
+    // TODO: Implement proper user ID check
+    // For now, return true if post was made by current user
+    // You should compare widget.post.ownerId with current user ID
+    return true; // Placeholder
+  }
+
+  Future<void> _deletePost() async {
+    final result = await _postService.deletePost(widget.post.id);
+
+    if (mounted) {
+      result.when(
+        success: (data) {
+          _showSuccessSnackBar('Post deleted successfully');
+          widget.onPostDeleted?.call();
+        },
+        failure: (error) {
+          _showErrorSnackBar(error);
+        },
+      );
+    }
+  }
+
+  Future<void> _handleReaction(BuildContext context) async {
+    if (_isReacting) return;
+
+    setState(() {
+      _isReacting = true;
+    });
+
+    final result = await _postService.reactToPost(
+      postId: widget.post.id,
+      reactionType: 'like',
+    );
+
+    if (mounted) {
+      setState(() {
+        _isReacting = false;
+      });
+
+      result.when(
+        success: (data) {
+          setState(() {
+            if (_hasReacted) {
+              _hasReacted = false;
+              _reactionCount = _reactionCount > 0 ? _reactionCount - 1 : 0;
+            } else {
+              _hasReacted = true;
+              _reactionCount++;
+            }
+          });
+          widget.onPostUpdated?.call();
+        },
+        failure: (error) {
+          _showErrorSnackBar(error);
+        },
+      );
+    }
   }
 
   void _handleComment(BuildContext context) {
-    // TODO: Navigate to comments screen
-    print('Comment on post: ${post.id}');
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CommentsPage(
+          postId: widget.post.id,
+          postOwnerName: widget.post.userInfo?.name ?? 'Unknown User',
+        ),
+      ),
+    ).then((_) {
+      // Refresh post data when returning from comments
+      widget.onPostUpdated?.call();
+    });
   }
 
   void _handleShare(BuildContext context) {
     // TODO: Implement share functionality
-    print('Share post: ${post.id}');
+    print('Share post: ${widget.post.id}');
+    _showErrorSnackBar('Share functionality not implemented yet');
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
+    );
   }
 
   String _formatDate(DateTime? dateTime) {
