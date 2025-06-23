@@ -484,6 +484,99 @@ class PostService {
     }
   }
 
+  /// Gets all stories with pagination
+  ///
+  /// [page] - Page number for pagination (default: 1)
+  /// [limit] - Number of stories per page (default: 10)
+  ///
+  /// Returns ApiResult with stories data
+  Future<ApiResult<Map<String, dynamic>>> getAllStories({
+    int page = 1,
+    int limit = 10,
+  }) async {
+    try {
+      // Get auth token
+      final token = await _authService.getToken();
+      if (token == null) {
+        return ApiResult.failure('Authentication required');
+      }
+
+      // Make API request
+      final response = await _apiService.dio.get(
+        '/api/stories/',
+        queryParameters: {'page': page, 'limit': limit},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 202) {
+        final data = response.data;
+        if (data['success'] == true) {
+          return ApiResult.success(data);
+        } else {
+          return ApiResult.failure(data['message'] ?? 'Failed to get stories');
+        }
+      } else {
+        return ApiResult.failure('Server error: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      return _handleDioError(e);
+    } catch (e) {
+      return ApiResult.failure('Unexpected error: $e');
+    }
+  }
+
+  /// Reacts to a story (like/unlike)
+  ///
+  /// [storyId] - The ID of the story to react to
+  /// [reactionType] - The type of reaction (like, love, haha, etc.)
+  ///
+  /// Returns ApiResult with reaction status
+  Future<ApiResult<Map<String, dynamic>>> reactToStory({
+    required String storyId,
+    String reactionType = 'like',
+  }) async {
+    try {
+      // Get auth token
+      final token = await _authService.getToken();
+      if (token == null) {
+        return ApiResult.failure('Authentication required');
+      }
+
+      // Make API request
+      final response = await _apiService.dio.post(
+        '/api/stories/react/',
+        data: {'storyId': storyId, 'reaction_type': reactionType},
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 202) {
+        final data = response.data;
+        if (data['success'] == true) {
+          return ApiResult.success(data);
+        } else {
+          return ApiResult.failure(
+            data['message'] ?? 'Failed to react to story',
+          );
+        }
+      } else {
+        return ApiResult.failure('Server error: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      return _handleDioError(e);
+    } catch (e) {
+      return ApiResult.failure('Unexpected error: $e');
+    }
+  }
+
   /// Determines MIME type based on file extension
   String _getMimeType(String fileName) {
     final extension = fileName.toLowerCase().split('.').last;

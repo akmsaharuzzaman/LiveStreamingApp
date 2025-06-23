@@ -19,6 +19,7 @@ import '../bloc/newsfeed_bloc.dart';
 import '../widgets/create_post_container.dart';
 import '../widgets/api_post_container.dart';
 import '../widgets/stories.dart';
+import '../widgets/api_stories.dart';
 
 class NewsFeedScreen extends StatefulWidget {
   const NewsFeedScreen({super.key});
@@ -30,6 +31,10 @@ class NewsFeedScreen extends StatefulWidget {
 class _NewsFeedScreenState extends State<NewsFeedScreen> {
   final TrackingScrollController scrollController = TrackingScrollController();
   late NewsfeedBloc _newsfeedBloc;
+
+  // Toggle between mock stories and API stories
+  bool useApiStories =
+      true; // Set to true to use API stories, false for mock stories
 
   @override
   void initState() {
@@ -135,7 +140,9 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
                   sliver: SliverToBoxAdapter(
-                    child: Stories(currentUser: currentUser, stories: stories),
+                    child: useApiStories
+                        ? ApiStories(currentUser: currentUser)
+                        : Stories(currentUser: currentUser, stories: stories),
                   ),
                 ),
                 // Use BlocBuilder to show posts from API
