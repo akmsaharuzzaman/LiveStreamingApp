@@ -103,13 +103,15 @@ class PostService {
         return ApiResult.failure('Authentication required');
       }
 
-      // Make API request
-      final response = await _apiService.dio.post(
+      // Make API request using DELETE method
+      final response = await _apiService.dio.delete(
         '/api/posts/delete/$postId',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 202) {
         final data = response.data;
         if (data['success'] == true) {
           return ApiResult.success(data);
@@ -155,7 +157,9 @@ class PostService {
         ),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 202) {
         final data = response.data;
         if (data['success'] == true) {
           return ApiResult.success(data);
@@ -178,13 +182,11 @@ class PostService {
   ///
   /// [postId] - The ID of the post to comment on
   /// [commentText] - The text content of the comment
-  /// [parentCommentId] - Optional parent comment ID for replies
   ///
   /// Returns ApiResult with created comment data
   Future<ApiResult<Map<String, dynamic>>> createComment({
     required String postId,
     required String commentText,
-    String? parentCommentId,
   }) async {
     try {
       // Validate input
@@ -198,18 +200,10 @@ class PostService {
         return ApiResult.failure('Authentication required');
       }
 
-      // Prepare request data
-      final requestData = {'postId': postId, 'commentText': commentText.trim()};
-
-      // Add parent comment ID if it's a reply
-      if (parentCommentId != null && parentCommentId.trim().isNotEmpty) {
-        requestData['parentCommentId'] = parentCommentId.trim();
-      }
-
       // Make API request
       final response = await _apiService.dio.post(
-        '/api/comments/create',
-        data: requestData,
+        '/api/posts/comment/',
+        data: {'postId': postId, 'commentText': commentText.trim()},
         options: Options(
           headers: {
             'Authorization': 'Bearer $token',
@@ -218,7 +212,9 @@ class PostService {
         ),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 202) {
         final data = response.data;
         if (data['success'] == true) {
           return ApiResult.success(data);
@@ -237,15 +233,24 @@ class PostService {
     }
   }
 
-  /// Deletes a comment
+  /// Creates a reply to a comment
   ///
-  /// [commentId] - The ID of the comment to delete
+  /// [postId] - The ID of the post
+  /// [commentId] - The ID of the parent comment
+  /// [commentText] - The text content of the reply
   ///
-  /// Returns ApiResult with deletion status
-  Future<ApiResult<Map<String, dynamic>>> deleteComment(
-    String commentId,
-  ) async {
+  /// Returns ApiResult with created reply data
+  Future<ApiResult<Map<String, dynamic>>> replyToComment({
+    required String postId,
+    required String commentId,
+    required String commentText,
+  }) async {
     try {
+      // Validate input
+      if (commentText.trim().isEmpty) {
+        return ApiResult.failure('Reply text cannot be empty');
+      }
+
       // Get auth token
       final token = await _authService.getToken();
       if (token == null) {
@@ -254,11 +259,65 @@ class PostService {
 
       // Make API request
       final response = await _apiService.dio.post(
-        '/api/comments/delete/$commentId',
+        '/api/posts/comment/reply',
+        data: {
+          'postId': postId,
+          'commentId': commentId,
+          'commentText': commentText.trim(),
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 202) {
+        final data = response.data;
+        if (data['success'] == true) {
+          return ApiResult.success(data);
+        } else {
+          return ApiResult.failure(data['message'] ?? 'Failed to create reply');
+        }
+      } else {
+        return ApiResult.failure('Server error: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      return _handleDioError(e);
+    } catch (e) {
+      return ApiResult.failure('Unexpected error: $e');
+    }
+  }
+
+  /// Deletes a comment
+  ///
+  /// [postId] - The ID of the post containing the comment
+  /// [commentId] - The ID of the comment to delete
+  ///
+  /// Returns ApiResult with deletion status
+  Future<ApiResult<Map<String, dynamic>>> deleteComment({
+    required String postId,
+    required String commentId,
+  }) async {
+    try {
+      // Get auth token
+      final token = await _authService.getToken();
+      if (token == null) {
+        return ApiResult.failure('Authentication required');
+      }
+
+      // Make API request using the correct endpoint format
+      final response = await _apiService.dio.delete(
+        '/api/posts/$postId/comment/delete/$commentId',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 202) {
         final data = response.data;
         if (data['success'] == true) {
           return ApiResult.success(data);
@@ -280,16 +339,16 @@ class PostService {
   /// Edits a comment
   ///
   /// [commentId] - The ID of the comment to edit
-  /// [commentText] - The new text content of the comment
+  /// [newCommentText] - The new text content of the comment
   ///
   /// Returns ApiResult with updated comment data
   Future<ApiResult<Map<String, dynamic>>> editComment({
     required String commentId,
-    required String commentText,
+    required String newCommentText,
   }) async {
     try {
       // Validate input
-      if (commentText.trim().isEmpty) {
+      if (newCommentText.trim().isEmpty) {
         return ApiResult.failure('Comment text cannot be empty');
       }
 
@@ -299,10 +358,10 @@ class PostService {
         return ApiResult.failure('Authentication required');
       }
 
-      // Make API request
-      final response = await _apiService.dio.post(
-        '/api/comments/edit/$commentId',
-        data: {'commentText': commentText.trim()},
+      // Make API request using PUT method
+      final response = await _apiService.dio.put(
+        '/api/posts/comment/edit',
+        data: {'commentId': commentId, 'newCommentText': newCommentText.trim()},
         options: Options(
           headers: {
             'Authorization': 'Bearer $token',
@@ -311,7 +370,9 @@ class PostService {
         ),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 202) {
         final data = response.data;
         if (data['success'] == true) {
           return ApiResult.success(data);
@@ -347,7 +408,7 @@ class PostService {
 
       // Make API request
       final response = await _apiService.dio.post(
-        '/api/comments/react/',
+        '/api/posts/comment/react',
         data: {'commentId': commentId, 'reaction_type': reactionType},
         options: Options(
           headers: {
@@ -357,7 +418,9 @@ class PostService {
         ),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 202) {
         final data = response.data;
         if (data['success'] == true) {
           return ApiResult.success(data);
@@ -380,13 +443,13 @@ class PostService {
   ///
   /// [postId] - The ID of the post to get comments for
   /// [page] - Page number for pagination (default: 1)
-  /// [limit] - Number of comments per page (default: 20)
+  /// [limit] - Number of comments per page (default: 5)
   ///
   /// Returns ApiResult with comments data
   Future<ApiResult<Map<String, dynamic>>> getPostComments({
     required String postId,
     int page = 1,
-    int limit = 20,
+    int limit = 5,
   }) async {
     try {
       // Get auth token
@@ -395,14 +458,16 @@ class PostService {
         return ApiResult.failure('Authentication required');
       }
 
-      // Make API request
+      // Make API request with correct endpoint format
       final response = await _apiService.dio.get(
-        '/api/comments/post/$postId',
+        '/api/posts/$postId/comments',
         queryParameters: {'page': page, 'limit': limit},
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 202) {
         final data = response.data;
         if (data['success'] == true) {
           return ApiResult.success(data);

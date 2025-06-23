@@ -10,7 +10,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../components/utilities/chat_theme.dart';
-import '../../../../core/services/post_creation_service.dart';
+import '../../../../core/services/post_service.dart';
 import '../../../../core/network/api_service.dart';
 import '../../../../core/services/simple_auth_service.dart';
 import '../../data/models/mock_models/data.dart';
@@ -169,7 +169,17 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                               return null;
                             }
                             final post = state.posts[index];
-                            return ApiPostContainer(post: post);
+                            return ApiPostContainer(
+                              post: post,
+                              onPostDeleted: () {
+                                // Refresh the feed when a post is deleted
+                                _newsfeedBloc.add(RefreshPostsEvent());
+                              },
+                              onPostUpdated: () {
+                                // Refresh the feed when a post is updated (liked, etc.)
+                                _newsfeedBloc.add(RefreshPostsEvent());
+                              },
+                            );
                           },
                           childCount: state.hasReachedMax
                               ? state.posts.length
@@ -263,15 +273,12 @@ class _CreatePostPageState extends State<CreatePostPage> {
   bool _isPostEnabled = false;
   bool _isPosting = false;
   File? _selectedImage;
-  late PostCreationService _postCreationService;
+  late PostService _postService;
 
   @override
   void initState() {
     super.initState(); // Initialize post creation service
-    _postCreationService = PostCreationService(
-      ApiService.instance,
-      AuthService(),
-    );
+    _postService = PostService(ApiService.instance, AuthService());
   }
 
   @override
@@ -301,7 +308,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
     });
 
     try {
-      final result = await _postCreationService.createPost(
+      final result = await _postService.createPost(
         postCaption: _postController.text.trim().isNotEmpty
             ? _postController.text.trim()
             : null,
