@@ -8,11 +8,13 @@ import '../../data/models/story_response_model.dart';
 class StoryViewerPage extends StatefulWidget {
   final List<StoryModel> stories;
   final int initialIndex;
+  final String? currentUserId; // Add current user ID parameter
 
   const StoryViewerPage({
     super.key,
     required this.stories,
     this.initialIndex = 0,
+    this.currentUserId,
   });
 
   @override
@@ -24,10 +26,10 @@ class _StoryViewerPageState extends State<StoryViewerPage>
   late PageController _pageController;
   late AnimationController _progressController;
   late PostService _postService;
-
   int _currentIndex = 0;
   List<StoryModel> _stories = [];
   bool _isLoading = false;
+  String? _currentUserId;
 
   // Story progress duration (5 seconds per story)
   static const Duration _storyDuration = Duration(seconds: 5);
@@ -41,12 +43,13 @@ class _StoryViewerPageState extends State<StoryViewerPage>
     _progressController = AnimationController(
       duration: _storyDuration,
       vsync: this,
-    );
-
-    // Initialize services
+    ); // Initialize services
     final apiService = ApiService.instance;
     final authService = AuthService();
     _postService = PostService(apiService, authService);
+
+    // Set current user ID from parameter
+    _currentUserId = widget.currentUserId;
 
     _startStoryProgress();
   }
@@ -180,6 +183,96 @@ class _StoryViewerPageState extends State<StoryViewerPage>
     }
   }
 
+  Future<void> _deleteCurrentStory() async {
+    if (_isLoading) return;
+
+    final currentStory = _stories[_currentIndex];
+
+    // Show confirmation dialog
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: const Text(
+          'Delete Story',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'Are you sure you want to delete this story? This action cannot be undone.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    final result = await _postService.deleteStory(currentStory.id);
+
+    result.when(
+      success: (data) {
+        // Remove story from list
+        setState(() {
+          _stories.removeAt(_currentIndex);
+        });
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Story deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Navigate to next story or close if this was the last one
+        if (_stories.isEmpty) {
+          Navigator.of(context).pop();
+        } else {
+          if (_currentIndex >= _stories.length) {
+            _currentIndex = _stories.length - 1;
+          }
+          _pageController.animateToPage(
+            _currentIndex,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+          _startStoryProgress();
+        }
+      },
+      failure: (error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete story: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      },
+    );
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  bool _isCurrentUserStory() {
+    if (_currentUserId == null || _stories.isEmpty) return false;
+    final currentStory = _stories[_currentIndex];
+    return currentStory.ownerId == _currentUserId;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -266,6 +359,29 @@ class _StoryViewerPageState extends State<StoryViewerPage>
                 ],
               ),
             ),
+
+            // Delete Button (for current user's story)
+            if (_isCurrentUserStory())
+              Positioned(
+                bottom: 100,
+                left: 20,
+                child: GestureDetector(
+                  onTap: _deleteCurrentStory,
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.8),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.delete,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

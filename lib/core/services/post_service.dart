@@ -577,6 +577,106 @@ class PostService {
     }
   }
 
+  /// Creates a new story with media file
+  ///
+  /// [mediaFile] - Image or video file to upload as story
+  ///
+  /// Returns ApiResult with the created story data
+  Future<ApiResult<Map<String, dynamic>>> createStory({
+    required File mediaFile,
+  }) async {
+    try {
+      // Get auth token
+      final token = await _authService.getToken();
+      if (token == null) {
+        return ApiResult.failure('Authentication required');
+      }
+
+      // Prepare form data
+      final formData = FormData();
+      final fileName = mediaFile.path.split('/').last;
+      final mimeType = _getMimeType(fileName);
+
+      formData.files.add(
+        MapEntry(
+          'media',
+          await MultipartFile.fromFile(
+            mediaFile.path,
+            filename: fileName,
+            contentType: MediaType.parse(mimeType),
+          ),
+        ),
+      );
+
+      // Make API request
+      final response = await _apiService.dio.post(
+        '/api/stories/create',
+        data: formData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 202) {
+        final data = response.data;
+        if (data['success'] == true) {
+          return ApiResult.success(data);
+        } else {
+          return ApiResult.failure(data['message'] ?? 'Failed to create story');
+        }
+      } else {
+        return ApiResult.failure('Server error: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      return _handleDioError(e);
+    } catch (e) {
+      return ApiResult.failure('Unexpected error: $e');
+    }
+  }
+
+  /// Deletes a story by ID
+  ///
+  /// [storyId] - The ID of the story to delete
+  ///
+  /// Returns ApiResult with deletion status
+  Future<ApiResult<Map<String, dynamic>>> deleteStory(String storyId) async {
+    try {
+      // Get auth token
+      final token = await _authService.getToken();
+      if (token == null) {
+        return ApiResult.failure('Authentication required');
+      }
+
+      // Make API request using DELETE method
+      final response = await _apiService.dio.delete(
+        '/api/stories/delete/$storyId',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 202) {
+        final data = response.data;
+        if (data['success'] == true) {
+          return ApiResult.success(data);
+        } else {
+          return ApiResult.failure(data['message'] ?? 'Failed to delete story');
+        }
+      } else {
+        return ApiResult.failure('Server error: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      return _handleDioError(e);
+    } catch (e) {
+      return ApiResult.failure('Unexpected error: $e');
+    }
+  }
+
   /// Determines MIME type based on file extension
   String _getMimeType(String fileName) {
     final extension = fileName.toLowerCase().split('.').last;

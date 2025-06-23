@@ -6,6 +6,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../../core/services/post_service.dart';
+import '../../../../core/services/simple_auth_service.dart';
+import '../../../../core/network/api_service.dart';
+
 class CreateStoryScreen extends StatefulWidget {
   const CreateStoryScreen({super.key});
 
@@ -25,8 +29,19 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
   VideoPlayerController? _videoController;
   GlobalKey _repaintBoundaryKey = GlobalKey();
 
+  // API service
+  late PostService _postService;
+
   final ImagePicker _picker = ImagePicker();
   final TextEditingController _textController = TextEditingController();
+  @override
+  void initState() {
+    super.initState();
+    // Initialize API service
+    final apiService = ApiService.instance;
+    final authService = AuthService();
+    _postService = PostService(apiService, authService);
+  }
 
   @override
   void dispose() {
@@ -56,15 +71,24 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
         actions: [
           if (_mediaFile != null)
             TextButton(
-              onPressed: _uploadStory,
-              child: Text(
-                'Share',
-                style: TextStyle(
-                  color: Colors.blue,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              onPressed: _isLoading ? null : _uploadStory,
+              child: _isLoading
+                  ? SizedBox(
+                      width: 20.w,
+                      height: 20.h,
+                      child: const CircularProgressIndicator(
+                        color: Colors.blue,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Text(
+                      'Share',
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             ),
         ],
       ),
@@ -752,33 +776,90 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
     );
   }
 
-  void _uploadStory() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        title: Text(
-          'Upload Story',
-          style: TextStyle(color: Colors.white, fontSize: 18.sp),
-        ),
-        content: Text(
-          'Your story is ready to upload!\n\n(Upload functionality will be implemented in the future)',
-          style: TextStyle(color: Colors.white70, fontSize: 14.sp),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Close story screen
-            },
-            child: Text(
-              'OK',
-              style: TextStyle(color: Colors.blue, fontSize: 16.sp),
-            ),
+  Future<void> _uploadStory() async {
+    if (_mediaFile == null) {
+      _showErrorSnackBar('Please select media first');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Show upload dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A2E),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: Colors.blue),
+              const SizedBox(height: 16),
+              Text(
+                'Uploading your story...',
+                style: TextStyle(color: Colors.white, fontSize: 16.sp),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
+        ),
+      );
+
+      // Upload story via API
+      final result = await _postService.createStory(mediaFile: _mediaFile!);
+
+      // Close upload dialog
+      if (mounted) Navigator.pop(context);
+
+      result.when(
+        success: (data) {
+          _showSuccessSnackBar('Story uploaded successfully!');
+
+          // Show success dialog
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: const Color(0xFF1A1A2E),
+              title: Text(
+                'Story Uploaded!',
+                style: TextStyle(color: Colors.white, fontSize: 18.sp),
+              ),
+              content: Text(
+                'Your story has been uploaded successfully and is now visible to your followers.',
+                style: TextStyle(color: Colors.white70, fontSize: 14.sp),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    Navigator.pop(context); // Close story screen
+                  },
+                  child: Text(
+                    'OK',
+                    style: TextStyle(color: Colors.blue, fontSize: 16.sp),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+        failure: (error) {
+          _showErrorSnackBar('Failed to upload story: $error');
+        },
+      );
+    } catch (e) {
+      // Close upload dialog if still open
+      if (mounted) Navigator.pop(context);
+      _showErrorSnackBar('An unexpected error occurred: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   void _showErrorSnackBar(String message) {
