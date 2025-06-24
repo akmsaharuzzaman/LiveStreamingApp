@@ -13,6 +13,7 @@ import '../../../../components/utilities/chat_theme.dart';
 import '../../../../components/utilities/custom_networkimage.dart';
 import '../../../../components/utilities/touchable_opacity_widget.dart';
 import '../../../../core/network/socket_service.dart';
+import '../../../live-streaming/data/models/room_models.dart';
 import '../../data/models/category_model.dart';
 import '../../data/models/live_streaming_model.dart';
 import '../../data/models/user_model.dart';
@@ -25,12 +26,8 @@ class HomePageScreen extends StatefulWidget {
 }
 
 class _HomePageScreenState extends State<HomePageScreen> {
-  int _currentIndex = 0;
   final SocketService _socketService = SocketService.instance;
-  bool _isConnected = false;
-  bool _isConnecting = false;
-  String? _errorMessage;
-  List<String> _availableRooms = [];
+  RoomListResponse? _availableRooms;
 
   // Stream subscriptions for proper cleanup
   StreamSubscription? _connectionStatusSubscription;
@@ -48,11 +45,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
 
   /// Initialize socket connection when entering live streaming page
   Future<void> _initializeSocket() async {
-    setState(() {
-      _isConnecting = true;
-      _errorMessage = null;
-    });
-
     try {
       // Connect to socket with user ID
       final prefs = await SharedPreferences.getInstance();
@@ -61,36 +53,14 @@ class _HomePageScreenState extends State<HomePageScreen> {
 
       if (connected) {
         _setupSocketListeners();
-
-        setState(() {
-          _isConnected = true;
-          _isConnecting = false;
-        });
         // Get list of available rooms
         await _socketService.getRooms();
       } else {
-        setState(() {
-          _isConnecting = false;
-          _errorMessage = 'Failed to connect to server';
-        });
+        debugPrint('Failed to connect to server');
       }
     } catch (e) {
-      setState(() {
-        _isConnecting = false;
-        _errorMessage = 'Connection error: $e';
-      });
+      debugPrint('Connection error: $e');
     }
-  }
-
-  /// Show a snackbar with a message
-  void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        duration: const Duration(seconds: 2),
-      ),
-    );
   }
 
   /// Setup socket event listeners
@@ -100,10 +70,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
     _connectionStatusSubscription = _socketService.connectionStatusStream
         .listen((isConnected) {
           if (mounted) {
-            setState(() {
-              _isConnected = isConnected;
-            });
-
             if (isConnected) {
               // _showSnackBar('✅ Connected to server', Colors.green);
               debugPrint("Connected to server");
@@ -112,25 +78,18 @@ class _HomePageScreenState extends State<HomePageScreen> {
               debugPrint("Disconnected from server");
             }
           }
-        });
-
-    // Room list updates
+        }); // Room list updates
     _roomListSubscription = _socketService.roomListStream.listen((rooms) {
       if (mounted) {
         setState(() {
           _availableRooms = rooms;
-          debugPrint("Available rooms: $_availableRooms from Frontend");
+          debugPrint("Available rooms: ${rooms.roomIds} from Frontend");
         });
       }
-    });
-
-    // Error handling
+    }); // Error handling
     _errorSubscription = _socketService.errorStream.listen((error) {
       if (mounted) {
         // _showSnackBar('❌ Error: $error', Colors.red);
-        setState(() {
-          _errorMessage = error;
-        });
         debugPrint("Socket error: $error");
       }
     });
@@ -304,7 +263,9 @@ class _HomePageScreenState extends State<HomePageScreen> {
               ),
             ),
             SizedBox(height: 18.sp),
-            ListLiveStream(availableRooms: _availableRooms),
+            ListLiveStream(
+              availableRooms: _availableRooms ?? RoomListResponse(rooms: {}),
+            ),
           ],
         ),
       ),
@@ -371,7 +332,7 @@ class _ListCategoryHomeState extends State<ListCategoryHome> {
 }
 
 class ListLiveStream extends StatelessWidget {
-  final List<String> availableRooms;
+  final RoomListResponse availableRooms;
   const ListLiveStream({super.key, required this.availableRooms});
 
   @override
@@ -389,15 +350,18 @@ class ListLiveStream extends StatelessWidget {
           childAspectRatio: 0.70,
         ),
         // itemCount: listLiveStreamFake.length,
-        itemCount: availableRooms.length,
+        itemCount: availableRooms.roomIds.length,
         itemBuilder: (context, index) {
           return InkWell(
             onTap: () {
+              debugPrint(
+                "Live joining Room ID: ${availableRooms.roomIds[index]}",
+              );
               // Navigate to the live stream screen with the room ID
-              context.push('/go-live?roomId=${availableRooms[index]}');
+              context.push('/go-live?roomId=${availableRooms.roomIds[index]}');
             },
             child: LiveStreamCard(
-              liveStreamModel: listLiveStreamFake[index],
+              liveStreamModel: availableRooms.roomDataList[index],
               onTap: (() {
                 // Navigator.of(context).push(MaterialPageRoute(
                 //     builder: (context) => const StreamScreen()));
@@ -544,7 +508,7 @@ class UserWidget extends StatelessWidget {
 }
 
 class LiveStreamCard extends StatelessWidget {
-  final LiveStreamModel liveStreamModel;
+  final RoomData liveStreamModel;
   final Function() onTap;
   const LiveStreamCard({
     super.key,
@@ -559,7 +523,7 @@ class LiveStreamCard extends StatelessWidget {
       child: Stack(
         children: [
           CustomNetworkImage(
-            urlToImage: liveStreamModel.urlToImage,
+            urlToImage: liveStreamModel.hostDetails.name,
             height: 180.sp,
             shape: BoxShape.rectangle,
             borderRadius: BorderRadius.circular(13.sp),
@@ -611,7 +575,7 @@ class LiveStreamCard extends StatelessWidget {
                                   ),
                                   SizedBox(width: 5.sp),
                                   Text(
-                                    '${liveStreamModel.peopleParticipant}',
+                                    '${liveStreamModel.members.length}',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 9.sp,
@@ -629,11 +593,13 @@ class LiveStreamCard extends StatelessWidget {
                             vertical: 2.sp,
                           ),
                           decoration: BoxDecoration(
-                            color: liveStreamModel.getColorType,
+                            color: liveStreamModel == 'Live'
+                                ? Colors.redAccent
+                                : Colors.blueAccent,
                             borderRadius: BorderRadius.circular(9.sp),
                           ),
                           child: Text(
-                            liveStreamModel.getTitleType,
+                            liveStreamModel.hostDetails.name,
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 9.sp,
@@ -664,7 +630,7 @@ class LiveStreamCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Wahidur Zaman',
+                          liveStreamModel.hostDetails.name,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.black,
@@ -776,93 +742,6 @@ class LiveStreamCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  void _showPopupMenu(BuildContext context) {
-    final RenderBox renderBox = context.findRenderObject() as RenderBox;
-    Offset offset = renderBox.localToGlobal(Offset.zero);
-    PopupMenuButton<String>(
-      color: const Color(0xff1C262A),
-      position: PopupMenuPosition.under,
-      icon: Image.asset(
-        'assets/profile/three_dots.png',
-        width: 48.sp,
-        height: 48.sp,
-      ),
-      onSelected: (String result) {
-        // Handle your menu selection here
-      },
-      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-        /* PopupMenuItem<String>(
-              value: 'Option 1',
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Image.asset(
-                    'assets/profile/share-03.png',
-                    width: 20.sp,
-                    height: 20.sp,
-                  ),
-                  SizedBox(
-                    width: 12.sp,
-                  ),
-                  const Text(
-                    'Share Profile',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontFamily: 'Aeonik',
-                      fontWeight: FontWeight.w500,
-                      height: 0,
-                    ),
-                  )
-                ],
-              ),
-            ),*/
-        PopupMenuItem<String>(
-          value: 'Option 3',
-          child: GestureDetector(
-            onTap: () {},
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Text(
-                  "Follow",
-                  style: const TextStyle(
-                    color: Color(0xFFDC3030),
-                    fontSize: 16,
-                    fontFamily: 'Aeonik',
-                    fontWeight: FontWeight.w500,
-                    height: 0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        PopupMenuItem<String>(
-          value: 'Option 2',
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              const Text(
-                'Report',
-                style: TextStyle(
-                  color: Color(0xFFDC3030),
-                  fontSize: 16,
-                  fontFamily: 'Aeonik',
-                  fontWeight: FontWeight.w500,
-                  height: 0,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
