@@ -365,19 +365,27 @@ class _GoliveScreenState extends State<GoliveScreen> {
     _engine.registerEventHandler(
       RtcEngineEventHandler(
         onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
-          debugPrint("local user ${connection.localUid} joined");
+          debugPrint(
+            "local user ${connection.localUid} joined channel: ${connection.channelId}",
+          );
           setState(() {
             _localUserJoined = true;
-            _remoteUid = connection.localUid;
+            // Don't set _remoteUid here - it should only be set when a remote user joins
           });
         },
         onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
-          debugPrint("remote user $remoteUid joined");
+          debugPrint(
+            "remote user $remoteUid joined channel: ${connection.channelId}",
+          );
+          debugPrint("Current isHost: $isHost, _remoteUid before: $_remoteUid");
           setState(() {
             _remoteUid = remoteUid;
             _remoteUsers.add(remoteUid);
             _viewerCount = _remoteUsers.length;
           });
+          debugPrint(
+            "_remoteUid after: $_remoteUid, total users: ${_remoteUsers.length}",
+          );
 
           // Update viewer count in Firestore
           if (isHost) {
@@ -392,7 +400,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
             ) {
               debugPrint("remote user $remoteUid left channel");
               setState(() {
-                _remoteUid = null;
+                // Only set _remoteUid to null if it was the user who left
+                if (_remoteUid == remoteUid) {
+                  _remoteUid = null;
+                }
                 _remoteUsers.remove(remoteUid);
                 _viewerCount = _remoteUsers.length;
                 generateActiveViewers(_viewerCount);
@@ -419,7 +430,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
           : ClientRoleType.clientRoleAudience,
     );
     await _engine.enableVideo();
-    await _engine.startPreview();
+
+    // Only start preview for broadcasters
+    if (isHost) {
+      await _engine.startPreview();
+    }
 
     // Generate dynamic Agora token before joining channel
     await _joinChannelWithDynamicToken();
@@ -444,26 +459,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
         role: isHost ? 'publisher' : 'subscriber',
       );
       debugPrint('💲💲Token generation result new: ${result.token}');
-
       if (result.token.isNotEmpty) {
-        // final tokenData = result.dataOrNull?['result'];
         final dynamicToken = result.token;
-        if (dynamicToken != null) {
-          debugPrint('✅ Token generated successfully : $dynamicToken');
+        debugPrint('✅ Token generated successfully : $dynamicToken');
 
-          // Join channel with dynamic token
-          await _engine.joinChannel(
-            token: result.token ?? dynamicToken,
-            channelId: roomId, // Use the room ID as channel
-            uid: 0, // Let Agora assign UID
-            options: const ChannelMediaOptions(),
-          );
-        } else {
-          debugPrint('Token is null in response');
-          // _showSnackBar('❌ Failed to get valid token', Colors.red);
-          // Fallback to static token
-          await _joinChannelWithStaticToken();
-        }
+        // Join channel with dynamic token
+        await _engine.joinChannel(
+          token: dynamicToken,
+          channelId: roomId, // Use the room ID as channel
+          uid: 0, // Let Agora assign UID
+          options: const ChannelMediaOptions(),
+        );
       } else {
         debugPrint('Failed to generate token: ${result.success}');
         // _showSnackBar(
@@ -650,6 +656,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   // Main video view
   Widget _buildVideoView() {
+    debugPrint(
+      "Building video view - isHost: $isHost, _localUserJoined: $_localUserJoined, _remoteUid: $_remoteUid",
+    );
+
     if (isHost) {
       // Show local video for broadcaster
       return _localUserJoined
@@ -672,83 +682,22 @@ class _GoliveScreenState extends State<GoliveScreen> {
         controller: VideoViewController.remote(
           rtcEngine: _engine,
           canvas: VideoCanvas(uid: _remoteUid),
-          connection: const RtcConnection(channelId: "default_channel"),
+          connection: RtcConnection(channelId: roomId), // Use dynamic roomId
         ),
       );
     } else {
       return Center(
         child: const Text(
-          'Please wait for remote user to join',
+          'Waiting for broadcaster to start...',
           textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       );
     }
-  }
-
-  // Bottom controls for broadcaster
-  Widget _buildBottomControls() {
-    if (!isHost) return const SizedBox.shrink();
-
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          bottom: MediaQuery.of(context).padding.bottom + 10,
-          top: 10,
-        ),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [Colors.black.withValues(alpha: .7), Colors.transparent],
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            // Mute button
-            IconButton(
-              onPressed: _toggleMute,
-              icon: Icon(
-                _muted ? Icons.mic_off : Icons.mic,
-                color: _muted ? Colors.red : Colors.white,
-                size: 28,
-              ),
-            ),
-
-            // Camera toggle
-            IconButton(
-              onPressed: _toggleCamera,
-              icon: Icon(
-                _cameraEnabled ? Icons.videocam : Icons.videocam_off,
-                color: _cameraEnabled ? Colors.white : Colors.red,
-                size: 28,
-              ),
-            ),
-
-            // Switch camera
-            IconButton(
-              onPressed: _switchCamera,
-              icon: const Icon(
-                Icons.flip_camera_ios,
-                color: Colors.white,
-                size: 28,
-              ),
-            ),
-
-            // End stream
-            IconButton(
-              onPressed: _endLiveStream,
-              icon: const Icon(Icons.call_end, color: Colors.red, size: 28),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override

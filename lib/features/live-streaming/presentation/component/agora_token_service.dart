@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 /// Service class for interacting with Agora Token Server
 class AgoraTokenService {
   // Change this URL to your deployed server URL in production
-  static const String baseUrl = 'http://192.168.56.1:3000/api';
+  static const String baseUrl = 'http://31.97.15.225:5555/api';
 
   /// Generate RTC token for video/audio calls
   ///
