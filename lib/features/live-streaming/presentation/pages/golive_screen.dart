@@ -7,7 +7,10 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/network/socket_service.dart';
+import '../../../../core/network/api_service.dart';
+import '../../../../core/services/simple_auth_service.dart';
 import '../../../../core/utils/permission_helper.dart';
+import '../../data/repositories/live_stream_service.dart';
 import '../../../profile/presentation/bloc/profile_bloc.dart';
 import '../component/active_viwers.dart';
 import '../component/custom_live_button.dart';
@@ -30,6 +33,9 @@ class GoliveScreen extends StatefulWidget {
 class _GoliveScreenState extends State<GoliveScreen> {
   final TextEditingController _titleController = TextEditingController();
   bool _isLoading = false;
+
+  // Live streaming service for token generation
+  late final LiveStreamService _liveStreamService;
 
   void _checkRoom() {
     if (_currentRoomId != null) {
@@ -56,7 +62,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   String? _errorMessage;
   String? userId;
   bool isHost = true;
-  String roomId = "DJLiveRoom";
+  String roomId = "default_channel";
 
   // Stream subscriptions for proper cleanup
   StreamSubscription? _connectionStatusSubscription;
@@ -65,10 +71,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
   StreamSubscription? _roomLeftSubscription;
   StreamSubscription? _roomDeletedSubscription;
   StreamSubscription? _errorSubscription;
-
   @override
   void initState() {
     super.initState();
+    // Initialize live streaming service
+    _liveStreamService = LiveStreamService(ApiService.instance, AuthService());
     extractRoomId();
     initAgoraLoad();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -406,7 +413,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
         },
       ),
     );
-
     await _engine.setClientRole(
       role: isHost
           ? ClientRoleType.clientRoleBroadcaster
@@ -414,6 +420,65 @@ class _GoliveScreenState extends State<GoliveScreen> {
     );
     await _engine.enableVideo();
     await _engine.startPreview();
+
+    // Generate dynamic Agora token before joining channel
+    await _joinChannelWithDynamicToken();
+  }
+
+  /// Generate dynamic token and join Agora channel
+  Future<void> _joinChannelWithDynamicToken() async {
+    try {
+      if (userId == null) {
+        debugPrint('User ID is null, cannot generate token');
+        _showSnackBar('❌ User not authenticated', Colors.red);
+        return;
+      }
+
+      // Generate token using the API
+      final result = await _liveStreamService.generateAgoraToken(
+        channelName: roomId, // Use the room ID as channel name
+        uid: userId!, // Use the user ID
+      );
+
+      if (result.isSuccess) {
+        final tokenData = result.dataOrNull?['result'];
+        final dynamicToken = tokenData?['token'];
+        if (dynamicToken != null) {
+          debugPrint('✅ Token generated successfully : $dynamicToken');
+
+          // Join channel with dynamic token
+          await _engine.joinChannel(
+            token: dynamicToken,
+            channelId: roomId, // Use the room ID as channel
+            uid: 0, // Let Agora assign UID
+            options: const ChannelMediaOptions(),
+          );
+        } else {
+          debugPrint('Token is null in response');
+          _showSnackBar('❌ Failed to get valid token', Colors.red);
+          // Fallback to static token
+          await _joinChannelWithStaticToken();
+        }
+      } else {
+        debugPrint('Failed to generate token: ${result.errorOrNull}');
+        _showSnackBar(
+          '❌ Token generation failed: ${result.errorOrNull}',
+          Colors.red,
+        );
+        // Fallback to static token
+        await _joinChannelWithStaticToken();
+      }
+    } catch (e) {
+      debugPrint('Error generating token: $e');
+      _showSnackBar('❌ Token generation error', Colors.red);
+      // Fallback to static token
+      await _joinChannelWithStaticToken();
+    }
+  }
+
+  /// Fallback method to join with static token
+  Future<void> _joinChannelWithStaticToken() async {
+    debugPrint('Using fallback static token');
     await _engine.joinChannel(
       token: dotenv.env['AGORA_TOKEN'] ?? '',
       channelId: dotenv.env['DEFAULT_CHANNEL'] ?? 'default_channel',
@@ -477,7 +542,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
           return Scaffold(
             body: Stack(
               children: [
-                // _buildVideoView(),
+                _buildVideoView(),
 
                 // * This contaimer holds the livestream options,
                 SafeArea(
@@ -546,9 +611,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 _toggleMute();
                               },
                             ),
-                            CustomLiveButton(icon: Icons.redeem, onTap: () {
-                              showGiftBottomSheet(context);
-                            }),
+                            CustomLiveButton(
+                              icon: Icons.redeem,
+                              onTap: () {
+                                showGiftBottomSheet(context);
+                              },
+                            ),
                             CustomLiveButton(
                               icon: Icons.music_note,
                               onTap: () {},
