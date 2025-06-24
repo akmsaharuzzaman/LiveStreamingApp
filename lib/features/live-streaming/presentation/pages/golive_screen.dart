@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+import 'package:dlstarlive/features/live-streaming/presentation/component/agora_token_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -11,6 +12,7 @@ import '../../../../core/network/api_service.dart';
 import '../../../../core/services/simple_auth_service.dart';
 import '../../../../core/utils/permission_helper.dart';
 import '../../data/repositories/live_stream_service.dart';
+import '../../data/models/room_models.dart';
 import '../../../profile/presentation/bloc/profile_bloc.dart';
 import '../component/active_viwers.dart';
 import '../component/custom_live_button.dart';
@@ -58,7 +60,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   bool _isConnected = false;
   bool _isConnecting = false;
   String? _currentRoomId;
-  List<String> _availableRooms = [];
+  RoomListResponse? _availableRooms;
   String? _errorMessage;
   String? userId;
   bool isHost = true;
@@ -219,14 +221,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
         final userName = data['userName'] ?? 'Unknown';
         _showSnackBar('👋 $userName left the stream', Colors.orange);
       }
-    });
-
-    // Room list updates
+    }); // Room list updates
     _socketService.roomListStream.listen((rooms) {
       if (mounted) {
         setState(() {
           _availableRooms = rooms;
-          debugPrint("Available rooms: $_availableRooms from Frontend");
+          debugPrint("Available rooms: ${rooms.roomIds} from Frontend");
         });
       }
     });
@@ -435,42 +435,47 @@ class _GoliveScreenState extends State<GoliveScreen> {
       }
 
       // Generate token using the API
-      final result = await _liveStreamService.generateAgoraToken(
-        channelName: roomId, // Use the room ID as channel name
-        uid: userId!, // Use the user ID
+      // final result = await _liveStreamService.generateAgoraToken(
+      //   channelName: roomId, // Use the room ID as channel name
+      //   uid: userId!, // Use the user ID
+      // );
+      final result = await AgoraTokenService.getRtcToken(
+        channelName: roomId,
+        role: isHost ? 'publisher' : 'subscriber',
       );
+      debugPrint('💲💲Token generation result new: ${result.token}');
 
-      if (result.isSuccess) {
-        final tokenData = result.dataOrNull?['result'];
-        final dynamicToken = tokenData?['token'];
+      if (result.token.isNotEmpty) {
+        // final tokenData = result.dataOrNull?['result'];
+        final dynamicToken = result.token;
         if (dynamicToken != null) {
           debugPrint('✅ Token generated successfully : $dynamicToken');
 
           // Join channel with dynamic token
           await _engine.joinChannel(
-            token: dynamicToken,
+            token: result.token ?? dynamicToken,
             channelId: roomId, // Use the room ID as channel
             uid: 0, // Let Agora assign UID
             options: const ChannelMediaOptions(),
           );
         } else {
           debugPrint('Token is null in response');
-          _showSnackBar('❌ Failed to get valid token', Colors.red);
+          // _showSnackBar('❌ Failed to get valid token', Colors.red);
           // Fallback to static token
           await _joinChannelWithStaticToken();
         }
       } else {
-        debugPrint('Failed to generate token: ${result.errorOrNull}');
-        _showSnackBar(
-          '❌ Token generation failed: ${result.errorOrNull}',
-          Colors.red,
-        );
+        debugPrint('Failed to generate token: ${result.success}');
+        // _showSnackBar(
+        //   '❌ Token generation failed: ${result.success}',
+        //   Colors.red,
+        // );
         // Fallback to static token
         await _joinChannelWithStaticToken();
       }
     } catch (e) {
       debugPrint('Error generating token: $e');
-      _showSnackBar('❌ Token generation error', Colors.red);
+      // _showSnackBar('❌ Token generation error', Colors.red);
       // Fallback to static token
       await _joinChannelWithStaticToken();
     }
@@ -671,9 +676,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
         ),
       );
     } else {
-      return const Text(
-        'Please wait for remote user to join',
-        textAlign: TextAlign.center,
+      return Center(
+        child: const Text(
+          'Please wait for remote user to join',
+          textAlign: TextAlign.center,
+        ),
       );
     }
   }

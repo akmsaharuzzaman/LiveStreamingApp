@@ -523,7 +523,8 @@ class LiveStreamCard extends StatelessWidget {
       child: Stack(
         children: [
           CustomNetworkImage(
-            urlToImage: liveStreamModel.hostDetails.name,
+            urlToImage:
+                'https://cdn.dribbble.com/users/3245638/screenshots/15628559/media/21f20574f74b6d6f8e74f92bde7de2fd.png?compress=1&resize=400x300&vertical=top',
             height: 180.sp,
             shape: BoxShape.rectangle,
             borderRadius: BorderRadius.circular(13.sp),
@@ -666,33 +667,6 @@ class LiveStreamCard extends StatelessWidget {
                     },
                     itemBuilder: (BuildContext context) =>
                         <PopupMenuEntry<String>>[
-                          /* PopupMenuItem<String>(
-              value: 'Option 1',
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Image.asset(
-                    'assets/profile/share-03.png',
-                    width: 20.sp,
-                    height: 20.sp,
-                  ),
-                  SizedBox(
-                    width: 12.sp,
-                  ),
-                  const Text(
-                    'Share Profile',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontFamily: 'Aeonik',
-                      fontWeight: FontWeight.w500,
-                      height: 0,
-                    ),
-                  )
-                ],
-              ),
-            ),*/
                           PopupMenuItem<String>(
                             value: 'Option 3',
                             child: GestureDetector(
