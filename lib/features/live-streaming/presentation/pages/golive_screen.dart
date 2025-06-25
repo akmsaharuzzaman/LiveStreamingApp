@@ -8,11 +8,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/network/socket_service.dart';
-import '../../../../core/network/api_service.dart';
-import '../../../../core/services/simple_auth_service.dart';
 import '../../../../core/utils/permission_helper.dart';
-import '../../data/repositories/live_stream_service.dart';
-import '../../data/models/room_models.dart';
 import '../../../profile/presentation/bloc/profile_bloc.dart';
 import '../component/active_viwers.dart';
 import '../component/custom_live_button.dart';
@@ -34,34 +30,9 @@ class GoliveScreen extends StatefulWidget {
 
 class _GoliveScreenState extends State<GoliveScreen> {
   final TextEditingController _titleController = TextEditingController();
-  bool _isLoading = false;
-
-  // Live streaming service for token generation
-  late final LiveStreamService _liveStreamService;
-
-  void _checkRoom() {
-    if (_currentRoomId != null) {
-      _showSnackBar(
-        'You are already in a room: $_currentRoomId',
-        Colors.orange,
-      );
-      _createRoom();
-      // Timer(Duration(seconds: 2), () {
-      //   _deleteRoom();
-      // });
-    } else {
-      _createRoom();
-      _currentRoomId = null;
-      _showSnackBar('You are not in a room', Colors.red);
-    }
-  }
 
   final SocketService _socketService = SocketService.instance;
-  bool _isConnected = false;
-  bool _isConnecting = false;
   String? _currentRoomId;
-  RoomListResponse? _availableRooms;
-  String? _errorMessage;
   String? userId;
   bool isHost = true;
   String roomId = "default_channel";
@@ -76,8 +47,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize live streaming service
-    _liveStreamService = LiveStreamService(ApiService.instance, AuthService());
     extractRoomId();
     initAgoraLoad();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -121,22 +90,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   /// Initialize socket connection when entering live streaming page
   Future<void> _initializeSocket() async {
-    setState(() {
-      _isConnecting = true;
-      _errorMessage = null;
-    });
-
     try {
       // Connect to socket with user ID
       final connected = await _socketService.connect(userId!);
 
       if (connected) {
         _setupSocketListeners();
-
-        setState(() {
-          _isConnected = true;
-          _isConnecting = false;
-        });
 
         // If roomId is provided, join the room
         if (isHost) {
@@ -148,16 +107,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
         // Get list of available rooms
         await _socketService.getRooms();
       } else {
-        setState(() {
-          _isConnecting = false;
-          _errorMessage = 'Failed to connect to server';
-        });
+        debugPrint('Failed to connect to server');
+        _showSnackBar('❌ Failed to connect to server', Colors.red);
       }
     } catch (e) {
-      setState(() {
-        _isConnecting = false;
-        _errorMessage = 'Connection error: $e';
-      });
+      debugPrint('Connection error: $e');
+      _showSnackBar('❌ Connection error', Colors.red);
     }
   }
 
@@ -168,10 +123,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
     _connectionStatusSubscription = _socketService.connectionStatusStream
         .listen((isConnected) {
           if (mounted) {
-            setState(() {
-              _isConnected = isConnected;
-            });
-
             if (isConnected) {
               // _showSnackBar('✅ Connected to server', Colors.green);
               debugPrint("Connected to server");
@@ -224,10 +175,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     }); // Room list updates
     _socketService.roomListStream.listen((rooms) {
       if (mounted) {
-        setState(() {
-          _availableRooms = rooms;
-          debugPrint("Available rooms: ${rooms.roomIds} from Frontend");
-        });
+        debugPrint("Available rooms: ${rooms.roomIds} from Frontend");
       }
     });
 
@@ -336,31 +284,53 @@ class _GoliveScreenState extends State<GoliveScreen> {
   bool _localUserJoined = false;
   final List<int> _remoteUsers = [];
   bool _muted = false;
-  bool _cameraEnabled = true;
   int _viewerCount = 0;
 
   Future<void> initAgora() async {
-    // retrieve permissions
-    PermissionHelper.hasLiveStreamPermissions().then((hasPermissions) {
-      if (!hasPermissions) {
-        PermissionHelper.requestLiveStreamPermissions().then((granted) {
-          if (!granted) {
-            if (mounted) {
-              PermissionHelper.showPermissionDialog(context);
-            }
-          }
-        });
-      }
-    });
+    try {
+      // Check permissions FIRST and wait for the result
+      bool hasPermissions = await PermissionHelper.hasLiveStreamPermissions();
 
-    //create the engine
-    _engine = createAgoraRtcEngine();
-    await _engine.initialize(
-      RtcEngineContext(
-        appId: dotenv.env['AGORA_APP_ID'] ?? '',
-        channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
-      ),
-    );
+      if (!hasPermissions) {
+        debugPrint('⚠️ Live streaming permissions not granted, requesting...');
+        _showSnackBar(
+          '📹 Camera and microphone permissions required',
+          Colors.orange,
+        );
+
+        // Request permissions and wait for the result
+        bool granted = await PermissionHelper.requestLiveStreamPermissions();
+        if (!granted) {
+          debugPrint('❌ Live streaming permissions denied');
+          _showSnackBar(
+            '❌ Cannot start live stream without permissions',
+            Colors.red,
+          );
+          if (mounted) {
+            PermissionHelper.showPermissionDialog(context);
+          }
+          // Don't initialize Agora if permissions not granted
+          return;
+        }
+      }
+
+      // Only initialize Agora AFTER permissions are confirmed
+      debugPrint('✅ Permissions granted, initializing Agora engine...');
+      _showSnackBar('🎥 Initializing camera...', Colors.blue);
+
+      //create the engine
+      _engine = createAgoraRtcEngine();
+      await _engine.initialize(
+        RtcEngineContext(
+          appId: dotenv.env['AGORA_APP_ID'] ?? '',
+          channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
+        ),
+      );
+    } catch (e) {
+      debugPrint('❌ Error in initAgora: $e');
+      _showSnackBar('❌ Failed to initialize live streaming', Colors.red);
+      return;
+    }
 
     _engine.registerEventHandler(
       RtcEngineEventHandler(
@@ -504,19 +474,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
     setState(() {
       _muted = !_muted;
     });
-  }
-
-  // Toggle camera
-  void _toggleCamera() async {
-    await _engine.muteLocalVideoStream(!_cameraEnabled);
-    setState(() {
-      _cameraEnabled = !_cameraEnabled;
-    });
-  }
-
-  // Switch camera
-  void _switchCamera() async {
-    await _engine.switchCamera();
   }
 
   // End live stream
