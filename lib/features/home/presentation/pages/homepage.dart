@@ -15,7 +15,6 @@ import '../../../../components/utilities/touchable_opacity_widget.dart';
 import '../../../../core/network/socket_service.dart';
 import '../../../live-streaming/data/models/room_models.dart';
 import '../../data/models/category_model.dart';
-import '../../data/models/live_streaming_model.dart';
 import '../../data/models/user_model.dart';
 
 class HomePageScreen extends StatefulWidget {
@@ -352,7 +351,8 @@ class ListLiveStream extends StatelessWidget {
         // itemCount: listLiveStreamFake.length,
         itemCount: availableRooms.roomIds.length,
         itemBuilder: (context, index) {
-          return InkWell(
+          return LiveStreamCard(
+            liveStreamModel: availableRooms.roomDataList[index],
             onTap: () {
               debugPrint(
                 "Live joining Room ID: ${availableRooms.roomIds[index]}",
@@ -360,13 +360,6 @@ class ListLiveStream extends StatelessWidget {
               // Navigate to the live stream screen with the room ID
               context.push('/go-live?roomId=${availableRooms.roomIds[index]}');
             },
-            child: LiveStreamCard(
-              liveStreamModel: availableRooms.roomDataList[index],
-              onTap: (() {
-                // Navigator.of(context).push(MaterialPageRoute(
-                //     builder: (context) => const StreamScreen()));
-              }),
-            ),
           );
         },
       ),
