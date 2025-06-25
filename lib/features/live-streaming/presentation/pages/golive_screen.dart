@@ -48,7 +48,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
   void initState() {
     super.initState();
     extractRoomId();
-    initAgoraLoad();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUidAndDispatchEvent();
     });
@@ -61,14 +60,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
       debugPrint("Extracted room ID: $roomId");
     } else {
       isHost = true; // Default to host if no room ID provided
-      roomId = "default_channel"; // Set a default room ID
-      debugPrint("No room ID provided, using default: $roomId");
+      // Don't set roomId here - it will be set dynamically using userId when creating room
+      debugPrint("No room ID provided, will create dynamic room with userId");
     }
   }
 
-  void initAgoraLoad() async {
+  Future<void> initAgoraLoad() async {
     await initAgora();
-    _initializeSocket();
+    await _initializeSocket();
     _setupSocketListeners();
   }
 
@@ -83,8 +82,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
         debugPrint("User ID set: $userId");
         context.read<ProfileBloc>().add(ProfileEvent.userDataLoaded(uid: uid));
       });
+
+      // Initialize Agora and socket AFTER userId is loaded
+      await initAgoraLoad();
     } else {
       debugPrint("No UID found");
+      _showSnackBar('❌ User authentication required', Colors.red);
     }
   }
 
@@ -208,15 +211,31 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   /// Create a new room (for hosts)
   Future<void> _createRoom() async {
-    // final roomId = 'room_${userId}_${DateTime.now().millisecondsSinceEpoch}';
-    // final roomId = userId;
-    final roomId = "default_channel";
-    final success = await _socketService.createRoom(roomId);
+    if (userId == null) {
+      debugPrint('❌ Cannot create room: userId is null');
+      _showSnackBar('❌ User not authenticated', Colors.red);
+      return;
+    }
+
+    // Use userId as the room name for dynamic room creation
+    final dynamicRoomId = userId!;
+    debugPrint('🏠 Creating room with dynamic name: $dynamicRoomId');
+
+    final success = await _socketService.createRoom(dynamicRoomId);
 
     if (success) {
       setState(() {
-        _currentRoomId = roomId;
+        _currentRoomId = dynamicRoomId;
+        roomId = dynamicRoomId; // Update the roomId for Agora channel
       });
+      debugPrint('✅ Room created successfully: $dynamicRoomId');
+      _showSnackBar('🏠 Room created: $dynamicRoomId', Colors.green);
+
+      // Now join the Agora channel with the dynamic room ID
+      await _joinChannelWithDynamicToken();
+    } else {
+      debugPrint('❌ Failed to create room: $dynamicRoomId');
+      _showSnackBar('❌ Failed to create room', Colors.red);
     }
   }
 
@@ -406,8 +425,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
       await _engine.startPreview();
     }
 
-    // Generate dynamic Agora token before joining channel
-    await _joinChannelWithDynamicToken();
+    // For viewers, join channel immediately
+    // For hosts, wait for room creation to set dynamic roomId
+    if (!isHost) {
+      await _joinChannelWithDynamicToken();
+    }
   }
 
   /// Generate dynamic token and join Agora channel
