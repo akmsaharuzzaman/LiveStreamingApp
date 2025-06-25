@@ -39,6 +39,8 @@ class _CommentsPageState extends State<CommentsPage> {
   String? _editingCommentId;
   int _currentPage = 1;
   bool _hasMoreComments = true;
+  int _initialCommentCount = 0; // Track initial comment count
+  bool _commentCountChanged = false; // Track if comment count changed
 
   @override
   void initState() {
@@ -84,6 +86,10 @@ class _CommentsPageState extends State<CommentsPage> {
             _hasMoreComments =
                 commentResponse.result.pagination?.page !=
                 commentResponse.result.pagination?.totalPage;
+            // Set initial comment count on first load
+            if (_initialCommentCount == 0) {
+              _initialCommentCount = _comments.length;
+            }
           });
         },
         failure: (error) {
@@ -172,7 +178,31 @@ class _CommentsPageState extends State<CommentsPage> {
         success: (data) {
           _commentController.clear();
           _cancelReplyOrEdit();
-          _loadComments(); // Refresh comments
+
+          // Instead of reloading all comments, add the new comment optimistically
+          if (_editingCommentId == null && _replyingToCommentId == null) {
+            // This is a new comment, track the count change
+            _commentCountChanged = true;
+
+            // Create a temporary comment object from the response
+            try {
+              final commentData = data['result'];
+              final newComment = CommentModel.fromJson(commentData);
+
+              setState(() {
+                // Add the new comment to the beginning of the list
+                _comments.insert(0, newComment);
+              });
+            } catch (e) {
+              // If we can't create the comment from response, fallback to reload
+              debugPrint('Could not parse new comment, reloading: $e');
+              _loadComments();
+            }
+          } else {
+            // For edits and replies, reload to get accurate data
+            _loadComments();
+          }
+
           _showSuccessSnackBar(
             _editingCommentId != null
                 ? 'Comment updated successfully'
@@ -187,6 +217,19 @@ class _CommentsPageState extends State<CommentsPage> {
   }
 
   Future<void> _deleteComment(String commentId) async {
+    // Optimistic update - remove comment from UI immediately
+    final commentIndex = _comments.indexWhere(
+      (comment) => comment.id == commentId,
+    );
+    CommentModel? removedComment;
+
+    if (commentIndex != -1) {
+      setState(() {
+        removedComment = _comments.removeAt(commentIndex);
+        _commentCountChanged = true;
+      });
+    }
+
     final result = await _postService.deleteComment(
       postId: widget.postId,
       commentId: commentId,
@@ -195,11 +238,17 @@ class _CommentsPageState extends State<CommentsPage> {
     if (mounted) {
       result.when(
         success: (data) {
-          _loadComments(); // Refresh comments
           _showSuccessSnackBar('Comment deleted successfully');
+          // Comment already removed optimistically, no need to reload
         },
         failure: (error) {
-          _showErrorSnackBar(error);
+          // Revert the optimistic update on failure
+          if (removedComment != null && commentIndex != -1) {
+            setState(() {
+              _comments.insert(commentIndex, removedComment!);
+            });
+          }
+          _showErrorSnackBar('Failed to delete comment: $error');
         },
       );
     }
@@ -386,18 +435,40 @@ class _CommentsPageState extends State<CommentsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Comments'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 1,
-      ),
-      body: Column(
-        children: [
-          Expanded(child: _buildCommentsBody()),
-          _buildCommentInput(),
-        ],
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        // Return information about whether the feed should refresh
+        if (didPop && _commentCountChanged) {
+          // Comment count changed, suggest refresh (though we won't force it)
+          Navigator.of(context).pop({
+            'shouldRefresh': false,
+          }); // Set to false since we handle it optimistically
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Comments'),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 1,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () {
+              // Custom back button behavior
+              Navigator.of(context).pop({
+                'shouldRefresh': false, // We handle updates optimistically
+                'commentCountChanged': _commentCountChanged,
+              });
+            },
+          ),
+        ),
+        body: Column(
+          children: [
+            Expanded(child: _buildCommentsBody()),
+            _buildCommentInput(),
+          ],
+        ),
       ),
     );
   }

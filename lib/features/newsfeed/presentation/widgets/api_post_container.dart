@@ -315,15 +315,59 @@ class _ApiPostContainerState extends State<ApiPostContainer> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildPostButton(
-              context: context,
-              icon: Icon(
-                _hasReacted ? MdiIcons.thumbUp : MdiIcons.thumbUpOutline,
-                color: _hasReacted ? Colors.blue : Colors.grey[600],
-                size: 20.sp,
+            // Custom like button with loading state
+            Expanded(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _isReacting ? null : () => _handleReaction(context),
+                  borderRadius: BorderRadius.circular(4.r),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(vertical: 8.h),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _isReacting
+                            ? SizedBox(
+                                width: 20.sp,
+                                height: 20.sp,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    _hasReacted
+                                        ? Colors.blue
+                                        : Colors.grey[600]!,
+                                  ),
+                                ),
+                              )
+                            : Icon(
+                                _hasReacted
+                                    ? MdiIcons.thumbUp
+                                    : MdiIcons.thumbUpOutline,
+                                color: _hasReacted
+                                    ? Colors.blue
+                                    : Colors.grey[600],
+                                size: 20.sp,
+                              ),
+                        SizedBox(width: 4.w),
+                        Flexible(
+                          child: Text(
+                            'Like',
+                            style: TextStyle(
+                              color: _hasReacted
+                                  ? Colors.blue
+                                  : Colors.grey[600],
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-              label: 'Like',
-              onTap: () => _handleReaction(context),
             ),
             _buildPostButton(
               context: context,
@@ -509,8 +553,20 @@ class _ApiPostContainerState extends State<ApiPostContainer> {
   Future<void> _handleReaction(BuildContext context) async {
     if (_isReacting) return;
 
+    // Optimistic update - update UI immediately
+    final wasReacted = _hasReacted;
+    final previousCount = _reactionCount;
+
     setState(() {
       _isReacting = true;
+      // Update UI optimistically
+      if (_hasReacted) {
+        _hasReacted = false;
+        _reactionCount = _reactionCount > 0 ? _reactionCount - 1 : 0;
+      } else {
+        _hasReacted = true;
+        _reactionCount++;
+      }
     });
 
     final result = await _postService.reactToPost(
@@ -525,19 +581,19 @@ class _ApiPostContainerState extends State<ApiPostContainer> {
 
       result.when(
         success: (data) {
-          setState(() {
-            if (_hasReacted) {
-              _hasReacted = false;
-              _reactionCount = _reactionCount > 0 ? _reactionCount - 1 : 0;
-            } else {
-              _hasReacted = true;
-              _reactionCount++;
-            }
-          });
-          widget.onPostUpdated?.call();
+          // Success - optimistic update was correct, no need to change UI again
+          debugPrint('Like ${_hasReacted ? 'added' : 'removed'} successfully');
+          // Don't call widget.onPostUpdated since we already updated the UI
         },
         failure: (error) {
-          _showErrorSnackBar(error);
+          // Failure - revert the optimistic update
+          setState(() {
+            _hasReacted = wasReacted;
+            _reactionCount = previousCount;
+          });
+          _showErrorSnackBar(
+            'Failed to ${wasReacted ? 'unlike' : 'like'} post: $error',
+          );
         },
       );
     }
@@ -552,9 +608,12 @@ class _ApiPostContainerState extends State<ApiPostContainer> {
           postOwnerName: widget.post.userInfo?.name ?? 'Unknown User',
         ),
       ),
-    ).then((_) {
-      // Refresh post data when returning from comments
-      widget.onPostUpdated?.call();
+    ).then((result) {
+      // Only refresh if specifically requested (e.g., comment count changed significantly)
+      // In most cases, we don't need to refresh the entire feed
+      if (result is Map && result['shouldRefresh'] == true) {
+        widget.onPostUpdated?.call();
+      }
     });
   }
 

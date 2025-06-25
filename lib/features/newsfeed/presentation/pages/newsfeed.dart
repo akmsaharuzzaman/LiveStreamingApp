@@ -183,8 +183,13 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                                 _newsfeedBloc.add(RefreshPostsEvent());
                               },
                               onPostUpdated: () {
-                                // Refresh the feed when a post is updated (liked, etc.)
-                                _newsfeedBloc.add(RefreshPostsEvent());
+                                // Only refresh for major updates (not likes/comments)
+                                // Most updates are now handled optimistically
+                                debugPrint(
+                                  'Post updated callback - considering refresh',
+                                );
+                                // We can add logic here to determine if a full refresh is needed
+                                // For now, we'll skip the refresh since likes and comments are optimistic
                               },
                             );
                           },
