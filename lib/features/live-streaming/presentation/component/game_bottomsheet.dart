@@ -1,4 +1,3 @@
-import 'package:dlstarlive/features/live-streaming/presentation/pages/load_game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'web_game_bottomsheet.dart';
@@ -135,7 +134,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                                   Navigator.pop(context);
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
-                                      builder: (context) => LoadGame(
+                                      builder: (context) => LocalGamePage(
                                         gameTitle: game.title,
                                         gameId: game.id,
                                         userId: widget.userId ?? '2ufXoAdqAY',
