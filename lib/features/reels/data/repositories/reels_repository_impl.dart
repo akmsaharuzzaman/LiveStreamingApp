@@ -58,6 +58,56 @@ class ReelsRepositoryImpl implements ReelsRepository {
     }
   }
 
+  @override
+  Future<Map<String, dynamic>?> getReelComments(String reelId, {int page = 1, int limit = 10}) async {
+    try {
+      return await apiService.getReelComments(reelId: reelId, page: page, limit: limit);
+    } catch (e) {
+      log('Error getting reel comments: $e');
+      return null;
+    }
+  }
+
+  @override
+  Future<bool> editComment(String commentId, String newComment) async {
+    try {
+      return await apiService.editReelComment(commentId: commentId, newComment: newComment);
+    } catch (e) {
+      log('Error editing comment: $e');
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> deleteComment(String reelId, String commentId) async {
+    try {
+      return await apiService.deleteReelComment(reelId: reelId, commentId: commentId);
+    } catch (e) {
+      log('Error deleting comment: $e');
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> reactToComment(String commentId, String reactionType) async {
+    try {
+      return await apiService.reactToReelComment(commentId: commentId, reactionType: reactionType);
+    } catch (e) {
+      log('Error reacting to comment: $e');
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> replyToComment(String commentId, String reelId, String commentText) async {
+    try {
+      return await apiService.replyToReelComment(commentId: commentId, reelId: reelId, commentText: commentText);
+    } catch (e) {
+      log('Error replying to comment: $e');
+      return false;
+    }
+  }
+
   ReelEntity _mapToEntity(ReelApiModel apiReel) {
     return ReelEntity(
       id: apiReel.id,

@@ -40,3 +40,55 @@ class AddComment extends ReelsEvent {
   @override
   List<Object> get props => [reelId, comment];
 }
+
+class EditComment extends ReelsEvent {
+  final String commentId;
+  final String newComment;
+
+  const EditComment(this.commentId, this.newComment);
+
+  @override
+  List<Object> get props => [commentId, newComment];
+}
+
+class DeleteComment extends ReelsEvent {
+  final String reelId;
+  final String commentId;
+
+  const DeleteComment(this.reelId, this.commentId);
+
+  @override
+  List<Object> get props => [reelId, commentId];
+}
+
+class ReactToComment extends ReelsEvent {
+  final String commentId;
+  final String reactionType;
+
+  const ReactToComment(this.commentId, this.reactionType);
+
+  @override
+  List<Object> get props => [commentId, reactionType];
+}
+
+class ReplyToComment extends ReelsEvent {
+  final String commentId;
+  final String reelId;
+  final String commentText;
+
+  const ReplyToComment(this.commentId, this.reelId, this.commentText);
+
+  @override
+  List<Object> get props => [commentId, reelId, commentText];
+}
+
+class GetReelComments extends ReelsEvent {
+  final String reelId;
+  final int page;
+  final int limit;
+
+  const GetReelComments(this.reelId, {this.page = 1, this.limit = 10});
+
+  @override
+  List<Object> get props => [reelId, page, limit];
+}

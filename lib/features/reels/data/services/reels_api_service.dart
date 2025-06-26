@@ -50,13 +50,21 @@ class ReelsApiService {
     required String reactionType, // 'like', 'love', 'laugh', etc.
   }) async {
     try {
+      log('Reacting to reel: $reelId with reaction: $reactionType');
+      
       final result = await _apiService.post(
-        ApiConstants.reactToReel(reelId),
-        data: {'reaction_type': reactionType},
+        ApiConstants.reactToReel,
+        data: {
+          'reelId': reelId,
+          'reaction_type': reactionType,
+        },
       );
 
       return result.when(
-        success: (data) => true,
+        success: (data) {
+          log('Successfully reacted to reel: $data');
+          return true;
+        },
         failure: (error) {
           log('Error reacting to reel: $error');
           return false;
@@ -74,13 +82,21 @@ class ReelsApiService {
     required String comment,
   }) async {
     try {
+      log('Adding comment to reel: $reelId');
+      
       final result = await _apiService.post(
-        ApiConstants.commentOnReel(reelId),
-        data: {'comment': comment},
+        ApiConstants.commentOnReel,
+        data: {
+          'reelId': reelId,
+          'comment': comment,
+        },
       );
 
       return result.when(
-        success: (data) => true,
+        success: (data) {
+          log('Successfully added comment to reel: $data');
+          return true;
+        },
         failure: (error) {
           log('Error commenting on reel: $error');
           return false;
@@ -130,6 +146,161 @@ class ReelsApiService {
       );
     } catch (e) {
       log('Error following user: $e');
+      return false;
+    }
+  }
+
+  /// Get comments for a reel
+  Future<Map<String, dynamic>?> getReelComments({
+    required String reelId,
+    int page = 1,
+    int limit = 10,
+  }) async {
+    try {
+      log('Getting comments for reel: $reelId');
+      
+      final result = await _apiService.get(
+        ApiConstants.getReelComments(reelId, page, limit),
+      );
+
+      return result.when(
+        success: (data) {
+          log('Successfully got comments for reel: $data');
+          return data as Map<String, dynamic>?;
+        },
+        failure: (error) {
+          log('Error getting reel comments: $error');
+          return null;
+        },
+      );
+    } catch (e) {
+      log('Error getting reel comments: $e');
+      return null;
+    }
+  }
+
+  /// Edit a comment on a reel
+  Future<bool> editReelComment({
+    required String commentId,
+    required String newComment,
+  }) async {
+    try {
+      log('Editing comment: $commentId');
+      
+      final result = await _apiService.put(
+        ApiConstants.editReelComment,
+        data: {
+          'commentId': commentId,
+          'newComment': newComment,
+        },
+      );
+
+      return result.when(
+        success: (data) {
+          log('Successfully edited comment: $data');
+          return true;
+        },
+        failure: (error) {
+          log('Error editing comment: $error');
+          return false;
+        },
+      );
+    } catch (e) {
+      log('Error editing comment: $e');
+      return false;
+    }
+  }
+
+  /// Delete a comment on a reel
+  Future<bool> deleteReelComment({
+    required String reelId,
+    required String commentId,
+  }) async {
+    try {
+      log('Deleting comment: $commentId from reel: $reelId');
+      
+      final result = await _apiService.delete(
+        ApiConstants.deleteReelComment(reelId, commentId),
+      );
+
+      return result.when(
+        success: (data) {
+          log('Successfully deleted comment: $data');
+          return true;
+        },
+        failure: (error) {
+          log('Error deleting comment: $error');
+          return false;
+        },
+      );
+    } catch (e) {
+      log('Error deleting comment: $e');
+      return false;
+    }
+  }
+
+  /// React to a comment on a reel
+  Future<bool> reactToReelComment({
+    required String commentId,
+    required String reactionType,
+  }) async {
+    try {
+      log('Reacting to comment: $commentId with reaction: $reactionType');
+      
+      final result = await _apiService.post(
+        ApiConstants.reactToReelComment,
+        data: {
+          'commentId': commentId,
+          'reaction_type': reactionType,
+        },
+      );
+
+      return result.when(
+        success: (data) {
+          log('Successfully reacted to comment: $data');
+          return true;
+        },
+        failure: (error) {
+          log('Error reacting to comment: $error');
+          return false;
+        },
+      );
+    } catch (e) {
+      log('Error reacting to comment: $e');
+      return false;
+    }
+  }
+
+  /// Reply to a comment on a reel
+  Future<bool> replyToReelComment({
+    required String commentId,
+    required String reelId,
+    required String commentText,
+  }) async {
+    try {
+      log('Replying to comment: $commentId on reel: $reelId');
+      
+      final result = await _apiService.post(
+        ApiConstants.replyToReelComment,
+        data: {
+          'commentId': commentId,
+          'reelId': reelId,
+          'commentText': commentText,
+        },
+      );
+
+      return result.when(
+        success: (data) {
+          log('Successfully replied to comment: $data');
+          return true;
+        },
+        failure: (error) {
+          log('Error replying to comment: $error');
+          return false;
+        },
+      );
+    } catch (e) {
+      log('Error replying to comment: $e');
       return false;
     }
   }

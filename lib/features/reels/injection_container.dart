@@ -20,6 +20,11 @@ class ReelsDependencyContainer {
     final likeReelUseCase = LikeReelUseCase(repository);
     final shareReelUseCase = ShareReelUseCase(repository);
     final addCommentUseCase = AddCommentUseCase(repository);
+    final getReelCommentsUseCase = GetReelCommentsUseCase(repository);
+    final editCommentUseCase = EditCommentUseCase(repository);
+    final deleteCommentUseCase = DeleteCommentUseCase(repository);
+    final reactToCommentUseCase = ReactToCommentUseCase(repository);
+    final replyToCommentUseCase = ReplyToCommentUseCase(repository);
 
     // Create and return BLoC
     return ReelsBloc(
@@ -27,6 +32,11 @@ class ReelsDependencyContainer {
       likeReelUseCase: likeReelUseCase,
       shareReelUseCase: shareReelUseCase,
       addCommentUseCase: addCommentUseCase,
+      getReelCommentsUseCase: getReelCommentsUseCase,
+      editCommentUseCase: editCommentUseCase,
+      deleteCommentUseCase: deleteCommentUseCase,
+      reactToCommentUseCase: reactToCommentUseCase,
+      replyToCommentUseCase: replyToCommentUseCase,
     );
   }
 }

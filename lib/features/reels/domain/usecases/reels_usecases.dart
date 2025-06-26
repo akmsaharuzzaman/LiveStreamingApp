@@ -40,3 +40,53 @@ class AddCommentUseCase {
     return await repository.addComment(reelId, comment);
   }
 }
+
+class GetReelCommentsUseCase {
+  final ReelsRepository repository;
+
+  GetReelCommentsUseCase(this.repository);
+
+  Future<Map<String, dynamic>?> call(String reelId, {int page = 1, int limit = 10}) async {
+    return await repository.getReelComments(reelId, page: page, limit: limit);
+  }
+}
+
+class EditCommentUseCase {
+  final ReelsRepository repository;
+
+  EditCommentUseCase(this.repository);
+
+  Future<bool> call(String commentId, String newComment) async {
+    return await repository.editComment(commentId, newComment);
+  }
+}
+
+class DeleteCommentUseCase {
+  final ReelsRepository repository;
+
+  DeleteCommentUseCase(this.repository);
+
+  Future<bool> call(String reelId, String commentId) async {
+    return await repository.deleteComment(reelId, commentId);
+  }
+}
+
+class ReactToCommentUseCase {
+  final ReelsRepository repository;
+
+  ReactToCommentUseCase(this.repository);
+
+  Future<bool> call(String commentId, String reactionType) async {
+    return await repository.reactToComment(commentId, reactionType);
+  }
+}
+
+class ReplyToCommentUseCase {
+  final ReelsRepository repository;
+
+  ReplyToCommentUseCase(this.repository);
+
+  Future<bool> call(String commentId, String reelId, String commentText) async {
+    return await repository.replyToComment(commentId, reelId, commentText);
+  }
+}
