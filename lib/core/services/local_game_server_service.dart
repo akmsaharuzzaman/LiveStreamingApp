@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart';
+import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_static/shelf_static.dart';
 import 'package:path/path.dart' as path;
 import '../models/local_game_config.dart';
@@ -87,17 +88,28 @@ class LocalGameServerService {
           .addMiddleware(_corsHeaders())
           .addHandler(handler);
 
+      final handler2 = createStaticHandler(
+        gameDirectory.path,
+        defaultDocument: 'index.html',
+        serveFilesOutsidePath: true,
+      );
+
       // Start server on available port with fallback addresses
       try {
         // Try 127.0.0.1 first (most compatible with network security config)
-        _server = await serve(corsHandler, InternetAddress.loopbackIPv4, 0);
+        _server = await shelf_io.serve(
+          handler2,
+          InternetAddress.loopbackIPv4,
+          8080,
+        );
+        // _server = await serve(corsHandler, InternetAddress.loopbackIPv4, 0);
         _serverUrl = 'http://127.0.0.1:${_server!.port}';
         print('🎮 Server bound to 127.0.0.1:${_server!.port}');
       } catch (e) {
         print('⚠️ Failed to bind to 127.0.0.1, trying any IPv4: $e');
         try {
           // Fallback to any available address
-          _server = await serve(corsHandler, InternetAddress.anyIPv4, 0);
+          _server = await serve(handler2, InternetAddress.anyIPv4, 0);
           // Get the actual IP address
           final networkInterfaces = await NetworkInterface.list();
           String? localIP;
