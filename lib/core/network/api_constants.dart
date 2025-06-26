@@ -117,12 +117,21 @@ class ApiConstants {
   static const String validationError = 'Validation failed';
   static const String unknownError = 'Unknown error occurred';
 
-
   //Feed endpoints
   static const String createPost = '/api/posts/create';
   static const String editPost = '/api/posts/edit';
-  static String getAllPosts(int page, int limit) => '/api/posts/?page=$page&limit=$limit';
+  static String getAllPosts(int page, int limit) =>
+      '/api/posts/?page=$page&limit=$limit';
   static String deletePost(String postId) => '/api/posts/delete/$postId';
   static const String reactToPost = '/api/posts/react';
   static const String commentToPost = '/api/posts/comment';
+
+  // Reels endpoints
+  static String getReels(int page, int limit) =>
+      '/api/reels/?page=$page&limit=$limit';
+  static String reactToReel(String reelId) => '/api/reels/$reelId/react';
+  static String commentOnReel(String reelId) => '/api/reels/$reelId/comment';
+  static String shareReel(String reelId) => '/api/reels/$reelId/share';
+  static const String createReel = '/api/reels/create';
+  static String deleteReel(String reelId) => '/api/reels/delete/$reelId';
 }

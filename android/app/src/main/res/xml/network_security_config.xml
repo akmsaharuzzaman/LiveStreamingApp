@@ -5,6 +5,11 @@
         <domain includeSubdomains="true">147.93.103.135</domain>
     </domain-config>
     
+    <!-- Allow cleartext traffic for API server -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">dlstarlive.com</domain>
+    </domain-config>
+    
     <!-- Allow cleartext traffic for all local addresses -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">localhost</domain>
