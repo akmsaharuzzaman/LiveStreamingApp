@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'dart:io';
 import '../../../../core/services/local_game_server_service.dart';
 
 class LocalGamePage extends StatefulWidget {
   final String gameTitle;
   final String? userId;
 
-  const LocalGamePage({
-    super.key,
-    required this.gameTitle,
-    this.userId,
-  });
+  const LocalGamePage({super.key, required this.gameTitle, this.userId});
 
   @override
   State<LocalGamePage> createState() => _LocalGamePageState();
@@ -42,13 +39,26 @@ class _LocalGamePageState extends State<LocalGamePage> {
       final serverUrl = await LocalGameServerService.instance.startServer();
 
       if (serverUrl != null) {
-        setState(() {
-          _gameUrl = serverUrl;
-          _isLoading = false;
-        });
+        print('🎮 Game URL: $serverUrl');
+        _showSnackBar('✅ Game server started at $serverUrl', Colors.green);
 
-        _showSnackBar('✅ Game server started successfully!', Colors.green);
-        _initializeWebView();
+        // Test server connectivity before loading WebView
+        final isConnectable = await _testServerConnectivity(serverUrl);
+        if (isConnectable) {
+          setState(() {
+            _gameUrl = serverUrl;
+            _isLoading = false;
+          });
+          _initializeWebView();
+        } else {
+          setState(() {
+            _hasError = true;
+            _errorMessage =
+                'Server started but not accessible from Android WebView';
+            _isLoading = false;
+          });
+          _showSnackBar('❌ Server connectivity test failed', Colors.red);
+        }
       } else {
         setState(() {
           _hasError = true;
@@ -68,21 +78,30 @@ class _LocalGamePageState extends State<LocalGamePage> {
   }
 
   void _initializeWebView() {
+    print('🌐 Initializing WebView with URL: $_gameUrl');
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setUserAgent(
+        'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
+      )
+      ..enableZoom(false)
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
+            print('📱 WebView started loading: $url');
             setState(() {
               _isLoading = true;
+              _hasError = false;
             });
           },
           onPageFinished: (String url) {
+            print('✅ WebView finished loading: $url');
             setState(() {
               _isLoading = false;
             });
           },
           onHttpError: (HttpResponseError error) {
+            print('❌ HTTP Error: ${error.response?.statusCode}');
             setState(() {
               _hasError = true;
               _errorMessage = 'HTTP Error: ${error.response?.statusCode}';
@@ -90,15 +109,75 @@ class _LocalGamePageState extends State<LocalGamePage> {
             });
           },
           onWebResourceError: (WebResourceError error) {
+            print(
+              '❌ Web Resource Error: ${error.errorCode} - ${error.description} - ${error.url}',
+            );
             setState(() {
               _hasError = true;
-              _errorMessage = 'Web Resource Error: ${error.description}';
+              _errorMessage = 'Resource Error: ${error.description}';
               _isLoading = false;
             });
           },
+          onNavigationRequest: (NavigationRequest request) {
+            print('🔗 Navigation request: ${request.url}');
+            return NavigationDecision.navigate;
+          },
         ),
-      )
-      ..loadRequest(Uri.parse(_gameUrl!));
+      );
+
+    // Load the URL with additional debugging
+    print('🚀 Loading URL: $_gameUrl');
+    _webViewController.loadRequest(Uri.parse(_gameUrl!));
+  }
+
+  /// Test server connectivity before loading in WebView
+  Future<bool> _testServerConnectivity(String url) async {
+    try {
+      final client = HttpClient();
+
+      // Test both debug endpoint and main page
+      final debugUrl = '$url/debug';
+      final mainUrl = url;
+
+      print('🔍 Testing server connectivity...');
+      print('   Debug URL: $debugUrl');
+      print('   Main URL: $mainUrl');
+
+      // Test debug endpoint first
+      try {
+        final debugRequest = await client.getUrl(Uri.parse(debugUrl));
+        final debugResponse = await debugRequest.close();
+
+        if (debugResponse.statusCode == 200) {
+          print('✅ Debug endpoint accessible');
+
+          // Now test main page
+          final mainRequest = await client.getUrl(Uri.parse(mainUrl));
+          final mainResponse = await mainRequest.close();
+
+          if (mainResponse.statusCode == 200) {
+            print('✅ Main page accessible');
+            return true;
+          } else {
+            print(
+              '⚠️ Main page responded with status: ${mainResponse.statusCode}',
+            );
+            return false;
+          }
+        } else {
+          print(
+            '⚠️ Debug endpoint responded with status: ${debugResponse.statusCode}',
+          );
+          return false;
+        }
+      } catch (e) {
+        print('❌ Error testing endpoints: $e');
+        return false;
+      }
+    } catch (e) {
+      print('❌ Server connectivity test failed: $e');
+      return false;
+    }
   }
 
   Future<void> _closeGame() async {
@@ -151,9 +230,11 @@ class _LocalGamePageState extends State<LocalGamePage> {
           actions: [
             IconButton(
               icon: const Icon(Icons.refresh),
-              onPressed: _hasError ? _initializeGame : () {
-                _webViewController.reload();
-              },
+              onPressed: _hasError
+                  ? _initializeGame
+                  : () {
+                      _webViewController.reload();
+                    },
               tooltip: _hasError ? 'Retry' : 'Refresh',
             ),
             IconButton(
@@ -178,10 +259,7 @@ class _LocalGamePageState extends State<LocalGamePage> {
             SizedBox(height: 16),
             Text(
               'Loading game...',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-              ),
+              style: TextStyle(color: Colors.white, fontSize: 16),
             ),
           ],
         ),
@@ -193,11 +271,7 @@ class _LocalGamePageState extends State<LocalGamePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              color: Colors.red,
-              size: 64,
-            ),
+            const Icon(Icons.error_outline, color: Colors.red, size: 64),
             const SizedBox(height: 16),
             Text(
               'Failed to load game',
@@ -210,10 +284,7 @@ class _LocalGamePageState extends State<LocalGamePage> {
             const SizedBox(height: 8),
             Text(
               _errorMessage ?? 'Unknown error occurred',
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: Colors.grey, fontSize: 14),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -236,10 +307,7 @@ class _LocalGamePageState extends State<LocalGamePage> {
     }
 
     return const Center(
-      child: Text(
-        'Game not available',
-        style: TextStyle(color: Colors.white),
-      ),
+      child: Text('Game not available', style: TextStyle(color: Colors.white)),
     );
   }
 
