@@ -51,13 +51,10 @@ class ReelsApiService {
   }) async {
     try {
       log('Reacting to reel: $reelId with reaction: $reactionType');
-      
+
       final result = await _apiService.post(
         ApiConstants.reactToReel,
-        data: {
-          'reelId': reelId,
-          'reaction_type': reactionType,
-        },
+        data: {'reelId': reelId, 'reaction_type': reactionType},
       );
 
       return result.when(
@@ -83,13 +80,10 @@ class ReelsApiService {
   }) async {
     try {
       log('Adding comment to reel: $reelId');
-      
+
       final result = await _apiService.post(
         ApiConstants.commentOnReel,
-        data: {
-          'reelId': reelId,
-          'comment': comment,
-        },
+        data: {'reelId': reelId, 'comment': comment},
       );
 
       return result.when(
@@ -158,7 +152,7 @@ class ReelsApiService {
   }) async {
     try {
       log('Getting comments for reel: $reelId');
-      
+
       final result = await _apiService.get(
         ApiConstants.getReelComments(reelId, page, limit),
       );
@@ -186,13 +180,10 @@ class ReelsApiService {
   }) async {
     try {
       log('Editing comment: $commentId');
-      
+
       final result = await _apiService.put(
         ApiConstants.editReelComment,
-        data: {
-          'commentId': commentId,
-          'newComment': newComment,
-        },
+        data: {'commentId': commentId, 'newComment': newComment},
       );
 
       return result.when(
@@ -218,7 +209,7 @@ class ReelsApiService {
   }) async {
     try {
       log('Deleting comment: $commentId from reel: $reelId');
-      
+
       final result = await _apiService.delete(
         ApiConstants.deleteReelComment(reelId, commentId),
       );
@@ -246,13 +237,10 @@ class ReelsApiService {
   }) async {
     try {
       log('Reacting to comment: $commentId with reaction: $reactionType');
-      
+
       final result = await _apiService.post(
         ApiConstants.reactToReelComment,
-        data: {
-          'commentId': commentId,
-          'reaction_type': reactionType,
-        },
+        data: {'commentId': commentId, 'reaction_type': reactionType},
       );
 
       return result.when(
@@ -279,7 +267,7 @@ class ReelsApiService {
   }) async {
     try {
       log('Replying to comment: $commentId on reel: $reelId');
-      
+
       final result = await _apiService.post(
         ApiConstants.replyToReelComment,
         data: {

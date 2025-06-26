@@ -9,6 +9,11 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
   final LikeReelUseCase likeReelUseCase;
   final ShareReelUseCase shareReelUseCase;
   final AddCommentUseCase addCommentUseCase;
+  final GetReelCommentsUseCase getReelCommentsUseCase;
+  final EditCommentUseCase editCommentUseCase;
+  final DeleteCommentUseCase deleteCommentUseCase;
+  final ReactToCommentUseCase reactToCommentUseCase;
+  final ReplyToCommentUseCase replyToCommentUseCase;
 
   static const int _limit = 5;
 
@@ -17,6 +22,11 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     required this.likeReelUseCase,
     required this.shareReelUseCase,
     required this.addCommentUseCase,
+    required this.getReelCommentsUseCase,
+    required this.editCommentUseCase,
+    required this.deleteCommentUseCase,
+    required this.reactToCommentUseCase,
+    required this.replyToCommentUseCase,
   }) : super(ReelsInitial()) {
     on<LoadReels>(_onLoadReels);
     on<LoadMoreReels>(_onLoadMoreReels);
@@ -24,6 +34,11 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     on<LikeReel>(_onLikeReel);
     on<ShareReel>(_onShareReel);
     on<AddComment>(_onAddComment);
+    on<GetReelComments>(_onGetReelComments);
+    on<EditComment>(_onEditComment);
+    on<DeleteComment>(_onDeleteComment);
+    on<ReactToComment>(_onReactToComment);
+    on<ReplyToComment>(_onReplyToComment);
   }
 
   Future<void> _onLoadReels(LoadReels event, Emitter<ReelsState> emit) async {
@@ -117,6 +132,91 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
       }
     } catch (e) {
       log('Error adding comment: $e');
+    }
+  }
+
+  Future<void> _onGetReelComments(
+    GetReelComments event,
+    Emitter<ReelsState> emit,
+  ) async {
+    try {
+      final comments = await getReelCommentsUseCase(
+        event.reelId,
+        page: event.page,
+        limit: event.limit,
+      );
+      if (comments != null) {
+        log('Successfully got comments for reel: ${event.reelId}');
+        // You could emit a specific state for comments here if needed
+      }
+    } catch (e) {
+      log('Error getting reel comments: $e');
+    }
+  }
+
+  Future<void> _onEditComment(
+    EditComment event,
+    Emitter<ReelsState> emit,
+  ) async {
+    try {
+      final success = await editCommentUseCase(
+        event.commentId,
+        event.newComment,
+      );
+      if (success) {
+        log('Comment edited successfully: ${event.commentId}');
+      }
+    } catch (e) {
+      log('Error editing comment: $e');
+    }
+  }
+
+  Future<void> _onDeleteComment(
+    DeleteComment event,
+    Emitter<ReelsState> emit,
+  ) async {
+    try {
+      final success = await deleteCommentUseCase(event.reelId, event.commentId);
+      if (success) {
+        log('Comment deleted successfully: ${event.commentId}');
+      }
+    } catch (e) {
+      log('Error deleting comment: $e');
+    }
+  }
+
+  Future<void> _onReactToComment(
+    ReactToComment event,
+    Emitter<ReelsState> emit,
+  ) async {
+    try {
+      final success = await reactToCommentUseCase(
+        event.commentId,
+        event.reactionType,
+      );
+      if (success) {
+        log('Reacted to comment successfully: ${event.commentId}');
+      }
+    } catch (e) {
+      log('Error reacting to comment: $e');
+    }
+  }
+
+  Future<void> _onReplyToComment(
+    ReplyToComment event,
+    Emitter<ReelsState> emit,
+  ) async {
+    try {
+      final success = await replyToCommentUseCase(
+        event.commentId,
+        event.reelId,
+        event.commentText,
+      );
+      if (success) {
+        log('Replied to comment successfully: ${event.commentId}');
+      }
+    } catch (e) {
+      log('Error replying to comment: $e');
     }
   }
 }
