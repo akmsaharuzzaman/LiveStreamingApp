@@ -64,7 +64,7 @@ dependencies:
   # ============================
   
   # Social login providers
-  google_sign_in: ^6.3.0
+  google_sign_in: ^7.0.0
   sign_in_with_apple: ^7.0.1
   
   # ============================
@@ -175,7 +175,7 @@ dependencies:
   uuid: ^4.5.1
   
   # Logging
-  logger: ^2.5.0
+  logger: ^2.6.0
 
   # Tools 
   flutter_svg: ^2.2.0
@@ -239,6 +239,10 @@ flutter:
     # Game assets (dynamic structure)
     - assets/games/
     - assets/games/games_config.json
+    - assets/games/fruit-loops/
+    - assets/games/fruit-loops/Build/
+    - assets/games/GreedyV3_2/
+    - assets/games/GreedyV3_2/Build/
 
 # ============================
 # APP BRANDING & SPLASH SCREEN

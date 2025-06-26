@@ -46,9 +46,12 @@ class LocalGameManager {
   /// Check if all required files exist for a game
   Future<bool> validateGameAssets(LocalGameConfig game) async {
     try {
+      print('🔍 Validating assets for game: ${game.title}');
       for (final file in game.requiredFiles) {
         final assetPath = 'assets/games/${game.gamePath}/$file';
+        print('   Checking: $assetPath');
         await rootBundle.load(assetPath);
+        print('   ✅ Found: $file');
       }
       print('✅ All assets validated for game: ${game.title}');
       return true;
