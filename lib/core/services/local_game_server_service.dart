@@ -5,6 +5,8 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart';
 import 'package:shelf_static/shelf_static.dart';
 import 'package:path/path.dart' as path;
+import '../models/local_game_config.dart';
+import 'local_game_manager.dart';
 
 class LocalGameServerService {
   static LocalGameServerService? _instance;
@@ -16,9 +18,10 @@ class LocalGameServerService {
   HttpServer? _server;
   String? _serverUrl;
   bool _isRunning = false;
+  LocalGameConfig? _currentGame;
 
-  /// Start the local server to serve Unity WebGL game
-  Future<String?> startServer() async {
+  /// Start the local server to serve a specific Unity WebGL game
+  Future<String?> startServer({String? gameId}) async {
     if (_isRunning && _server != null) {
       print('🎮 Server already running at: $_serverUrl');
       return _serverUrl;
@@ -27,9 +30,30 @@ class LocalGameServerService {
     try {
       print('🚀 Starting local game server...');
 
+      // Get game configuration
+      final gameManager = LocalGameManager.instance;
+      final game = gameId != null
+          ? await gameManager.getGameById(gameId)
+          : (await gameManager.getAvailableGames()).first;
+
+      if (game == null) {
+        print('❌ Game not found: $gameId');
+        return null;
+      }
+
+      _currentGame = game;
+      print('🎮 Loading game: ${game.title}');
+
+      // Validate game assets
+      final isValid = await gameManager.validateGameAssets(game);
+      if (!isValid) {
+        print('❌ Game assets validation failed');
+        return null;
+      }
+
       // Copy game files from assets to temporary directory
       print('📁 Copying game files...');
-      final gameDirectory = await _copyGameFilesToTemp();
+      final gameDirectory = await _copyGameFilesToTemp(game);
       print('✅ Game files copied to: ${gameDirectory.path}');
 
       // Create handler for serving static files
@@ -126,9 +150,9 @@ class LocalGameServerService {
   String? get serverUrl => _serverUrl;
 
   /// Copy game files from assets to temporary directory
-  Future<Directory> _copyGameFilesToTemp() async {
+  Future<Directory> _copyGameFilesToTemp(LocalGameConfig game) async {
     final tempDir = await getTemporaryDirectory();
-    final gameDir = Directory(path.join(tempDir.path, 'unityweb_game'));
+    final gameDir = Directory(path.join(tempDir.path, 'local_game_${game.id}'));
 
     print('📁 Temp directory: ${tempDir.path}');
     print('📁 Game directory: ${gameDir.path}');
@@ -141,15 +165,17 @@ class LocalGameServerService {
       print('📁 Game directory already exists');
     }
 
-    // List of files to copy from assets/unityweb/
-    final filesToCopy = ['index.html', 'bg.jpg', 'game-icon.png'];
+    final gameManager = LocalGameManager.instance;
 
-    // Copy individual files
-    for (final fileName in filesToCopy) {
+    // Copy all required files for this game
+    for (final fileName in game.requiredFiles) {
       try {
-        final assetPath = 'assets/unityweb/$fileName';
+        final assetPath = gameManager.getAssetPath(game, fileName);
         final byteData = await rootBundle.load(assetPath);
         final file = File(path.join(gameDir.path, fileName));
+
+        // Create directory if needed
+        await file.parent.create(recursive: true);
         await file.writeAsBytes(byteData.buffer.asUint8List());
         print('✅ Copied $fileName to ${file.path}');
       } catch (e) {
@@ -157,70 +183,26 @@ class LocalGameServerService {
       }
     }
 
-    // Copy Build directory recursively
-    await _copyBuildDirectory(gameDir);
+    // Debug: List all files that were copied
+    await _listCopiedFiles(gameDir);
 
     return gameDir;
   }
 
-  /// Copy Build directory from assets
-  Future<void> _copyBuildDirectory(Directory gameDir) async {
-    final buildDir = Directory(path.join(gameDir.path, 'Build'));
-    if (!await buildDir.exists()) {
-      await buildDir.create(recursive: true);
-    }
-
-    // List of typical Unity WebGL build files
-    final buildFiles = [
-      'Build/fruit-loops.data',
-      'Build/fruit-loops.framework.js',
-      'Build/fruit-loops.loader.js',
-      'Build/fruit-loops.wasm',
-      'Build/fruit-loops.data.unityweb',
-      'Build/fruit-loops.framework.js.unityweb',
-      'Build/fruit-loops.loader.js.unityweb',
-      'Build/fruit-loops.wasm.unityweb',
-    ];
-
-    // Try to copy build files (some might not exist depending on Unity build)
-    for (final buildFile in buildFiles) {
-      try {
-        final assetPath = 'assets/unityweb/$buildFile';
-        final byteData = await rootBundle.load(assetPath);
-        final file = File(path.join(gameDir.path, buildFile));
-
-        // Create directory if needed
-        await file.parent.create(recursive: true);
-        await file.writeAsBytes(byteData.buffer.asUint8List());
-        print('✅ Copied $buildFile');
-      } catch (e) {
-        // Build files might have different names, so we skip missing ones
-        print('⚠️ Skipped $buildFile (not found): $e');
-      }
-    }
-
-    // Try to copy any files that exist in the Build folder
+  /// Debug function to list all copied files
+  Future<void> _listCopiedFiles(Directory gameDir) async {
     try {
-      // Get list of all asset files
-      final manifestContent = await rootBundle.loadString('AssetManifest.json');
-      final manifest = manifestContent.split('"');
-
-      for (final asset in manifest) {
-        if (asset.startsWith('assets/unityweb/Build/')) {
-          try {
-            final relativePath = asset.substring('assets/unityweb/'.length);
-            final byteData = await rootBundle.load(asset);
-            final file = File(path.join(gameDir.path, relativePath));
-            await file.parent.create(recursive: true);
-            await file.writeAsBytes(byteData.buffer.asUint8List());
-            print('✅ Copied build asset: $relativePath');
-          } catch (e) {
-            print('⚠️ Failed to copy build asset $asset: $e');
-          }
+      print('📋 Listing all copied files:');
+      final files = await gameDir.list(recursive: true).toList();
+      for (final file in files) {
+        if (file is File) {
+          final relativePath = file.path.substring(gameDir.path.length + 1);
+          final size = await file.length();
+          print('   📄 $relativePath (${(size / 1024).toStringAsFixed(1)} KB)');
         }
       }
     } catch (e) {
-      print('⚠️ Could not read asset manifest: $e');
+      print('⚠️ Could not list copied files: $e');
     }
   }
 

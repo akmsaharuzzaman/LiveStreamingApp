@@ -5,9 +5,15 @@ import '../../../../core/services/local_game_server_service.dart';
 
 class LocalGamePage extends StatefulWidget {
   final String gameTitle;
+  final String? gameId;
   final String? userId;
 
-  const LocalGamePage({super.key, required this.gameTitle, this.userId});
+  const LocalGamePage({
+    super.key,
+    required this.gameTitle,
+    this.gameId,
+    this.userId,
+  });
 
   @override
   State<LocalGamePage> createState() => _LocalGamePageState();
@@ -23,7 +29,10 @@ class _LocalGamePageState extends State<LocalGamePage> {
   @override
   void initState() {
     super.initState();
-    _initializeGame();
+    // Use post-frame callback to ensure the widget is fully built before showing SnackBar
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeGame();
+    });
   }
 
   Future<void> _initializeGame() async {
@@ -36,7 +45,9 @@ class _LocalGamePageState extends State<LocalGamePage> {
 
       // Start local server
       _showSnackBar('🚀 Starting local game server...', Colors.blue);
-      final serverUrl = await LocalGameServerService.instance.startServer();
+      final serverUrl = await LocalGameServerService.instance.startServer(
+        gameId: widget.gameId,
+      );
 
       if (serverUrl != null) {
         print('🎮 Game URL: $serverUrl');
@@ -196,13 +207,18 @@ class _LocalGamePageState extends State<LocalGamePage> {
 
   void _showSnackBar(String message, Color color) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: color,
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      try {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: color,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } catch (e) {
+        // Fallback to print if ScaffoldMessenger is not available
+        print('SnackBar: $message');
+      }
     }
   }
 

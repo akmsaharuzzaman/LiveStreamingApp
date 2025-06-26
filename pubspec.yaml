@@ -235,8 +235,10 @@ flutter:
     - assets/lottie/
     - assets/images/new_images/
     - .env
-    - assets/unityweb/
-    - assets/unityweb/Build/
+    
+    # Game assets (dynamic structure)
+    - assets/games/
+    - assets/games/games_config.json
 
 # ============================
 # APP BRANDING & SPLASH SCREEN

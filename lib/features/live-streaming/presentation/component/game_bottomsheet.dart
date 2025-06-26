@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'web_game_bottomsheet.dart';
 import '../pages/local_game_page.dart';
+import '../../../../core/services/local_game_manager.dart';
+import '../../../../core/models/local_game_config.dart';
 
 void showGameBottomSheet(BuildContext context, {String? userId}) {
   showModalBottomSheet(
@@ -14,10 +16,39 @@ void showGameBottomSheet(BuildContext context, {String? userId}) {
   );
 }
 
-class GameBottomSheet extends StatelessWidget {
+class GameBottomSheet extends StatefulWidget {
   final String? userId;
-  
+
   const GameBottomSheet({super.key, this.userId});
+
+  @override
+  State<GameBottomSheet> createState() => _GameBottomSheetState();
+}
+
+class _GameBottomSheetState extends State<GameBottomSheet> {
+  List<LocalGameConfig> _localGames = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocalGames();
+  }
+
+  Future<void> _loadLocalGames() async {
+    try {
+      final games = await LocalGameManager.instance.getAvailableGames();
+      setState(() {
+        _localGames = games;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Failed to load local games: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,45 +92,62 @@ class GameBottomSheet extends StatelessWidget {
             ),
           ),
 
-          // Game Options Row
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildGameOption(
-                  icon: Icons.gamepad,
-                  label: 'Greedy Stars',
-                  onTap: () {
-                    Navigator.pop(context);
-                    // Open Greedy Stars web game
-                    showWebGameBottomSheet(
-                      context,
-                      gameUrl:
-                          'http://147.93.103.135:8001/game/?spain_time=30&profit=0&user_id=2ufXoAdqAY',
-                      gameTitle: 'Greedy Stars',
-                      userId: userId ?? '2ufXoAdqAY', // Use passed userId or fallback
-                    );
-                  },
-                ),
-                _buildGameOption(
-                  icon: Icons.gamepad_outlined,
-                  label: 'Fruit Loops',
-                  onTap: () {
-                    Navigator.pop(context);
-                    // Launch local Unity WebGL game
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => LocalGamePage(
-                          gameTitle: 'Fruit Loops',
-                          userId: userId ?? '2ufXoAdqAY', // Use passed userId or fallback
-                        ),
+          // Game Options Section
+          Container(
+            height: 100.h,
+            margin: EdgeInsets.symmetric(vertical: 16.h),
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  )
+                : ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    children: [
+                      // Web Games
+                      _buildGameOption(
+                        icon: Icons.star_border,
+                        label: 'Greedy Stars',
+                        onTap: () {
+                          Navigator.pop(context);
+                          showWebGameBottomSheet(
+                            context,
+                            gameUrl:
+                                'http://147.93.103.135:8001/game/?spain_time=30&profit=0&user_id=2ufXoAdqAY',
+                            gameTitle: 'Greedy Stars',
+                            userId: widget.userId ?? '2ufXoAdqAY',
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
-              ],
-            ),
+
+                      SizedBox(width: 16.w),
+
+                      // Dynamic Local Games
+                      ..._localGames
+                          .map(
+                            (game) => Padding(
+                              padding: EdgeInsets.only(right: 16.w),
+                              child: _buildGameOption(
+                                icon: Icons.gamepad_outlined,
+                                label: game.title,
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => LocalGamePage(
+                                        gameTitle: game.title,
+                                        gameId: game.id,
+                                        userId: widget.userId ?? '2ufXoAdqAY',
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ],
+                  ),
           ),
 
           SizedBox(height: 24.h),
