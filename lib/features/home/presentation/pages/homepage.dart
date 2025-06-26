@@ -155,7 +155,7 @@ class _HomePageScreenState extends State<HomePageScreen>
                 height: 36.h,
                 child: TabBar(
                   controller: _tabController,
-                  labelColor: Colors.white,
+                  labelColor: Colors.black,
                   unselectedLabelColor: Colors.black54,
                   labelStyle: TextStyle(
                     fontSize: 12.sp,
@@ -165,13 +165,12 @@ class _HomePageScreenState extends State<HomePageScreen>
                     fontSize: 12.sp,
                     fontWeight: FontWeight.w500,
                   ),
-                  indicator: BoxDecoration(
-                    borderRadius: BorderRadius.circular(25.r),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF6B73FF), Color(0xFF9B59B6)],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
+                  indicator: const UnderlineTabIndicator(
+                    borderSide: BorderSide(
+                      width: 3.0,
+                      color: Color(0xFF6B73FF),
                     ),
+                    insets: EdgeInsets.symmetric(horizontal: 16.0),
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
                   dividerColor: Colors.transparent,
