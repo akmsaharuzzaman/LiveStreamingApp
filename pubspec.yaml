@@ -64,7 +64,7 @@ dependencies:
   # ============================
   
   # Social login providers
-  google_sign_in: ^7.0.0
+  google_sign_in: ^6.3.0
   sign_in_with_apple: ^7.0.1
   
   # ============================
@@ -227,6 +227,7 @@ flutter:
   # Asset directories
   assets:
     - assets/images/
+    - assets/icon/
     - assets/images/splash/
     - assets/images/vip_level/
     - assets/images/level/
@@ -243,6 +244,15 @@ flutter:
     - assets/games/fruit-loops/Build/
     - assets/games/GreedyV3_2/
     - assets/games/GreedyV3_2/Build/
+    - assets/games/GreedyV3_2/index.html
+    - assets/games/GreedyV3_2/Build/0f33989bb9e916fd3e256980afea0158.loader.js
+    - assets/games/GreedyV3_2/Build/06ea974707ebe638f1b8899af883aafd.data.unityweb
+    - assets/games/GreedyV3_2/Build/707f9ca9b9c72ea9eac271546b329461.wasm.unityweb
+    - assets/games/GreedyV3_2/Build/d2822e4a9f0d71c41427f922e253050a.framework.js.unityweb
+
+
+
+
 
 # ============================
 # APP BRANDING & SPLASH SCREEN

@@ -72,12 +72,12 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                   title: Row(
                     children: [
                       Image.asset(
-                        'assets/images/new_images/ic_logo_white.png',
+                        'assets/icon/icon.png',
                         height: 40.sp,
                         width: 40.sp,
                       ),
                       SizedBox(width: 5.sp),
-                      Text('DLStar Live', style: MyTheme.kAppTitle),
+                      Text('DLStar', style: MyTheme.kAppTitle),
                     ],
                   ),
                   centerTitle: false,

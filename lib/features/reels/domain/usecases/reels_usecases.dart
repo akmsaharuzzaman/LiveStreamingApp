@@ -46,7 +46,11 @@ class GetReelCommentsUseCase {
 
   GetReelCommentsUseCase(this.repository);
 
-  Future<Map<String, dynamic>?> call(String reelId, {int page = 1, int limit = 10}) async {
+  Future<Map<String, dynamic>?> call(
+    String reelId, {
+    int page = 1,
+    int limit = 10,
+  }) async {
     return await repository.getReelComments(reelId, page: page, limit: limit);
   }
 }

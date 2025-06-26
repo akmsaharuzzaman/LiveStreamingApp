@@ -130,13 +130,9 @@ class _HomePageScreenState extends State<HomePageScreen> {
         centerTitle: true,
         title: Row(
           children: [
-            Image.asset(
-              'assets/images/new_images/ic_logo_white.png',
-              height: 40,
-              width: 40,
-            ),
+            Image.asset('assets/icon/icon.png', height: 40, width: 40),
             SizedBox(width: 8.sp),
-            Text("DLStar Live", style: MyTheme.kAppTitle),
+            Text("DLStar", style: MyTheme.kAppTitle),
           ],
         ),
         actions: [
