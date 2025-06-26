@@ -25,7 +25,8 @@ class HomePageScreen extends StatefulWidget {
   State<HomePageScreen> createState() => _HomePageScreenState();
 }
 
-class _HomePageScreenState extends State<HomePageScreen> {
+class _HomePageScreenState extends State<HomePageScreen>
+    with SingleTickerProviderStateMixin {
   final SocketService _socketService = SocketService.instance;
   RoomListResponse? _availableRooms;
 
@@ -33,6 +34,9 @@ class _HomePageScreenState extends State<HomePageScreen> {
   StreamSubscription? _connectionStatusSubscription;
   StreamSubscription? _roomListSubscription;
   StreamSubscription? _errorSubscription;
+
+  // Tab controller for horizontal sliding tabs
+  late TabController _tabController;
 
   List<String> imageUrls = [
     'assets/images/new_images/banners1.jpg',
@@ -97,6 +101,9 @@ class _HomePageScreenState extends State<HomePageScreen> {
 
   @override
   void initState() {
+    // Initialize tab controller with 4 tabs
+    _tabController = TabController(length: 4, vsync: this);
+
     _initializeSocket();
     _setupSocketListeners();
     super.initState();
@@ -108,6 +115,9 @@ class _HomePageScreenState extends State<HomePageScreen> {
     _connectionStatusSubscription?.cancel();
     _roomListSubscription?.cancel();
     _errorSubscription?.cancel();
+
+    // Dispose tab controller
+    _tabController.dispose();
 
     debugPrint("HomePage disposed - stream subscriptions canceled");
     super.dispose();
@@ -128,120 +138,179 @@ class _HomePageScreenState extends State<HomePageScreen> {
         surfaceTintColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0.0,
         automaticallyImplyLeading: false,
-        centerTitle: true,
+        centerTitle: false,
+        titleSpacing: 16.w,
         title: Row(
           children: [
+            // Logo
             SvgPicture.asset(
               'assets/svg/dl_star_logo.svg',
               height: 16,
               width: 40,
             ),
-            SizedBox(width: 8.sp),
-          ],
-        ),
-        actions: [
-          SizedBox(
-            width: 90.w,
-            // padding: EdgeInsets.symmetric(horizontal: 16.sp),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Icon(
-                      Iconsax.search_favorite,
-                      size: 22.sp,
-                      color: Colors.black,
-                    ),
-                    SizedBox(width: 12.sp),
-                    Icon(
-                      Iconsax.notification,
-                      size: 22.sp,
-                      color: Colors.black,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 7.sp),
-            const ListUserFollow(),
-            SizedBox(height: 12.sp),
-            Padding(
-              padding: EdgeInsets.only(right: 8.sp, left: 8.sp),
+            SizedBox(width: 16.w),
+            // Tab Bar
+            Expanded(
               child: SizedBox(
-                height: 132.sp,
-                width: double.infinity,
-                child: FlutterCarousel(
-                  options: FlutterCarouselOptions(
-                    height: 132.sp,
-                    autoPlay: true,
-                    viewportFraction: 1.0,
-                    enlargeCenterPage: false,
-                    showIndicator: true,
-                    indicatorMargin: 8,
-                    slideIndicator: CircularSlideIndicator(
-                      slideIndicatorOptions: SlideIndicatorOptions(
-                        alignment: Alignment.bottomCenter,
-                        currentIndicatorColor: Colors.white,
-                        indicatorBackgroundColor: Colors.white.withOpacity(0.5),
-                        indicatorBorderColor: Colors.transparent,
-                        indicatorBorderWidth: 0.5,
-                        indicatorRadius: 3.8,
-                        itemSpacing: 15,
-                        padding: const EdgeInsets.only(top: 10.0),
-                        enableHalo: false,
-                        enableAnimation: true,
-                      ),
+                height: 36.h,
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.black54,
+                  labelStyle: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  unselectedLabelStyle: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.circular(25.r),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6B73FF), Color(0xFF9B59B6)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
                     ),
                   ),
-                  items: imageUrls.map((url) {
-                    return Builder(
-                      builder: (BuildContext context) {
-                        return Container(
-                          width: double.infinity,
-                          margin: const EdgeInsets.symmetric(horizontal: 8.0),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8.0),
-                            child: Image.asset(
-                              url,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Center(
-                                  child: Icon(
-                                    Icons.broken_image,
-                                    size: 50,
-                                    color: Colors.red,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  }).toList(),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  dividerColor: Colors.transparent,
+                  labelPadding: EdgeInsets.symmetric(horizontal: 8.w),
+                  tabs: const [
+                    Tab(text: 'Popular'),
+                    Tab(text: 'Live'),
+                    Tab(text: 'Party'),
+                    Tab(text: 'PK'),
+                  ],
                 ),
               ),
             ),
-            SizedBox(height: 18.sp),
-            ListLiveStream(
-              availableRooms: _availableRooms ?? RoomListResponse(rooms: {}),
-            ),
+            SizedBox(width: 16.w),
+            // Search and notification icons
+            Icon(Iconsax.search_favorite, size: 22.sp, color: Colors.black),
+            SizedBox(width: 12.sp),
+            Icon(Iconsax.notification, size: 22.sp, color: Colors.black),
           ],
         ),
+      ),
+      body: SafeArea(
+        bottom: false,
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            // Popular Tab - Current homepage content
+            _buildPopularTab(),
+            // Live Tab - Dummy content
+            _buildDummyTab('Live', Icons.live_tv),
+            // Party Tab - Dummy content
+            _buildDummyTab('Party', Icons.party_mode),
+            // PK Tab - Dummy content
+            _buildDummyTab('PK', Icons.sports_kabaddi),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Popular tab with current homepage content
+  Widget _buildPopularTab() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 7.sp),
+        const ListUserFollow(),
+        SizedBox(height: 12.sp),
+        Padding(
+          padding: EdgeInsets.only(right: 8.sp, left: 8.sp),
+          child: SizedBox(
+            height: 132.sp,
+            width: double.infinity,
+            child: FlutterCarousel(
+              options: FlutterCarouselOptions(
+                height: 132.sp,
+                autoPlay: true,
+                viewportFraction: 1.0,
+                enlargeCenterPage: false,
+                showIndicator: true,
+                indicatorMargin: 8,
+                slideIndicator: CircularSlideIndicator(
+                  slideIndicatorOptions: SlideIndicatorOptions(
+                    alignment: Alignment.bottomCenter,
+                    currentIndicatorColor: Colors.white,
+                    indicatorBackgroundColor: Colors.white.withOpacity(0.5),
+                    indicatorBorderColor: Colors.transparent,
+                    indicatorBorderWidth: 0.5,
+                    indicatorRadius: 3.8,
+                    itemSpacing: 15,
+                    padding: const EdgeInsets.only(top: 10.0),
+                    enableHalo: false,
+                    enableAnimation: true,
+                  ),
+                ),
+              ),
+              items: imageUrls.map((url) {
+                return Builder(
+                  builder: (BuildContext context) {
+                    return Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.symmetric(horizontal: 8.0),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8.0),
+                        child: Image.asset(
+                          url,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Center(
+                              child: Icon(
+                                Icons.broken_image,
+                                size: 50,
+                                color: Colors.red,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        SizedBox(height: 18.sp),
+        ListLiveStream(
+          availableRooms: _availableRooms ?? RoomListResponse(rooms: {}),
+        ),
+      ],
+    );
+  }
+
+  // Dummy tab content for other tabs
+  Widget _buildDummyTab(String title, IconData icon) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 80.sp, color: Colors.grey.shade400),
+          SizedBox(height: 20.h),
+          Text(
+            '$title Page',
+            style: TextStyle(
+              fontSize: 24.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          SizedBox(height: 10.h),
+          Text(
+            'Coming Soon!',
+            style: TextStyle(fontSize: 16.sp, color: Colors.grey.shade500),
+          ),
+        ],
       ),
     );
   }
