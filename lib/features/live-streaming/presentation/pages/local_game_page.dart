@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'dart:io';
 import '../../../../core/services/local_game_server_service.dart';
 
@@ -20,7 +20,7 @@ class LocalGamePage extends StatefulWidget {
 }
 
 class _LocalGamePageState extends State<LocalGamePage> {
-  late WebViewController _webViewController;
+  InAppWebViewController? _webViewController;
   String? _gameUrl;
   bool _isLoading = true;
   bool _hasError = false;
@@ -60,7 +60,6 @@ class _LocalGamePageState extends State<LocalGamePage> {
             _gameUrl = serverUrl;
             _isLoading = false;
           });
-          _initializeWebView();
         } else {
           setState(() {
             _hasError = true;
@@ -86,59 +85,6 @@ class _LocalGamePageState extends State<LocalGamePage> {
       });
       _showSnackBar('❌ Game initialization failed', Colors.red);
     }
-  }
-
-  void _initializeWebView() {
-    print('🌐 Initializing WebView with URL: $_gameUrl');
-    _webViewController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setUserAgent(
-        'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
-      )
-      ..enableZoom(false)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (String url) {
-            print('📱 WebView started loading: $url');
-            setState(() {
-              _isLoading = true;
-              _hasError = false;
-            });
-          },
-          onPageFinished: (String url) {
-            print('✅ WebView finished loading: $url');
-            setState(() {
-              _isLoading = false;
-            });
-          },
-          onHttpError: (HttpResponseError error) {
-            print('❌ HTTP Error: ${error.response?.statusCode}');
-            setState(() {
-              _hasError = true;
-              _errorMessage = 'HTTP Error: ${error.response?.statusCode}';
-              _isLoading = false;
-            });
-          },
-          onWebResourceError: (WebResourceError error) {
-            print(
-              '❌ Web Resource Error: ${error.errorCode} - ${error.description} - ${error.url}',
-            );
-            setState(() {
-              _hasError = true;
-              _errorMessage = 'Resource Error: ${error.description}';
-              _isLoading = false;
-            });
-          },
-          onNavigationRequest: (NavigationRequest request) {
-            print('🔗 Navigation request: ${request.url}');
-            return NavigationDecision.navigate;
-          },
-        ),
-      );
-
-    // Load the URL with additional debugging
-    print('🚀 Loading URL: $_gameUrl');
-    _webViewController.loadRequest(Uri.parse(_gameUrl!));
   }
 
   /// Test server connectivity before loading in WebView
@@ -249,7 +195,7 @@ class _LocalGamePageState extends State<LocalGamePage> {
               onPressed: _hasError
                   ? _initializeGame
                   : () {
-                      _webViewController.reload();
+                      _webViewController?.reload();
                     },
               tooltip: _hasError ? 'Retry' : 'Refresh',
             ),
@@ -266,7 +212,7 @@ class _LocalGamePageState extends State<LocalGamePage> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) {
+    if (_isLoading && _gameUrl == null) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -274,7 +220,7 @@ class _LocalGamePageState extends State<LocalGamePage> {
             CircularProgressIndicator(color: Colors.white),
             SizedBox(height: 16),
             Text(
-              'Loading game...',
+              'Starting game server...',
               style: TextStyle(color: Colors.white, fontSize: 16),
             ),
           ],
@@ -319,7 +265,61 @@ class _LocalGamePageState extends State<LocalGamePage> {
     }
 
     if (_gameUrl != null) {
-      return WebViewWidget(controller: _webViewController);
+      return Stack(
+        children: [
+          InAppWebView(
+            initialUrlRequest: URLRequest(url: WebUri(_gameUrl!)),
+            initialOptions: InAppWebViewGroupOptions(
+              crossPlatform: InAppWebViewOptions(
+                javaScriptEnabled: true,
+                userAgent:
+                    'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
+              ),
+            ),
+            onWebViewCreated: (controller) {
+              _webViewController = controller;
+            },
+            onLoadStart: (controller, url) {
+              print('📱 WebView started loading: $url');
+              setState(() {
+                _isLoading = true;
+                _hasError = false;
+              });
+            },
+            onLoadStop: (controller, url) {
+              print('✅ WebView finished loading: $url');
+              setState(() {
+                _isLoading = false;
+              });
+            },
+            onLoadError: (controller, url, code, message) {
+              print('❌ Load Error: $code - $message');
+              setState(() {
+                _hasError = true;
+                _errorMessage = 'Load Error: $message';
+                _isLoading = false;
+              });
+            },
+          ),
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.7),
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(color: Colors.white),
+                    SizedBox(height: 16),
+                    Text(
+                      'Loading game...',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      );
     }
 
     return const Center(
