@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'web_game_bottomsheet.dart';
+import '../pages/local_game_page.dart';
 
-void showGameBottomSheet(BuildContext context) {
+void showGameBottomSheet(BuildContext context, {String? userId}) {
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (context) {
-      return const GameBottomSheet();
+      return GameBottomSheet(userId: userId);
     },
   );
 }
 
 class GameBottomSheet extends StatelessWidget {
-  const GameBottomSheet({super.key});
+  final String? userId;
+  
+  const GameBottomSheet({super.key, this.userId});
 
   @override
   Widget build(BuildContext context) {
@@ -75,8 +78,7 @@ class GameBottomSheet extends StatelessWidget {
                       gameUrl:
                           'http://147.93.103.135:8001/game/?spain_time=30&profit=0&user_id=2ufXoAdqAY',
                       gameTitle: 'Greedy Stars',
-                      userId:
-                          '2ufXoAdqAY', // You can replace this with actual user ID
+                      userId: userId ?? '2ufXoAdqAY', // Use passed userId or fallback
                     );
                   },
                 ),
@@ -85,11 +87,13 @@ class GameBottomSheet extends StatelessWidget {
                   label: 'Fruit Loops',
                   onTap: () {
                     Navigator.pop(context);
-                    // You can add another game URL here or show coming soon
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Fruit Loops - Coming Soon!'),
-                        backgroundColor: Colors.orange,
+                    // Launch local Unity WebGL game
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => LocalGamePage(
+                          gameTitle: 'Fruit Loops',
+                          userId: userId ?? '2ufXoAdqAY', // Use passed userId or fallback
+                        ),
                       ),
                     );
                   },

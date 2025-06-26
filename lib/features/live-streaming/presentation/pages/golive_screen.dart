@@ -614,7 +614,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             CustomLiveButton(
                               icon: Icons.more_vert,
                               onTap: () {
-                                showGameBottomSheet(context);
+                                showGameBottomSheet(context, userId: userId);
                               },
                             ),
                           ],
