@@ -66,9 +66,20 @@ class _GoliveScreenState extends State<GoliveScreen> {
   }
 
   Future<void> initAgoraLoad() async {
-    await initAgora();
-    await _initializeSocket();
-    _setupSocketListeners();
+    try {
+      // _showSnackBar('🚀 Setting up live stream...', Colors.blue);
+      debugPrint('🚀 Setting up live stream...');
+      await initAgora();
+      // _showSnackBar('📡 Connecting to server...', Colors.blue);
+      debugPrint('📡 Connecting to server...');
+      await _initializeSocket();
+      _setupSocketListeners();
+      // _showSnackBar('✅ Live stream ready!', Colors.green);
+      debugPrint('✅ Live stream ready!');
+    } catch (e) {
+      debugPrint('❌ Error in initAgoraLoad: $e');
+      _showSnackBar('❌ Failed to setup live stream', Colors.red);
+    }
   }
 
   Future<void> _loadUidAndDispatchEvent() async {
@@ -311,9 +322,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
   final List<int> _remoteUsers = [];
   bool _muted = false;
   int _viewerCount = 0;
+  bool _isInitializingCamera = false;
 
   Future<void> initAgora() async {
     try {
+      setState(() {
+        _isInitializingCamera = true;
+      });
+
       // Check permissions FIRST and wait for the result
       bool hasPermissions = await PermissionHelper.hasLiveStreamPermissions();
 
@@ -335,6 +351,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
           if (mounted) {
             PermissionHelper.showPermissionDialog(context);
           }
+          setState(() {
+            _isInitializingCamera = false;
+          });
           // Don't initialize Agora if permissions not granted
           return;
         }
@@ -353,9 +372,16 @@ class _GoliveScreenState extends State<GoliveScreen> {
           channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
         ),
       );
+
+      setState(() {
+        _isInitializingCamera = false;
+      });
     } catch (e) {
       debugPrint('❌ Error in initAgora: $e');
-      // _showSnackBar('❌ Failed to initialize live streaming', Colors.red);
+      _showSnackBar('❌ Failed to initialize live streaming', Colors.red);
+      setState(() {
+        _isInitializingCamera = false;
+      });
       return;
     }
 
@@ -369,6 +395,15 @@ class _GoliveScreenState extends State<GoliveScreen> {
             _localUserJoined = true;
             // Don't set _remoteUid here - it should only be set when a remote user joins
           });
+
+          // Show success message
+          if (isHost) {
+            // _showSnackBar('🎥 Live stream started!', Colors.green);
+            debugPrint('🎥 Live stream started!');
+          } else {
+            // _showSnackBar('📺 Connected to stream!', Colors.green);
+            debugPrint('📺 Connected to stream!');
+          }
         },
         onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
           debugPrint(
@@ -449,6 +484,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
         return;
       }
 
+      // _showSnackBar('🔑 Generating access token...', Colors.blue);
+      debugPrint('🔑 Generating access token...');
+
       // Generate token using the API
       // final result = await _liveStreamService.generateAgoraToken(
       //   channelName: roomId, // Use the room ID as channel name
@@ -463,6 +501,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
         final dynamicToken = result.token;
         debugPrint('✅ Token generated successfully : $dynamicToken');
 
+        // _showSnackBar('📡 Joining live stream...', Colors.blue);
+        debugPrint('📡 Joining live stream...');
+
         // Join channel with dynamic token
         await _engine.joinChannel(
           token: dynamicToken,
@@ -472,16 +513,16 @@ class _GoliveScreenState extends State<GoliveScreen> {
         );
       } else {
         debugPrint('Failed to generate token: ${result.success}');
-        // _showSnackBar(
-        //   '❌ Token generation failed: ${result.success}',
-        //   Colors.red,
-        // );
+        _showSnackBar(
+          '❌ Token generation failed, using fallback',
+          Colors.orange,
+        );
         // Fallback to static token
         await _joinChannelWithStaticToken();
       }
     } catch (e) {
       debugPrint('Error generating token: $e');
-      // _showSnackBar('❌ Token generation error', Colors.red);
+      _showSnackBar('❌ Connection error, using fallback', Colors.orange);
       // Fallback to static token
       await _joinChannelWithStaticToken();
     }
@@ -644,8 +685,37 @@ class _GoliveScreenState extends State<GoliveScreen> {
   // Main video view
   Widget _buildVideoView() {
     debugPrint(
-      "Building video view - isHost: $isHost, _localUserJoined: $_localUserJoined, _remoteUid: $_remoteUid",
+      "Building video view - isHost: $isHost, _localUserJoined: $_localUserJoined, _remoteUid: $_remoteUid, _isInitializingCamera: $_isInitializingCamera",
     );
+
+    // Show loading indicator during camera initialization
+    if (_isInitializingCamera) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+              SizedBox(height: 20),
+              Text(
+                '🎥 Initializing camera...',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 10),
+              Text(
+                'Please wait while we set up your stream',
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     if (isHost) {
       // Show local video for broadcaster
@@ -656,7 +726,26 @@ class _GoliveScreenState extends State<GoliveScreen> {
                 canvas: const VideoCanvas(uid: 0),
               ),
             )
-          : const Center(child: CircularProgressIndicator(color: Colors.white));
+          : Container(
+              color: Colors.black,
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(color: Colors.white),
+                    SizedBox(height: 20),
+                    Text(
+                      '📡 Connecting to stream...',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
     } else {
       // Show remote video for viewers
       return _remoteVideo();
@@ -673,14 +762,30 @@ class _GoliveScreenState extends State<GoliveScreen> {
         ),
       );
     } else {
-      return Center(
-        child: const Text(
-          'Waiting for broadcaster to start...',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+              SizedBox(height: 20),
+              Text(
+                '📡 Waiting for broadcaster...',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 10),
+              Text(
+                'The stream will start soon',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+            ],
           ),
         ),
       );
