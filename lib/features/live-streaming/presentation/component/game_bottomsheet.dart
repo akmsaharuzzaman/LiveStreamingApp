@@ -94,15 +94,6 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                SizedBox(height: 4.h),
-                Text(
-                  'Server: http://127.0.0.1:8080 (Fixed Port)',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
               ],
             ),
           ),

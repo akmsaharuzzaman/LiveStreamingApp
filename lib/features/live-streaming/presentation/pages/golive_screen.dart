@@ -87,7 +87,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
       await initAgoraLoad();
     } else {
       debugPrint("No UID found");
-      _showSnackBar('❌ User authentication required', Colors.red);
+      debugPrint("User ID is null, cannot initialize live streaming");
+      // _showSnackBar('❌ User authentication required', Colors.red);
     }
   }
 
@@ -111,11 +112,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
         await _socketService.getRooms();
       } else {
         debugPrint('Failed to connect to server');
-        _showSnackBar('❌ Failed to connect to server', Colors.red);
+        // _showSnackBar('❌ Failed to connect to server', Colors.red);
       }
     } catch (e) {
       debugPrint('Connection error: $e');
-      _showSnackBar('❌ Connection error', Colors.red);
+      // _showSnackBar('❌ Connection error', Colors.red);
     }
   }
 
@@ -130,7 +131,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
               // _showSnackBar('✅ Connected to server', Colors.green);
               debugPrint("Connected to server");
             } else {
-              _showSnackBar('❌ Disconnected from server', Colors.red);
+              // _showSnackBar('❌ Disconnected from server', Colors.red);
               debugPrint("Disconnected from server");
             }
           }
@@ -141,7 +142,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
       roomId,
     ) {
       if (mounted) {
-        _showSnackBar('🏠 Room created: $roomId', Colors.blue);
+        // _showSnackBar('🏠 Room created: $roomId', Colors.blue);
+        debugPrint("🏠 Room created: $roomId");
         setState(() {
           _currentRoomId = roomId;
         });
@@ -152,7 +154,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
       roomId,
     ) {
       if (mounted) {
-        _showSnackBar('🗑️ Room deleted: $roomId', Colors.orange);
+        // _showSnackBar('🗑️ Room deleted: $roomId', Colors.orange);
+        debugPrint("🗑️ Room deleted: $roomId");
         if (_currentRoomId == roomId) {
           setState(() {
             _currentRoomId = null;
@@ -166,14 +169,16 @@ class _GoliveScreenState extends State<GoliveScreen> {
       if (mounted) {
         final userName = data['userName'] ?? 'Unknown';
         debugPrint("User joined: $userName , console from UI");
-        _showSnackBar('👋 $userName joined the stream', Colors.green);
+        // _showSnackBar('👋 $userName joined the stream', Colors.green);
+        debugPrint("👋 $userName joined the stream");
       }
     });
 
     _socketService.userLeftStream.listen((data) {
       if (mounted) {
         final userName = data['userName'] ?? 'Unknown';
-        _showSnackBar('👋 $userName left the stream', Colors.orange);
+        // _showSnackBar('👋 $userName left the stream', Colors.orange);
+        debugPrint("👋 $userName left the stream");
       }
     }); // Room list updates
     _socketService.roomListStream.listen((rooms) {
@@ -185,7 +190,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     // Error handling
     _errorSubscription = _socketService.errorStream.listen((error) {
       if (mounted) {
-        _showSnackBar('❌ Error: $error', Colors.red);
+        // _showSnackBar('❌ Error: $error', Colors.red);
         debugPrint("Error from socket: $error");
       }
     });
@@ -193,13 +198,15 @@ class _GoliveScreenState extends State<GoliveScreen> {
     // Custom live streaming events
     _socketService.on('stream-started', (data) {
       if (mounted) {
-        _showSnackBar('🎥 Stream started!', Colors.green);
+        // _showSnackBar('🎥 Stream started!', Colors.green);
+        debugPrint("🎥 Stream started!");
       }
     });
 
     _socketService.on('stream-ended', (data) {
       if (mounted) {
-        _showSnackBar('🛑 Stream ended', Colors.red);
+        // _showSnackBar('🛑 Stream ended', Colors.red);
+        debugPrint("🛑 Stream ended");
       }
     });
 
@@ -213,7 +220,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   Future<void> _createRoom() async {
     if (userId == null) {
       debugPrint('❌ Cannot create room: userId is null');
-      _showSnackBar('❌ User not authenticated', Colors.red);
+      // _showSnackBar('❌ User not authenticated', Colors.red);
       return;
     }
 
@@ -229,13 +236,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
         roomId = dynamicRoomId; // Update the roomId for Agora channel
       });
       debugPrint('✅ Room created successfully: $dynamicRoomId');
-      _showSnackBar('🏠 Room created: $dynamicRoomId', Colors.green);
+      // _showSnackBar('🏠 Room created: $dynamicRoomId', Colors.green);
 
       // Now join the Agora channel with the dynamic room ID
       await _joinChannelWithDynamicToken();
     } else {
       debugPrint('❌ Failed to create room: $dynamicRoomId');
-      _showSnackBar('❌ Failed to create room', Colors.red);
+      // _showSnackBar('❌ Failed to create room', Colors.red);
     }
   }
 
@@ -335,7 +342,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
       // Only initialize Agora AFTER permissions are confirmed
       debugPrint('✅ Permissions granted, initializing Agora engine...');
-      _showSnackBar('🎥 Initializing camera...', Colors.blue);
+      // _showSnackBar('🎥 Initializing camera...', Colors.blue);
+      debugPrint('🎥 Initializing camera...');
 
       //create the engine
       _engine = createAgoraRtcEngine();
@@ -347,7 +355,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
       );
     } catch (e) {
       debugPrint('❌ Error in initAgora: $e');
-      _showSnackBar('❌ Failed to initialize live streaming', Colors.red);
+      // _showSnackBar('❌ Failed to initialize live streaming', Colors.red);
       return;
     }
 

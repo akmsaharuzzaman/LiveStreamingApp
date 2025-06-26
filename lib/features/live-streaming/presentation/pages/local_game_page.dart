@@ -47,7 +47,7 @@ class _LocalGamePageState extends State<LocalGamePage> {
       String? serverUrl = await gameService.startServer(gameId: widget.gameId);
       if (serverUrl != null) {
         print("Game server started at: ${gameService.serverUrl}");
-        _showSnackBar('✅ Game server started', Colors.green);
+        // _showSnackBar('✅ Game server started', Colors.green);
         setState(() {
           gameUrl = gameService.serverUrl;
           _isLoading = false;
@@ -59,7 +59,7 @@ class _LocalGamePageState extends State<LocalGamePage> {
           _errorMessage = 'Failed to start local game server';
           _isLoading = false;
         });
-        _showSnackBar('❌ Failed to start game server', Colors.red);
+        // _showSnackBar('❌ Failed to start game server', Colors.red);
       }
     } catch (e) {
       setState(() {
@@ -67,17 +67,20 @@ class _LocalGamePageState extends State<LocalGamePage> {
         _errorMessage = 'Error initializing game: $e';
         _isLoading = false;
       });
-      _showSnackBar('❌ Game initialization failed', Colors.red);
+      // _showSnackBar('❌ Game initialization failed', Colors.red);
     }
   }
 
   Future<void> _closeGame() async {
     try {
-      _showSnackBar('🛑 Stopping game server...', Colors.orange);
+      // _showSnackBar('🛑 Stopping game server...', Colors.orange);
+      print('🛑 Stopping game server...');
       await gameService.stopServer();
-      _showSnackBar('✅ Game server stopped', Colors.green);
+      // _showSnackBar('✅ Game server stopped', Colors.green);
+      print('✅ Game server stopped');
     } catch (e) {
-      _showSnackBar('⚠️ Error stopping server: $e', Colors.red);
+      // _showSnackBar('⚠️ Error stopping server: $e', Colors.red);
+      print('⚠️ Error stopping server: $e');
     } finally {
       if (mounted) {
         Navigator.of(context).pop();
