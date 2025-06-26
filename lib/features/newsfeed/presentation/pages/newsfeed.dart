@@ -85,7 +85,14 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                   actions: [
                     GestureDetector(
                       onTap: () {
-                        context.push("/reels");
+                        // Use try-catch for better error handling
+                        try {
+                          context.push("/reels");
+                        } catch (e) {
+                          debugPrint('Error navigating to reels: $e');
+                          // Fallback navigation
+                          Navigator.of(context).pushNamed('/reels');
+                        }
                       },
                       child: Row(
                         children: [
