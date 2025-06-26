@@ -28,6 +28,8 @@ class GameBottomSheet extends StatefulWidget {
 class _GameBottomSheetState extends State<GameBottomSheet> {
   List<LocalGameConfig> _localGames = [];
   bool _isLoading = true;
+  bool _isStartingGame = false;
+  String? _currentGameTitle;
 
   @override
   void initState() {
@@ -74,7 +76,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
             ),
           ),
 
-          // Stream Duration
+          // Stream Duration and Game Status
           Container(
             margin: EdgeInsets.symmetric(vertical: 16.h),
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
@@ -82,13 +84,26 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
               color: const Color(0xFF2A2A3E),
               borderRadius: BorderRadius.circular(20.r),
             ),
-            child: Text(
-              'Stream Duration: 000:00:00',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-              ),
+            child: Column(
+              children: [
+                Text(
+                  'Stream Duration: 000:00:00',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  'Server: http://127.0.0.1:8080 (Fixed Port)',
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -107,7 +122,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                       // Web Games
                       _buildGameOption(
                         icon: Icons.star_border,
-                        label: 'Greedy Stars',
+                        label: 'Greedy Stars\n(Web)',
                         onTap: () {
                           Navigator.pop(context);
                           showWebGameBottomSheet(
@@ -130,7 +145,26 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                               child: _buildGameOption(
                                 icon: Icons.gamepad_outlined,
                                 label: game.title,
-                                onTap: () {
+                                isLoading:
+                                    _isStartingGame &&
+                                    _currentGameTitle == game.title,
+                                onTap: () async {
+                                  setState(() {
+                                    _isStartingGame = true;
+                                    _currentGameTitle = game.title;
+                                  });
+
+                                  // Show loading snackbar
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '🚀 Starting ${game.title}...',
+                                      ),
+                                      backgroundColor: Colors.blue,
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+
                                   Navigator.pop(context);
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
@@ -141,6 +175,11 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                                       ),
                                     ),
                                   );
+
+                                  setState(() {
+                                    _isStartingGame = false;
+                                    _currentGameTitle = null;
+                                  });
                                 },
                               ),
                             ),
@@ -239,20 +278,34 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    bool isLoading = false,
   }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: isLoading ? null : onTap,
       child: Container(
         width: 120.w,
         padding: EdgeInsets.symmetric(vertical: 12.h),
         decoration: BoxDecoration(
-          color: const Color(0xFF2A2A3E),
+          color: isLoading ? const Color(0xFF3A3A4E) : const Color(0xFF2A2A3E),
           borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: Colors.grey[700]!, width: 1),
+          border: Border.all(
+            color: isLoading ? Colors.blue : Colors.grey[700]!,
+            width: isLoading ? 2 : 1,
+          ),
         ),
         child: Column(
           children: [
-            Icon(icon, color: Colors.white, size: 32.sp),
+            if (isLoading)
+              SizedBox(
+                width: 32.sp,
+                height: 32.sp,
+                child: const CircularProgressIndicator(
+                  color: Colors.blue,
+                  strokeWidth: 2,
+                ),
+              )
+            else
+              Icon(icon, color: Colors.white, size: 32.sp),
             SizedBox(height: 8.h),
             Text(
               label,
