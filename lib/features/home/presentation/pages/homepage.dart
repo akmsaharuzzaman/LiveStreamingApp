@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_carousel_widget/flutter_carousel_widget.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -130,14 +131,17 @@ class _HomePageScreenState extends State<HomePageScreen> {
         centerTitle: true,
         title: Row(
           children: [
-            Image.asset('assets/icon/icon.png', height: 40, width: 40),
+            SvgPicture.asset(
+              'assets/svg/dl_star_logo.svg',
+              height: 16,
+              width: 40,
+            ),
             SizedBox(width: 8.sp),
-            Text("DLStar", style: MyTheme.kAppTitle),
           ],
         ),
         actions: [
           SizedBox(
-            width: 110.w,
+            width: 90.w,
             // padding: EdgeInsets.symmetric(horizontal: 16.sp),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -156,17 +160,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
                       size: 22.sp,
                       color: Colors.black,
                     ),
-                    SizedBox(width: 12.sp),
-                    GestureDetector(
-                      onTap: () {
-                        context.push('/leaderboard');
-                      },
-                      child: Icon(
-                        Iconsax.ranking_1,
-                        size: 22.sp,
-                        color: Colors.black,
-                      ),
-                    ),
                   ],
                 ),
               ],
@@ -179,31 +172,17 @@ class _HomePageScreenState extends State<HomePageScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 0.sp),
-            const ListCategoryHome(),
-            SizedBox(height: 20.sp),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.sp),
-              child: Text(
-                'Following',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
             SizedBox(height: 7.sp),
             const ListUserFollow(),
             SizedBox(height: 12.sp),
             Padding(
               padding: EdgeInsets.only(right: 8.sp, left: 8.sp),
               child: SizedBox(
-                height: 75.sp,
+                height: 132.sp,
                 width: double.infinity,
                 child: FlutterCarousel(
                   options: FlutterCarouselOptions(
-                    height: 75.sp,
+                    height: 132.sp,
                     autoPlay: true,
                     viewportFraction: 1.0,
                     enlargeCenterPage: false,
@@ -264,64 +243,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class ListCategoryHome extends StatefulWidget {
-  const ListCategoryHome({super.key});
-
-  @override
-  State<ListCategoryHome> createState() => _ListCategoryHomeState();
-}
-
-class _ListCategoryHomeState extends State<ListCategoryHome> {
-  int _currentIndex = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Padding(
-        //   padding: EdgeInsets.symmetric(horizontal: 16.sp),
-        //   child: Row(
-        //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        //     children: [
-        //       Text(
-        //         'Categories',
-        //         style: TextStyle(
-        //           color: Colors.black,
-        //           fontSize: 13.sp,
-        //           fontWeight: FontWeight.w700,
-        //         ),
-        //       ),
-        //     ],
-        //   ),
-        // ),
-        SizedBox(height: 8.sp),
-        SizedBox(
-          height: 32.5.sp,
-          width: double.infinity,
-          child: ListView.builder(
-            padding: EdgeInsets.symmetric(horizontal: 16.sp),
-            itemCount: listCategoryFake.length,
-            shrinkWrap: true,
-            scrollDirection: Axis.horizontal,
-            itemBuilder: ((context, index) {
-              return CategoryCard(
-                categoryModel: listCategoryFake[index],
-                isCheck: _currentIndex == index,
-                onTap: () {
-                  setState(() {
-                    _currentIndex = index;
-                  });
-                },
-              );
-            }),
-          ),
-        ),
-      ],
     );
   }
 }
