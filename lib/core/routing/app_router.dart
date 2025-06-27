@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 // Import your pages
 import '../../features/home/presentation/pages/homepage.dart';
+import '../../features/live-streaming/presentation/pages/ready_for_live_screen.dart';
 import '../../features/newsfeed/presentation/pages/newsfeed.dart';
 import '../../features/live-streaming/presentation/pages/golive_screen.dart';
 import '../../features/chat/presentation/pages/chatpage.dart';
@@ -155,6 +156,11 @@ class AppRouter {
         name: "leaderboard",
         path: "/leaderboard",
         builder: (context, state) => LeaderBoardScreen(),
+      ),
+      GoRoute(
+        name: "ready-to-go-live",
+        path: "/ready-to-go-live",
+        builder: (context, state) => ReadyForLiveScreen(),
       ),
       GoRoute(
         name: "profile-details",

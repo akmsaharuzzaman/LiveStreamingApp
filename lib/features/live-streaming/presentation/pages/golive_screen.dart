@@ -13,6 +13,7 @@ import '../../../profile/presentation/bloc/profile_bloc.dart';
 import '../component/active_viwers.dart';
 import '../component/custom_live_button.dart';
 import '../component/diamond_star_status.dart';
+import '../component/end_stream_overlay.dart';
 import '../component/game_bottomsheet.dart';
 import '../component/gift_bottom_sheet.dart';
 import '../component/host_info.dart';
@@ -568,113 +569,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
     }
   }
 
-  /// Show end stream overlay dialog
-  void _showEndStreamOverlay(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.8),
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.8,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Keep button
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).pop(); // Close dialog
-                    print("Keep stream pressed");
-                  },
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    margin: EdgeInsets.only(bottom: 30),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [Color(0xFFFF69B4), Color(0xFFFF8FA3)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Color(0xFFFF69B4).withOpacity(0.3),
-                          spreadRadius: 2,
-                          blurRadius: 8,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.keyboard_arrow_up,
-                      color: Colors.white,
-                      size: 40,
-                    ),
-                  ),
-                ),
-                Text(
-                  'Keep',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: 40),
-                // Exit button
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).pop(); // Close dialog
-                    _endLiveStream();
-                    print("End stream pressed");
-                  },
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    margin: EdgeInsets.only(bottom: 30),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [Color(0xFFFF69B4), Color(0xFFFF8FA3)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Color(0xFFFF69B4).withOpacity(0.3),
-                          spreadRadius: 2,
-                          blurRadius: 8,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.power_settings_new,
-                      color: Colors.white,
-                      size: 40,
-                    ),
-                  ),
-                ),
-                Text(
-                  'Exit',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -721,7 +615,16 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             (isHost)
                                 ? GestureDetector(
                                     onTap: () {
-                                      _showEndStreamOverlay(context);
+                                      EndStreamOverlay.show(
+                                        context,
+                                        onKeepStream: () {
+                                          print("Keep stream pressed");
+                                        },
+                                        onEndStream: () {
+                                          _endLiveStream();
+                                          print("End stream pressed");
+                                        },
+                                      );
                                     },
                                     child: Container(
                                       padding: EdgeInsets.all(8),
