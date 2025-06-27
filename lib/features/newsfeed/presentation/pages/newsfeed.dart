@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
@@ -71,13 +72,11 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                   backgroundColor: Colors.white,
                   title: Row(
                     children: [
-                      Image.asset(
-                        'assets/icon/icon.png',
-                        height: 40.sp,
-                        width: 40.sp,
+                      SvgPicture.asset(
+                        'assets/svg/dl_star_logo.svg',
+                        height: 16,
+                        width: 40,
                       ),
-                      SizedBox(width: 5.sp),
-                      Text('DLStar', style: MyTheme.kAppTitle),
                     ],
                   ),
                   centerTitle: false,

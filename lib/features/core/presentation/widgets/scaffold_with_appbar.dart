@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:provider/provider.dart';
@@ -22,122 +23,90 @@ class ScaffoldWithNavBar extends StatelessWidget {
       body: child,
       bottomNavigationBar: Consumer<NavBarProvider>(
         builder: (context, navBarState, _) {
-          return Stack(
-            alignment: Alignment.bottomCenter,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 15, left: 15, right: 15),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(25),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xff2c3968).withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(25),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 10,
-                          spreadRadius: 2,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: BottomNavigationBar(
-                      showSelectedLabels: false,
-                      type: BottomNavigationBarType.fixed,
-                      showUnselectedLabels: false,
-                      backgroundColor: Colors.white,
-                      elevation: 0,
-                      currentIndex: navBarState.currentIndex,
-                      onTap: (int index) {
-                        navBarState.setCurrentIndex(index);
-                        List<String> routes = [
-                          "home",
-                          "newsfeed",
-                          "go-live",
-                          "live-chat",
-                          "profile",
-                        ];
-
-                        // if (index == 2) {
-                        //   Navigator.push(
-                        //     context,
-                        //     MaterialPageRoute(
-                        //       builder: (context) {
-                        //         return HomePageScreen();
-                        //       },
-                        //     ),
-                        //   );
-                        // } else
-                        if (index >= 0 && index < routes.length) {
-                          // Use GoRouter for other indexes
-                          if (index == 2) {
-                            context.pushNamed(routes[index]);
-                          } else {
-                            context.goNamed(routes[index]);
-                          }
-                        }
-                      },
-                      items: [
-                        BottomNavigationBarItem(
-                          icon: Icon(
-                            Iconsax.home_1,
-                            color: navBarState.currentIndex == 0
-                                ? Colors.redAccent
-                                : Colors.black,
-                          ),
-                          label: "Home",
-                        ),
-                        BottomNavigationBarItem(
-                          icon: Icon(
-                            Iconsax.instagram,
-                            color: navBarState.currentIndex == 1
-                                ? Colors.redAccent
-                                : Colors.black,
-                          ),
-                          label: "Newsfeed",
-                        ),
-                        BottomNavigationBarItem(
-                          icon: Container(
-                            height: 45,
-                            width: 55,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(15),
-                              color: Colors.redAccent,
-                            ),
-                            child: const Icon(
-                              Iconsax.play,
-                              color: Colors.white,
-                            ),
-                          ),
-                          label: "Go Live",
-                          backgroundColor: Colors.white,
-                        ),
-                        BottomNavigationBarItem(
-                          icon: Icon(
-                            Iconsax.message,
-                            color: navBarState.currentIndex == 3
-                                ? Colors.redAccent
-                                : Colors.black,
-                          ),
-                          label: "Chat",
-                        ),
-                        BottomNavigationBarItem(
-                          icon: Icon(
-                            Iconsax.profile_tick,
-                            color: navBarState.currentIndex == 4
-                                ? Colors.redAccent
-                                : Colors.black,
-                          ),
-                          backgroundColor: Colors.white,
-                          label: "Profile",
-                        ),
-                      ],
+          return Container(
+            decoration: BoxDecoration(
+              color: const Color(0xff2c3968).withOpacity(0.9),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: BottomNavigationBar(
+              showSelectedLabels: true,
+              type: BottomNavigationBarType.fixed,
+              showUnselectedLabels: false,
+              backgroundColor: Colors.white,
+              elevation: 0,
+              currentIndex: navBarState.currentIndex,
+              onTap: (int index) {
+                navBarState.setCurrentIndex(index);
+                List<String> routes = [
+                  "home",
+                  "newsfeed",
+                  "go-live",
+                  "live-chat",
+                  "profile",
+                ];
+                if (index >= 0 && index < routes.length) {
+                  // Use GoRouter for other indexes
+                  if (index == 2) {
+                    context.pushNamed(routes[index]);
+                  } else {
+                    context.goNamed(routes[index]);
+                  }
+                }
+              },
+              items: [
+                BottomNavigationBarItem(
+                  icon: SvgPicture.asset(
+                    "assets/svg/home_icon.svg",
+                    height: 25,
+                    width: 25,
+                  ),
+                  label: "Home",
+                ),
+                BottomNavigationBarItem(
+                  icon: SvgPicture.asset(
+                    "assets/svg/moment_icon.svg",
+                    height: 25,
+                    width: 25,
+                  ),
+                  label: "Moments",
+                ),
+                BottomNavigationBarItem(
+                  icon: Center(
+                    child: SvgPicture.asset(
+                      "assets/svg/live_icon.svg",
+                      height: 65,
+                      width: 65,
                     ),
                   ),
+                  label: "",
+                  backgroundColor: Colors.white,
                 ),
-              ),
-            ],
+                BottomNavigationBarItem(
+                  icon: SvgPicture.asset(
+                    "assets/svg/inbox_icon.svg",
+                    height: 25,
+                    width: 25,
+                  ),
+                  label: "Chat",
+                ),
+                BottomNavigationBarItem(
+                  icon: SvgPicture.asset(
+                    "assets/svg/profile_icon.svg",
+                    height: 25,
+                    width: 25,
+                  ),
+                  backgroundColor: Colors.white,
+                  label: "Profile",
+                ),
+              ],
+            ),
           );
         },
       ),
@@ -147,7 +116,6 @@ class ScaffoldWithNavBar extends StatelessWidget {
   /// Navigate to the current location of the branch at the provided index when
   /// tapping an item in the BottomNavigationBar.
 }
-
 
 /*
 class ScaffoldWithNavBar extends StatelessWidget {
