@@ -281,6 +281,17 @@ class _HomePageScreenState extends State<HomePageScreen>
           ),
         ),
         SizedBox(height: 18.sp),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Image.asset('assets/images/top_sender.png', height: 78),
+              Image.asset('assets/images/top_host.png', height: 78),
+              Image.asset('assets/images/top_agency.png', height: 78),
+            ],
+          ),
+        ),
         ListLiveStream(
           availableRooms: _availableRooms ?? RoomListResponse(rooms: {}),
         ),

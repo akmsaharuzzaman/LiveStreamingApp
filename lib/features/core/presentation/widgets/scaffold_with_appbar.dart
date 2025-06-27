@@ -38,8 +38,16 @@ class ScaffoldWithNavBar extends StatelessWidget {
             child: BottomNavigationBar(
               showSelectedLabels: true,
               type: BottomNavigationBarType.fixed,
-              showUnselectedLabels: false,
+              showUnselectedLabels: true,
               backgroundColor: Colors.white,
+              selectedItemColor: const Color(
+                0xffFE82A7,
+              ), // This controls both icon and label color
+              selectedLabelStyle: const TextStyle(
+                color: Color(0xffFE82A7),
+                fontWeight: FontWeight.w600,
+              ),
+
               elevation: 0,
               currentIndex: navBarState.currentIndex,
               onTap: (int index) {
@@ -94,7 +102,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
                     height: 25,
                     width: 25,
                   ),
-                  label: "Chat",
+                  label: "Inbox",
                 ),
                 BottomNavigationBarItem(
                   icon: SvgPicture.asset(
@@ -103,7 +111,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
                     width: 25,
                   ),
                   backgroundColor: Colors.white,
-                  label: "Profile",
+                  label: "Me",
                 ),
               ],
             ),
