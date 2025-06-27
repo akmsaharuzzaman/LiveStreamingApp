@@ -611,6 +611,16 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             ActiveViewers(activeUserList: activeViewers),
 
                             // * to show the leave button
+                            (isHost)? HostLiveScreenMenuButton(
+                              onEndStream: () {
+                                _endLiveStream();
+                                print("End stream pressed");
+                              },
+                              onKeepStream: () {
+                                print("Keep stream pressed");
+                                Navigator.of(context).pop();
+                              },
+                            ) :
                             LiveScreenMenuButton(
                               onDisconnect: () {
                                 _endLiveStream();

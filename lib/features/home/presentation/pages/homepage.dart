@@ -148,7 +148,7 @@ class _HomePageScreenState extends State<HomePageScreen>
               height: 16,
               width: 40,
             ),
-            SizedBox(width: 16.w),
+            SizedBox(width: 12.w),
             // Tab Bar
             Expanded(
               child: SizedBox(
@@ -168,13 +168,13 @@ class _HomePageScreenState extends State<HomePageScreen>
                   indicator: const UnderlineTabIndicator(
                     borderSide: BorderSide(
                       width: 3.0,
-                      color: Color(0xFF6B73FF),
+                      color: Color(0xFFFE82A7),
                     ),
                     insets: EdgeInsets.symmetric(horizontal: 16.0),
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
                   dividerColor: Colors.transparent,
-                  labelPadding: EdgeInsets.symmetric(horizontal: 8.w),
+                  labelPadding: EdgeInsets.symmetric(horizontal: 4.w),
                   tabs: const [
                     Tab(text: 'Popular'),
                     Tab(text: 'Live'),
