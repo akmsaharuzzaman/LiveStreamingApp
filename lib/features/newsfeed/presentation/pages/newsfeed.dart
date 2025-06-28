@@ -15,6 +15,7 @@ import '../../../../core/services/post_service.dart';
 import '../../../../core/network/api_service.dart';
 import '../../../../core/services/simple_auth_service.dart';
 import '../../data/models/mock_models/data.dart';
+import '../../data/models/stories_api_response_model.dart' as api;
 import '../../injection_container.dart';
 import '../bloc/newsfeed_bloc.dart';
 import '../widgets/create_post_container.dart';
@@ -148,7 +149,10 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                   sliver: SliverToBoxAdapter(
                     child: useApiStories
                         ? ApiStories(currentUser: currentUser)
-                        : Stories(currentUser: currentUser, stories: stories),
+                        : Stories(
+                            currentUser: currentUser,
+                            storyGroups: const <api.UserStoryGroup>[],
+                          ),
                   ),
                 ),
                 // Use BlocBuilder to show posts from API

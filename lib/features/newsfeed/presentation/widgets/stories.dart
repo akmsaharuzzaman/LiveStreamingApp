@@ -5,14 +5,18 @@ import '../pages/create_story_screen.dart';
 import '../pages/story_viewer_page.dart';
 
 import '../../../chat/data/models/user_model.dart';
-import '../../data/models/mock_models/story_model.dart';
 import '../../data/models/story_response_model.dart';
+import '../../data/models/stories_api_response_model.dart' as api;
 
 class Stories extends StatelessWidget {
   final User currentUser;
-  final List<Story> stories;
+  final List<api.UserStoryGroup> storyGroups;
 
-  const Stories({super.key, required this.currentUser, required this.stories});
+  const Stories({
+    super.key,
+    required this.currentUser,
+    required this.storyGroups,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +26,7 @@ class Stories extends StatelessWidget {
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 8.0),
         scrollDirection: Axis.horizontal,
-        itemCount: 1 + stories.length,
+        itemCount: 1 + storyGroups.length,
         itemBuilder: (BuildContext context, int index) {
           if (index == 0) {
             return Padding(
@@ -42,15 +46,48 @@ class Stories extends StatelessWidget {
               ),
             );
           }
-          final Story story = stories[index - 1];
+          final api.UserStoryGroup storyGroup = storyGroups[index - 1];
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4.0),
             child: StoryCard(
-              story: story,
+              storyGroup: storyGroup,
               currentUser: currentUser,
               onTap: () {
-                // Handle story tap
-                print('Story tapped: ${story.user.id}');
+                // Convert UserStoryGroup stories to StoryModel for viewer
+                List<StoryModel> storyModels = storyGroup.stories.map((
+                  storyItem,
+                ) {
+                  return StoryModel(
+                    id: storyItem.id,
+                    ownerId: storyItem.ownerId,
+                    mediaUrl: storyItem.mediaUrl,
+                    reactionCount: storyItem.reactionCount,
+                    createdAt: storyItem.createdAt,
+                    userInfo: StoryUserInfo(
+                      id: storyItem.userInfo.id,
+                      name: storyItem.userInfo.name,
+                      avatar: storyGroup.avatar != null
+                          ? StoryAvatar(
+                              name: storyGroup.name,
+                              url: storyGroup.avatar!,
+                            )
+                          : null,
+                    ),
+                    myReaction: null, // Will be set based on user's reaction
+                  );
+                }).toList();
+
+                // Navigate to story viewer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StoryViewerPage(
+                      stories: storyModels,
+                      initialIndex: 0,
+                      currentUserId: currentUser.id.toString(),
+                    ),
+                  ),
+                );
               },
             ),
           );
@@ -63,14 +100,14 @@ class Stories extends StatelessWidget {
 class StoryCard extends StatelessWidget {
   final bool isAddStory;
   final User? currentUser;
-  final Story? story;
+  final api.UserStoryGroup? storyGroup;
   final VoidCallback? onTap;
 
   const StoryCard({
     super.key,
     this.isAddStory = false,
     this.currentUser,
-    this.story,
+    this.storyGroup,
     this.onTap,
   });
 
@@ -85,7 +122,7 @@ class StoryCard extends StatelessWidget {
             child: CachedNetworkImage(
               imageUrl: isAddStory
                   ? currentUser!.avatar
-                  : story?.imageUrl ?? "",
+                  : storyGroup?.latestStory?.mediaUrl ?? "",
               height: double.infinity,
               width: 110.0,
               fit: BoxFit.cover,
@@ -130,8 +167,8 @@ class StoryCard extends StatelessWidget {
                     ),
                   )
                 : ProfileAvatar(
-                    imageUrl: story?.user.avatar ?? "",
-                    hasBorder: !story!.isViewed,
+                    imageUrl: storyGroup?.avatar ?? "",
+                    hasBorder: !storyGroup!.allStoriesViewed,
                   ),
           ),
           Positioned(
@@ -139,7 +176,7 @@ class StoryCard extends StatelessWidget {
             left: 8.0,
             right: 8.0,
             child: Text(
-              isAddStory ? 'Add to Story' : story?.user.name ?? "",
+              isAddStory ? 'Add to Story' : storyGroup?.name ?? "",
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
