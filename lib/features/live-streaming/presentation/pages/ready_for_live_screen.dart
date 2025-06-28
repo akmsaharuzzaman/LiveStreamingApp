@@ -27,7 +27,44 @@ class _ReadyForLiveScreenState extends State<ReadyForLiveScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 20.h),
+              // Back Button
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      context.go('/home');
+                    },
+                    child: Container(
+                      width: 40.w,
+                      height: 40.h,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.white,
+                        size: 18.sp,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 16.w),
+                  Text(
+                    'Ready to Go Live',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+
+              SizedBox(height: 30.h),
 
               // Live / Party Live Toggle
               Center(
