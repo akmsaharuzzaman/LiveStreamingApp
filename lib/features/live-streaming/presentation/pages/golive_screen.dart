@@ -5,6 +5,7 @@ import 'package:dlstarlive/features/live-streaming/presentation/component/agora_
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/network/socket_service.dart';
@@ -37,6 +38,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
   String? userId;
   bool isHost = true;
   String roomId = "default_channel";
+
+  // Live stream timing
+  DateTime? _streamStartTime;
+  Timer? _durationTimer;
+  Duration _streamDuration = Duration.zero;
 
   // Stream subscriptions for proper cleanup
   StreamSubscription? _connectionStatusSubscription;
@@ -397,6 +403,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
             // Don't set _remoteUid here - it should only be set when a remote user joins
           });
 
+          // Start timing the stream when successfully joined
+          _startStreamTimer();
+
           // Show success message
           if (isHost) {
             // _showSnackBar('🎥 Live stream started!', Colors.green);
@@ -548,9 +557,39 @@ class _GoliveScreenState extends State<GoliveScreen> {
     });
   }
 
+  // Start stream timer
+  void _startStreamTimer() {
+    _streamStartTime = DateTime.now();
+    _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted && _streamStartTime != null) {
+        setState(() {
+          _streamDuration = DateTime.now().difference(_streamStartTime!);
+        });
+      }
+    });
+  }
+
+  // Stop stream timer
+  void _stopStreamTimer() {
+    _durationTimer?.cancel();
+    _durationTimer = null;
+  }
+
+  // Format duration to string
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    String hours = twoDigits(duration.inHours);
+    String minutes = twoDigits(duration.inMinutes.remainder(60));
+    String seconds = twoDigits(duration.inSeconds.remainder(60));
+    return "$hours:$minutes:$seconds";
+  }
+
   // End live stream
   void _endLiveStream() async {
     try {
+      // Stop the stream timer
+      _stopStreamTimer();
+
       if (isHost) {
         // If host, delete the room
         await _deleteRoom();
@@ -558,10 +597,27 @@ class _GoliveScreenState extends State<GoliveScreen> {
         // If viewer, leave the room
         await _leaveRoom();
       }
+
       if (mounted) {
-        Navigator.of(context).pop();
+        // Get user profile data for the summary screen
+        final profileState = context.read<ProfileBloc>().state;
+        final userProfile = profileState.userProfile.result;
+
+        // Navigate to live summary screen with data
+        context.go(
+          '/live-summary',
+          extra: {
+            'userName': userProfile?.name ?? "Unknown User",
+            'userId': userProfile?.id?.substring(0, 6) ?? "000000",
+            'earnedPoints': 0, // You can calculate this based on your app logic
+            'newFollowers': 0, // You can calculate this based on your app logic
+            'totalDuration': _formatDuration(_streamDuration),
+            'userAvatar': userProfile?.avatar?.url,
+          },
+        );
       }
     } catch (e) {
+      debugPrint('Error ending live stream: $e');
       // Still navigate back even if update fails
       if (mounted) {
         Navigator.of(context).pop();
@@ -829,6 +885,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
     _roomLeftSubscription?.cancel();
     _roomDeletedSubscription?.cancel();
     _errorSubscription?.cancel();
+
+    // Stop the duration timer
+    _stopStreamTimer();
 
     // Dispose other resources
     _titleController.dispose();
