@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginInfo extends ChangeNotifier {
@@ -12,27 +11,18 @@ class LoginInfo extends ChangeNotifier {
 
   /// Logs in a user.
   Future<void> login(String token) async {
-/*    const storage = FlutterSecureStorage();
-
-    await storage.write(key: "token", value: token);
-    Logger().d("token is $token");
-    _token = token;*/
     final prefs = await SharedPreferences.getInstance();
-
     await prefs.setString('auth_token', token);
-    Logger().d("token is $token");
-
+    debugPrint("token saved to storage: $token");
     _token = token;
     notifyListeners();
   }
 
   Future<void> autoLogin() async {
     final prefs = await SharedPreferences.getInstance();
-
     String? token = prefs.getString('auth_token');
     _token = token ?? "";
-    Logger().d("token from storage is $_token");
-
+    debugPrint("token loaded from storage: $_token");
     notifyListeners();
   }
 
@@ -44,14 +34,4 @@ class LoginInfo extends ChangeNotifier {
     _token = null;
     notifyListeners();
   }
-
-  // void logout() async {
-  //   const storage = FlutterSecureStorage();
-  //   await storage.delete(key: "email");
-  //   await storage.delete(key: "password");
-  //   await storage.delete(key: "isRemembered");
-  //   await storage.delete(key: "token");
-  //   _token = null;
-  //   notifyListeners();
-  // }
 }

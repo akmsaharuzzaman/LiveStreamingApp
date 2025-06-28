@@ -8,6 +8,7 @@ import '../../../../core/network/api_service.dart';
 
 import '../../../chat/data/models/user_model.dart';
 import '../../data/models/story_response_model.dart';
+import '../../data/models/stories_api_response_model.dart' as api;
 
 class ApiStories extends StatefulWidget {
   final User currentUser;
@@ -20,10 +21,9 @@ class ApiStories extends StatefulWidget {
 
 class _ApiStoriesState extends State<ApiStories> {
   late PostService _postService;
-  List<StoryModel> _stories = [];
+  List<api.UserStoryGroup> _storyGroups = [];
   bool _isLoading = true;
   String? _error;
-  String? _currentUserId; // TODO: Get from user profile or auth service
 
   @override
   void initState() {
@@ -44,9 +44,9 @@ class _ApiStoriesState extends State<ApiStories> {
 
     result.when(
       success: (data) {
-        final storyResponse = StoryResponse.fromJson(data);
+        final storiesApiResponse = api.StoriesApiResponse.fromJson(data);
         setState(() {
-          _stories = storyResponse.result.data;
+          _storyGroups = storiesApiResponse.result.data;
           _isLoading = false;
         });
       },
@@ -89,7 +89,7 @@ class _ApiStoriesState extends State<ApiStories> {
                 horizontal: 8.0,
               ),
               scrollDirection: Axis.horizontal,
-              itemCount: 1 + _stories.length,
+              itemCount: 1 + _storyGroups.length,
               itemBuilder: (BuildContext context, int index) {
                 if (index == 0) {
                   return Padding(
@@ -109,22 +109,46 @@ class _ApiStoriesState extends State<ApiStories> {
                     ),
                   );
                 }
-                final story = _stories[index - 1];
+                final storyGroup = _storyGroups[index - 1];
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4.0),
                   child: ApiStoryCard(
-                    story: story,
+                    storyGroup: storyGroup,
                     currentUser: widget.currentUser,
                     onTap: () {
-                      // Navigate to story viewer with all stories
+                      // Convert UserStoryGroup stories to StoryModel for viewer
+                      List<StoryModel> storyModels = storyGroup.stories.map((
+                        storyItem,
+                      ) {
+                        return StoryModel(
+                          id: storyItem.id,
+                          ownerId: storyItem.ownerId,
+                          mediaUrl: storyItem.mediaUrl,
+                          reactionCount: storyItem.reactionCount,
+                          createdAt: storyItem.createdAt,
+                          userInfo: StoryUserInfo(
+                            id: storyItem.userInfo.id,
+                            name: storyItem.userInfo.name,
+                            avatar: storyGroup.avatar != null
+                                ? StoryAvatar(
+                                    name: storyGroup.name,
+                                    url: storyGroup.avatar!,
+                                  )
+                                : null,
+                          ),
+                          myReaction:
+                              null, // Will be set based on user's reaction
+                        );
+                      }).toList();
+
+                      // Navigate to story viewer with all stories from this user
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => StoryViewerPage(
-                            stories: _stories,
-                            initialIndex: index - 1,
-                            currentUserId:
-                                _currentUserId, // Pass current user ID for delete functionality
+                            stories: storyModels,
+                            initialIndex: 0,
+                            currentUserId: widget.currentUser.id.toString(),
                           ),
                         ),
                       );
@@ -141,6 +165,7 @@ class ApiStoryCard extends StatelessWidget {
   final bool isAddStory;
   final User? currentUser;
   final StoryModel? story;
+  final api.UserStoryGroup? storyGroup;
   final VoidCallback? onTap;
 
   const ApiStoryCard({
@@ -148,6 +173,7 @@ class ApiStoryCard extends StatelessWidget {
     this.isAddStory = false,
     this.currentUser,
     this.story,
+    this.storyGroup,
     this.onTap,
   });
 
@@ -172,7 +198,7 @@ class ApiStoryCard extends StatelessWidget {
                         border: Border.all(
                           color: isAddStory
                               ? Colors.grey[400]!
-                              : story?.isViewed == true
+                              : _getViewedStatus()
                               ? Colors.grey[400]!
                               : Colors.blue,
                           width: 3.0,
@@ -207,9 +233,7 @@ class ApiStoryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6.0),
                 Text(
-                  isAddStory
-                      ? 'Your Story'
-                      : story?.userInfo?.name ?? 'Unknown',
+                  isAddStory ? 'Your Story' : _getUserName(),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -280,11 +304,15 @@ class ApiStoryCard extends StatelessWidget {
   }
 
   Widget _buildStoryContent() {
+    final mediaUrl = story?.mediaUrl ?? storyGroup?.latestStory?.mediaUrl ?? '';
+    final avatarUrl = story?.userInfo?.avatar?.url ?? storyGroup?.avatar;
+    final userName = story?.userInfo?.name ?? storyGroup?.name ?? '';
+
     return Stack(
       fit: StackFit.expand,
       children: [
         CachedNetworkImage(
-          imageUrl: story?.mediaUrl ?? '',
+          imageUrl: mediaUrl,
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(
             color: Colors.grey[300],
@@ -308,14 +336,13 @@ class ApiStoryCard extends StatelessWidget {
             ),
             child: CircleAvatar(
               radius: 14.0,
-              backgroundImage: story?.userInfo?.avatar?.url != null
-                  ? CachedNetworkImageProvider(story!.userInfo!.avatar!.url)
+              backgroundImage: avatarUrl != null
+                  ? CachedNetworkImageProvider(avatarUrl)
                   : null,
               backgroundColor: Colors.grey[600],
-              child: story?.userInfo?.avatar?.url == null
+              child: avatarUrl == null
                   ? Text(
-                      story?.userInfo?.name.substring(0, 1).toUpperCase() ??
-                          '?',
+                      userName.substring(0, 1).toUpperCase(),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -375,5 +402,23 @@ class ApiStoryCard extends StatelessWidget {
       default:
         return '👍';
     }
+  }
+
+  bool _getViewedStatus() {
+    if (story != null) {
+      return story!.isViewed;
+    } else if (storyGroup != null) {
+      return storyGroup!.allStoriesViewed;
+    }
+    return false;
+  }
+
+  String _getUserName() {
+    if (story != null) {
+      return story?.userInfo?.name ?? 'Unknown';
+    } else if (storyGroup != null) {
+      return storyGroup?.name ?? 'Unknown';
+    }
+    return 'Unknown';
   }
 }

@@ -15,7 +15,7 @@ import '../../../../components/utilities/chat_theme.dart';
 import '../bloc/log_in_bloc/log_in_bloc.dart';
 
 class ProfileSignupComplete extends StatefulWidget {
-  ProfileSignupComplete({super.key});
+  const ProfileSignupComplete({super.key});
 
   @override
   State<ProfileSignupComplete> createState() => _ProfileSignupCompleteState();
@@ -47,26 +47,19 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
   Future<void> _loadUidAndDispatchEvent() async {
     final prefs = await SharedPreferences.getInstance();
     final String? uid = prefs.getString('uid');
-
     if (uid != null && uid.isNotEmpty) {
-      print("Userid: $uid");
-      context.read<LogInBloc>().add(LogInEvent.profileDataLoad(uId: uid));
+      debugPrint("Userid: $uid");
+      if (mounted) {
+        context.read<LogInBloc>().add(LogInEvent.profileDataLoad(uId: uid));
+      }
     } else {
-      print("No UID found");
+      debugPrint("No UID found");
     }
   }
 
   bool isFormComplete() {
     final result = context.read<LogInBloc>().state.userInfoProfile.result;
-    //  final result = state.userInfoProfile.result;
     if (result == null) return false;
-    debugPrint('Result: $result');
-    debugPrint('Result First Name: "${result.firstName}"');
-    debugPrint('Result Last Name: "${result.lastName}"');
-    debugPrint('Result Birthday: ${result.birthday}');
-    debugPrint('Result Bio: "${result.bio}"');
-    debugPrint('Result Country: "${result.country}"');
-
     return (_firstNameController.text.isNotEmpty) &&
         (_lastNameController.text.isNotEmpty) &&
         (_genderController.text.isNotEmpty) &&
@@ -93,11 +86,14 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
       lastDate: DateTime.now(),
     );
     if (picked != null) {
-      context.read<LogInBloc>().add(
-        LogInEvent.birthDayChanged(
-          birthDay: DateFormat('yyyy-MM-dd').format(picked).toString(),
-        ),
-      );
+      if (context.mounted) {
+        // Dispatch the event to update the birthday in the bloc
+        context.read<LogInBloc>().add(
+          LogInEvent.birthDayChanged(
+            birthDay: DateFormat('yyyy-MM-dd').format(picked).toString(),
+          ),
+        );
+      }
       _birthdayController.text = DateFormat('yyyy-MM-dd').format(picked);
     }
   }
@@ -106,8 +102,6 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: BlocListener<LogInBloc, LogInState>(
-        // listenWhen: (previous, current) =>
-        //     previous.userInfoProfile.result != current.userInfoProfile.result,
         listenWhen: (previous, current) =>
             previous.userInfoProfile != current.userInfoProfile,
         listener: (context, state) async {
@@ -121,7 +115,6 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
 
             if ((result.firstName?.isNotEmpty ?? false) &&
                 (result.lastName?.isNotEmpty ?? false) &&
-                // (result.bio?.isNotEmpty ?? true) &&
                 (result.country?.isNotEmpty ?? false)) {
               context.go('/home');
             }
@@ -129,17 +122,9 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
         },
         child: BlocBuilder<LogInBloc, LogInState>(
           builder: (context, state) {
-            // _firstNameController.text =
-            //     state.userInfoProfile.result?.firstName ?? "";
-            // _lastNameController.text =
-            //     state.userInfoProfile.result?.lastName ?? "";
-            // _bioController.text =
-            //     state.userInfoProfile.result?.bio ?? 'Welcome to DLStar Live';
-            // _birthdayController.text =
-            //     state.userInfoProfile.result?.birthday ?? '';
             final userProfile = state.userInfoProfile.result;
-
-            print('Is form complete? ${isFormComplete()}');
+            debugPrint('Checking form completion');
+            isFormComplete();
             if (userProfile == null) {
               return Column(
                 children: [
@@ -289,11 +274,6 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                                       },
                                       onChanged: (value) {
                                         _firstNameController.text = value;
-                                        // context
-                                        //     .read<LogInBloc>()
-                                        //     .add(LogInEvent.firstNameChanged(
-                                        //       firstName: value,
-                                        //     ));
                                       },
                                     ),
                                     const SizedBox(height: 8),
@@ -308,11 +288,6 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                                       },
                                       onChanged: (value) {
                                         _lastNameController.text = value;
-                                        // context
-                                        //     .read<LogInBloc>()
-                                        //     .add(LogInEvent.lastNameChanged(
-                                        //       lastName: value,
-                                        //     ));
                                       },
                                     ),
                                     const SizedBox(height: 8),
@@ -328,11 +303,6 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                                       },
                                       onChanged: (value) {
                                         _bioController.text = value;
-                                        // context
-                                        //     .read<LogInBloc>()
-                                        //     .add(LogInEvent.bioChanged(
-                                        //       bio: value,
-                                        //     ));
                                       },
                                     ),
                                     const SizedBox(height: 4),
@@ -441,9 +411,6 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                                       ],
                                       onChanged: (value) {
                                         _genderController.text = value ?? "";
-                                        // context.read<LogInBloc>().add(
-                                        //     LogInEvent.genderChanged(
-                                        //         gender: value ?? ''));
                                       },
                                       validator: (value) {
                                         if (_genderController.text.isEmpty) {
@@ -468,22 +435,6 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                                               countryIsoCode =
                                                   country.countryCode;
                                             });
-                                            // Dispatch event to update country details
-                                            // context.read<LogInBloc>().add(
-                                            //       LogInEvent.countryChanged(
-                                            //         countryName:
-                                            //             country.flagEmoji,
-                                            //         countryDialCode:
-                                            //             country.phoneCode,
-                                            //         countryFlag:
-                                            //             country.flagEmoji,
-                                            //         countryIsoCode:
-                                            //             country.countryCode,
-                                            //         countryLanguages: [
-                                            //           country.name
-                                            //         ],
-                                            //       ),
-                                            //     );
                                           },
                                         );
                                       },
@@ -558,7 +509,7 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                                       }
                                       return const Color(
                                         0xff2c3968,
-                                      ); // Default blue when enabled
+                                      ); 
                                     }),
                               ),
                               onPressed: isFormComplete()
@@ -584,12 +535,7 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                                       );
                                     }
                                   : null,
-                              child: /*state.profileSaveStatus ==
-                                      ProfileSaveStatus.inProgress
-                                  ? const Center(
-                                      child:
-                                          CircularProgressIndicator.adaptive())
-                                  :*/ Text(
+                              child: Text(
                                 "Submit",
                                 style: TextStyle(
                                   fontSize: 15.sp,
@@ -609,7 +555,7 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                           },
                           child: Center(
                             child: Text(
-                              '“Cannot chane gender and country after confirmation”',
+                              '“Cannot change gender and country after confirmation”',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 12.sp,
@@ -778,12 +724,12 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                                   backgroundColor: Colors
                                       .grey[200], // Fallback background color
                                 )
-                              : userProfile?.avatar != null
+                              : userProfile.avatar != null
                               ? CircleAvatar(
                                   radius: 32.r,
                                   // Size of the avatar
                                   backgroundImage: NetworkImage(
-                                    userProfile?.avatar?.url ?? '',
+                                    userProfile.avatar?.url ?? '',
                                   ),
                                   // Image URL
                                   backgroundColor: Colors
