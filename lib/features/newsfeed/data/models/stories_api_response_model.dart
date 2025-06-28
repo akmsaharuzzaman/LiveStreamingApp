@@ -70,7 +70,7 @@ class UserStoryGroup {
     return UserStoryGroup(
       id: json['_id'] ?? '',
       name: json['name'] ?? '',
-      avatar: json['avatar'],
+      avatar: json['avatar'] != null ? json['avatar']['url'] : '',
       stories:
           (json['stories'] as List<dynamic>?)
               ?.map((item) => StoryItem.fromJson(item))
