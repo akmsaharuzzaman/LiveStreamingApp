@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
@@ -6,9 +7,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_editor/video_editor.dart';
 import 'package:video_player/video_player.dart';
 import 'package:easy_video_editor/easy_video_editor.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 class VideoEditorScreen extends StatefulWidget {
   const VideoEditorScreen({super.key});
@@ -27,6 +32,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
   String? audioPath;
   Duration? audioTrimStart;
   Duration? audioTrimEnd;
+  bool _isUploading = false;
 
   @override
   void dispose() {
@@ -160,63 +166,159 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
     }
   }
 
-  Future<void> _mergeVideos() async {
-    if (trimVideos.isEmpty || !mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No trimmed videos to merge")),
-      );
+  Future<void> _uploadReel(String videoPath, int videoLength) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token') ?? '';
+
+    if (token.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Authentication token is missing. Please log in again.',
+            ),
+          ),
+        );
+      }
+      setState(() {
+        _isUploading = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isUploading = true;
+    });
+
+    final url = Uri.parse('http://dlstarlive.com:8000/api/reels/create');
+    final request = http.MultipartRequest('POST', url);
+
+    // Set headers
+    request.headers['Authorization'] = 'Bearer $token';
+
+    // Add form fields
+    request.fields['video_length'] = videoLength.toString();
+
+    // Add video file
+    final file = File(videoPath);
+    if (!await file.exists()) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Video file not found.')));
+      }
+      setState(() {
+        _isUploading = false;
+      });
       return;
     }
 
     try {
-      final Directory tempDir = await getTemporaryDirectory();
-      final String mergedVideoPath = path.join(
-        tempDir.path,
-        'merged_video.mp4',
+      final fileStream = http.ByteStream(file.openRead());
+      final fileLength = await file.length();
+      final multipartFile = http.MultipartFile(
+        'video',
+        fileStream,
+        fileLength,
+        contentType: MediaType('video', 'mp4'),
       );
+      request.files.add(multipartFile);
 
-      if (audioPath != null) {
-        // Placeholder for FFmpeg audio merging
-        // Example with ffmpeg_kit_flutter (uncomment if using FFmpeg):
-        /*
-        final String audioTrim = audioTrimEnd != null
-            ? "-ss 0 -t ${audioTrimEnd!.inSeconds}"
-            : "";
-        final session = await FFmpegKit.execute(
-          '-i $mergedVideoPath $audioTrim -i $audioPath -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest $mergedVideoPath',
-        );
-        if (await session.getReturnCode() == ReturnCode.success) {
+      // Send request
+      final response = await request.send();
+      final responseString = await response.stream.bytesToString();
+      final responseJson = jsonDecode(responseString);
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 202) {
+        if (responseJson['success'] == true && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Final video with audio exported to: $mergedVideoPath")),
+            const SnackBar(content: Text('Reel uploaded successfully!')),
           );
+          Navigator.of(context).pushReplacementNamed('/feed');
         } else {
-          throw Exception("FFmpeg merge failed");
+          throw Exception(responseJson['message'] ?? 'Upload failed');
         }
-        */
+      } else {
+        throw Exception(
+          responseJson['message'] ??
+              'Failed to upload. Status code: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      log('Upload error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e.toString().contains('either wrong reel Id')
+                  ? 'Invalid reel data. Please try again.'
+                  : 'Upload failed: ${e.toString().replaceFirst('Exception: ', '')}',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _mergeAndUpload() async {
+    setState(() {
+      _isUploading = true;
+    });
+    String? resultPath;
+    try {
+      if (trimVideos.isEmpty || !mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("No trimmed videos to merge")),
+        );
+        setState(() {
+          _isUploading = false;
+        });
+        return;
+      }
+      if (audioPath != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Audio merging not implemented (requires FFmpeg)"),
           ),
         );
+        setState(() {
+          _isUploading = false;
+        });
         return;
       }
-
-      final String? result = await EasyVideoEditorPlatform.instance.mergeVideos(
+      resultPath = await EasyVideoEditorPlatform.instance.mergeVideos(
         trimVideos,
       );
-      if (result != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Final video exported to: $result")),
-        );
-      } else {
-        throw Exception("Merging failed");
-      }
+      if (resultPath == null) throw Exception('Merging failed');
+      final videoFile = File(resultPath);
+      final videoLength = await videoFile.exists()
+          ? (await VideoPlayerController.file(videoFile).initialize().then(
+              (c) => VideoPlayerController.file(
+                videoFile,
+              ).value.duration.inSeconds,
+            ))
+          : 0;
+      await _uploadReel(resultPath, videoLength);
     } catch (e) {
-      log("Merge Videos Error: $e");
+      log('Merge & Upload error: $e');
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text("Failed to merge videos")));
+        ).showSnackBar(SnackBar(content: Text('Merge/Upload failed: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
       }
     }
   }
@@ -426,20 +528,22 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
             ),
             Padding(
               padding: EdgeInsets.all(16.sp),
-              child: ElevatedButton(
-                style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all(Colors.red),
-                ),
-                onPressed: _mergeVideos,
-                child: Text(
-                  "Merge & Export Final Video",
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
+              child: _isUploading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ElevatedButton(
+                      style: ButtonStyle(
+                        backgroundColor: MaterialStateProperty.all(Colors.red),
+                      ),
+                      onPressed: _mergeAndUpload,
+                      child: Text(
+                        "Merge & Export Final Video and Upload",
+                        style: TextStyle(
+                          fontSize: 15.sp,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
             ),
           ] else ...[
             Expanded(
