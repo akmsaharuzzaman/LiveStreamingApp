@@ -438,13 +438,9 @@ class _CommentsPageState extends State<CommentsPage> {
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
-        // Return information about whether the feed should refresh
-        if (didPop && _commentCountChanged) {
-          // Comment count changed, suggest refresh (though we won't force it)
-          Navigator.of(context).pop({
-            'shouldRefresh': false,
-          }); // Set to false since we handle it optimistically
-        }
+        // This callback is called after the pop has already occurred
+        // We don't need to call Navigator.pop() again here as it would cause a double-pop
+        // The result data should be handled in the custom back button instead
       },
       child: Scaffold(
         appBar: AppBar(
