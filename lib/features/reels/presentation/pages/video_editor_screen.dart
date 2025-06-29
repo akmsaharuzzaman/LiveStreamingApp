@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -214,12 +215,9 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
     }
 
     try {
-      final fileStream = http.ByteStream(file.openRead());
-      final fileLength = await file.length();
-      final multipartFile = http.MultipartFile(
+      final multipartFile = await http.MultipartFile.fromPath(
         'video',
-        fileStream,
-        fileLength,
+        videoPath,
         contentType: MediaType('video', 'mp4'),
       );
       request.files.add(multipartFile);
@@ -236,14 +234,14 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Reel uploaded successfully!')),
           );
-          Navigator.of(context).pushReplacementNamed('/feed');
+          context.go('/newsfeed');
         } else {
           throw Exception(responseJson['message'] ?? 'Upload failed');
         }
       } else {
         throw Exception(
           responseJson['message'] ??
-              'Failed to upload. Status code: ${response.statusCode}',
+              'Failed to upload. Status code: \\${response.statusCode}',
         );
       }
     } catch (e) {
@@ -254,7 +252,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
             content: Text(
               e.toString().contains('either wrong reel Id')
                   ? 'Invalid reel data. Please try again.'
-                  : 'Upload failed: ${e.toString().replaceFirst('Exception: ', '')}',
+                  : 'Upload failed: \\${e.toString().replaceFirst('Exception: ', '')}',
             ),
           ),
         );
