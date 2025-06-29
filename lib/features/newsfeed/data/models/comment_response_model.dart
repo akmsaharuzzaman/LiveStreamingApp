@@ -77,14 +77,16 @@ class CommentPagination {
 
 class CommentModel {
   final String id;
-  final String article; // This is the comment text according to API
+  final String article;
   final String commentedBy;
-  final String commentedTo; // This is the post ID
+  final String commentedTo;
   final String? parentComment;
   final int reactionsCount;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final CommentUserInfo? userInfo;
+  final String? userName;
+  final CommentUserAvatar? avatar;
   final CommentReaction? myReaction;
   final List<CommentReaction> latestReactions;
   final List<CommentModel> replies;
@@ -99,6 +101,8 @@ class CommentModel {
     this.createdAt,
     this.updatedAt,
     this.userInfo,
+    this.userName,
+    this.avatar,
     this.myReaction,
     required this.latestReactions,
     required this.replies,
@@ -119,13 +123,17 @@ class CommentModel {
       parentComment: json['parentComment'],
       reactionsCount: json['reactionsCount'] ?? 0,
       createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
+          ? DateTime.tryParse(json['createdAt'])
           : null,
       updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'])
+          ? DateTime.tryParse(json['updatedAt'])
           : null,
       userInfo: json['userInfo'] != null
           ? CommentUserInfo.fromJson(json['userInfo'])
+          : null,
+      userName: json['userName'],
+      avatar: json['avatar'] != null
+          ? CommentUserAvatar.fromJson(json['avatar'])
           : null,
       myReaction: json['myReaction'] != null
           ? CommentReaction.fromJson(json['myReaction'])
@@ -154,6 +162,8 @@ class CommentModel {
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
       'userInfo': userInfo?.toJson(),
+      'userName': userName,
+      'avatar': avatar?.toJson(),
       'myReaction': myReaction?.toJson(),
       'latestReactions': latestReactions
           .map((reaction) => reaction.toJson())

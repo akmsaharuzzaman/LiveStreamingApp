@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import '../../data/models/post_response_model.dart';
 
 import '../../../../components/utilities/chat_theme.dart';
 import '../../../../core/services/post_service.dart';
@@ -10,7 +11,7 @@ import '../../../../core/network/api_service.dart';
 import '../pages/comments_page.dart';
 
 class ApiPostContainer extends StatefulWidget {
-  final dynamic post;
+  final PostModel post;
   final Function? onPostDeleted;
   final Function? onPostUpdated;
 
@@ -101,17 +102,14 @@ class _ApiPostContainerState extends State<ApiPostContainer> {
     return Row(
       children: [
         // Profile Avatar with null handling
-        _buildUserAvatar(
-          widget.post.userInfo?.avatar?.url,
-          widget.post.userInfo?.name,
-        ),
+        _buildUserAvatar(widget.post.avatar?.url, widget.post.userName),
         SizedBox(width: 8.w),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.post.userInfo?.name ?? 'Unknown User',
+                widget.post.userName ?? 'Unknown User',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15.sp),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -605,7 +603,7 @@ class _ApiPostContainerState extends State<ApiPostContainer> {
       MaterialPageRoute(
         builder: (context) => CommentsPage(
           postId: widget.post.id,
-          postOwnerName: widget.post.userInfo?.name ?? 'Unknown User',
+          postOwnerName: widget.post.userName ?? 'Unknown User',
         ),
       ),
     ).then((result) {

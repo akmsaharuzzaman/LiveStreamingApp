@@ -14,10 +14,10 @@ class CommentsPage extends StatefulWidget {
   final String postOwnerName;
 
   const CommentsPage({
-    Key? key,
+    super.key,
     required this.postId,
     required this.postOwnerName,
-  }) : super(key: key);
+  });
 
   @override
   State<CommentsPage> createState() => _CommentsPageState();
@@ -341,10 +341,7 @@ class _CommentsPageState extends State<CommentsPage> {
               title: const Text('Reply'),
               onTap: () {
                 Navigator.pop(context);
-                _startReply(
-                  comment.id,
-                  comment.userInfo?.name ?? 'Unknown User',
-                );
+                _startReply(comment.id, comment.userName ?? 'Unknown User');
               },
             ),
             // Show edit/delete options only for own comments
@@ -546,8 +543,8 @@ class _CommentsPageState extends State<CommentsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildUserAvatar(
-                comment.userInfo?.avatar?.url,
-                comment.userInfo?.name,
+                comment.avatar?.url ?? '',
+                comment.userName ?? 'Unknown User',
               ),
               SizedBox(width: 12.w),
               Expanded(
@@ -564,7 +561,7 @@ class _CommentsPageState extends State<CommentsPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            comment.userInfo?.name ?? 'Unknown User',
+                            comment.userName ?? 'Unknown User',
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14.sp,
@@ -619,7 +616,7 @@ class _CommentsPageState extends State<CommentsPage> {
                         GestureDetector(
                           onTap: () => _startReply(
                             comment.id,
-                            comment.userInfo?.name ?? 'Unknown User',
+                            comment.userName ?? 'Unknown User',
                           ),
                           child: Text(
                             'Reply',
@@ -670,8 +667,8 @@ class _CommentsPageState extends State<CommentsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildUserAvatar(
-            reply.userInfo?.avatar?.url,
-            reply.userInfo?.name,
+            reply.avatar?.url ?? '',
+            reply.userName ?? 'Unknown User',
             isSmall: true,
           ),
           SizedBox(width: 8.w),
@@ -689,7 +686,7 @@ class _CommentsPageState extends State<CommentsPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        reply.userInfo?.name ?? 'Unknown User',
+                        reply.userName ?? 'Unknown User',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 12.sp,

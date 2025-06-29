@@ -2,10 +2,7 @@ class PostResponse {
   final bool success;
   final PostResult result;
 
-  PostResponse({
-    required this.success,
-    required this.result,
-  });
+  PostResponse({required this.success, required this.result});
 
   factory PostResponse.fromJson(Map<String, dynamic> json) {
     return PostResponse(
@@ -15,10 +12,7 @@ class PostResponse {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'success': success,
-      'result': result.toJson(),
-    };
+    return {'success': success, 'result': result.toJson()};
   }
 }
 
@@ -26,19 +20,18 @@ class PostResult {
   final PostPagination? pagination;
   final List<PostModel> data;
 
-  PostResult({
-    this.pagination,
-    required this.data,
-  });
+  PostResult({this.pagination, required this.data});
 
   factory PostResult.fromJson(Map<String, dynamic> json) {
     return PostResult(
-      pagination: json['pagination'] != null 
+      pagination: json['pagination'] != null
           ? PostPagination.fromJson(json['pagination'])
           : null,
-      data: (json['data'] as List<dynamic>?)
-          ?.map((item) => PostModel.fromJson(item))
-          .toList() ?? [],
+      data:
+          (json['data'] as List<dynamic>?)
+              ?.map((item) => PostModel.fromJson(item))
+              .toList() ??
+          [],
     );
   }
 
@@ -92,7 +85,8 @@ class PostModel {
   final int commentCount;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final UserInfo userInfo;
+  final String? userName;
+  final UserAvatar? avatar;
   final PostReaction? myReaction;
   final List<PostReaction> latestReactions;
 
@@ -106,7 +100,8 @@ class PostModel {
     required this.commentCount,
     required this.createdAt,
     required this.updatedAt,
-    required this.userInfo,
+    this.userName,
+    this.avatar,
     this.myReaction,
     required this.latestReactions,
   });
@@ -120,15 +115,24 @@ class PostModel {
       status: json['status'] ?? 'active',
       reactionCount: json['reactionCount'] ?? 0,
       commentCount: json['commentCount'] ?? 0,
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),
-      userInfo: UserInfo.fromJson(json['userInfo'] ?? {}),
-      myReaction: json['myReaction'] != null 
+      createdAt: DateTime.parse(
+        json['createdAt'] ?? DateTime.now().toIso8601String(),
+      ),
+      updatedAt: DateTime.parse(
+        json['updatedAt'] ?? DateTime.now().toIso8601String(),
+      ),
+      userName: json['userName'],
+      avatar: json['avatar'] != null
+          ? UserAvatar.fromJson(json['avatar'])
+          : null,
+      myReaction: json['myReaction'] != null
           ? PostReaction.fromJson(json['myReaction'])
           : null,
-      latestReactions: (json['latestReactions'] as List<dynamic>?)
-          ?.map((item) => PostReaction.fromJson(item))
-          .toList() ?? [],
+      latestReactions:
+          (json['latestReactions'] as List<dynamic>?)
+              ?.map((item) => PostReaction.fromJson(item))
+              .toList() ??
+          [],
     );
   }
 
@@ -143,9 +147,12 @@ class PostModel {
       'commentCount': commentCount,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
-      'userInfo': userInfo.toJson(),
+      'userName': userName,
+      'avatar': avatar?.toJson(),
       'myReaction': myReaction?.toJson(),
-      'latestReactions': latestReactions.map((reaction) => reaction.toJson()).toList(),
+      'latestReactions': latestReactions
+          .map((reaction) => reaction.toJson())
+          .toList(),
     };
   }
 }
@@ -155,28 +162,20 @@ class UserInfo {
   final String name;
   final UserAvatar? avatar;
 
-  UserInfo({
-    required this.id,
-    required this.name,
-    this.avatar,
-  });
+  UserInfo({required this.id, required this.name, this.avatar});
 
   factory UserInfo.fromJson(Map<String, dynamic> json) {
     return UserInfo(
       id: json['_id'] ?? '',
       name: json['name'] ?? '',
-      avatar: json['avatar'] != null 
+      avatar: json['avatar'] != null
           ? UserAvatar.fromJson(json['avatar'])
           : null,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      '_id': id,
-      'name': name,
-      'avatar': avatar?.toJson(),
-    };
+    return {'_id': id, 'name': name, 'avatar': avatar?.toJson()};
   }
 }
 
@@ -184,23 +183,14 @@ class UserAvatar {
   final String name;
   final String url;
 
-  UserAvatar({
-    required this.name,
-    required this.url,
-  });
+  UserAvatar({required this.name, required this.url});
 
   factory UserAvatar.fromJson(Map<String, dynamic> json) {
-    return UserAvatar(
-      name: json['name'] ?? '',
-      url: json['url'] ?? '',
-    );
+    return UserAvatar(name: json['name'] ?? '', url: json['url'] ?? '');
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'url': url,
-    };
+    return {'name': name, 'url': url};
   }
 }
 
@@ -210,6 +200,8 @@ class PostReaction {
   final String? reactedTo;
   final String reactionType;
   final DateTime? createdAt;
+  final String? userName;
+  final UserAvatar? avatar;
   final UserInfo? userInfo;
 
   PostReaction({
@@ -218,6 +210,8 @@ class PostReaction {
     this.reactedTo,
     required this.reactionType,
     this.createdAt,
+    this.userName,
+    this.avatar,
     this.userInfo,
   });
 
@@ -227,10 +221,14 @@ class PostReaction {
       reactedBy: json['reactedBy'],
       reactedTo: json['reactedTo'],
       reactionType: json['reaction_type'] ?? '',
-      createdAt: json['createdAt'] != null 
+      createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
           : null,
-      userInfo: json['userInfo'] != null 
+      userName: json['userName'],
+      avatar: json['avatar'] != null
+          ? UserAvatar.fromJson(json['avatar'])
+          : null,
+      userInfo: json['userInfo'] != null
           ? UserInfo.fromJson(json['userInfo'])
           : null,
     );
@@ -243,6 +241,8 @@ class PostReaction {
       'reactedTo': reactedTo,
       'reaction_type': reactionType,
       'createdAt': createdAt?.toIso8601String(),
+      'userName': userName,
+      'avatar': avatar?.toJson(),
       'userInfo': userInfo?.toJson(),
     };
   }
