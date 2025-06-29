@@ -104,26 +104,25 @@ class LogInRepository {
   Future<bool> isProfileComplete(UserProfileDataResponse user) async {
     final profile = user.result;
 
-    print('Checking profile completeness...');
-    print('Profile: $profile');
+    debugPrint('Checking profile completeness...');
 
     if (profile == null) {
-      print('Profile is null');
+      debugPrint('Profile is null');
       return false;
     }
 
-    print('First Name: "${profile.firstName}"');
-    print('Last Name: "${profile.lastName}"');
-    print('Birthday: ${profile.birthday}');
-    print('Bio: "${profile.bio}"');
+    debugPrint(
+      'All Profile Fields exist: '
+      '${profile.firstName != null}, '
+      '${profile.lastName != null}, '
+      '${profile.birthday != null}',
+    );
 
     final isComplete =
         profile.firstName?.trim().isNotEmpty == true &&
         profile.lastName?.trim().isNotEmpty == true &&
         profile.birthday != null;
-    // profile.bio?.trim().isNotEmpty == true;
-
-    print('Is profile complete? $isComplete');
+    debugPrint('Profile Completion Status: $isComplete');
     return isComplete;
   }
 
@@ -168,9 +167,9 @@ class LogInRepository {
         MapEntry("country_languages", jsonEncode(countryLanguages)),
       ]);
 
-      print('FormData being sent:');
+      debugPrint('FormData being sent:');
       formData.fields.forEach((field) {
-        print('${field.key}: ${field.value}');
+        debugPrint('${field.key}: ${field.value}');
       });
 
       final resp = await dioClient.put(
@@ -180,7 +179,7 @@ class LogInRepository {
 
       return resp;
     } catch (e) {
-      print("Error saving user profile: $e");
+      debugPrint("Error saving user profile: $e");
       return false;
     }
   }
