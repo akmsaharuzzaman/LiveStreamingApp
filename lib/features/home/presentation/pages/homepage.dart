@@ -286,12 +286,22 @@ class _HomePageScreenState extends State<HomePageScreen>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Image.asset('assets/images/top_sender.png', height: 78),
-              Image.asset('assets/images/top_host.png', height: 78),
-              Image.asset('assets/images/top_agency.png', height: 78),
+              Image.asset(
+                'assets/images/top_sender.png',
+                height: MediaQuery.of(context).size.height * 0.08,
+              ),
+              Image.asset(
+                'assets/images/top_host.png',
+                height: MediaQuery.of(context).size.height * 0.08,
+              ),
+              Image.asset(
+                'assets/images/top_agency.png',
+                height: MediaQuery.of(context).size.height * 0.08,
+              ),
             ],
           ),
         ),
+        SizedBox(height: 18.sp),
         ListLiveStream(
           availableRooms: _availableRooms ?? RoomListResponse(rooms: {}),
         ),
