@@ -94,7 +94,9 @@ class LogInRepository {
       UserProfileDataResponse userDataResponse =
           UserProfileDataResponse.fromJson(jsonDecode(jsonEncode(resp)));
 
-      print("User Response is $userDataResponse");
+      debugPrint(
+        "User Profile loaded: ${userDataResponse.result?.email?.toString() ?? 'No Email'}",
+      );
       return userDataResponse;
     } catch (e) {
       rethrow;
@@ -198,7 +200,7 @@ class LogInRepository {
 
       return resp;
     } catch (e) {
-      print("Error saving user profile: $e");
+      debugPrint("Error saving user profile: $e");
       return false;
     }
   }
