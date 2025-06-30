@@ -44,11 +44,12 @@ class _LocalGamePageState extends State<LocalGamePage> {
         _errorMessage = null;
       });
 
-      _showSnackBar('🚀 Starting local game server...', Colors.blue);
+      // _showSnackBar('🚀 Starting local game server...', Colors.blue);
+      debugPrint('🚀 Starting local game server...');
 
       String? serverUrl = await gameService.startServer(gameId: widget.gameId);
       if (serverUrl != null) {
-        print("Game server started at: ${gameService.serverUrl}");
+        debugPrint("Game server started at: ${gameService.serverUrl}");
         // _showSnackBar('✅ Game server started', Colors.green);
         setState(() {
           gameUrl = gameService.serverUrl;
@@ -206,7 +207,9 @@ class _LocalGamePageState extends State<LocalGamePage> {
 
     if (gameUrl != null) {
       return InAppWebView(
-        initialUrlRequest: URLRequest(url: WebUri(gameUrl!)),
+        initialUrlRequest: URLRequest(
+          url: WebUri("${gameUrl!}/?spain_time=30&profit=0&user_id=2ufXoAdqAY"),
+        ),
         initialOptions: InAppWebViewGroupOptions(
           crossPlatform: InAppWebViewOptions(
             javaScriptEnabled: true,
@@ -225,20 +228,20 @@ class _LocalGamePageState extends State<LocalGamePage> {
           );
         },
         onLoadStart: (controller, url) {
-          print('📱 WebView started loading: $url');
+          debugPrint('📱 WebView started loading: $url');
           setState(() {
             _isLoading = true;
             _hasError = false;
           });
         },
         onLoadStop: (controller, url) {
-          print('✅ WebView finished loading: $url');
+          debugPrint('✅ WebView finished loading: $url');
           setState(() {
             _isLoading = false;
           });
         },
         onLoadError: (controller, url, code, message) {
-          print('❌ Load Error: $code - $message');
+          debugPrint('❌ Load Error: $code - $message');
           setState(() {
             _hasError = true;
             _errorMessage = 'Load Error: $message';

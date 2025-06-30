@@ -8,7 +8,7 @@
             "gamePath": "fruit-loops",
             "requiredFiles": [
                 "index.html",
-                "bg.jpg",
+                "bg.png",
                 "game-icon.png",
                 "Build/ca9603362935615175cf9899a05ad3cb.loader.js",
                 "Build/dfb21f1f70f797a3ccc0fe3128e85a8e.data.unityweb",

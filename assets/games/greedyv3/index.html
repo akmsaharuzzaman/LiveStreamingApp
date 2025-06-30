@@ -64,7 +64,7 @@
           <div id="loading-bar-fill"></div>
         </div>
      </div>
-    <script src="Build/0f33989bb9e916fd3e256980afea0158.loader.js"></script>
+    <script src="Build/5af3b18e7cc7afaad37ed879b5d96d07.loader.js"></script>
     <script>
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
         // Mobile device style: fill the whole browser client area with the game canvas:
@@ -83,9 +83,9 @@
       let myGameInstance;
       var loadingTime;
       createUnityInstance(document.querySelector("#unity-canvas"), {
-        dataUrl: "Build/06ea974707ebe638f1b8899af883aafd.data.unityweb",
+        dataUrl: "Build/aa8e319f86a2d9a6d2edea16f44ff9cd.data.unityweb",
         frameworkUrl: "Build/d2822e4a9f0d71c41427f922e253050a.framework.js.unityweb",
-        codeUrl: "Build/707f9ca9b9c72ea9eac271546b329461.wasm.unityweb",
+        codeUrl: "Build/6f3304be9d87b45f7f353cf8ba790e6b.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "SGDSOFT.com",
         productName: "Greedy Cat Game",
@@ -131,7 +131,11 @@
         }
 
         function GoHome() {
-
+        if (window.flutter_inappwebview) {
+                      window.flutter_inappwebview.callHandler('GoHomeFromUnity');
+                    } else {
+                      console.warn("flutter_inappwebview not found");
+                    }
         }
 
         function Recharge() {

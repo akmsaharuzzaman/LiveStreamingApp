@@ -4,17 +4,17 @@
             "id": "fruit-loops",
             "title": "Fruit Loops",
             "description": "A fun Unity WebGL game about collecting fruits",
-            "iconPath": "assets/games/fruit-loops/game-icon.png",
-            "gamePath": "fruit-loops",
+            "iconPath": "assets/games/greedyv3/game-icon.png",
+            "gamePath": "greedyv3",
             "requiredFiles": [
                 "index.html",
-                "bg.jpg",
+                "bg.png",
                 "game-icon.png",
-                "Build/ca9603362935615175cf9899a05ad3cb.loader.js",
-                "Build/dfb21f1f70f797a3ccc0fe3128e85a8e.data.unityweb",
+                "Build/5af3b18e7cc7afaad37ed879b5d96d07.loader.js",
+                "Build/aa8e319f86a2d9a6d2edea16f44ff9cd.data.unityweb",
                 "Build/d2822e4a9f0d71c41427f922e253050a.framework.js.unityweb",
-                "Build/ff1050a13c2847cee173916bd9c265cb.wasm.unityweb",
-                "Build/Updated v2.jpg"
+                "Build/6f3304be9d87b45f7f353cf8ba790e6b.wasm.unityweb",
+                "Build/Greedy V3.jpg"
             ],
             "gameParameters": {
                 "serverIPWithPort": "ws://147.93.103.135:8001/",
