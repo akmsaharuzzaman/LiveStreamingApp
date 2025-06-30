@@ -208,7 +208,9 @@ class _LocalGamePageState extends State<LocalGamePage> {
     if (gameUrl != null) {
       return InAppWebView(
         initialUrlRequest: URLRequest(
-          url: WebUri("${gameUrl!}/?spain_time=30&profit=0&user_id=2ufXoAdqAY"),
+          url: WebUri(
+            "${gameUrl!}/index.html?user_id=${widget.userId}&baseurl=http://147.93.103.135:8000/api/games",
+          ),
         ),
         initialOptions: InAppWebViewGroupOptions(
           crossPlatform: InAppWebViewOptions(
