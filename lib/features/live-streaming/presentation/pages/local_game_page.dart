@@ -6,12 +6,14 @@ class LocalGamePage extends StatefulWidget {
   final String gameTitle;
   final String? gameId;
   final String? userId;
+  final VoidCallback? onGameClosed;
 
   const LocalGamePage({
     super.key,
     required this.gameTitle,
     this.gameId,
     this.userId,
+    this.onGameClosed,
   });
 
   @override
@@ -74,13 +76,13 @@ class _LocalGamePageState extends State<LocalGamePage> {
   Future<void> _closeGame() async {
     try {
       // _showSnackBar('🛑 Stopping game server...', Colors.orange);
-      print('🛑 Stopping game server...');
+      debugPrint('🛑 Stopping game server...');
       await gameService.stopServer();
       // _showSnackBar('✅ Game server stopped', Colors.green);
-      print('✅ Game server stopped');
+      debugPrint('✅ Game server stopped');
     } catch (e) {
       // _showSnackBar('⚠️ Error stopping server: $e', Colors.red);
-      print('⚠️ Error stopping server: $e');
+      debugPrint('⚠️ Error stopping server: $e');
     } finally {
       if (mounted) {
         Navigator.of(context).pop();
@@ -100,7 +102,7 @@ class _LocalGamePageState extends State<LocalGamePage> {
         );
       } catch (e) {
         // Fallback to print if ScaffoldMessenger is not available
-        print('SnackBar: $message');
+        debugPrint('SnackBar: $message');
       }
     }
   }
@@ -217,6 +219,7 @@ class _LocalGamePageState extends State<LocalGamePage> {
             handlerName: "GoHomeFromUnity",
             callback: (args) {
               _closeGame();
+              widget.onGameClosed?.call();
               return Future.value("Game closed from Unity");
             },
           );

@@ -278,34 +278,35 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                       userId: widget.userId ?? '2ufXoAdqAY',
                     ),
                     // Close button overlay
-                    Positioned(
-                      top: 16.h,
-                      right: 16.w,
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _activeGame = null;
-                          });
-                        },
-                        child: Container(
-                          width: 40.w,
-                          height: 40.h,
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(20.r),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 24.sp,
-                          ),
-                        ),
-                      ),
-                    ),
+                    // Positioned(
+                    //   top: 16.h,
+                    //   right: 16.w,
+                    //   child: GestureDetector(
+                    //     onTap: () {
+                    //       setState(() {
+                    //         _activeGame = null;
+                    //       });
+                    //     },
+                    //     child: Container(
+                    //       width: 40.w,
+                    //       height: 40.h,
+                    //       decoration: BoxDecoration(
+                    //         color: Colors.black.withOpacity(0.7),
+                    //         borderRadius: BorderRadius.circular(20.r),
+                    //         border: Border.all(
+                    //           color: Colors.white.withOpacity(0.3),
+                    //           width: 1,
+                    //         ),
+                    //       ),
+                    //       child: Icon(
+                    //         Icons.close,
+                    //         color: Colors.white,
+                    //         size: 24.sp,
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ),
+
                     // Handle bar for easy closing
                     Positioned(
                       top: 8.h,
