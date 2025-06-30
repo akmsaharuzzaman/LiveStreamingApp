@@ -239,7 +239,7 @@ class ApiStoryCard extends StatelessWidget {
                 const SizedBox(height: 6.0),
                 Text(
                   isAddStory ? 'Your Story' : _getUserName(),
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.black,
