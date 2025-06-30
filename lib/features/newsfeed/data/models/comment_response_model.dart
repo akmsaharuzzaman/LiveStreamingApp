@@ -135,8 +135,10 @@ class CommentModel {
       avatar: json['avatar'] != null
           ? CommentUserAvatar.fromJson(json['avatar'])
           : null,
-      myReaction: json['myReaction'] != null
-          ? CommentReaction.fromJson(json['myReaction'])
+      myReaction: json['myReaction'] != null && json['myReaction'] is Map
+          ? (json['myReaction']['reaction_type'] != null
+                ? CommentReaction.fromJson(json['myReaction'])
+                : null)
           : null,
       latestReactions:
           (json['latestReactions'] as List<dynamic>?)

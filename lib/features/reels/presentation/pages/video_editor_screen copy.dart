@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
-// import 'package:file_picker/file_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -30,9 +30,9 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
   bool canShowEditor = false;
   List<String> trimVideos = []; // Non-nullable list
   bool isSeeking = false;
-  // String? audioPath;
-  // Duration? audioTrimStart;
-  // Duration? audioTrimEnd;
+  String? audioPath;
+  Duration? audioTrimStart;
+  Duration? audioTrimEnd;
   bool _isUploading = false;
 
   @override
@@ -83,49 +83,49 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
     }
   }
 
-  // Future<void> _pickAudio() async {
-  //   try {
-  //     final result = await FilePicker.platform.pickFiles(type: FileType.audio);
-  //     if (result == null || result.files.single.path == null || !mounted) {
-  //       ScaffoldMessenger.of(
-  //         context,
-  //       ).showSnackBar(const SnackBar(content: Text("No audio file selected")));
-  //       return;
-  //     }
+  Future<void> _pickAudio() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(type: FileType.audio);
+      if (result == null || result.files.single.path == null || !mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("No audio file selected")));
+        return;
+      }
 
-  //     setState(() {
-  //       audioPath = result.files.single.path!;
-  //       audioTrimStart = Duration.zero;
-  //       audioTrimEnd = videoEditorController?.endTrim ?? Duration.zero;
-  //     });
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text("Audio added: ${path.basename(audioPath!)}")),
-  //     );
-  //   } catch (e) {
-  //     log("Pick Audio Error: $e");
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(
-  //         context,
-  //       ).showSnackBar(SnackBar(content: Text("Failed to pick audio: $e")));
-  //     }
-  //   }
-  // }
+      setState(() {
+        audioPath = result.files.single.path!;
+        audioTrimStart = Duration.zero;
+        audioTrimEnd = videoEditorController?.endTrim ?? Duration.zero;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Audio added: ${path.basename(audioPath!)}")),
+      );
+    } catch (e) {
+      log("Pick Audio Error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Failed to pick audio: $e")));
+      }
+    }
+  }
 
-  // void _cropAudio() {
-  //   if (audioPath == null || videoEditorController == null || !mounted) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text("No audio or video selected")),
-  //     );
-  //     return;
-  //   }
-  //   setState(() {
-  //     audioTrimStart = Duration.zero;
-  //     audioTrimEnd = videoEditorController!.endTrim;
-  //   });
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     const SnackBar(content: Text("Audio cropped to video duration")),
-  //   );
-  // }
+  void _cropAudio() {
+    if (audioPath == null || videoEditorController == null || !mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No audio or video selected")),
+      );
+      return;
+    }
+    setState(() {
+      audioTrimStart = Duration.zero;
+      audioTrimEnd = videoEditorController!.endTrim;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Audio cropped to video duration")),
+    );
+  }
 
   Future<void> _trimVideo() async {
     if (videoEditorController == null || !mounted) {
@@ -282,17 +282,17 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
         return;
       }
 
-      // if (audioPath != null) {
-      //   ScaffoldMessenger.of(context).showSnackBar(
-      //     const SnackBar(
-      //       content: Text("Audio merging not implemented (requires FFmpeg)"),
-      //     ),
-      //   );
-      //   setState(() {
-      //     _isUploading = false;
-      //   });
-      //   return;
-      // }
+      if (audioPath != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Audio merging not implemented (requires FFmpeg)"),
+          ),
+        );
+        setState(() {
+          _isUploading = false;
+        });
+        return;
+      }
 
       // If no trimmed videos, use the original video
       if (trimVideos.isEmpty) {
@@ -361,7 +361,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                           aspectRatio:
                               videoPlayerController!.value.aspectRatio > 0
                               ? videoPlayerController!.value.aspectRatio
-                              : 1.0, // Use 1:1 as fallback instead of 16:9
+                              : 16 / 9,
                           child: VideoPlayer(videoPlayerController!),
                         ),
                         IconButton(
@@ -508,59 +508,28 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                     onTap: _trimVideo,
                     child: const Icon(Icons.content_cut, color: Colors.white),
                   ),
+                  const Icon(
+                    Icons.crop,
+                    color: Colors.white,
+                  ), // Placeholder for crop functionality
+                  const Icon(
+                    Icons.speed,
+                    color: Colors.white,
+                  ), // Placeholder for speed functionality
                   GestureDetector(
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Crop functionality will be implemented later',
-                          ),
-                          backgroundColor: Colors.orange,
-                        ),
-                      );
-                    },
-                    child: const Icon(Icons.crop, color: Colors.white),
+                    onTap: _pickAudio,
+                    child: Icon(
+                      Icons.music_note,
+                      color: audioPath != null ? Colors.green : Colors.white,
+                    ),
                   ),
                   GestureDetector(
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Speed control will be implemented later',
-                          ),
-                          backgroundColor: Colors.orange,
-                        ),
-                      );
-                    },
-                    child: const Icon(Icons.speed, color: Colors.white),
+                    onTap: _cropAudio,
+                    child: Icon(
+                      Icons.cut,
+                      color: audioPath != null ? Colors.orange : Colors.white,
+                    ),
                   ),
-                  GestureDetector(
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Audio functionality will be implemented later',
-                          ),
-                          backgroundColor: Colors.orange,
-                        ),
-                      );
-                    },
-                    child: const Icon(Icons.music_note, color: Colors.white),
-                  ),
-                  // GestureDetector(
-                  //   onTap: _pickAudio,
-                  //   child: Icon(
-                  //     Icons.music_note,
-                  //     color: audioPath != null ? Colors.green : Colors.white,
-                  //   ),
-                  // ),
-                  // GestureDetector(
-                  //   onTap: _cropAudio,
-                  //   child: Icon(
-                  //     Icons.cut,
-                  //     color: audioPath != null ? Colors.orange : Colors.white,
-                  //   ),
-                  // ),
                 ],
               ),
             ),

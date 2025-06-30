@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../components/utilities/chat_theme.dart';
@@ -7,6 +8,8 @@ import '../../../../core/services/post_service.dart';
 import '../../../../core/services/simple_auth_service.dart';
 import '../../../../core/network/api_service.dart';
 import '../../../../core/network/api_result.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../data/models/comment_response_model.dart';
 
 class CommentsPage extends StatefulWidget {
@@ -179,31 +182,9 @@ class _CommentsPageState extends State<CommentsPage> {
           _commentController.clear();
           _cancelReplyOrEdit();
 
-          // Instead of reloading all comments, add the new comment optimistically
-          if (_editingCommentId == null && _replyingToCommentId == null) {
-            // This is a new comment, track the count change
-            _commentCountChanged = true;
-
-            // Create a temporary comment object from the response
-            try {
-              final commentData = data['result'];
-              final newComment = CommentModel.fromJson(commentData);
-
-              setState(() {
-                // Add the new comment to the beginning of the list
-                _comments.insert(0, newComment);
-              });
-              //Refresh the comment
-              _loadComments();
-            } catch (e) {
-              // If we can't create the comment from response, fallback to reload
-              debugPrint('Could not parse new comment, reloading: $e');
-              _loadComments();
-            }
-          } else {
-            // For edits and replies, reload to get accurate data
-            _loadComments();
-          }
+          // Always reload comments to get fresh data from server
+          _commentCountChanged = true;
+          _loadComments();
 
           _showSuccessSnackBar(
             _editingCommentId != null
@@ -219,19 +200,6 @@ class _CommentsPageState extends State<CommentsPage> {
   }
 
   Future<void> _deleteComment(String commentId) async {
-    // Optimistic update - remove comment from UI immediately
-    final commentIndex = _comments.indexWhere(
-      (comment) => comment.id == commentId,
-    );
-    CommentModel? removedComment;
-
-    if (commentIndex != -1) {
-      setState(() {
-        removedComment = _comments.removeAt(commentIndex);
-        _commentCountChanged = true;
-      });
-    }
-
     final result = await _postService.deleteComment(
       postId: widget.postId,
       commentId: commentId,
@@ -240,16 +208,11 @@ class _CommentsPageState extends State<CommentsPage> {
     if (mounted) {
       result.when(
         success: (data) {
+          _commentCountChanged = true;
+          _loadComments(); // Reload comments to get fresh data
           _showSuccessSnackBar('Comment deleted successfully');
-          // Comment already removed optimistically, no need to reload
         },
         failure: (error) {
-          // Revert the optimistic update on failure
-          if (removedComment != null && commentIndex != -1) {
-            setState(() {
-              _comments.insert(commentIndex, removedComment!);
-            });
-          }
           _showErrorSnackBar('Failed to delete comment: $error');
         },
       );
@@ -265,36 +228,8 @@ class _CommentsPageState extends State<CommentsPage> {
     if (mounted) {
       result.when(
         success: (data) {
-          // Update the comment locally to show immediate feedback
-          setState(() {
-            final commentIndex = _comments.indexWhere((c) => c.id == commentId);
-            if (commentIndex != -1) {
-              final comment = _comments[commentIndex];
-              final hasReacted = comment.myReaction != null;
-
-              // Create updated comment with correct constructor parameters
-              final updatedComment = CommentModel(
-                id: comment.id,
-                article: comment.article,
-                commentedBy: comment.commentedBy,
-                commentedTo: comment.commentedTo,
-                parentComment: comment.parentComment,
-                reactionsCount: hasReacted
-                    ? comment.reactionsCount - 1
-                    : comment.reactionsCount + 1,
-                createdAt: comment.createdAt,
-                updatedAt: comment.updatedAt,
-                userInfo: comment.userInfo,
-                myReaction: hasReacted
-                    ? null
-                    : CommentReaction(reactionType: reactionType),
-                latestReactions: comment.latestReactions,
-                replies: comment.replies,
-              );
-
-              _comments[commentIndex] = updatedComment;
-            }
-          });
+          // Reload comments to get fresh reaction data
+          _loadComments();
         },
         failure: (error) {
           _showErrorSnackBar(error);
@@ -406,10 +341,11 @@ class _CommentsPageState extends State<CommentsPage> {
   }
 
   bool _isOwnComment(CommentModel comment) {
-    // TODO: Implement proper user ID check
-    // For now, return true if comment was made by current user
-    // You should compare comment.commentedBy with current user ID
-    return true; // Placeholder
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      return comment.commentedBy == authState.user.id;
+    }
+    return false;
   }
 
   void _showErrorSnackBar(String message) {
@@ -593,11 +529,12 @@ class _CommentsPageState extends State<CommentsPage> {
                           child: Row(
                             children: [
                               Icon(
-                                comment.myReaction != null
+                                comment.myReaction?.reactionType == 'like'
                                     ? Icons.thumb_up
                                     : Icons.thumb_up_outlined,
                                 size: 16.sp,
-                                color: comment.myReaction != null
+                                color:
+                                    comment.myReaction?.reactionType == 'like'
                                     ? Colors.blue
                                     : Colors.grey[600],
                               ),
@@ -718,11 +655,11 @@ class _CommentsPageState extends State<CommentsPage> {
                       child: Row(
                         children: [
                           Icon(
-                            reply.myReaction != null
+                            reply.myReaction?.reactionType == 'like'
                                 ? Icons.thumb_up
                                 : Icons.thumb_up_outlined,
                             size: 14.sp,
-                            color: reply.myReaction != null
+                            color: reply.myReaction?.reactionType == 'like'
                                 ? Colors.blue
                                 : Colors.grey[600],
                           ),
