@@ -116,34 +116,34 @@ class _LocalGamePageState extends State<LocalGamePage> {
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        appBar: AppBar(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          title: Text(
-            widget.gameTitle,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: _hasError
-                  ? _startingServer
-                  : () {
-                      // Simple reload - just restart the server
-                      _startingServer();
-                    },
-              tooltip: _hasError ? 'Retry' : 'Refresh',
-            ),
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: _closeGame,
-              tooltip: 'Close Game',
-            ),
-          ],
-        ),
+        // appBar: AppBar(
+        //   backgroundColor: Colors.black,
+        //   foregroundColor: Colors.white,
+        //   title: Text(
+        //     widget.gameTitle,
+        //     style: const TextStyle(
+        //       color: Colors.white,
+        //       fontWeight: FontWeight.bold,
+        //     ),
+        //   ),
+        //   actions: [
+        //     IconButton(
+        //       icon: const Icon(Icons.refresh),
+        //       onPressed: _hasError
+        //           ? _startingServer
+        //           : () {
+        //               // Simple reload - just restart the server
+        //               _startingServer();
+        //             },
+        //       tooltip: _hasError ? 'Retry' : 'Refresh',
+        //     ),
+        //     IconButton(
+        //       icon: const Icon(Icons.close),
+        //       onPressed: _closeGame,
+        //       tooltip: 'Close Game',
+        //     ),
+        //   ],
+        // ),
         body: _buildBody(),
       ),
     );
@@ -212,6 +212,15 @@ class _LocalGamePageState extends State<LocalGamePage> {
                 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
           ),
         ),
+        onWebViewCreated: (controller) {
+          controller.addJavaScriptHandler(
+            handlerName: "GoHomeFromUnity",
+            callback: (args) {
+              _closeGame();
+              return Future.value("Game closed from Unity");
+            },
+          );
+        },
         onLoadStart: (controller, url) {
           print('📱 WebView started loading: $url');
           setState(() {
