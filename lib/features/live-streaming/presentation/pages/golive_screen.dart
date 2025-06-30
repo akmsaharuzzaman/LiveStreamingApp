@@ -630,8 +630,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
-        // Here you can handle the pop event, if needed
-        print('Back navigation invoked: $didPop');
+        // Always trigger cleanup when back navigation is invoked
+        _endLiveStream();
+        print(
+          'Back navigation invoked: '
+          ' 24didPop (cleanup triggered)',
+        );
       },
       child: BlocBuilder<ProfileBloc, ProfileState>(
         builder: (context, state) {
