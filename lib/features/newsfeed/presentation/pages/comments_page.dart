@@ -193,6 +193,8 @@ class _CommentsPageState extends State<CommentsPage> {
                 // Add the new comment to the beginning of the list
                 _comments.insert(0, newComment);
               });
+              //Refresh the comment
+              _loadComments();
             } catch (e) {
               // If we can't create the comment from response, fallback to reload
               debugPrint('Could not parse new comment, reloading: $e');

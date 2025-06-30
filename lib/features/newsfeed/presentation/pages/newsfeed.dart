@@ -87,11 +87,14 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
           body: RefreshIndicator(
+            //indecator position in middle center
+            displacement: 500,
             onRefresh: _refreshFeed,
             child: CustomScrollView(
               controller: scrollController,
               slivers: [
                 SliverAppBar(
+                  pinned: true,
                   backgroundColor: Colors.white,
                   title: Row(
                     children: [
