@@ -33,6 +33,7 @@ class NewsFeedScreen extends StatefulWidget {
 class _NewsFeedScreenState extends State<NewsFeedScreen> {
   final TrackingScrollController scrollController = TrackingScrollController();
   late NewsfeedBloc _newsfeedBloc;
+  final GlobalKey _apiStoriesKey = GlobalKey();
 
   // Toggle between mock stories and API stories
   bool useApiStories =
@@ -53,6 +54,19 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
     super.dispose();
   }
 
+  Future<void> _refreshFeed() async {
+    // Refresh posts
+    _newsfeedBloc.add(RefreshPostsEvent());
+
+    // Refresh stories if using API stories
+    if (useApiStories && _apiStoriesKey.currentState != null) {
+      final apiStoriesState = _apiStoriesKey.currentState as dynamic;
+      await apiStoriesState.refreshStories();
+    }
+
+    // Wait for the state to change
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,11 +76,7 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
           body: RefreshIndicator(
-            onRefresh: () async {
-              _newsfeedBloc.add(RefreshPostsEvent());
-              // Wait for the state to change
-              await Future.delayed(const Duration(milliseconds: 500));
-            },
+            onRefresh: _refreshFeed,
             child: CustomScrollView(
               controller: scrollController,
               slivers: [
@@ -149,7 +159,10 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                   padding: const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
                   sliver: SliverToBoxAdapter(
                     child: useApiStories
-                        ? ApiStories(currentUser: currentUser)
+                        ? ApiStories(
+                            key: _apiStoriesKey,
+                            currentUser: currentUser,
+                          )
                         : Stories(
                             currentUser: currentUser,
                             storyGroups: const <api.UserStoryGroup>[],

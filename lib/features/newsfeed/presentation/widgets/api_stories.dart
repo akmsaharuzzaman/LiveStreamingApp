@@ -59,6 +59,11 @@ class _ApiStoriesState extends State<ApiStories> {
     );
   }
 
+  // Public method to refresh stories from external widgets
+  Future<void> refreshStories() async {
+    await _loadStories();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
