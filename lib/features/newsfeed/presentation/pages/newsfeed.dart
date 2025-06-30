@@ -12,7 +12,11 @@ import '../../../../components/utilities/chat_theme.dart';
 import '../../../../core/services/post_service.dart';
 import '../../../../core/network/api_service.dart';
 import '../../../../core/services/simple_auth_service.dart';
-import '../../data/models/mock_models/data.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../auth/domain/entities/user_entity.dart';
+import '../../../chat/data/models/user_model.dart';
+import '../../data/models/mock_models/data.dart' as MockData;
 import '../../data/models/stories_api_response_model.dart' as api;
 import '../../injection_container.dart';
 import '../bloc/newsfeed_bloc.dart';
@@ -20,6 +24,15 @@ import '../widgets/create_post_container.dart';
 import '../widgets/api_post_container.dart';
 import '../widgets/stories.dart';
 import '../widgets/api_stories.dart';
+
+// Helper function to convert UserEntity to the User model expected by widgets
+User userEntityToUser(UserEntity userEntity) {
+  return User(
+    id: userEntity.id.hashCode, // Convert string ID to int
+    name: userEntity.name,
+    avatar: userEntity.avatar?.url ?? 'assets/images/new_images/person.png',
+  );
+}
 
 class NewsFeedScreen extends StatefulWidget {
   const NewsFeedScreen({super.key});
@@ -135,36 +148,79 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                   systemOverlayStyle: SystemUiOverlayStyle.dark,
                 ),
                 SliverToBoxAdapter(
-                  child: CreatePostContainer(
-                    currentUser: currentUser,
-                    onCreatePost: () async {
-                      // Navigate to create post page
-                      final result = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CreatePostPage(),
-                        ),
-                      );
+                  child: BlocBuilder<AuthBloc, AuthState>(
+                    builder: (context, authState) {
+                      // Use auth user data instead of mock currentUser
+                      if (authState is AuthAuthenticated) {
+                        final user = userEntityToUser(authState.user);
+                        return CreatePostContainer(
+                          currentUser: user,
+                          onCreatePost: () async {
+                            // Navigate to create post page
+                            final result = await Navigator.push<bool>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CreatePostPage(),
+                              ),
+                            );
 
-                      // If post was created successfully, refresh the feed
-                      if (result == true) {
-                        _newsfeedBloc.add(RefreshPostsEvent());
+                            // If post was created successfully, refresh the feed
+                            if (result == true) {
+                              _newsfeedBloc.add(RefreshPostsEvent());
+                            }
+                          },
+                        );
                       }
+                      // Fallback to mock user if not authenticated
+                      return CreatePostContainer(
+                        currentUser: MockData.currentUser,
+                        onCreatePost: () async {
+                          // Navigate to create post page
+                          final result = await Navigator.push<bool>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const CreatePostPage(),
+                            ),
+                          );
+
+                          // If post was created successfully, refresh the feed
+                          if (result == true) {
+                            _newsfeedBloc.add(RefreshPostsEvent());
+                          }
+                        },
+                      );
                     },
                   ),
                 ),
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
                   sliver: SliverToBoxAdapter(
-                    child: useApiStories
-                        ? ApiStories(
-                            key: _apiStoriesKey,
-                            currentUser: currentUser,
-                          )
-                        : Stories(
-                            currentUser: currentUser,
-                            storyGroups: const <api.UserStoryGroup>[],
-                          ),
+                    child: BlocBuilder<AuthBloc, AuthState>(
+                      builder: (context, authState) {
+                        if (authState is AuthAuthenticated) {
+                          final user = userEntityToUser(authState.user);
+                          return useApiStories
+                              ? ApiStories(
+                                  key: _apiStoriesKey,
+                                  currentUser: user,
+                                )
+                              : Stories(
+                                  currentUser: user,
+                                  storyGroups: const <api.UserStoryGroup>[],
+                                );
+                        }
+                        // Fallback to mock user if not authenticated
+                        return useApiStories
+                            ? ApiStories(
+                                key: _apiStoriesKey,
+                                currentUser: MockData.currentUser,
+                              )
+                            : Stories(
+                                currentUser: MockData.currentUser,
+                                storyGroups: const <api.UserStoryGroup>[],
+                              );
+                      },
+                    ),
                   ),
                 ),
                 // Use BlocBuilder to show posts from API
@@ -473,48 +529,64 @@ class _CreatePostPageState extends State<CreatePostPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Profile Picture and Name
-              Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.grey[300],
-                    radius: 20.r,
-                    child: Icon(
-                      Icons.person,
-                      size: 24.sp,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              BlocBuilder<AuthBloc, AuthState>(
+                builder: (context, authState) {
+                  final userName = authState is AuthAuthenticated
+                      ? authState.user.name
+                      : 'Your Name';
+                  final userAvatar = authState is AuthAuthenticated
+                      ? authState.user.avatar?.url
+                      : null;
+
+                  return Row(
                     children: [
-                      Text(
-                        'Your Name', // TODO: Get from user profile
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      CircleAvatar(
+                        backgroundColor: Colors.grey[300],
+                        radius: 20.r,
+                        backgroundImage: userAvatar != null
+                            ? NetworkImage(userAvatar)
+                            : null,
+                        child: userAvatar == null
+                            ? Icon(
+                                Icons.person,
+                                size: 24.sp,
+                                color: Colors.grey[600],
+                              )
+                            : null,
                       ),
-                      Row(
+                      SizedBox(width: 12.w),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.public,
-                            size: 12.sp,
-                            color: Colors.grey[600],
-                          ),
-                          SizedBox(width: 4.w),
                           Text(
-                            'Public',
+                            userName,
                             style: TextStyle(
-                              fontSize: 12.sp,
-                              color: Colors.grey[600],
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
                             ),
+                          ),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.public,
+                                size: 12.sp,
+                                color: Colors.grey[600],
+                              ),
+                              SizedBox(width: 4.w),
+                              Text(
+                                'Public',
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ],
-                  ),
-                ],
+                  );
+                },
               ),
               SizedBox(height: 16.h),
 
