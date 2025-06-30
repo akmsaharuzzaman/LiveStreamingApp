@@ -272,15 +272,16 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
     });
     String? resultPath;
     try {
-      if (trimVideos.isEmpty || !mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No trimmed videos to merge")),
-        );
+      if (videoEditorController == null || !mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("No video selected")));
         setState(() {
           _isUploading = false;
         });
         return;
       }
+
       if (audioPath != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -292,10 +293,18 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
         });
         return;
       }
-      resultPath = await EasyVideoEditorPlatform.instance.mergeVideos(
-        trimVideos,
-      );
-      if (resultPath == null) throw Exception('Merging failed');
+
+      // If no trimmed videos, use the original video
+      if (trimVideos.isEmpty) {
+        resultPath = videoEditorController!.file.path;
+      } else {
+        // Otherwise, merge trimmed videos
+        resultPath = await EasyVideoEditorPlatform.instance.mergeVideos(
+          trimVideos,
+        );
+        if (resultPath == null) throw Exception('Merging failed');
+      }
+
       final videoFile = File(resultPath);
       final videoLength = await videoFile.exists()
           ? (await VideoPlayerController.file(videoFile).initialize().then(

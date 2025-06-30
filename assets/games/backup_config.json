@@ -21,7 +21,28 @@
                 "unityObjectName": "LevelLoader",
                 "unityMethodName": "Initilization"
             }
+        },
+        {
+            "id": "greedy-cat",
+            "title": "Greedy Cat Game",
+            "description": "A Unity WebGL game featuring a greedy cat",
+            "iconPath": "assets/games/GreedyV3_2/game-icon.png",
+            "gamePath": "GreedyV3_2",
+            "requiredFiles": [
+                "index.html",
+                "bg.png",
+                "game-icon.png",
+                "Build/0f33989bb9e916fd3e256980afea0158.loader.js",
+                "Build/06ea974707ebe638f1b8899af883aafd.data.unityweb",
+                "Build/d2822e4a9f0d71c41427f922e253050a.framework.js.unityweb",
+                "Build/707f9ca9b9c72ea9eac271546b329461.wasm.unityweb",
+                "Build/Greedy V3.jpg"
+            ],
+            "gameParameters": {
+                "serverIPWithPort": "ws://147.93.103.135:8001/",
+                "unityObjectName": "LevelLoader",
+                "unityMethodName": "Initilization"
+            }
         }
-        
     ]
 }
