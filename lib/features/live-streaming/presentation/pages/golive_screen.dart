@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:dlstarlive/features/live-streaming/presentation/component/agora_token_service.dart';
@@ -16,9 +17,9 @@ import '../component/custom_live_button.dart';
 import '../component/diamond_star_status.dart';
 import '../component/end_stream_overlay.dart';
 import '../component/game_bottomsheet.dart';
-import '../component/gift_bottom_sheet.dart';
 import '../component/host_info.dart';
 import '../component/live_screen_menu_button.dart';
+import '../widgets/live_chat_widget.dart';
 
 enum LiveScreenLeaveOptions { disconnect, muteCall, viewProfile }
 
@@ -51,6 +52,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
   StreamSubscription? _roomLeftSubscription;
   StreamSubscription? _roomDeletedSubscription;
   StreamSubscription? _errorSubscription;
+
+  // Chat messages
+  List<ChatMessage> _chatMessages = [];
+
   @override
   void initState() {
     super.initState();
@@ -320,6 +325,56 @@ class _GoliveScreenState extends State<GoliveScreen> {
         ),
       );
     }
+  }
+
+  /// Generate dummy chat message
+  void _generateDummyMessage() {
+    final random = Random();
+    final dummyUsers = [
+      'Habib',
+      'Nasim Replay',
+      'Nahid',
+      'Sarah',
+      'Ahmed',
+      'Fatima',
+      'Omar',
+      'Aisha',
+    ];
+    final dummyMessages = [
+      'how are you',
+      'fine and you',
+      'Joined the room',
+      'Hello everyone!',
+      'Great stream!',
+      'Love this content',
+      'Amazing performance',
+      'Keep it up!',
+      'Nice work',
+      'Awesome!',
+    ];
+
+    final userName = dummyUsers[random.nextInt(dummyUsers.length)];
+    final message = dummyMessages[random.nextInt(dummyMessages.length)];
+    final level = random.nextInt(25) + 1; // Level 1-25
+    final isVip =
+        random.nextBool() && level > 10; // VIP more likely for higher levels
+
+    final newMessage = ChatMessage(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      userName: userName,
+      message: message,
+      timestamp: DateTime.now(),
+      level: level,
+      isVip: isVip,
+    );
+
+    setState(() {
+      _chatMessages.add(newMessage);
+      // Keep only last 50 messages to prevent memory issues
+      if (_chatMessages.length > 50) {
+        _chatMessages.removeAt(0);
+      }
+    });
   }
 
   //Agora SDK
@@ -732,6 +787,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
                         Spacer(),
 
+                        // Chat widget - positioned at bottom left
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: LiveChatWidget(messages: _chatMessages),
+                        ),
+
+                        const SizedBox(height: 10),
+
                         // the bottom buttons
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -739,11 +802,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             CustomLiveButton(
                               icon: Icons.chat_bubble_outline,
                               onTap: () {
-                                _showSnackBar(
-                                  '💬 Not implemented yet! Comming soon!',
-                                  Colors.green,
-                                );
-                                // showChatBottomSheet(context);
+                                _generateDummyMessage();
+                                // _showSnackBar(
+                                //   '💬 Message added to chat!',
+                                //   Colors.green,
+                                // );
                               },
                             ),
                             CustomLiveButton(
