@@ -42,6 +42,8 @@ class _StoryViewerPageState extends State<StoryViewerPage>
     with TickerProviderStateMixin {
   late PageController _pageController;
   late AnimationController _progressController;
+  late AnimationController _slideAnimationController;
+  late Animation<Offset> _slideAnimation;
   late PostService _postService;
 
   // Facebook-style grouped viewing state
@@ -54,6 +56,7 @@ class _StoryViewerPageState extends State<StoryViewerPage>
   String? _currentUserId;
   bool _isPaused = false; // Track if story is paused
   bool _hasInteracted = false; // Track if user has viewed/reacted to stories
+  bool _isAnimating = false; // Track if slide animation is in progress
 
   // Story progress duration (5 seconds per story)
   static const Duration _storyDuration = Duration(seconds: 5);
@@ -78,6 +81,24 @@ class _StoryViewerPageState extends State<StoryViewerPage>
       duration: _storyDuration,
       vsync: this,
     );
+
+    // Initialize slide animation controller for smooth transitions
+    _slideAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    // Create slide animation with ease curve
+    _slideAnimation =
+        Tween<Offset>(
+          begin: const Offset(0.0, 0.0),
+          end: const Offset(1.0, 0.0),
+        ).animate(
+          CurvedAnimation(
+            parent: _slideAnimationController,
+            curve: Curves.easeInOut,
+          ),
+        );
 
     // Add a smooth animation curve for better visual experience
     _progressController.addListener(() {
@@ -168,6 +189,7 @@ class _StoryViewerPageState extends State<StoryViewerPage>
 
     _pageController.dispose();
     _progressController.dispose();
+    _slideAnimationController.dispose();
     super.dispose();
   }
 
@@ -242,6 +264,108 @@ class _StoryViewerPageState extends State<StoryViewerPage>
       // If already at first group and first story, do nothing
     }
     setState(() {}); // Refresh UI to show new progress indicators
+  }
+
+  void _goToNextUserGroup() async {
+    // Mark that user has interacted
+    _hasInteracted = true;
+
+    // Move to next user group if available
+    if (_currentGroupIndex < _userGroups.length - 1 && !_isAnimating) {
+      _isAnimating = true;
+
+      // Pause current story progress
+      _progressController.stop();
+
+      // Animate slide to right (positive direction)
+      _slideAnimation =
+          Tween<Offset>(
+            begin: const Offset(0.0, 0.0),
+            end: const Offset(-1.0, 0.0), // Slide current content left (out)
+          ).animate(
+            CurvedAnimation(
+              parent: _slideAnimationController,
+              curve: Curves.easeInOut,
+            ),
+          );
+
+      await _slideAnimationController.forward();
+
+      // Update group index
+      _currentGroupIndex++;
+      _currentStoryIndex = 0; // Start from first story of next user
+
+      // Reset animation for next content to slide in from right
+      _slideAnimation =
+          Tween<Offset>(
+            begin: const Offset(1.0, 0.0), // Start from right
+            end: const Offset(0.0, 0.0), // Slide to center
+          ).animate(
+            CurvedAnimation(
+              parent: _slideAnimationController,
+              curve: Curves.easeInOut,
+            ),
+          );
+
+      _slideAnimationController.reset();
+      setState(() {}); // Update UI with new content
+
+      await _slideAnimationController.forward();
+
+      _isAnimating = false;
+      _startStoryProgress(); // Resume story progress
+    }
+  }
+
+  void _goToPreviousUserGroup() async {
+    // Mark that user has interacted
+    _hasInteracted = true;
+
+    // Move to previous user group if available
+    if (_currentGroupIndex > 0 && !_isAnimating) {
+      _isAnimating = true;
+
+      // Pause current story progress
+      _progressController.stop();
+
+      // Animate slide to left (negative direction)
+      _slideAnimation =
+          Tween<Offset>(
+            begin: const Offset(0.0, 0.0),
+            end: const Offset(1.0, 0.0), // Slide current content right (out)
+          ).animate(
+            CurvedAnimation(
+              parent: _slideAnimationController,
+              curve: Curves.easeInOut,
+            ),
+          );
+
+      await _slideAnimationController.forward();
+
+      // Update group index
+      _currentGroupIndex--;
+      _currentStoryIndex = 0; // Start from first story of previous user
+
+      // Reset animation for next content to slide in from left
+      _slideAnimation =
+          Tween<Offset>(
+            begin: const Offset(-1.0, 0.0), // Start from left
+            end: const Offset(0.0, 0.0), // Slide to center
+          ).animate(
+            CurvedAnimation(
+              parent: _slideAnimationController,
+              curve: Curves.easeInOut,
+            ),
+          );
+
+      _slideAnimationController.reset();
+      setState(() {}); // Update UI with new content
+
+      await _slideAnimationController.forward();
+
+      _isAnimating = false;
+      _startStoryProgress(); // Resume story progress
+    }
   }
 
   Future<void> _reactToStory(String reactionType) async {
@@ -519,10 +643,25 @@ class _StoryViewerPageState extends State<StoryViewerPage>
           // Resume story progress when user releases hold
           _resumeStoryProgress();
         },
+        onHorizontalDragEnd: (details) {
+          // Handle horizontal swipe to navigate between user groups
+          if (details.primaryVelocity != null) {
+            if (details.primaryVelocity! > 0) {
+              // Swipe right - go to previous user group
+              _goToPreviousUserGroup();
+            } else if (details.primaryVelocity! < 0) {
+              // Swipe left - go to next user group
+              _goToNextUserGroup();
+            }
+          }
+        },
         child: Stack(
           children: [
-            // Story Content - Show current story
-            _buildStoryContent(currentStory),
+            // Story Content with Slide Animation - Show current story
+            SlideTransition(
+              position: _slideAnimation,
+              child: _buildStoryContent(currentStory),
+            ),
 
             // Progress Indicators - Show only current user's stories (Facebook-style)
             Positioned(
