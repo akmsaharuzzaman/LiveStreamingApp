@@ -206,6 +206,7 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                               ? ApiStories(
                                   key: _apiStoriesKey,
                                   currentUser: user,
+                                  onStoryUploaded: _refreshFeed,
                                 )
                               : Stories(
                                   currentUser: user,
@@ -217,6 +218,7 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                             ? ApiStories(
                                 key: _apiStoriesKey,
                                 currentUser: MockData.currentUser,
+                                onStoryUploaded: _refreshFeed,
                               )
                             : Stories(
                                 currentUser: MockData.currentUser,

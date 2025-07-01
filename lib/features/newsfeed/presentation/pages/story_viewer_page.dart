@@ -112,6 +112,7 @@ class _StoryViewerPageState extends State<StoryViewerPage>
       success: (data) {
         // Update story with new reaction data
         final updatedStory = StoryModel.fromJson(data['result']);
+        print('Updated Story: ${updatedStory.toJson()}');
         setState(() {
           _stories[_currentIndex] = updatedStory;
         });
@@ -172,8 +173,8 @@ class _StoryViewerPageState extends State<StoryViewerPage>
         return '❤️';
       case 'haha':
         return '😂';
-      case 'wow':
-        return '😮';
+      case 'care':
+        return '😊';
       case 'sad':
         return '😢';
       case 'angry':
@@ -355,7 +356,11 @@ class _StoryViewerPageState extends State<StoryViewerPage>
                   const SizedBox(height: 15),
                   _buildReactionButton('haha', '😂'),
                   const SizedBox(height: 15),
-                  _buildReactionButton('wow', '😮'),
+                  _buildReactionButton('sad', '😢'),
+                  const SizedBox(height: 15),
+                  _buildReactionButton('angry', '😠'),
+                  const SizedBox(height: 15),
+                  _buildReactionButton('care', '😊'),
                 ],
               ),
             ),

@@ -12,8 +12,13 @@ import '../../data/models/stories_api_response_model.dart' as api;
 
 class ApiStories extends StatefulWidget {
   final User currentUser;
+  final VoidCallback? onStoryUploaded;
 
-  const ApiStories({super.key, required this.currentUser});
+  const ApiStories({
+    super.key,
+    required this.currentUser,
+    this.onStoryUploaded,
+  });
 
   @override
   State<ApiStories> createState() => _ApiStoriesState();
@@ -102,14 +107,20 @@ class _ApiStoriesState extends State<ApiStories> {
                     child: ApiStoryCard(
                       isAddStory: true,
                       currentUser: widget.currentUser,
-                      onTap: () {
-                        // Navigate to create story screen
-                        Navigator.push(
+                      onTap: () async {
+                        // Navigate to create story screen and refresh on upload
+                        final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const CreateStoryScreen(),
+                            builder: (context) => CreateStoryScreen(
+                              onStoryUploaded: widget.onStoryUploaded,
+                            ),
                           ),
                         );
+                        // Optionally refresh stories if needed
+                        if (result == true) {
+                          await refreshStories();
+                        }
                       },
                     ),
                   );

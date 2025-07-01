@@ -11,7 +11,8 @@ import '../../../../core/services/simple_auth_service.dart';
 import '../../../../core/network/api_service.dart';
 
 class CreateStoryScreen extends StatefulWidget {
-  const CreateStoryScreen({super.key});
+  final VoidCallback? onStoryUploaded;
+  const CreateStoryScreen({super.key, this.onStoryUploaded});
 
   @override
   State<CreateStoryScreen> createState() => _CreateStoryScreenState();
@@ -816,6 +817,11 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
       result.when(
         success: (data) {
           _showSuccessSnackBar('Story uploaded successfully!');
+
+          // Call the callback to notify parent for refresh
+          if (widget.onStoryUploaded != null) {
+            widget.onStoryUploaded!();
+          }
 
           // Show success dialog
           showDialog(
