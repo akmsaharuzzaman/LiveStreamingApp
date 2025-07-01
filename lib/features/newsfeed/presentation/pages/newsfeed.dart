@@ -87,8 +87,8 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
           body: RefreshIndicator(
-            // Position indicator at 40% of screen height instead of bottom
-            displacement: MediaQuery.of(context).size.height * 0.4,
+            // Position indicator at 30% of screen height instead of bottom
+            displacement: MediaQuery.of(context).size.height * 0.3,
             onRefresh: _refreshFeed,
             child: CustomScrollView(
               controller: scrollController,

@@ -75,16 +75,17 @@ class _ApiStoriesState extends State<ApiStories> {
 
     // Show a subtle indication that stories were refreshed
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Stories updated'),
-          duration: const Duration(seconds: 1),
-          backgroundColor: Colors.green.withOpacity(0.8),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          margin: const EdgeInsets.only(bottom: 100, left: 16, right: 16),
-        ),
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(
+      //     content: const Text('Stories updated'),
+      //     duration: const Duration(seconds: 1),
+      //     backgroundColor: Colors.green.withOpacity(0.8),
+      //     behavior: SnackBarBehavior.floating,
+      //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      //     margin: const EdgeInsets.only(bottom: 100, left: 16, right: 16),
+      //   ),
+      // );
+      debugPrint('Stories refreshed');
     }
   }
 

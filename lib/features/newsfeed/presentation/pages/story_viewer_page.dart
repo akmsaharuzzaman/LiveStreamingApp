@@ -23,13 +23,33 @@ class StoryViewerPage extends StatefulWidget {
   State<StoryViewerPage> createState() => _StoryViewerPageState();
 }
 
+// Helper class to group stories by user
+class UserStoryGroup {
+  final String userId;
+  final String userName;
+  final String? userAvatar;
+  final List<StoryModel> stories;
+
+  UserStoryGroup({
+    required this.userId,
+    required this.userName,
+    this.userAvatar,
+    required this.stories,
+  });
+}
+
 class _StoryViewerPageState extends State<StoryViewerPage>
     with TickerProviderStateMixin {
   late PageController _pageController;
   late AnimationController _progressController;
   late PostService _postService;
-  int _currentIndex = 0;
-  List<StoryModel> _stories = [];
+
+  // Facebook-style grouped viewing state
+  List<UserStoryGroup> _userGroups = [];
+  int _currentGroupIndex = 0; // Current user group
+  int _currentStoryIndex = 0; // Current story within the group
+  List<StoryModel> _stories = []; // Flattened list for backward compatibility
+
   bool _isLoading = false;
   String? _currentUserId;
   bool _isPaused = false; // Track if story is paused
@@ -41,9 +61,19 @@ class _StoryViewerPageState extends State<StoryViewerPage>
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex;
-    _stories = List.from(widget.stories);
-    _pageController = PageController(initialPage: _currentIndex);
+
+    // Group stories by user (Facebook-style)
+    _userGroups = _groupStoriesByUser(widget.stories);
+    _stories = List.from(
+      widget.stories,
+    ); // Keep flattened list for backward compatibility
+
+    // Find initial group and story indices
+    _findInitialIndices(widget.initialIndex);
+
+    _pageController = PageController(
+      initialPage: 0,
+    ); // Always start from page 0 since we're managing groups
     _progressController = AnimationController(
       duration: _storyDuration,
       vsync: this,
@@ -54,7 +84,9 @@ class _StoryViewerPageState extends State<StoryViewerPage>
       if (mounted) {
         setState(() {});
       }
-    }); // Initialize services
+    });
+
+    // Initialize services
     final apiService = ApiService.instance;
     final authService = AuthService();
     _postService = PostService(apiService, authService);
@@ -63,6 +95,65 @@ class _StoryViewerPageState extends State<StoryViewerPage>
     _currentUserId = widget.currentUserId;
 
     _startStoryProgress();
+  }
+
+  // Group stories by user ID for Facebook-style viewing
+  List<UserStoryGroup> _groupStoriesByUser(List<StoryModel> stories) {
+    final Map<String, List<StoryModel>> groupedMap = {};
+
+    for (final story in stories) {
+      final userId = story.ownerId;
+      if (!groupedMap.containsKey(userId)) {
+        groupedMap[userId] = [];
+      }
+      groupedMap[userId]!.add(story);
+    }
+
+    return groupedMap.entries.map((entry) {
+      final userId = entry.key;
+      final userStories = entry.value;
+
+      // Get user info from first story
+      final firstStory = userStories.first;
+      return UserStoryGroup(
+        userId: userId,
+        userName: firstStory.userInfo?.name ?? 'Unknown User',
+        userAvatar: firstStory.userInfo?.avatar?.url,
+        stories: userStories,
+      );
+    }).toList();
+  }
+
+  // Find which group and story index to start from based on initial index
+  void _findInitialIndices(int initialGlobalIndex) {
+    int globalIndex = 0;
+
+    for (int groupIndex = 0; groupIndex < _userGroups.length; groupIndex++) {
+      final group = _userGroups[groupIndex];
+
+      for (
+        int storyIndex = 0;
+        storyIndex < group.stories.length;
+        storyIndex++
+      ) {
+        if (globalIndex == initialGlobalIndex) {
+          _currentGroupIndex = groupIndex;
+          _currentStoryIndex = storyIndex;
+          return;
+        }
+        globalIndex++;
+      }
+    }
+
+    // Fallback if not found
+    _currentGroupIndex = 0;
+    _currentStoryIndex = 0;
+  }
+
+  // Get current story being viewed
+  StoryModel get _currentStory {
+    if (_userGroups.isEmpty) return _stories.first;
+    return _userGroups[_currentGroupIndex].stories[_currentStoryIndex];
   }
 
   @override
@@ -111,30 +202,46 @@ class _StoryViewerPageState extends State<StoryViewerPage>
     // Mark that user has interacted (viewed stories)
     _hasInteracted = true;
 
-    if (_currentIndex < _stories.length - 1) {
-      _currentIndex++;
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+    final currentGroup = _userGroups[_currentGroupIndex];
+
+    // Check if there are more stories in the current user's group
+    if (_currentStoryIndex < currentGroup.stories.length - 1) {
+      // Move to next story in the same user group
+      _currentStoryIndex++;
       _startStoryProgress();
     } else {
-      Navigator.of(context).pop();
+      // Move to next user group
+      if (_currentGroupIndex < _userGroups.length - 1) {
+        _currentGroupIndex++;
+        _currentStoryIndex = 0;
+        _startStoryProgress();
+      } else {
+        // No more user groups, exit
+        Navigator.of(context).pop();
+      }
     }
+    setState(() {}); // Refresh UI to show new progress indicators
   }
 
   void _previousStory() {
     // Mark that user has interacted (viewed stories)
     _hasInteracted = true;
 
-    if (_currentIndex > 0) {
-      _currentIndex--;
-      _pageController.previousPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+    // Check if there are more stories in the current user's group
+    if (_currentStoryIndex > 0) {
+      // Move to previous story in the same user group
+      _currentStoryIndex--;
       _startStoryProgress();
+    } else {
+      // Move to previous user group (last story of that group)
+      if (_currentGroupIndex > 0) {
+        _currentGroupIndex--;
+        _currentStoryIndex = _userGroups[_currentGroupIndex].stories.length - 1;
+        _startStoryProgress();
+      }
+      // If already at first group and first story, do nothing
     }
+    setState(() {}); // Refresh UI to show new progress indicators
   }
 
   Future<void> _reactToStory(String reactionType) async {
@@ -144,7 +251,7 @@ class _StoryViewerPageState extends State<StoryViewerPage>
       _isLoading = true;
     });
 
-    final currentStory = _stories[_currentIndex];
+    final currentStory = _currentStory;
 
     final result = await _postService.reactToStory(
       storyId: currentStory.id,
@@ -154,7 +261,6 @@ class _StoryViewerPageState extends State<StoryViewerPage>
     result.when(
       success: (data) {
         // Update story with new reaction data, preserving user info
-        final currentStory = _stories[_currentIndex];
         final reactionData = data['result'];
 
         // Create new reaction object
@@ -168,9 +274,21 @@ class _StoryViewerPageState extends State<StoryViewerPage>
         );
 
         print('Updated Story: ${updatedStory.toJson()}');
-        setState(() {
-          _stories[_currentIndex] = updatedStory;
-        });
+
+        // Update the story in both the grouped structure and flat list
+        _userGroups[_currentGroupIndex].stories[_currentStoryIndex] =
+            updatedStory;
+
+        // Also update the flat list to maintain consistency
+        final globalIndex = _getGlobalIndexFromGroupIndices(
+          _currentGroupIndex,
+          _currentStoryIndex,
+        );
+        if (globalIndex != -1) {
+          _stories[globalIndex] = updatedStory;
+        }
+
+        setState(() {});
 
         // Show reaction feedback
         _showReactionFeedback(reactionType);
@@ -188,6 +306,18 @@ class _StoryViewerPageState extends State<StoryViewerPage>
     setState(() {
       _isLoading = false;
     });
+  }
+
+  // Helper method to convert group indices to global index
+  int _getGlobalIndexFromGroupIndices(int groupIndex, int storyIndex) {
+    int globalIndex = 0;
+
+    for (int i = 0; i < groupIndex; i++) {
+      globalIndex += _userGroups[i].stories.length;
+    }
+    globalIndex += storyIndex;
+
+    return globalIndex < _stories.length ? globalIndex : -1;
   }
 
   void _showReactionFeedback(String reactionType) {
@@ -245,7 +375,7 @@ class _StoryViewerPageState extends State<StoryViewerPage>
   Future<void> _deleteCurrentStory() async {
     if (_isLoading) return;
 
-    final currentStory = _stories[_currentIndex];
+    final currentStory = _currentStory;
 
     // Show confirmation dialog
     final shouldDelete = await showDialog<bool>(
@@ -283,10 +413,18 @@ class _StoryViewerPageState extends State<StoryViewerPage>
 
     result.when(
       success: (data) {
-        // Remove story from list
-        setState(() {
-          _stories.removeAt(_currentIndex);
-        });
+        // Remove story from both grouped structure and flat list
+        final currentGroup = _userGroups[_currentGroupIndex];
+        currentGroup.stories.removeAt(_currentStoryIndex);
+
+        // Remove from flat list
+        final globalIndex = _getGlobalIndexFromGroupIndices(
+          _currentGroupIndex,
+          _currentStoryIndex,
+        );
+        if (globalIndex != -1) {
+          _stories.removeAt(globalIndex);
+        }
 
         // Mark that user has interacted (deleted story)
         _hasInteracted = true;
@@ -299,20 +437,30 @@ class _StoryViewerPageState extends State<StoryViewerPage>
           ),
         );
 
-        // Navigate to next story or close if this was the last one
-        if (_stories.isEmpty) {
-          Navigator.of(context).pop();
-        } else {
-          if (_currentIndex >= _stories.length) {
-            _currentIndex = _stories.length - 1;
+        // Check if current group is now empty
+        if (currentGroup.stories.isEmpty) {
+          _userGroups.removeAt(_currentGroupIndex);
+
+          // If no more groups, exit
+          if (_userGroups.isEmpty) {
+            Navigator.of(context).pop();
+            return;
           }
-          _pageController.animateToPage(
-            _currentIndex,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-          );
-          _startStoryProgress();
+
+          // Adjust current group index if needed
+          if (_currentGroupIndex >= _userGroups.length) {
+            _currentGroupIndex = _userGroups.length - 1;
+          }
+          _currentStoryIndex = 0;
+        } else {
+          // Adjust story index if needed
+          if (_currentStoryIndex >= currentGroup.stories.length) {
+            _currentStoryIndex = currentGroup.stories.length - 1;
+          }
         }
+
+        setState(() {});
+        _startStoryProgress();
       },
       failure: (error) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -330,13 +478,28 @@ class _StoryViewerPageState extends State<StoryViewerPage>
   }
 
   bool _isCurrentUserStory() {
-    if (_currentUserId == null || _stories.isEmpty) return false;
-    final currentStory = _stories[_currentIndex];
+    if (_currentUserId == null || _userGroups.isEmpty) return false;
+    final currentStory = _currentStory;
     return currentStory.ownerId == _currentUserId;
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_userGroups.isEmpty) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Text(
+            'No stories available',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
+
+    final currentGroup = _userGroups[_currentGroupIndex];
+    final currentStory = _currentStory;
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
@@ -358,58 +521,70 @@ class _StoryViewerPageState extends State<StoryViewerPage>
         },
         child: Stack(
           children: [
-            // Story Content
-            PageView.builder(
-              controller: _pageController,
-              onPageChanged: (index) {
-                setState(() {
-                  _currentIndex = index;
-                });
-                // Mark interaction when user manually swipes between stories
-                _hasInteracted = true;
-                _startStoryProgress();
-              },
-              itemCount: _stories.length,
-              itemBuilder: (context, index) {
-                final story = _stories[index];
-                return _buildStoryContent(story);
-              },
-            ),
+            // Story Content - Show current story
+            _buildStoryContent(currentStory),
 
-            // Progress Indicators
+            // Progress Indicators - Show only current user's stories (Facebook-style)
             Positioned(
               top: MediaQuery.of(context).padding.top + 10,
               left: 10,
               right: 10,
-              child: Row(
-                children: List.generate(_stories.length, (index) {
-                  return Expanded(
-                    child: Container(
-                      height: 4, // Increased from 3 to 4 for better visibility
-                      margin: const EdgeInsets.symmetric(horizontal: 1),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(2),
-                        child: LinearProgressIndicator(
-                          value: index == _currentIndex
-                              ? _progressController.value
-                              : index < _currentIndex
-                              ? 1.0
-                              : 0.0,
-                          backgroundColor: Colors.white.withOpacity(0.3),
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
-                        ),
+              child: Column(
+                children: [
+                  // User group indicator (optional - shows current user out of total users)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${_currentGroupIndex + 1} / ${_userGroups.length}',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  );
-                }),
+                  ),
+                  const SizedBox(height: 8),
+                  // Progress bars for current user's stories only
+                  Row(
+                    children: List.generate(currentGroup.stories.length, (
+                      index,
+                    ) {
+                      return Expanded(
+                        child: Container(
+                          height: 4,
+                          margin: const EdgeInsets.symmetric(horizontal: 1),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(2),
+                            child: LinearProgressIndicator(
+                              value: index == _currentStoryIndex
+                                  ? _progressController.value
+                                  : index < _currentStoryIndex
+                                  ? 1.0
+                                  : 0.0,
+                              backgroundColor: Colors.white.withOpacity(0.3),
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ],
               ),
             ),
 
             // Close Button
             Positioned(
-              top: MediaQuery.of(context).padding.top + 30,
+              top: MediaQuery.of(context).padding.top,
               right: 15,
               child: GestureDetector(
                 onTap: () => Navigator.of(context).pop(),
@@ -587,7 +762,7 @@ class _StoryViewerPageState extends State<StoryViewerPage>
   }
 
   Widget _buildReactionButton(String reactionType, String emoji) {
-    final currentStory = _stories[_currentIndex];
+    final currentStory = _currentStory;
     final isMyReaction = currentStory.myReaction?.reactionType == reactionType;
 
     return GestureDetector(
