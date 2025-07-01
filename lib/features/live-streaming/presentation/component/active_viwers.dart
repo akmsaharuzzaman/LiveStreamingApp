@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class ActiveViewers extends StatelessWidget {
   const ActiveViewers({super.key, required this.activeUserList});
-  final List activeUserList;
+  final List<Map<String, String>> activeUserList;
 
   @override
   Widget build(BuildContext context) {

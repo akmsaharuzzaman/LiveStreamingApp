@@ -597,24 +597,32 @@ class _GoliveScreenState extends State<GoliveScreen> {
         // If viewer, leave the room
         await _leaveRoom();
       }
+      if (isHost) {
+        if (mounted) {
+          // Get user profile data for the summary screen
+          final profileState = context.read<ProfileBloc>().state;
+          final userProfile = profileState.userProfile.result;
 
-      if (mounted) {
-        // Get user profile data for the summary screen
-        final profileState = context.read<ProfileBloc>().state;
-        final userProfile = profileState.userProfile.result;
-
-        // Navigate to live summary screen with data
-        context.go(
-          '/live-summary',
-          extra: {
-            'userName': userProfile?.name ?? "Unknown User",
-            'userId': userProfile?.id?.substring(0, 6) ?? "000000",
-            'earnedPoints': 0, // You can calculate this based on your app logic
-            'newFollowers': 0, // You can calculate this based on your app logic
-            'totalDuration': _formatDuration(_streamDuration),
-            'userAvatar': userProfile?.avatar?.url,
-          },
-        );
+          // Navigate to live summary screen with data
+          context.go(
+            '/live-summary',
+            extra: {
+              'userName': userProfile?.name ?? "Unknown User",
+              'userId': userProfile?.id?.substring(0, 6) ?? "000000",
+              'earnedPoints':
+                  0, // You can calculate this based on your app logic
+              'newFollowers':
+                  0, // You can calculate this based on your app logic
+              'totalDuration': _formatDuration(_streamDuration),
+              'userAvatar': userProfile?.avatar?.url,
+            },
+          );
+        }
+      } else {
+        // If viewer, just navigate back
+        if (mounted) {
+          context.go("/home");
+        }
       }
     } catch (e) {
       debugPrint('Error ending live stream: $e');
@@ -632,9 +640,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
       onPopInvokedWithResult: (bool didPop, Object? result) {
         // Always trigger cleanup when back navigation is invoked
         _endLiveStream();
-        print(
+        debugPrint(
           'Back navigation invoked: '
-          ' 24didPop (cleanup triggered)',
+          '(cleanup triggered)',
         );
       },
       child: BlocBuilder<ProfileBloc, ProfileState>(
@@ -657,7 +665,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                           children: [
                             // *shows user informations
                             HostInfo(
-                              imageUrl: "https://thispersondoesnotexist.com/",
+                              imageUrl:
+                                  state.userProfile.result?.avatar?.url ?? "",
                               name:
                                   state.userProfile.result?.name ?? "Host Name",
                               id:
@@ -678,11 +687,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                       EndStreamOverlay.show(
                                         context,
                                         onKeepStream: () {
-                                          print("Keep stream pressed");
+                                          debugPrint("Keep stream pressed");
                                         },
                                         onEndStream: () {
                                           _endLiveStream();
-                                          print("End stream pressed");
+                                          debugPrint("End stream pressed");
                                         },
                                       );
                                     },
@@ -702,14 +711,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 : LiveScreenMenuButton(
                                     onDisconnect: () {
                                       _endLiveStream();
-                                      print("Disconnect pressed");
+                                      debugPrint("Disconnect pressed");
                                     },
                                     onMuteCall: () {
-                                      print("Mute call pressed");
+                                      debugPrint("Mute call pressed");
                                       _toggleMute();
                                     },
                                     onViewProfile: () {
-                                      print("View profile pressed");
+                                      debugPrint("View profile pressed");
                                     },
                                   ),
                           ],
@@ -729,24 +738,54 @@ class _GoliveScreenState extends State<GoliveScreen> {
                           children: [
                             CustomLiveButton(
                               icon: Icons.chat_bubble_outline,
-                              onTap: () {},
+                              onTap: () {
+                                _showSnackBar(
+                                  '💬 Not implemented yet! Comming soon!',
+                                  Colors.green,
+                                );
+                                // showChatBottomSheet(context);
+                              },
                             ),
-                            CustomLiveButton(icon: Icons.call, onTap: () {}),
+                            CustomLiveButton(
+                              icon: Icons.call,
+                              onTap: () {
+                                _showSnackBar(
+                                  '📞 Not implemented yet! Comming soon!',
+                                  Colors.green,
+                                );
+                                // showCallBottomSheet(context);
+                              },
+                            ),
                             CustomLiveButton(
                               icon: _muted ? Icons.mic_off : Icons.mic,
                               onTap: () {
-                                _toggleMute();
+                                !isHost
+                                    ? _showSnackBar(
+                                        '🎤 You cannot mute yourself as host',
+                                        Colors.orange,
+                                      )
+                                    : _toggleMute();
                               },
                             ),
                             CustomLiveButton(
                               icon: Icons.redeem,
                               onTap: () {
-                                showGiftBottomSheet(context);
+                                _showSnackBar(
+                                  '🎁 Not implemented yet',
+                                  Colors.green,
+                                );
+                                // showGiftBottomSheet(context);
                               },
                             ),
                             CustomLiveButton(
                               icon: Icons.music_note,
-                              onTap: () {},
+                              onTap: () {
+                                _showSnackBar(
+                                  '🎶 Not implemented yet',
+                                  Colors.green,
+                                );
+                                // showMusicBottomSheet(context);
+                              },
                             ),
                             CustomLiveButton(
                               icon: Icons.more_vert,
@@ -905,7 +944,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   }
 }
 
-const activeViewers = [];
+const List<Map<String, String>> activeViewers = [];
 
 void generateActiveViewers(int count) {
   activeViewers.clear();

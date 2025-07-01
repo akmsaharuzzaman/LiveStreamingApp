@@ -146,42 +146,72 @@ class _ReelsScreenState extends State<ReelsScreen> {
                 reelsList: reelsList,
                 appbarTitle: 'Reels',
                 onShare: (url) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('This feature is not implemented yet.'),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
                   log('Shared reel url ==> $url');
                   // Find the reel by URL and get its ID
-                  final reelEntity = _findReelEntityByUrl(url);
-                  if (reelEntity != null) {
-                    _reelsBloc.add(ShareReel(reelEntity.id));
-                  }
+                  // final reelEntity = _findReelEntityByUrl(url);
+                  // if (reelEntity != null) {
+                  //   _reelsBloc.add(ShareReel(reelEntity.id));
+                  // }
                 },
                 onLike: (url) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('This feature is not implemented yet.'),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
                   log('Liked reel url ==> $url');
                   // Find the reel by URL and get its ID
-                  final reelEntity =  _findReelEntityByUrl(url);
+                  final reelEntity = _findReelEntityByUrl(url);
                   if (reelEntity != null) {
                     // Use the direct repository call for reactions
                     _reactToReel(reelEntity.id, 'like');
                   }
                 },
                 onFollow: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('This feature is not implemented yet.'),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
                   log('======> Clicked on follow <======');
                 },
                 onComment: (comment) {
                   log('Comment on reel ==> $comment');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('This feature is not implemented yet.'),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
                   // Find current reel and open comments page
-                  if (currentIndex < reelsList.length) {
-                    final reelEntity = _getCurrentReelEntity();
-                    if (reelEntity != null) {
-                      if (comment.isNotEmpty) {
-                        // If there's actual comment text, add it
-                        _reelsBloc.add(AddComment(reelEntity.id, comment));
-                      } else {
-                        // If just clicking comment icon, open comments page
-                        _openCommentsPage(reelEntity.id);
-                      }
-                    }
-                  }
+                  // if (currentIndex < reelsList.length) {
+                  //   final reelEntity = _getCurrentReelEntity();
+                  //   if (reelEntity != null) {
+                  //     if (comment.isNotEmpty) {
+                  //       // If there's actual comment text, add it
+                  //       _reelsBloc.add(AddComment(reelEntity.id, comment));
+                  //     } else {
+                  //       // If just clicking comment icon, open comments page
+                  //       _openCommentsPage(reelEntity.id);
+                  //     }
+                  //   }
+                  // }
                 },
                 onClickMoreBtn: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('This feature is not implemented yet.'),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
                   log('======> Clicked on more option <======');
                 },
                 onClickBackArrow: () {

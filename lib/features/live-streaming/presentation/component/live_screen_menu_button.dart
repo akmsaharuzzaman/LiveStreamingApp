@@ -40,26 +40,26 @@ class LiveScreenMenuButton extends StatelessWidget {
                 ],
               ),
             ),
-            PopupMenuItem(
-              value: LiveScreenLeaveOptions.muteCall,
-              child: Row(
-                children: [
-                  Icon(Icons.mic_off),
-                  SizedBox(width: 6),
-                  Text("Mute Call"),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: LiveScreenLeaveOptions.viewProfile,
-              child: Row(
-                children: [
-                  Icon(Icons.person_outline),
-                  SizedBox(width: 6),
-                  Text("View Profile"),
-                ],
-              ),
-            ),
+            // PopupMenuItem(
+            //   value: LiveScreenLeaveOptions.muteCall,
+            //   child: Row(
+            //     children: [
+            //       Icon(Icons.mic_off),
+            //       SizedBox(width: 6),
+            //       Text("Mute Call"),
+            //     ],
+            //   ),
+            // ),
+            // PopupMenuItem(
+            //   value: LiveScreenLeaveOptions.viewProfile,
+            //   child: Row(
+            //     children: [
+            //       Icon(Icons.person_outline),
+            //       SizedBox(width: 6),
+            //       Text("View Profile"),
+            //     ],
+            //   ),
+            // ),
           ],
           onSelected: (value) {
             if (value == LiveScreenLeaveOptions.disconnect) {
