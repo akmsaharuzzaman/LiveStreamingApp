@@ -70,7 +70,7 @@ class UserStoryGroup {
     return UserStoryGroup(
       id: json['_id'] ?? '',
       name: json['name'] ?? '',
-      avatar: json['avatar'] != null ? json['avatar']['url'] : '',
+      avatar: json['avatar'] != null ? json['avatar']['url'] : null,
       stories:
           (json['stories'] as List<dynamic>?)
               ?.map((item) => StoryItem.fromJson(item))
@@ -104,6 +104,7 @@ class StoryItem {
   final int reactionCount;
   final String createdAt;
   final StoryUserInfo userInfo;
+  final StoryItemReaction? myReaction;
 
   StoryItem({
     required this.id,
@@ -112,6 +113,7 @@ class StoryItem {
     required this.reactionCount,
     required this.createdAt,
     required this.userInfo,
+    this.myReaction,
   });
 
   factory StoryItem.fromJson(Map<String, dynamic> json) {
@@ -122,6 +124,9 @@ class StoryItem {
       reactionCount: json['reactionCount'] ?? 0,
       createdAt: json['createdAt'] ?? '',
       userInfo: StoryUserInfo.fromJson(json['userInfo'] ?? {}),
+      myReaction: json['myReaction'] != null
+          ? StoryItemReaction.fromJson(json['myReaction'])
+          : null,
     );
   }
 }
@@ -129,10 +134,38 @@ class StoryItem {
 class StoryUserInfo {
   final String id;
   final String name;
+  final StoryUserAvatar? avatar;
 
-  StoryUserInfo({required this.id, required this.name});
+  StoryUserInfo({required this.id, required this.name, this.avatar});
 
   factory StoryUserInfo.fromJson(Map<String, dynamic> json) {
-    return StoryUserInfo(id: json['_id'] ?? '', name: json['name'] ?? '');
+    return StoryUserInfo(
+      id: json['_id'] ?? '',
+      name: json['name'] ?? '',
+      avatar: json['avatar'] != null
+          ? StoryUserAvatar.fromJson(json['avatar'])
+          : null,
+    );
+  }
+}
+
+class StoryUserAvatar {
+  final String name;
+  final String url;
+
+  StoryUserAvatar({required this.name, required this.url});
+
+  factory StoryUserAvatar.fromJson(Map<String, dynamic> json) {
+    return StoryUserAvatar(name: json['name'] ?? '', url: json['url'] ?? '');
+  }
+}
+
+class StoryItemReaction {
+  final String reactionType;
+
+  StoryItemReaction({required this.reactionType});
+
+  factory StoryItemReaction.fromJson(Map<String, dynamic> json) {
+    return StoryItemReaction(reactionType: json['reaction_type'] ?? 'like');
   }
 }

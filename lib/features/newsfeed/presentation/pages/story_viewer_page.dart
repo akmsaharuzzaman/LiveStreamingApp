@@ -30,6 +30,7 @@ class _StoryViewerPageState extends State<StoryViewerPage>
   List<StoryModel> _stories = [];
   bool _isLoading = false;
   String? _currentUserId;
+  bool _isPaused = false; // Track if story is paused
 
   // Story progress duration (5 seconds per story)
   static const Duration _storyDuration = Duration(seconds: 5);
@@ -43,7 +44,14 @@ class _StoryViewerPageState extends State<StoryViewerPage>
     _progressController = AnimationController(
       duration: _storyDuration,
       vsync: this,
-    ); // Initialize services
+    );
+
+    // Add a smooth animation curve for better visual experience
+    _progressController.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    }); // Initialize services
     final apiService = ApiService.instance;
     final authService = AuthService();
     _postService = PostService(apiService, authService);
@@ -67,6 +75,24 @@ class _StoryViewerPageState extends State<StoryViewerPage>
       if (mounted) {
         _nextStory();
       }
+    });
+  }
+
+  void _pauseStoryProgress() {
+    if (_progressController.isAnimating) {
+      _progressController.stop();
+      setState(() {
+        _isPaused = true;
+      });
+    }
+  }
+
+  void _resumeStoryProgress() {
+    if (!_progressController.isAnimating && _progressController.value < 1.0) {
+      _progressController.forward();
+    }
+    setState(() {
+      _isPaused = false;
     });
   }
 
@@ -110,8 +136,20 @@ class _StoryViewerPageState extends State<StoryViewerPage>
 
     result.when(
       success: (data) {
-        // Update story with new reaction data
-        final updatedStory = StoryModel.fromJson(data['result']);
+        // Update story with new reaction data, preserving user info
+        final currentStory = _stories[_currentIndex];
+        final reactionData = data['result'];
+
+        // Create new reaction object
+        final newReaction = StoryReaction(reactionType: reactionType);
+
+        // Use copyWith to preserve existing user info
+        final updatedStory = currentStory.copyWith(
+          reactionCount:
+              reactionData['reactionCount'] ?? currentStory.reactionCount,
+          myReaction: newReaction,
+        );
+
         print('Updated Story: ${updatedStory.toJson()}');
         setState(() {
           _stories[_currentIndex] = updatedStory;
@@ -119,6 +157,7 @@ class _StoryViewerPageState extends State<StoryViewerPage>
 
         // Show reaction feedback
         _showReactionFeedback(reactionType);
+        
       },
       failure: (error) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -287,6 +326,14 @@ class _StoryViewerPageState extends State<StoryViewerPage>
             _nextStory();
           }
         },
+        onLongPressStart: (_) {
+          // Pause story progress when user holds down
+          _pauseStoryProgress();
+        },
+        onLongPressEnd: (_) {
+          // Resume story progress when user releases hold
+          _resumeStoryProgress();
+        },
         child: Stack(
           children: [
             // Story Content
@@ -314,17 +361,20 @@ class _StoryViewerPageState extends State<StoryViewerPage>
                 children: List.generate(_stories.length, (index) {
                   return Expanded(
                     child: Container(
-                      height: 3,
+                      height: 4, // Increased from 3 to 4 for better visibility
                       margin: const EdgeInsets.symmetric(horizontal: 1),
-                      child: LinearProgressIndicator(
-                        value: index == _currentIndex
-                            ? _progressController.value
-                            : index < _currentIndex
-                            ? 1.0
-                            : 0.0,
-                        backgroundColor: Colors.white.withOpacity(0.3),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          Colors.white,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(2),
+                        child: LinearProgressIndicator(
+                          value: index == _currentIndex
+                              ? _progressController.value
+                              : index < _currentIndex
+                              ? 1.0
+                              : 0.0,
+                          backgroundColor: Colors.white.withOpacity(0.3),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -385,6 +435,16 @@ class _StoryViewerPageState extends State<StoryViewerPage>
                       size: 30,
                     ),
                   ),
+                ),
+              ),
+
+            // Pause Indicator
+            if (_isPaused)
+              const Center(
+                child: Icon(
+                  Icons.pause_circle_filled,
+                  color: Colors.white,
+                  size: 80,
                 ),
               ),
           ],

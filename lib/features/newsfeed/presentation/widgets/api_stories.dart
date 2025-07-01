@@ -132,38 +132,62 @@ class _ApiStoriesState extends State<ApiStories> {
                     storyGroup: storyGroup,
                     currentUser: widget.currentUser,
                     onTap: () {
-                      // Convert UserStoryGroup stories to StoryModel for viewer
-                      List<StoryModel> storyModels = storyGroup.stories.map((
-                        storyItem,
+                      // Convert ALL story groups to a flat list of StoryModel
+                      List<StoryModel> allStories = [];
+                      int targetIndex = 0;
+
+                      // Process all story groups
+                      for (
+                        int groupIndex = 0;
+                        groupIndex < _storyGroups.length;
+                        groupIndex++
                       ) {
-                        return StoryModel(
-                          id: storyItem.id,
-                          ownerId: storyItem.ownerId,
-                          mediaUrl: storyItem.mediaUrl,
-                          reactionCount: storyItem.reactionCount,
-                          createdAt: storyItem.createdAt,
-                          userInfo: StoryUserInfo(
-                            id: storyItem.userInfo.id,
-                            name: storyItem.userInfo.name,
-                            avatar: storyGroup.avatar != null
-                                ? StoryAvatar(
-                                    name: storyGroup.name,
-                                    url: storyGroup.avatar!,
+                        final group = _storyGroups[groupIndex];
+
+                        // Convert stories from this group
+                        List<StoryModel> groupStories = group.stories.map((
+                          storyItem,
+                        ) {
+                          return StoryModel(
+                            id: storyItem.id,
+                            ownerId: storyItem.ownerId,
+                            mediaUrl: storyItem.mediaUrl,
+                            reactionCount: storyItem.reactionCount,
+                            createdAt: storyItem.createdAt,
+                            userInfo: StoryUserInfo(
+                              id: storyItem.userInfo.id,
+                              name: storyItem.userInfo.name,
+                              avatar: storyItem.userInfo.avatar != null
+                                  ? StoryAvatar(
+                                      name: storyItem.userInfo.avatar!.name,
+                                      url: storyItem.userInfo.avatar!.url,
+                                    )
+                                  : null,
+                            ),
+                            myReaction: storyItem.myReaction != null
+                                ? StoryReaction(
+                                    reactionType:
+                                        storyItem.myReaction!.reactionType,
                                   )
                                 : null,
-                          ),
-                          myReaction:
-                              null, // Will be set based on user's reaction
-                        );
-                      }).toList();
+                          );
+                        }).toList();
 
-                      // Navigate to story viewer with all stories from this user
+                        // If this is the tapped group, remember the starting index
+                        if (groupIndex == index - 1) {
+                          targetIndex = allStories.length;
+                        }
+
+                        allStories.addAll(groupStories);
+                      }
+
+                      // Navigate to story viewer with all stories, starting at the tapped group
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => StoryViewerPage(
-                            stories: storyModels,
-                            initialIndex: 0,
+                            stories: allStories,
+                            initialIndex: targetIndex,
                             currentUserId: widget.currentUser.id.toString(),
                           ),
                         ),
@@ -214,9 +238,9 @@ class ApiStoryCard extends StatelessWidget {
                         border: Border.all(
                           color: isAddStory
                               ? Colors.grey[400]!
-                              : _getViewedStatus()
-                              ? Colors.grey[400]!
-                              : Colors.blue,
+                              : _hasUnseenStories()
+                              ? Colors.blue
+                              : Colors.grey[400]!,
                           width: 3.0,
                         ),
                       ),
@@ -262,7 +286,7 @@ class ApiStoryCard extends StatelessWidget {
               ],
             ),
           ),
-          if (!isAddStory && story?.myReaction != null)
+          if (!isAddStory && _hasMyReaction())
             Positioned(
               top: 8,
               right: 8,
@@ -273,7 +297,7 @@ class ApiStoryCard extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Text(
-                  _getReactionEmoji(story!.myReaction!.reactionType),
+                  _getMyReactionEmoji(),
                   style: const TextStyle(fontSize: 12),
                 ),
               ),
@@ -401,6 +425,27 @@ class ApiStoryCard extends StatelessWidget {
     );
   }
 
+  bool _hasMyReaction() {
+    if (story?.myReaction != null) {
+      return true;
+    } else if (storyGroup != null) {
+      // Check if the latest story has a reaction
+      return storyGroup!.latestStory?.myReaction != null;
+    }
+    return false;
+  }
+
+  String _getMyReactionEmoji() {
+    String? reactionType;
+    if (story?.myReaction != null) {
+      reactionType = story!.myReaction!.reactionType;
+    } else if (storyGroup?.latestStory?.myReaction != null) {
+      reactionType = storyGroup!.latestStory!.myReaction!.reactionType;
+    }
+
+    return _getReactionEmoji(reactionType ?? 'like');
+  }
+
   String _getReactionEmoji(String reactionType) {
     switch (reactionType.toLowerCase()) {
       case 'like':
@@ -409,8 +454,8 @@ class ApiStoryCard extends StatelessWidget {
         return '❤️';
       case 'haha':
         return '😂';
-      case 'wow':
-        return '😮';
+      case 'care':
+        return '🤗';
       case 'sad':
         return '😢';
       case 'angry':
@@ -427,6 +472,14 @@ class ApiStoryCard extends StatelessWidget {
       return storyGroup!.allStoriesViewed;
     }
     return false;
+  }
+
+  bool _hasUnseenStories() {
+    if (storyGroup != null) {
+      // Check if there are stories without reactions (indicating unseen)
+      return storyGroup!.stories.any((story) => story.myReaction == null);
+    }
+    return !_getViewedStatus();
   }
 
   String _getUserName() {
