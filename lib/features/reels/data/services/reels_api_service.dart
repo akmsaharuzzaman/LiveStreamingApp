@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import '../../../../core/network/api_service.dart';
 import '../../../../core/network/api_constants.dart';
-import '../models/reel_model.dart';
+import '../models/reel_api_response_model.dart';
 
 class ReelsApiService {
   final ApiService _apiService;
@@ -145,7 +145,7 @@ class ReelsApiService {
   }
 
   /// Get comments for a reel
-  Future<Map<String, dynamic>?> getReelComments({
+  Future<ReelCommentsApiResponse?> getReelComments({
     required String reelId,
     int page = 1,
     int limit = 10,
@@ -160,7 +160,14 @@ class ReelsApiService {
       return result.when(
         success: (data) {
           log('Successfully got comments for reel: $data');
-          return data as Map<String, dynamic>?;
+          if (data is Map<String, dynamic>) {
+            return ReelCommentsApiResponse.fromJson(data);
+          } else if (data is String) {
+            final Map<String, dynamic> jsonData = json.decode(data);
+            return ReelCommentsApiResponse.fromJson(jsonData);
+          } else {
+            throw Exception('Unexpected response format: ${data.runtimeType}');
+          }
         },
         failure: (error) {
           log('Error getting reel comments: $error');

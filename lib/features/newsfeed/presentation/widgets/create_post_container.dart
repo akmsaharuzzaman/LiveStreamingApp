@@ -11,10 +11,10 @@ class CreatePostContainer extends StatefulWidget {
   final VoidCallback? onCreatePost;
 
   const CreatePostContainer({
-    Key? key,
+    super.key,
     required this.currentUser,
     this.onCreatePost,
-  }) : super(key: key);
+  });
 
   @override
   State<CreatePostContainer> createState() => _CreatePostContainerState();

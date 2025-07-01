@@ -668,17 +668,19 @@ class _ProfileSignupCompleteState extends State<ProfileSignupComplete> {
                                     .grey[200], // Fallback background color
                               )
                             : CircleAvatar(
-                                radius: 32.r, // Size of the avatar
-                                backgroundImage: const AssetImage(
-                                  'assets/images/new_images/profile.png',
-                                ),
+                                radius: 32.r,
+                                child: Icon(
+                                  Icons.person,
+                                  size: 32.r, // Icon size
+                                  color: Colors.grey[800],
+                                ), // Size of the avatar
                               ),
                         Positioned(
                           top: 2,
                           right: 2,
                           child: CircleAvatar(
                             radius: 10.r,
-                            backgroundColor: Colors.blue,
+                            backgroundColor: Colors.grey[800],
                             child: Icon(
                               Icons.edit,
                               size: 13.sp,

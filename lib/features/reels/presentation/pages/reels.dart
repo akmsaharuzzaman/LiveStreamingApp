@@ -16,6 +16,7 @@ import '../bloc/reels_bloc.dart';
 import '../bloc/reels_event.dart';
 import '../bloc/reels_state.dart';
 import '../utils/reel_mapper.dart';
+import 'reel_comments_page.dart';
 
 class ReelsScreen extends StatefulWidget {
   const ReelsScreen({super.key});
@@ -155,9 +156,10 @@ class _ReelsScreenState extends State<ReelsScreen> {
                 onLike: (url) {
                   log('Liked reel url ==> $url');
                   // Find the reel by URL and get its ID
-                  final reelEntity = _findReelEntityByUrl(url);
+                  final reelEntity =  _findReelEntityByUrl(url);
                   if (reelEntity != null) {
-                    _reelsBloc.add(LikeReel(reelEntity.id));
+                    // Use the direct repository call for reactions
+                    _reactToReel(reelEntity.id, 'like');
                   }
                 },
                 onFollow: () {
@@ -165,11 +167,17 @@ class _ReelsScreenState extends State<ReelsScreen> {
                 },
                 onComment: (comment) {
                   log('Comment on reel ==> $comment');
-                  // Find current reel and add comment
+                  // Find current reel and open comments page
                   if (currentIndex < reelsList.length) {
                     final reelEntity = _getCurrentReelEntity();
                     if (reelEntity != null) {
-                      _reelsBloc.add(AddComment(reelEntity.id, comment));
+                      if (comment.isNotEmpty) {
+                        // If there's actual comment text, add it
+                        _reelsBloc.add(AddComment(reelEntity.id, comment));
+                      } else {
+                        // If just clicking comment icon, open comments page
+                        _openCommentsPage(reelEntity.id);
+                      }
                     }
                   }
                 },
@@ -242,5 +250,35 @@ class _ReelsScreenState extends State<ReelsScreen> {
       return state.reels[currentIndex];
     }
     return null;
+  }
+
+  // Helper method to react to a reel
+  Future<void> _reactToReel(String reelId, String reactionType) async {
+    try {
+      final repository = ReelsDependencyContainer.createRepository();
+      final success = await repository.likeReel(
+        reelId,
+      ); // This will be updated to handle different reaction types
+
+      if (success) {
+        log('Successfully reacted to reel: $reelId with $reactionType');
+        // Optionally refresh the current reel to show updated reaction count
+      } else {
+        log('Failed to react to reel: $reelId');
+      }
+    } catch (e) {
+      log('Error reacting to reel: $e');
+    }
+  }
+
+  // Helper method to open comments page for a reel
+  void _openCommentsPage(String reelId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            ReelCommentsPage(reelId: reelId, reelTitle: 'Reel Comments'),
+      ),
+    );
   }
 }

@@ -66,7 +66,26 @@ class _ApiStoriesState extends State<ApiStories> {
 
   // Public method to refresh stories from external widgets
   Future<void> refreshStories() async {
+    // Briefly show loading state during refresh
+    setState(() {
+      _isLoading = true;
+    });
+
     await _loadStories();
+
+    // Show a subtle indication that stories were refreshed
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Stories updated'),
+          duration: const Duration(seconds: 1),
+          backgroundColor: Colors.green.withOpacity(0.8),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          margin: const EdgeInsets.only(bottom: 100, left: 16, right: 16),
+        ),
+      );
+    }
   }
 
   @override
@@ -189,6 +208,10 @@ class _ApiStoriesState extends State<ApiStories> {
                             stories: allStories,
                             initialIndex: targetIndex,
                             currentUserId: widget.currentUser.id.toString(),
+                            onStoriesUpdated: () async {
+                              // Refresh stories when user comes back from story viewer
+                              await refreshStories();
+                            },
                           ),
                         ),
                       );
@@ -311,21 +334,21 @@ class ApiStoryCard extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        currentUser?.avatar != null
-            ? currentUser!.avatar.startsWith('http')
-                  ? CachedNetworkImage(
-                      imageUrl: currentUser!.avatar,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: Colors.grey[300],
-                        child: const Center(child: CircularProgressIndicator()),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.person, size: 50),
-                      ),
-                    )
-                  : Image.asset(currentUser!.avatar, fit: BoxFit.cover)
+        currentUser?.avatar != null &&
+                currentUser!.avatar.isNotEmpty &&
+                currentUser!.avatar.startsWith('http')
+            ? CachedNetworkImage(
+                imageUrl: currentUser!.avatar,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  color: Colors.grey[300],
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.person, size: 50),
+                ),
+              )
             : Container(
                 color: Colors.grey[300],
                 child: const Icon(Icons.person, size: 50),

@@ -7,7 +7,7 @@ abstract class ReelsRepository {
   Future<bool> addComment(String reelId, String comment);
 
   // Comment management
-  Future<Map<String, dynamic>?> getReelComments(
+  Future<List<ReelCommentEntity>?> getReelComments(
     String reelId, {
     int page = 1,
     int limit = 10,

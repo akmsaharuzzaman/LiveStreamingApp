@@ -3,12 +3,7 @@ import 'package:dlstarlive/features/newsfeed/data/models/mock_models/story_model
 
 import '../../../../chat/data/models/user_model.dart';
 
-final User currentUser = User(
-  name: 'Marcus Ng',
-  avatar:
-      'https://images.unsplash.com/photo-1578133671540-edad0b3d689e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1351&q=80',
-  id: 1,
-);
+final User currentUser = User(name: '', avatar: '', id: 1);
 
 final List<User> onlineUsers = [
   User(

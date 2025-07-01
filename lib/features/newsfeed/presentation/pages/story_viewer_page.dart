@@ -9,12 +9,14 @@ class StoryViewerPage extends StatefulWidget {
   final List<StoryModel> stories;
   final int initialIndex;
   final String? currentUserId; // Add current user ID parameter
+  final VoidCallback? onStoriesUpdated; // Callback to notify parent of updates
 
   const StoryViewerPage({
     super.key,
     required this.stories,
     this.initialIndex = 0,
     this.currentUserId,
+    this.onStoriesUpdated,
   });
 
   @override
@@ -31,6 +33,7 @@ class _StoryViewerPageState extends State<StoryViewerPage>
   bool _isLoading = false;
   String? _currentUserId;
   bool _isPaused = false; // Track if story is paused
+  bool _hasInteracted = false; // Track if user has viewed/reacted to stories
 
   // Story progress duration (5 seconds per story)
   static const Duration _storyDuration = Duration(seconds: 5);
@@ -64,6 +67,14 @@ class _StoryViewerPageState extends State<StoryViewerPage>
 
   @override
   void dispose() {
+    // Notify parent if user has interacted with stories
+    if (_hasInteracted && widget.onStoriesUpdated != null) {
+      // Use addPostFrameCallback to ensure the callback runs after dispose
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onStoriesUpdated!();
+      });
+    }
+
     _pageController.dispose();
     _progressController.dispose();
     super.dispose();
@@ -97,6 +108,9 @@ class _StoryViewerPageState extends State<StoryViewerPage>
   }
 
   void _nextStory() {
+    // Mark that user has interacted (viewed stories)
+    _hasInteracted = true;
+
     if (_currentIndex < _stories.length - 1) {
       _currentIndex++;
       _pageController.nextPage(
@@ -110,6 +124,9 @@ class _StoryViewerPageState extends State<StoryViewerPage>
   }
 
   void _previousStory() {
+    // Mark that user has interacted (viewed stories)
+    _hasInteracted = true;
+
     if (_currentIndex > 0) {
       _currentIndex--;
       _pageController.previousPage(
@@ -157,7 +174,9 @@ class _StoryViewerPageState extends State<StoryViewerPage>
 
         // Show reaction feedback
         _showReactionFeedback(reactionType);
-        
+
+        // Mark that user has interacted (reacted to stories)
+        _hasInteracted = true;
       },
       failure: (error) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -269,6 +288,9 @@ class _StoryViewerPageState extends State<StoryViewerPage>
           _stories.removeAt(_currentIndex);
         });
 
+        // Mark that user has interacted (deleted story)
+        _hasInteracted = true;
+
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -343,6 +365,8 @@ class _StoryViewerPageState extends State<StoryViewerPage>
                 setState(() {
                   _currentIndex = index;
                 });
+                // Mark interaction when user manually swipes between stories
+                _hasInteracted = true;
                 _startStoryProgress();
               },
               itemCount: _stories.length,

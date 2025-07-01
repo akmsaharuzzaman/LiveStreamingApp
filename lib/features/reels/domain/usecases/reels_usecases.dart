@@ -46,7 +46,7 @@ class GetReelCommentsUseCase {
 
   GetReelCommentsUseCase(this.repository);
 
-  Future<Map<String, dynamic>?> call(
+  Future<List<ReelCommentEntity>?> call(
     String reelId, {
     int page = 1,
     int limit = 10,

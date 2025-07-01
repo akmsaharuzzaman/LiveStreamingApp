@@ -2,8 +2,8 @@ import 'dart:developer';
 
 import '../../domain/entities/reel_entity.dart';
 import '../../domain/repositories/reels_repository.dart';
-import '../models/reel_model.dart';
 import '../services/reels_api_service.dart';
+import '../../presentation/utils/reel_mapper.dart';
 
 class ReelsRepositoryImpl implements ReelsRepository {
   final ReelsApiService apiService;
@@ -15,9 +15,7 @@ class ReelsRepositoryImpl implements ReelsRepository {
     try {
       log('Fetching reels from API (page: $page, limit: $limit)');
       final apiResponse = await apiService.getReels(page: page, limit: limit);
-      final entities = apiResponse.result.data
-          .map((apiReel) => _mapToEntity(apiReel))
-          .toList();
+      final entities = ReelMapper.apiModelsToEntities(apiResponse.result.data);
       log('Successfully fetched ${entities.length} reels from API');
       return entities;
     } catch (e) {
@@ -59,17 +57,24 @@ class ReelsRepositoryImpl implements ReelsRepository {
   }
 
   @override
-  Future<Map<String, dynamic>?> getReelComments(
+  Future<List<ReelCommentEntity>?> getReelComments(
     String reelId, {
     int page = 1,
     int limit = 10,
   }) async {
     try {
-      return await apiService.getReelComments(
+      final apiResponse = await apiService.getReelComments(
         reelId: reelId,
         page: page,
         limit: limit,
       );
+
+      if (apiResponse != null) {
+        return apiResponse.result.data
+            .map((comment) => ReelMapper.commentApiModelToEntity(comment))
+            .toList();
+      }
+      return null;
     } catch (e) {
       log('Error getting reel comments: $e');
       return null;
@@ -133,86 +138,77 @@ class ReelsRepositoryImpl implements ReelsRepository {
     }
   }
 
-  ReelEntity _mapToEntity(ReelApiModel apiReel) {
-    return ReelEntity(
-      id: apiReel.id,
-      videoUrl: apiReel.reelUrl.isNotEmpty
-          ? apiReel.reelUrl
-          : 'https://parsefiles.back4app.com/SM60vnNNpjvoH6PA6ljZAa6IyAYVb1oWVVid8G4A/825ccd06d87e4f707cf54d746a9f017c_lv_7263925596898610433_20230818030011_1738902212119.mp4',
-      userName: apiReel.userInfo.name,
-      userAvatar:
-          apiReel.userInfo.avatar?.url ??
-          'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
-      description:
-          'Amazing reel content!', // API doesn't provide description, using dummy
-      musicName: 'Unknown Music', // API doesn't provide music, using dummy
-      likeCount: apiReel.reactions,
-      commentCount: apiReel.comments,
-      shareCount: 0, // API doesn't provide share count, using dummy
-      isLiked: _checkIfLiked(apiReel.latestReactions),
-      isFollowing: false, // This field doesn't exist in API, using dummy
-      comments: _mapComments(apiReel.latestReactions),
-    );
-  }
-
-  bool _checkIfLiked(List<ReactionInfo> reactions) {
-    // This is a simplified check - in real implementation,
-    // you'd check if current user has liked
-    return reactions.any((reaction) => reaction.reactionType == 'like');
-  }
-
-  List<CommentEntity> _mapComments(List<ReactionInfo> reactions) {
-    // For now, we'll treat reactions as comments for demo purposes
-    // In real implementation, you'd have separate comments API
-    return reactions
-        .take(3)
-        .map(
-          (reaction) => CommentEntity(
-            id: reaction.id,
-            comment: 'Nice ${reaction.reactionType}!',
-            userName: reaction.userInfo?.name ?? 'Anonymous',
-            userProfilePic:
-                reaction.userInfo?.avatar?.url ??
-                'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
-            commentTime: reaction.createdAt,
-          ),
-        )
-        .toList();
-  }
-
   List<ReelEntity> _getDummyReels() {
     return [
       ReelEntity(
         id: 'dummy1',
+        status: 'published',
+        videoLength: 30,
+        videoMaximumLength: 60,
         videoUrl:
-            'https://parsefiles.back4app.com/SM60vnNNpjvoH6PA6ljZAa6IyAYVb1oWVVid8G4A/825ccd06d87e4f707cf54d746a9f017c_lv_7263925596898610433_20230818030011_1738902212119.mp4',
-        userName: 'Darshan Patil',
-        userAvatar:
-            'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
-        description: "Life is better when you're laughing.",
-        musicName: 'In the name of Love',
-        likeCount: 2000,
-        commentCount: 3,
-        shareCount: 100,
-        isLiked: true,
-        isFollowing: false,
-        comments: [],
+            'https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4',
+        reactions: 2000,
+        comments: 3,
+        createdAt: DateTime.now().toIso8601String(),
+        userInfo: ReelUserEntity(
+          id: 'user1',
+          name: 'Darshan Patil',
+          avatar: ReelUserAvatarEntity(
+            name: 'avatar1.jpg',
+            url:
+                'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
+          ),
+        ),
+        latestReactions: [],
+        myReaction: ReelReactionEntity(
+          id: 'reaction1',
+          reactedBy: 'currentUser',
+          reactedTo: 'dummy1',
+          reactionType: 'like',
+          createdAt: DateTime.now().toIso8601String(),
+        ),
       ),
       ReelEntity(
         id: 'dummy2',
+        status: 'published',
+        videoLength: 45,
+        videoMaximumLength: 60,
         videoUrl:
-            'https://parsefiles.back4app.com/SM60vnNNpjvoH6PA6ljZAa6IyAYVb1oWVVid8G4A/fd1764f362cf3b5530bd48aef7aa05f5_VID-20250209-WA0027_1739109909693.mp4',
-        userName: 'Rahul',
-        userAvatar:
-            'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
-        description: "Amazing content!",
-        musicName: 'In the name of Love',
-        likeCount: 1500,
-        commentCount: 5,
-        shareCount: 80,
-        isLiked: false,
-        isFollowing: false,
-        comments: [],
+            'https://assets.mixkit.co/videos/preview/mixkit-father-and-his-little-daughter-eating-marshmallows-in-nature-39765-large.mp4',
+        reactions: 1500,
+        comments: 5,
+        createdAt: DateTime.now().toIso8601String(),
+        userInfo: ReelUserEntity(
+          id: 'user2',
+          name: 'Rahul',
+          avatar: ReelUserAvatarEntity(
+            name: 'avatar2.jpg',
+            url:
+                'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
+          ),
+        ),
+        latestReactions: [],
+      ),
+      ReelEntity(
+        id: 'dummy3',
+        status: 'published',
+        videoLength: 35,
+        videoMaximumLength: 60,
+        videoUrl:
+            'https://assets.mixkit.co/videos/preview/mixkit-mother-with-her-little-daughter-eating-a-marshmallow-in-nature-39764-large.mp4',
+        reactions: 800,
+        comments: 2,
+        createdAt: DateTime.now().toIso8601String(),
+        userInfo: ReelUserEntity(
+          id: 'user3',
+          name: 'Rahul',
+          avatar: ReelUserAvatarEntity(
+            name: 'avatar3.jpg',
+            url:
+                'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
+          ),
+        ),
+        latestReactions: [],
       ),
     ];
   }

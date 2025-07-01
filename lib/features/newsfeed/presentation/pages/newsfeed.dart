@@ -30,7 +30,7 @@ User userEntityToUser(UserEntity userEntity) {
   return User(
     id: userEntity.id.hashCode, // Convert string ID to int
     name: userEntity.name,
-    avatar: userEntity.avatar?.url ?? 'assets/images/new_images/person.png',
+    avatar: userEntity.avatar?.url ?? '',
   );
 }
 
@@ -87,8 +87,8 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
           body: RefreshIndicator(
-            //indecator position in middle center
-            displacement: 500,
+            // Position indicator at 40% of screen height instead of bottom
+            displacement: MediaQuery.of(context).size.height * 0.4,
             onRefresh: _refreshFeed,
             child: CustomScrollView(
               controller: scrollController,
@@ -175,21 +175,27 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
                         );
                       }
                       // Fallback to mock user if not authenticated
-                      return CreatePostContainer(
-                        currentUser: MockData.currentUser,
-                        onCreatePost: () async {
-                          // Navigate to create post page
-                          final result = await Navigator.push<bool>(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const CreatePostPage(),
-                            ),
-                          );
+                      return BlocBuilder<AuthBloc, AuthState>(
+                        builder: (context, state) {
+                          return CreatePostContainer(
+                            currentUser: (state is AuthAuthenticated)
+                                ? userEntityToUser(state.user)
+                                : MockData.currentUser,
+                            onCreatePost: () async {
+                              // Navigate to create post page
+                              final result = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CreatePostPage(),
+                                ),
+                              );
 
-                          // If post was created successfully, refresh the feed
-                          if (result == true) {
-                            _newsfeedBloc.add(RefreshPostsEvent());
-                          }
+                              // If post was created successfully, refresh the feed
+                              if (result == true) {
+                                _newsfeedBloc.add(RefreshPostsEvent());
+                              }
+                            },
+                          );
                         },
                       );
                     },

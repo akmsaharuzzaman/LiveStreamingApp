@@ -59,7 +59,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
         // Original bottom sheet content
         if (_activeGame == null)
           Container(
-            height: (_activeGame != null) ? 800.h : 500.h,
+            height: (_activeGame != null) ? 950.h : 500.h,
             decoration: BoxDecoration(
               color: const Color(0xFF1A1A2E),
               borderRadius: BorderRadius.only(
