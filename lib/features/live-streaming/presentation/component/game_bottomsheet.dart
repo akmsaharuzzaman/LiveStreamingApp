@@ -1,24 +1,30 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../pages/local_game_page.dart';
 import '../../../../core/services/local_game_manager.dart';
 import '../../../../core/models/local_game_config.dart';
 
-void showGameBottomSheet(BuildContext context, {String? userId}) {
+void showGameBottomSheet(
+  BuildContext context, {
+  String? userId,
+  bool isHost = false,
+}) {
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (context) {
-      return GameBottomSheet(userId: userId);
+      return GameBottomSheet(userId: userId, isHost: isHost);
     },
   );
 }
 
 class GameBottomSheet extends StatefulWidget {
   final String? userId;
+  final bool isHost;
 
-  const GameBottomSheet({super.key, this.userId});
+  const GameBottomSheet({super.key, this.userId, required this.isHost});
 
   @override
   State<GameBottomSheet> createState() => _GameBottomSheetState();
@@ -30,10 +36,13 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
   bool _isStartingGame = false;
   String? _currentGameTitle;
   LocalGameConfig? _activeGame;
+  double gameHeight = 0.7;
+  late double modalHight;
 
   @override
   void initState() {
     super.initState();
+    modalHight = widget.isHost ? 0.7 : 0.25;
     _loadLocalGames();
   }
 
@@ -60,8 +69,10 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
         if (_activeGame == null)
           Container(
             height: (_activeGame != null)
-                ? MediaQuery.of(context).size.height * .90
-                : MediaQuery.of(context).size.height * .55,
+                ? MediaQuery.of(context).size.height * gameHeight
+                : widget.isHost
+                ? MediaQuery.of(context).size.height * .55
+                : MediaQuery.of(context).size.height * modalHight,
             decoration: BoxDecoration(
               color: const Color(0xFF1A1A2E),
               borderRadius: BorderRadius.only(
@@ -162,84 +173,85 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
 
                 SizedBox(height: 12.h),
 
-                // Control Options Grid
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    child: GridView.count(
-                      crossAxisCount: 4,
-                      crossAxisSpacing: 16.w,
-                      mainAxisSpacing: 16.h,
-                      childAspectRatio: 0.8,
-                      children: [
-                        _buildControlOption(
-                          iconPath: "assets/icon/share_grid_icon.png",
-                          label: 'Share',
-                          onTap: () {
-                            Navigator.pop(context);
-                            // Handle share
-                          },
-                        ),
-                        _buildControlOption(
-                          iconPath: "assets/icon/coin_grid_icon.png",
-                          label: 'Coin Bag',
-                          onTap: () {
-                            Navigator.pop(context);
-                            // Handle coin bag
-                          },
-                        ),
-                        _buildControlOption(
-                          iconPath: "assets/icon/sticker_grid_icon.png",
-                          label: 'Sticker',
-                          onTap: () {
-                            Navigator.pop(context);
-                            // Handle sticker
-                          },
-                        ),
-                        _buildControlOption(
-                          iconPath: "assets/icon/camera_flip_grid_icon.png",
-                          label: 'Flip Camera',
-                          onTap: () {
-                            Navigator.pop(context);
-                            // Handle flip camera
-                          },
-                        ),
-                        _buildControlOption(
-                          iconPath: "assets/icon/effect_grid_icon.png",
-                          label: 'Effect',
-                          onTap: () {
-                            Navigator.pop(context);
-                            // Handle effect
-                          },
-                        ),
-                        _buildControlOption(
-                          iconPath: "assets/icon/inbox_grid_icon.png",
-                          label: 'Inbox',
-                          onTap: () {
-                            Navigator.pop(context);
-                            // Handle inbox
-                          },
-                        ),
-                        _buildControlOption(
-                          iconPath: "assets/icon/flash_grid_icon.png",
-                          label: 'Flash on',
-                          onTap: () {
-                            Navigator.pop(context);
-                            // Handle flash
-                          },
-                        ),
-                        _buildControlOption(
-                          iconPath: "assets/icon/beauty_cam_grid_icon.png",
-                          label: 'Beauty Camera',
-                          onTap: () {
-                            Navigator.pop(context);
-                            // Handle beauty camera
-                          },
-                        ),
-                      ],
+                // Control Options Gridw
+                if (widget.isHost)
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20.w),
+                      child: GridView.count(
+                        crossAxisCount: 4,
+                        crossAxisSpacing: 16.w,
+                        mainAxisSpacing: 16.h,
+                        childAspectRatio: 0.8,
+                        children: [
+                          _buildControlOption(
+                            iconPath: "assets/icon/share_grid_icon.png",
+                            label: 'Share',
+                            onTap: () {
+                              Navigator.pop(context);
+                              // Handle share
+                            },
+                          ),
+                          _buildControlOption(
+                            iconPath: "assets/icon/coin_grid_icon.png",
+                            label: 'Coin Bag',
+                            onTap: () {
+                              Navigator.pop(context);
+                              // Handle coin bag
+                            },
+                          ),
+                          _buildControlOption(
+                            iconPath: "assets/icon/sticker_grid_icon.png",
+                            label: 'Sticker',
+                            onTap: () {
+                              Navigator.pop(context);
+                              // Handle sticker
+                            },
+                          ),
+                          _buildControlOption(
+                            iconPath: "assets/icon/camera_flip_grid_icon.png",
+                            label: 'Flip Camera',
+                            onTap: () {
+                              Navigator.pop(context);
+                              // Handle flip camera
+                            },
+                          ),
+                          _buildControlOption(
+                            iconPath: "assets/icon/effect_grid_icon.png",
+                            label: 'Effect',
+                            onTap: () {
+                              Navigator.pop(context);
+                              // Handle effect
+                            },
+                          ),
+                          _buildControlOption(
+                            iconPath: "assets/icon/inbox_grid_icon.png",
+                            label: 'Inbox',
+                            onTap: () {
+                              Navigator.pop(context);
+                              // Handle inbox
+                            },
+                          ),
+                          _buildControlOption(
+                            iconPath: "assets/icon/flash_grid_icon.png",
+                            label: 'Flash on',
+                            onTap: () {
+                              Navigator.pop(context);
+                              // Handle flash
+                            },
+                          ),
+                          _buildControlOption(
+                            iconPath: "assets/icon/beauty_cam_grid_icon.png",
+                            label: 'Beauty Camera',
+                            onTap: () {
+                              Navigator.pop(context);
+                              // Handle beauty camera
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -253,7 +265,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 400),
               curve: Curves.easeOutCubic,
-              height: MediaQuery.of(context).size.height * 0.90,
+              height: MediaQuery.of(context).size.height * gameHeight,
               decoration: BoxDecoration(
                 color: Colors.black,
                 borderRadius: BorderRadius.only(

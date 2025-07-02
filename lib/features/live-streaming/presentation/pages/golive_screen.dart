@@ -858,7 +858,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               CustomLiveButton(
                                 iconPath: "assets/icon/threedot_icon.png",
                                 onTap: () {
-                                  showGameBottomSheet(context, userId: userId);
+                                  showGameBottomSheet(
+                                    context,
+                                    userId: userId,
+                                    isHost: isHost,
+                                  );
                                 },
                               ),
                             ],

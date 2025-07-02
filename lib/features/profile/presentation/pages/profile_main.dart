@@ -202,11 +202,10 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                                   backgroundColor: Colors
                                       .grey[200], // Fallback background color
                                 )
-                              : CircleAvatar(
-                                  radius: 36.r, // Size of the avatar
-                                  backgroundImage: const AssetImage(
-                                    'assets/images/new_images/profile.png',
-                                  ),
+                              : Icon(
+                                  Icons.person,
+                                  size: 36.r,
+                                  color: Colors.grey,
                                 ),
                         ),
                         Text(

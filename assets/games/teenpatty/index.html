@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity WebGL Player | Greedy Cat Game</title>
+    <title>Unity WebGL Player | Fruit Loops Game</title>
      <style>
       #loading-text {
         position: absolute;
@@ -25,12 +25,12 @@
 
       #loading-text {
         font-size: 18px;
-        margin-top: 10px;
+        margin-top: 142px;
       }
 
       #loading-icon {
-        width: 200px;
-        height: 110px;
+        width: 300px;
+        height: 420px;
         margin: 0 auto;
         margin-bottom: 30px;
       }
@@ -44,7 +44,7 @@
         margin: 20px auto;
         overflow: hidden;
         position: relative;
-        margin-bottom: 80px;
+        margin-bottom: 149px;
       }
 
       #loading-bar-fill {
@@ -64,7 +64,7 @@
           <div id="loading-bar-fill"></div>
         </div>
      </div>
-    <script src="Build/4924b823f3cbac25991c9707aaa468d6.loader.js"></script>
+    <script src="Build/396b08c57ecdf705a51bb0db874ac84f.loader.js"></script>
     <script>
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
         // Mobile device style: fill the whole browser client area with the game canvas:
@@ -83,12 +83,12 @@
       let myGameInstance;
       var loadingTime;
       createUnityInstance(document.querySelector("#unity-canvas"), {
-        dataUrl: "Build/b5e5413633fc4b1903fe89fba7dc5b42.data.unityweb",
-        frameworkUrl: "Build/d2822e4a9f0d71c41427f922e253050a.framework.js.unityweb",
-        codeUrl: "Build/9152529f5cd0c2d91eaf4dfac24b8fcd.wasm.unityweb",
+        dataUrl: "Build/1a5b22c8119c2bb1b22457bc2565c245.data",
+        frameworkUrl: "Build/5bc02a926db619f520ab8851b88e64ca.framework.js",
+        codeUrl: "Build/ab12d88d9afba56143772d2bdab4b0d7.wasm",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "SGDSOFT.com",
-        productName: "Greedy Cat Game",
+        productName: "Fruit Loops Game",
         productVersion: "1.0",
       }, (progress) => {
         document.getElementById("loading-text").style.display = "block";
@@ -125,13 +125,13 @@
             obj.profit = _profit;
             obj.user_id = _user_id;
             obj.base_url = _baseurl;
-            obj.serverIPWithPort = "ws://147.93.103.135:9001/";
+            obj.serverIPWithPort = "ws://147.93.103.135:9000";
             var jsonString = JSON.stringify(obj);
             myGameInstance.SendMessage('LevelLoader', 'Initilization', jsonString);
         }
 
         function GoHome() {
-        if (window.flutter_inappwebview) {
+ if (window.flutter_inappwebview) {
                       window.flutter_inappwebview.callHandler('GoHomeFromUnity');
                     } else {
                       console.warn("flutter_inappwebview not found");

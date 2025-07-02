@@ -157,10 +157,7 @@ class LiveSummaryScreen extends StatelessWidget {
                           radius: 38.r,
                           backgroundImage: userAvatar != null
                               ? NetworkImage(userAvatar!)
-                              : const AssetImage(
-                                      'assets/images/new_images/profile.png',
-                                    )
-                                    as ImageProvider,
+                              : null,
                           backgroundColor: Colors.grey[300],
                         ),
                       ),

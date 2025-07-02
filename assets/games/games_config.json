@@ -17,6 +17,28 @@
                 "Build/Greedy V3.jpg"
             ],
             "gameParameters": {
+                "serverIPWithPort": "ws://147.93.103.135:9001/",
+                "unityObjectName": "LevelLoader",
+                "unityMethodName": "Initilization"
+            }
+        },
+        {
+            "id": "teenpatty",
+            "title": "Teen Patti",
+            "description": "A popular Unity WebGL card game",
+            "iconPath": "assets/games/teenpatty/game-icon.png",
+            "gamePath": "teenpatty",
+            "requiredFiles": [
+                "index.html",
+                "bg.png",
+                "game-icon.png",
+                "Build/396b08c57ecdf705a51bb0db874ac84f.loader.js",
+                "Build/1a5b22c8119c2bb1b22457bc2565c245.data",
+                "Build/5bc02a926db619f520ab8851b88e64ca.framework.js",
+                "Build/ab12d88d9afba56143772d2bdab4b0d7.wasm",
+                "Build/TeenPatty V3.jpg"
+            ],
+            "gameParameters": {
                 "serverIPWithPort": "ws://147.93.103.135:8001/",
                 "unityObjectName": "LevelLoader",
                 "unityMethodName": "Initilization"
