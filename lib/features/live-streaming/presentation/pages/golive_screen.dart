@@ -6,6 +6,7 @@ import 'package:dlstarlive/features/live-streaming/presentation/component/agora_
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -750,31 +751,22 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                         },
                                       );
                                     },
-                                    child: Container(
-                                      padding: EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.6),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Icon(
-                                        Icons.close,
-                                        color: Colors.white,
-                                        size: 24,
-                                      ),
+                                    child: Image.asset(
+                                      "assets/icon/live_exit_icon.png",
+                                      height: 40,
+                                      width: 40,
                                     ),
                                   )
-                                : LiveScreenMenuButton(
-                                    onDisconnect: () {
+                                : InkWell(
+                                    onTap: () {
                                       _endLiveStream();
                                       debugPrint("Disconnect pressed");
                                     },
-                                    onMuteCall: () {
-                                      debugPrint("Mute call pressed");
-                                      _toggleMute();
-                                    },
-                                    onViewProfile: () {
-                                      debugPrint("View profile pressed");
-                                    },
+                                    child: Image.asset(
+                                      "assets/icon/live_exit_icon.png",
+                                      height: 40,
+                                      width: 40,
+                                    ),
                                   ),
                           ],
                         ),
@@ -796,80 +788,145 @@ class _GoliveScreenState extends State<GoliveScreen> {
                         const SizedBox(height: 10),
 
                         // the bottom buttons
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            CustomLiveButton(
-                              iconPath: "assets/icon/chat_icon.png",
-                              onTap: () {
-                                _generateDummyMessage();
-                                // _showSnackBar(
-                                //   '💬 Message added to chat!',
-                                //   Colors.green,
-                                // );
-                              },
-                            ),
-                            CustomLiveButton(
-                              iconPath: "assets/icon/call_icon.png",
-                              onTap: () {
-                                _showSnackBar(
-                                  '📞 Not implemented yet! Comming soon!',
-                                  Colors.green,
-                                );
-                                // showCallBottomSheet(context);
-                              },
-                            ),
-                            CustomLiveButton(
-                              iconPath: _muted
-                                  ? "assets/icon/mute_icon.png"
-                                  : "assets/icon/mute_icon.png",
-                              onTap: () {
-                                !isHost
-                                    ? _showSnackBar(
-                                        '🎤 You cannot mute yourself as host',
-                                        Colors.orange,
-                                      )
-                                    : _toggleMute();
-                              },
-                            ),
-                            CustomLiveButton(
-                              iconPath: "assets/icon/gift_icon.png",
-                              onTap: () {
-                                _showSnackBar(
-                                  '🎁 Not implemented yet',
-                                  Colors.green,
-                                );
-                                // showGiftBottomSheet(context);
-                              },
-                            ),
-                            CustomLiveButton(
-                              iconPath: "assets/icon/pk_icon.png",
-                              onTap: () {
-                                _showSnackBar(
-                                  '🎶 Not implemented yet',
-                                  Colors.green,
-                                );
-                                // showMusicBottomSheet(context);
-                              },
-                            ),
-                            CustomLiveButton(
-                              iconPath: "assets/icon/music_icon.png",
-                              onTap: () {
-                                _showSnackBar(
-                                  '🎶 Not implemented yet',
-                                  Colors.green,
-                                );
-                                // showMusicBottomSheet(context);
-                              },
-                            ),
-                            CustomLiveButton(
-                              iconPath: "assets/icon/threedot_icon.png",
-                              onTap: () {
-                                showGameBottomSheet(context, userId: userId);
-                              },
-                            ),
-                          ],
-                        ),
+                        if (isHost)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              CustomLiveButton(
+                                iconPath: "assets/icon/chat_icon.png",
+                                onTap: () {
+                                  _generateDummyMessage();
+                                  // _showSnackBar(
+                                  //   '💬 Message added to chat!',
+                                  //   Colors.green,
+                                  // );
+                                },
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/call_icon.png",
+                                onTap: () {
+                                  _showSnackBar(
+                                    '📞 Not implemented yet! Comming soon!',
+                                    Colors.green,
+                                  );
+                                  // showCallBottomSheet(context);
+                                },
+                              ),
+                              CustomLiveButton(
+                                iconPath: _muted
+                                    ? "assets/icon/mute_icon.png"
+                                    : "assets/icon/mute_icon.png",
+                                onTap: () {
+                                  !isHost
+                                      ? _showSnackBar(
+                                          '🎤 You cannot mute yourself as host',
+                                          Colors.orange,
+                                        )
+                                      : _toggleMute();
+                                },
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/gift_icon.png",
+                                onTap: () {
+                                  _showSnackBar(
+                                    '🎁 Not implemented yet',
+                                    Colors.green,
+                                  );
+                                  // showGiftBottomSheet(context);
+                                },
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/pk_icon.png",
+                                onTap: () {
+                                  _showSnackBar(
+                                    '🎶 Not implemented yet',
+                                    Colors.green,
+                                  );
+                                  // showMusicBottomSheet(context);
+                                },
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/music_icon.png",
+                                onTap: () {
+                                  _showSnackBar(
+                                    '🎶 Not implemented yet',
+                                    Colors.green,
+                                  );
+                                  // showMusicBottomSheet(context);
+                                },
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/threedot_icon.png",
+                                onTap: () {
+                                  showGameBottomSheet(context, userId: userId);
+                                },
+                              ),
+                            ],
+                          )
+                        else
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              InkWell(
+                                onTap: () {
+                                  _showSnackBar(
+                                    '💬 Not implemented yet',
+                                    Colors.green,
+                                  );
+                                  // showChatBottomSheet(context);
+                                },
+                                child: Stack(
+                                  children: [
+                                    Image.asset(
+                                      "assets/icon/message_icon.png",
+                                      height: 40,
+                                      width: 170,
+                                    ),
+                                    Positioned(
+                                      left: 10,
+                                      top: 0,
+                                      bottom: 0,
+                                      child: Row(
+                                        children: [
+                                          Image.asset(
+                                            "assets/icon/message_user_icon.png",
+                                            height: 25,
+                                            width: 25,
+                                          ),
+                                          SizedBox(width: 5),
+                                          Text(
+                                            'Say Hi..',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 18.sp,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/gift_user_icon.png",
+                                onTap: () {},
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/game_user_icon.png",
+                                onTap: () {
+                                  showGameBottomSheet(context, userId: userId);
+                                },
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/share_user_icon.png",
+                                onTap: () {},
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/menu_icon.png",
+                                onTap: () {},
+                              ),
+                            ],
+                          ),
                       ],
                     ),
                   ),

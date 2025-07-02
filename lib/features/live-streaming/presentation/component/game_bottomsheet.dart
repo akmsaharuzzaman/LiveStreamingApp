@@ -99,32 +99,32 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                         'Stream Duration: 000:00:00',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 14.sp,
+                          fontSize: 16.sp,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
                 ),
+                SizedBox(height: 8.h),
 
                 // Game Options Section
-                Container(
-                  height: 100.h,
-                  margin: EdgeInsets.symmetric(vertical: 16.h),
+                SizedBox(
+                  height: 90.h,
                   child: _isLoading
                       ? const Center(
                           child: CircularProgressIndicator(color: Colors.white),
                         )
                       : ListView(
                           scrollDirection: Axis.horizontal,
-                          padding: EdgeInsets.symmetric(horizontal: 20.w),
+                          padding: EdgeInsets.only(left: 2.w, right: 20.w),
                           children: [
                             // Dynamic Local Games
                             ..._localGames.map(
                               (game) => Padding(
                                 padding: EdgeInsets.only(right: 16.w),
                                 child: _buildGameOption(
-                                  icon: Icons.gamepad_outlined,
+                                  icon: "assets/icon/greedy_icon.png",
                                   label: game.title,
                                   isLoading:
                                       _isStartingGame &&
@@ -160,7 +160,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                         ),
                 ),
 
-                SizedBox(height: 24.h),
+                SizedBox(height: 12.h),
 
                 // Control Options Grid
                 Expanded(
@@ -173,7 +173,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                       childAspectRatio: 0.8,
                       children: [
                         _buildControlOption(
-                          icon: Icons.share,
+                          iconPath: "assets/icon/share_grid_icon.png",
                           label: 'Share',
                           onTap: () {
                             Navigator.pop(context);
@@ -181,7 +181,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                           },
                         ),
                         _buildControlOption(
-                          icon: Icons.account_balance_wallet,
+                          iconPath: "assets/icon/coin_grid_icon.png",
                           label: 'Coin Bag',
                           onTap: () {
                             Navigator.pop(context);
@@ -189,7 +189,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                           },
                         ),
                         _buildControlOption(
-                          icon: Icons.emoji_emotions,
+                          iconPath: "assets/icon/sticker_grid_icon.png",
                           label: 'Sticker',
                           onTap: () {
                             Navigator.pop(context);
@@ -197,7 +197,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                           },
                         ),
                         _buildControlOption(
-                          icon: Icons.flip_camera_ios,
+                          iconPath: "assets/icon/camera_flip_grid_icon.png",
                           label: 'Flip Camera',
                           onTap: () {
                             Navigator.pop(context);
@@ -205,7 +205,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                           },
                         ),
                         _buildControlOption(
-                          icon: Icons.auto_fix_high,
+                          iconPath: "assets/icon/effect_grid_icon.png",
                           label: 'Effect',
                           onTap: () {
                             Navigator.pop(context);
@@ -213,7 +213,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                           },
                         ),
                         _buildControlOption(
-                          icon: Icons.inbox,
+                          iconPath: "assets/icon/inbox_grid_icon.png",
                           label: 'Inbox',
                           onTap: () {
                             Navigator.pop(context);
@@ -221,7 +221,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                           },
                         ),
                         _buildControlOption(
-                          icon: Icons.flash_on,
+                          iconPath: "assets/icon/flash_grid_icon.png",
                           label: 'Flash on',
                           onTap: () {
                             Navigator.pop(context);
@@ -229,7 +229,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                           },
                         ),
                         _buildControlOption(
-                          icon: Icons.face_retouching_natural,
+                          iconPath: "assets/icon/beauty_cam_grid_icon.png",
                           label: 'Beauty Camera',
                           onTap: () {
                             Navigator.pop(context);
@@ -343,7 +343,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
   }
 
   Widget _buildGameOption({
-    required IconData icon,
+    required String icon,
     required String label,
     required VoidCallback onTap,
     bool isLoading = false,
@@ -353,14 +353,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
       child: Container(
         width: 120.w,
         padding: EdgeInsets.symmetric(vertical: 12.h),
-        decoration: BoxDecoration(
-          color: isLoading ? const Color(0xFF3A3A4E) : const Color(0xFF2A2A3E),
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-            color: isLoading ? Colors.blue : Colors.grey[700]!,
-            width: isLoading ? 2 : 1,
-          ),
-        ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12.r)),
         child: Column(
           children: [
             if (isLoading)
@@ -373,14 +366,14 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                 ),
               )
             else
-              Icon(icon, color: Colors.white, size: 32.sp),
+              Image.asset(icon, width: 32.sp, height: 32.sp),
             SizedBox(height: 8.h),
             Text(
               label,
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w500,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ],
@@ -390,7 +383,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
   }
 
   Widget _buildControlOption({
-    required IconData icon,
+    required String iconPath,
     required String label,
     required VoidCallback onTap,
   }) {
@@ -403,17 +396,17 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
             width: 48.w,
             height: 48.h,
             decoration: BoxDecoration(
-              color: const Color(0xFF2A2A3E),
+              // color: const Color(0xFF2A2A3E),
               borderRadius: BorderRadius.circular(12.r),
             ),
-            child: Icon(icon, color: Colors.white, size: 24.sp),
+            child: Image.asset(iconPath, width: 30.sp, height: 30.sp),
           ),
           SizedBox(height: 8.h),
           Text(
             label,
             style: TextStyle(
               color: Colors.white,
-              fontSize: 10.sp,
+              fontSize: 16.sp,
               fontWeight: FontWeight.w400,
             ),
             textAlign: TextAlign.center,

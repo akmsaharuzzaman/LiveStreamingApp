@@ -32,7 +32,7 @@ class EndStreamOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.transparent,
-      child: Container(
+      child: SizedBox(
         width: MediaQuery.of(context).size.width * 0.8,
         child: Column(
           mainAxisSize: MainAxisSize.min,

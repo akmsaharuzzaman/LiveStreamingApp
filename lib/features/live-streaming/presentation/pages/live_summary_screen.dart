@@ -42,37 +42,117 @@ class LiveSummaryScreen extends StatelessWidget {
                 SizedBox(height: 80.h),
 
                 // Profile Section
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(24.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      // Avatar
-                      Container(
-                        width: 80.w,
-                        height: 80.h,
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 40.0),
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(16.w),
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 4.w),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20.r),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
                             ),
                           ],
                         ),
+                        child: Column(
+                          children: [
+                            // Avatar
+                            SizedBox(height: 40.h),
+
+                            // User Name
+                            Text(
+                              userName,
+                              style: TextStyle(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.black87,
+                              ),
+                            ),
+
+                            SizedBox(height: 12.h),
+
+                            // Badges Row
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Image.asset(
+                                  "assets/icon/level_badge.png",
+                                  height: 18.h,
+                                ),
+                                SizedBox(width: 8.w),
+                                Image.asset(
+                                  "assets/icon/host_level.png",
+                                  height: 18.h,
+                                ),
+                                SizedBox(width: 8.w),
+                                Image.asset(
+                                  "assets/icon/mc_icon.png",
+                                  height: 18.h,
+                                ),
+                                SizedBox(width: 8.w),
+                                Image.asset(
+                                  "assets/icon/svip_icon.png",
+                                  height: 18.h,
+                                ),
+                              ],
+                            ),
+
+                            SizedBox(height: 16.h),
+
+                            // User ID
+                            Text(
+                              "ID:$userId",
+                              style: TextStyle(
+                                fontSize: 15.sp,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+
+                            SizedBox(height: 24.h),
+
+                            // Stats Row
+                            Row(
+                              children: [
+                                // Earned Points
+                                Expanded(
+                                  child: _buildStatItem(
+                                    iconPath: "assets/icon/money_icon.png",
+                                    title: "Earned Points",
+                                    value: earnedPoints.toString(),
+                                  ),
+                                ),
+
+                                SizedBox(width: 24.w),
+
+                                // New Followers
+                                Expanded(
+                                  child: _buildStatItem(
+                                    iconPath: "assets/icon/person_icon.png",
+                                    title: "New followers",
+                                    value: newFollowers.toString(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    Positioned(
+                      top: 0,
+                      child: Container(
+                        width: 80.w,
+                        height: 80.h,
+                        decoration: BoxDecoration(shape: BoxShape.circle),
                         child: CircleAvatar(
                           radius: 38.r,
                           backgroundImage: userAvatar != null
@@ -84,80 +164,11 @@ class LiveSummaryScreen extends StatelessWidget {
                           backgroundColor: Colors.grey[300],
                         ),
                       ),
-
-                      SizedBox(height: 16.h),
-
-                      // User Name
-                      Text(
-                        userName,
-                        style: TextStyle(
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-
-                      SizedBox(height: 12.h),
-
-                      // Badges Row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildBadge("LV17", const Color(0xFFFF69B4)),
-                          SizedBox(width: 8.w),
-                          _buildBadge("20", const Color(0xFF4285F4)),
-                          SizedBox(width: 8.w),
-                          _buildBadge("VIP", const Color(0xFFFFD700)),
-                          SizedBox(width: 8.w),
-                          _buildBadge("SVIP", const Color(0xFF2E2E2E)),
-                        ],
-                      ),
-
-                      SizedBox(height: 16.h),
-
-                      // User ID
-                      Text(
-                        "ID:$userId",
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-
-                      SizedBox(height: 24.h),
-
-                      // Stats Row
-                      Row(
-                        children: [
-                          // Earned Points
-                          Expanded(
-                            child: _buildStatItem(
-                              icon: Icons.monetization_on,
-                              iconColor: const Color(0xFFB568D6),
-                              title: "Earned Points",
-                              value: earnedPoints.toString(),
-                            ),
-                          ),
-
-                          SizedBox(width: 24.w),
-
-                          // New Followers
-                          Expanded(
-                            child: _buildStatItem(
-                              icon: Icons.person_add,
-                              iconColor: const Color(0xFFB568D6),
-                              title: "New followers",
-                              value: newFollowers.toString(),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
 
-                SizedBox(height: 24.h),
+                SizedBox(height: 16.h),
 
                 // Total Duration Card
                 Container(
@@ -168,10 +179,10 @@ class LiveSummaryScreen extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(16.r),
+                    borderRadius: BorderRadius.circular(10.r),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 10,
                         offset: const Offset(0, 5),
                       ),
@@ -183,23 +194,23 @@ class LiveSummaryScreen extends StatelessWidget {
                       Text(
                         "Total Duration",
                         style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w400,
                           color: Colors.black87,
                         ),
                       ),
                       Row(
                         children: [
-                          Icon(
-                            Icons.access_time,
-                            size: 20.sp,
-                            color: Colors.black87,
+                          Image.asset(
+                            "assets/icon/clock_icon.png",
+                            height: 20.sp,
+                            width: 20.sp,
                           ),
                           SizedBox(width: 8.w),
                           Text(
                             totalDuration,
                             style: TextStyle(
-                              fontSize: 18.sp,
+                              fontSize: 20.sp,
                               fontWeight: FontWeight.w600,
                               color: Colors.black87,
                             ),
@@ -215,13 +226,13 @@ class LiveSummaryScreen extends StatelessWidget {
                 // Back to Home Button
                 SizedBox(
                   width: double.infinity,
-                  height: 56.h,
+                  height: 46.h,
                   child: ElevatedButton(
                     onPressed: () {
                       context.go('/home');
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF8FA3),
+                      backgroundColor: const Color(0xFFFF85A3),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28.r),
                       ),
@@ -266,39 +277,40 @@ class LiveSummaryScreen extends StatelessWidget {
   }
 
   Widget _buildStatItem({
-    required IconData icon,
-    required Color iconColor,
+    required String iconPath,
     required String title,
     required String value,
   }) {
-    return Column(
+    return Row(
       children: [
         Container(
           width: 48.w,
           height: 48.h,
-          decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: iconColor, size: 24.sp),
+          decoration: BoxDecoration(shape: BoxShape.circle),
+          child: Image.asset(iconPath, width: 24.sp, height: 24.sp),
         ),
-        SizedBox(height: 8.h),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 12.sp,
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        SizedBox(height: 4.h),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20.sp,
-            fontWeight: FontWeight.w700,
-            color: Colors.black87,
-          ),
+        SizedBox(width: 8.h),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 16.sp,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
       ],
     );
