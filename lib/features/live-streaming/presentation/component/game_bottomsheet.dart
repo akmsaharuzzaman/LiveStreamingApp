@@ -59,7 +59,9 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
         // Original bottom sheet content
         if (_activeGame == null)
           Container(
-            height: (_activeGame != null) ? 950.h : 500.h,
+            height: (_activeGame != null)
+                ? MediaQuery.of(context).size.height * .90
+                : MediaQuery.of(context).size.height * .55,
             decoration: BoxDecoration(
               color: const Color(0xFF1A1A2E),
               borderRadius: BorderRadius.only(
@@ -134,15 +136,16 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                                     });
 
                                     // Show loading snackbar
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          '🚀 Starting ${game.title}...',
-                                        ),
-                                        backgroundColor: Colors.blue,
-                                        duration: const Duration(seconds: 2),
-                                      ),
-                                    );
+                                    // ScaffoldMessenger.of(context).showSnackBar(
+                                    //   SnackBar(
+                                    //     content: Text(
+                                    //       '🚀 Starting ${game.title}...',
+                                    //     ),
+                                    //     backgroundColor: Colors.blue,
+                                    //     duration: const Duration(seconds: 2),
+                                    //   ),
+                                    // );
+                                    debugPrint('🚀 Starting ${game.title}...');
 
                                     setState(() {
                                       _activeGame = game;
@@ -250,7 +253,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 400),
               curve: Curves.easeOutCubic,
-              height: MediaQuery.of(context).size.height * 0.8,
+              height: MediaQuery.of(context).size.height * 0.90,
               decoration: BoxDecoration(
                 color: Colors.black,
                 borderRadius: BorderRadius.only(

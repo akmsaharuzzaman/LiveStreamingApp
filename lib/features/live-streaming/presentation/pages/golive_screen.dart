@@ -800,7 +800,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
                             CustomLiveButton(
-                              icon: Icons.chat_bubble_outline,
+                              iconPath: "assets/icon/chat_icon.png",
                               onTap: () {
                                 _generateDummyMessage();
                                 // _showSnackBar(
@@ -810,7 +810,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               },
                             ),
                             CustomLiveButton(
-                              icon: Icons.call,
+                              iconPath: "assets/icon/call_icon.png",
                               onTap: () {
                                 _showSnackBar(
                                   '📞 Not implemented yet! Comming soon!',
@@ -820,7 +820,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               },
                             ),
                             CustomLiveButton(
-                              icon: _muted ? Icons.mic_off : Icons.mic,
+                              iconPath: _muted
+                                  ? "assets/icon/mute_icon.png"
+                                  : "assets/icon/mute_icon.png",
                               onTap: () {
                                 !isHost
                                     ? _showSnackBar(
@@ -831,7 +833,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               },
                             ),
                             CustomLiveButton(
-                              icon: Icons.redeem,
+                              iconPath: "assets/icon/gift_icon.png",
                               onTap: () {
                                 _showSnackBar(
                                   '🎁 Not implemented yet',
@@ -841,7 +843,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               },
                             ),
                             CustomLiveButton(
-                              icon: Icons.music_note,
+                              iconPath: "assets/icon/pk_icon.png",
                               onTap: () {
                                 _showSnackBar(
                                   '🎶 Not implemented yet',
@@ -851,7 +853,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               },
                             ),
                             CustomLiveButton(
-                              icon: Icons.more_vert,
+                              iconPath: "assets/icon/music_icon.png",
+                              onTap: () {
+                                _showSnackBar(
+                                  '🎶 Not implemented yet',
+                                  Colors.green,
+                                );
+                                // showMusicBottomSheet(context);
+                              },
+                            ),
+                            CustomLiveButton(
+                              iconPath: "assets/icon/threedot_icon.png",
                               onTap: () {
                                 showGameBottomSheet(context, userId: userId);
                               },

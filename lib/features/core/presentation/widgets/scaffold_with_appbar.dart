@@ -74,8 +74,8 @@ class ScaffoldWithNavBar extends StatelessWidget {
                   label: "Home",
                 ),
                 BottomNavigationBarItem(
-                  icon: SvgPicture.asset(
-                    "assets/svg/moment_icon.svg",
+                  icon: Image.asset(
+                    "assets/icon/moment_icon.png",
                     height: 25,
                     width: 25,
                   ),

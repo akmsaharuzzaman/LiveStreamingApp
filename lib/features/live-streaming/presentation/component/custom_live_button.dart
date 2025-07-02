@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
 class CustomLiveButton extends StatelessWidget {
-  const CustomLiveButton({super.key, required this.icon, required this.onTap});
+  const CustomLiveButton({
+    super.key,
+    required this.iconPath,
+    required this.onTap,
+  });
 
-  final IconData icon;
+  final String iconPath;
   final VoidCallback onTap;
 
   @override
@@ -16,7 +20,12 @@ class CustomLiveButton extends StatelessWidget {
           color: Color(0xff888686),
           borderRadius: BorderRadius.circular(100),
         ),
-        child: Icon(icon, size: 28, color: Colors.white),
+        child: Image.asset(
+          iconPath,
+          width: 40,
+          height: 40,
+          color: Colors.white,
+        ),
       ),
     );
   }

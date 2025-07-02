@@ -39,6 +39,7 @@ class _HomePageScreenState extends State<HomePageScreen>
   late TabController _tabController;
 
   List<String> imageUrls = [
+    // "assets/images/new_images/banner.png",
     'assets/images/new_images/banners1.jpg',
     'assets/images/new_images/banners1.jpg',
     "assets/images/new_images/banners2.jpg",
@@ -186,7 +187,11 @@ class _HomePageScreenState extends State<HomePageScreen>
             ),
             SizedBox(width: 16.w),
             // Search and notification icons
-            Icon(Iconsax.search_favorite, size: 22.sp, color: Colors.black),
+            SvgPicture.asset(
+              'assets/svg/search_icon.svg',
+              height: 22.sp,
+              width: 22.sp,
+            ),
             SizedBox(width: 12.sp),
             Icon(Iconsax.notification, size: 22.sp, color: Colors.black),
           ],
@@ -232,6 +237,7 @@ class _HomePageScreenState extends State<HomePageScreen>
                 enlargeCenterPage: false,
                 showIndicator: true,
                 indicatorMargin: 8,
+
                 slideIndicator: CircularSlideIndicator(
                   slideIndicatorOptions: SlideIndicatorOptions(
                     alignment: Alignment.bottomCenter,
@@ -379,7 +385,7 @@ class ListUserFollow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 74.sp,
+      height: 90.sp,
       width: double.infinity,
       child: ListView.builder(
         padding: EdgeInsets.symmetric(horizontal: 16.sp),
@@ -441,67 +447,59 @@ class UserWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          margin: EdgeInsets.only(right: 8.sp),
-          child: Column(
-            children: [
-              Container(
-                padding: EdgeInsets.all(3.5.sp),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    width: 1.2.sp,
-                    color: userModel.isLiveStream ? Colors.pink : Colors.black,
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 12.0),
+            child: Column(
+              children: [
+                Container(
+                  decoration: BoxDecoration(shape: BoxShape.circle),
+                  child: CustomNetworkImage(
+                    height: 45.sp,
+                    width: 45.sp,
+                    urlToImage: userModel.urlToImage,
+                    shape: BoxShape.circle,
                   ),
                 ),
-                child: CustomNetworkImage(
-                  height: 42.sp,
-                  width: 42.sp,
-                  urlToImage: userModel.urlToImage,
-                  shape: BoxShape.circle,
+                SizedBox(height: 6.sp),
+                Text(
+                  userModel.fullName,
+                  style: TextStyle(color: Colors.black, fontSize: 14.sp),
                 ),
-              ),
-              SizedBox(height: 6.sp),
-              Text(
-                userModel.fullName,
-                style: TextStyle(
-                  color: userModel.isLiveStream ? Colors.black : Colors.blue,
-                  fontSize: 10.sp,
-                  fontWeight: userModel.isLiveStream ? FontWeight.w500 : null,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        Visibility(
-          visible: userModel.isLiveStream,
-          child: Positioned(
-            right: 15,
-            child: Container(
-              padding: const EdgeInsets.only(left: 1, bottom: 1, right: 1),
-              alignment: Alignment.center,
-              color: Theme.of(context).scaffoldBackgroundColor,
+          Visibility(
+            visible: userModel.isLiveStream,
+            child: Positioned(
+              top: 0,
               child: Container(
-                padding: EdgeInsets.symmetric(vertical: 2.sp, horizontal: 9.sp),
-                decoration: BoxDecoration(
-                  color: Colors.redAccent,
-                  borderRadius: BorderRadius.circular(10.sp),
-                ),
-                child: Text(
-                  'Live',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 7.sp,
-                    fontWeight: FontWeight.w500,
+                alignment: Alignment.center,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    borderRadius: BorderRadius.circular(10.sp),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text(
+                      'Live',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

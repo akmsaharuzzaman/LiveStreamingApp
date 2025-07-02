@@ -27,119 +27,111 @@ class _ReadyForLiveScreenState extends State<ReadyForLiveScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Back Button
+              // Live / Party Live Toggle
               Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  GestureDetector(
-                    onTap: () {
-                      context.go('/home');
-                    },
-                    child: Container(
-                      width: 40.w,
-                      height: 40.h,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20.r),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
-                          width: 1,
+                  // GestureDetector(
+                  //   onTap: () {
+                  //     context.go('/home');
+                  //   },
+                  //   child: Container(
+                  //     width: 40.w,
+                  //     height: 40.h,
+                  //     decoration: BoxDecoration(
+                  //       color: Colors.white.withOpacity(0.1),
+                  //       borderRadius: BorderRadius.circular(20.r),
+                  //       border: Border.all(
+                  //         color: Colors.white.withOpacity(0.3),
+                  //         width: 1,
+                  //       ),
+                  //     ),
+                  //     child: Icon(
+                  //       Icons.arrow_back_ios_new,
+                  //       color: Colors.white,
+                  //       size: 18.sp,
+                  //     ),
+                  //   ),
+                  // ),
+                  SizedBox(width: 12.w),
+                  Center(
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          isLiveSelected = true;
+                        });
+                      },
+                      child: Container(
+                        height: 33.h,
+                        width: 93.w,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(25.r),
                         ),
-                      ),
-                      child: Icon(
-                        Icons.arrow_back_ios_new,
-                        color: Colors.white,
-                        size: 18.sp,
+                        child: Container(
+                          height: 50.h,
+                          decoration: BoxDecoration(
+                            color: isLiveSelected
+                                ? Colors.white
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(25.r),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Live',
+                              style: TextStyle(
+                                color: isLiveSelected
+                                    ? Colors.black
+                                    : Colors.white,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  SizedBox(width: 16.w),
-                  Text(
-                    'Ready to Go Live',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w600,
+                  SizedBox(width: 72.w),
+                  Center(
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          isLiveSelected = false;
+                        });
+                      },
+                      child: Container(
+                        height: 33.h,
+                        width: 93.w,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(25.r),
+                        ),
+                        child: Container(
+                          height: 50.h,
+                          decoration: BoxDecoration(
+                            color: !isLiveSelected
+                                ? Colors.white
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(25.r),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Party Live',
+                              style: TextStyle(
+                                color: !isLiveSelected
+                                    ? Colors.black
+                                    : Colors.white,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
-              ),
-
-              SizedBox(height: 30.h),
-
-              // Live / Party Live Toggle
-              Center(
-                child: Container(
-                  height: 50.h,
-                  width: 280.w,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(25.r),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              isLiveSelected = true;
-                            });
-                          },
-                          child: Container(
-                            height: 50.h,
-                            decoration: BoxDecoration(
-                              color: isLiveSelected
-                                  ? Colors.white
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(25.r),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'Live',
-                                style: TextStyle(
-                                  color: isLiveSelected
-                                      ? Colors.black
-                                      : Colors.white,
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              isLiveSelected = false;
-                            });
-                          },
-                          child: Container(
-                            height: 50.h,
-                            decoration: BoxDecoration(
-                              color: !isLiveSelected
-                                  ? Colors.white
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(25.r),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'Party Live',
-                                style: TextStyle(
-                                  color: !isLiveSelected
-                                      ? Colors.black
-                                      : Colors.white,
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
 
               SizedBox(height: 40.h),
@@ -147,39 +139,50 @@ class _ReadyForLiveScreenState extends State<ReadyForLiveScreen> {
               // Title Input Section
               Container(
                 height: 80.h,
-                padding: EdgeInsets.all(16.w),
+                padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white.withOpacity(0.3)),
+                  border: Border.all(
+                    width: 2,
+                    color: Colors.white.withOpacity(0.3),
+                  ),
                   borderRadius: BorderRadius.circular(12.r),
                 ),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      width: 48.w,
-                      height: 48.h,
+                      width: 75.w,
+                      height: 75.h,
                       decoration: BoxDecoration(
-                        color: Colors.white,
                         borderRadius: BorderRadius.circular(8.r),
                       ),
-                      child: Icon(
-                        Icons.image_outlined,
-                        color: Colors.grey.shade400,
-                        size: 24.sp,
+                      child: Image.asset(
+                        'assets/images/image_placeholder.png',
+                        width: 75.w,
+                        height: 75.h,
                       ),
                     ),
                     SizedBox(width: 16.w),
                     Expanded(
-                      child: TextField(
-                        controller: _titleController,
-                        style: TextStyle(color: Colors.white, fontSize: 16.sp),
-                        decoration: InputDecoration(
-                          hintText: 'Add a title',
-                          hintStyle: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
-                            fontSize: 16.sp,
+                      child: Column(
+                        children: [
+                          TextField(
+                            controller: _titleController,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16.sp,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Add a title',
+                              hintStyle: TextStyle(
+                                color: Colors.white.withOpacity(0.7),
+                                fontSize: 16.sp,
+                              ),
+                              hintMaxLines: 2,
+                              border: InputBorder.none,
+                            ),
                           ),
-                          border: InputBorder.none,
-                        ),
+                        ],
                       ),
                     ),
                   ],
@@ -334,12 +337,12 @@ class _ReadyForLiveScreenState extends State<ReadyForLiveScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildActionButton(
-                      icon: Icons.flip_camera_ios,
+                      icon: "assets/icon/camera_icon.png",
                       label: 'Flip Camera',
                       onTap: () {},
                     ),
                     _buildActionButton(
-                      icon: Icons.face_retouching_natural,
+                      icon: "assets/icon/beauty_icon.png",
                       label: 'Beauty',
                       onTap: () {},
                     ),
@@ -358,7 +361,7 @@ class _ReadyForLiveScreenState extends State<ReadyForLiveScreen> {
                     context.push('/go-live');
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF69B4),
+                    backgroundColor: const Color(0xFFFF85A3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(28.r),
                     ),
@@ -395,6 +398,7 @@ class _ReadyForLiveScreenState extends State<ReadyForLiveScreen> {
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.transparent,
           border: Border.all(
+            width: 2,
             color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
           ),
           borderRadius: BorderRadius.circular(20.r),
@@ -423,6 +427,7 @@ class _ReadyForLiveScreenState extends State<ReadyForLiveScreen> {
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.transparent,
           border: Border.all(
+            width: 2,
             color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
           ),
           borderRadius: BorderRadius.circular(20.r),
@@ -440,7 +445,7 @@ class _ReadyForLiveScreenState extends State<ReadyForLiveScreen> {
   }
 
   Widget _buildActionButton({
-    required IconData icon,
+    required String icon,
     required String label,
     required VoidCallback onTap,
   }) {
@@ -448,25 +453,13 @@ class _ReadyForLiveScreenState extends State<ReadyForLiveScreen> {
       onTap: onTap,
       child: Column(
         children: [
-          Container(
-            width: 60.w,
-            height: 60.h,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-            child: Icon(icon, color: Colors.white, size: 24.sp),
-          ),
+          Image.asset(icon, color: Colors.white, width: 48.sp, height: 48.sp),
           SizedBox(height: 8.h),
           Text(
             label,
             style: TextStyle(
               color: Colors.white,
-              fontSize: 12.sp,
+              fontSize: 18.sp,
               fontWeight: FontWeight.w500,
             ),
           ),
