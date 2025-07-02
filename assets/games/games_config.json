@@ -10,10 +10,10 @@
                 "index.html",
                 "bg.png",
                 "game-icon.png",
-                "Build/a23c17ad524d9de4acd50d4f95783ebf.loader.js",
-                "Build/9e8aa84a85520ae055bab307a1595e4e.data.unityweb",
+                "Build/4924b823f3cbac25991c9707aaa468d6.loader.js",
+                "Build/b5e5413633fc4b1903fe89fba7dc5b42.data.unityweb",
                 "Build/d2822e4a9f0d71c41427f922e253050a.framework.js.unityweb",
-                "Build/e829ff78d0c2fbf6a4f69323209e02ba.wasm.unityweb",
+                "Build/9152529f5cd0c2d91eaf4dfac24b8fcd.wasm.unityweb",
                 "Build/Greedy V3.jpg"
             ],
             "gameParameters": {

@@ -165,7 +165,7 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: 35.sp),
+                  SizedBox(height: 64.sp),
                   Padding(
                     padding: EdgeInsets.only(right: 18.sp, left: 18.sp),
                     child: Row(
