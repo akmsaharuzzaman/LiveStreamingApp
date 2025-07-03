@@ -332,6 +332,12 @@
       "languageVersion": "3.0"
     },
     {
+      "name": "file_picker",
+      "rootUri": "file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/file_picker-10.2.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
       "name": "file_selector_linux",
       "rootUri": "file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/file_selector_linux-0.9.3+2",
       "packageUri": "lib/",
@@ -693,13 +699,13 @@
     },
     {
       "name": "google_sign_in_android",
-      "rootUri": "file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/google_sign_in_android-6.2.0",
+      "rootUri": "file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/google_sign_in_android-6.2.1",
       "packageUri": "lib/",
       "languageVersion": "3.6"
     },
     {
       "name": "google_sign_in_ios",
-      "rootUri": "file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/google_sign_in_ios-5.8.1",
+      "rootUri": "file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/google_sign_in_ios-5.9.0",
       "packageUri": "lib/",
       "languageVersion": "3.4"
     },
@@ -897,7 +903,7 @@
     },
     {
       "name": "logger",
-      "rootUri": "file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/logger-2.5.0",
+      "rootUri": "file:///C:/Users/zaman/AppData/Local/Pub/Cache/hosted/pub.dev/logger-2.6.0",
       "packageUri": "lib/",
       "languageVersion": "2.17"
     },
@@ -1607,6 +1613,6 @@
   "generator": "pub",
   "generatorVersion": "3.8.1",
   "flutterRoot": "file:///C:/src/flutter",
-  "flutterVersion": "3.32.3",
+  "flutterVersion": "3.32.5",
   "pubCache": "file:///C:/Users/zaman/AppData/Local/Pub/Cache"
 }

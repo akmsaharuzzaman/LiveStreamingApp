@@ -10,11 +10,11 @@
                 "index.html",
                 "bg.png",
                 "game-icon.png",
-                "Build/4924b823f3cbac25991c9707aaa468d6.loader.js",
-                "Build/b5e5413633fc4b1903fe89fba7dc5b42.data.unityweb",
+                "Build/Greedy V3.jpg",
+                "Build/bdc4f51480fbd61e9a3bc0263615b471.loader.js",
+                "Build/98561af5f5cae17c8bf2c7519da3be5d.data.unityweb",
                 "Build/d2822e4a9f0d71c41427f922e253050a.framework.js.unityweb",
-                "Build/9152529f5cd0c2d91eaf4dfac24b8fcd.wasm.unityweb",
-                "Build/Greedy V3.jpg"
+                "Build/5cb1f4fd7aed6f236284832b8408896e.wasm.unityweb"
             ],
             "gameParameters": {
                 "serverIPWithPort": "ws://147.93.103.135:9001/",
@@ -32,11 +32,11 @@
                 "index.html",
                 "bg.png",
                 "game-icon.png",
+                "Build/TeenPatty V3.jpg",
                 "Build/396b08c57ecdf705a51bb0db874ac84f.loader.js",
-                "Build/1a5b22c8119c2bb1b22457bc2565c245.data",
+                "Build/32f003745b633b435f0f9e1ff24a85bb.data",
                 "Build/5bc02a926db619f520ab8851b88e64ca.framework.js",
-                "Build/ab12d88d9afba56143772d2bdab4b0d7.wasm",
-                "Build/TeenPatty V3.jpg"
+                "Build/ab12d88d9afba56143772d2bdab4b0d7.wasm"
             ],
             "gameParameters": {
                 "serverIPWithPort": "ws://147.93.103.135:8001/",

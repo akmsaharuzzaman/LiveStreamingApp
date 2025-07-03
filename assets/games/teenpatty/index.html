@@ -83,7 +83,7 @@
       let myGameInstance;
       var loadingTime;
       createUnityInstance(document.querySelector("#unity-canvas"), {
-        dataUrl: "Build/1a5b22c8119c2bb1b22457bc2565c245.data",
+        dataUrl: "Build/32f003745b633b435f0f9e1ff24a85bb.data",
         frameworkUrl: "Build/5bc02a926db619f520ab8851b88e64ca.framework.js",
         codeUrl: "Build/ab12d88d9afba56143772d2bdab4b0d7.wasm",
         streamingAssetsUrl: "StreamingAssets",
@@ -125,7 +125,7 @@
             obj.profit = _profit;
             obj.user_id = _user_id;
             obj.base_url = _baseurl;
-            obj.serverIPWithPort = "ws://147.93.103.135:9000";
+            obj.serverIPWithPort = "ws://147.93.103.135:9001";
             var jsonString = JSON.stringify(obj);
             myGameInstance.SendMessage('LevelLoader', 'Initilization', jsonString);
         }
