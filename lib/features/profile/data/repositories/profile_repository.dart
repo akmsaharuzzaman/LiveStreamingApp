@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/services/dio_client.dart';
@@ -19,13 +20,13 @@ class ProfileRepository {
 
   Future<UserProfileDataResponse> profileDataLoad({required String uid}) async {
     try {
-      final resp = await dioClient.get(
-        "/api/auth/user/$uid",
-      );
+      final resp = await dioClient.get("/api/auth/user/$uid");
       UserProfileDataResponse userDataResponse =
           UserProfileDataResponse.fromJson(jsonDecode(jsonEncode(resp)));
 
-      print("User Response is $userDataResponse");
+      debugPrint(
+        "User Profile loaded: ${userDataResponse.result?.email?.toString() ?? 'No Email'}",
+      );
       return userDataResponse;
     } catch (e) {
       rethrow;
@@ -36,7 +37,10 @@ class ProfileRepository {
   Future<XFile?> openImagePicker(bool isCamera) async {
     final imageSource = isCamera ? ImageSource.camera : ImageSource.gallery;
     final pickedFile = await _imagePicker.pickImage(
-        source: imageSource, maxHeight: 600, maxWidth: 600);
+      source: imageSource,
+      maxHeight: 600,
+      maxWidth: 600,
+    );
     return pickedFile;
   }
 
@@ -45,10 +49,7 @@ class ProfileRepository {
   }) async {
     try {
       final formData = FormData.fromMap({
-        "avatar": MultipartFile.fromBytes(
-          imageBytes,
-          filename: 'image.jpg',
-        ),
+        "avatar": MultipartFile.fromBytes(imageBytes, filename: 'image.jpg'),
       });
       final resp = await dioClient.put(
         ' /api/auth/update-profile',
@@ -57,7 +58,7 @@ class ProfileRepository {
 
       return resp;
     } catch (e) {
-      print("Error saving user profile: $e");
+      debugPrint("Error saving user profile: $e");
       return false;
     }
   }
@@ -70,28 +71,24 @@ class ProfileRepository {
   ) async {
     try {
       FormData formData = FormData();
-      formData.fields.addAll([
-        MapEntry("name", name),
-      ]);
+      formData.fields.addAll([MapEntry("name", name)]);
 
-      formData.fields.addAll([
-        MapEntry("bio", bio.toString()),
-      ]);
-      formData.fields.addAll([
-        MapEntry("birthday", birthday.toString()),
-      ]);
+      formData.fields.addAll([MapEntry("bio", bio.toString())]);
+      formData.fields.addAll([MapEntry("birthday", birthday.toString())]);
 
-      print('FormData being sent:');
-      formData.fields.forEach((field) {
-        print('${field.key}: ${field.value}');
-      });
+      debugPrint('FormData being sent:');
+      for (var field in formData.fields) {
+        debugPrint('${field.key}: ${field.value}');
+      }
 
-      final resp =
-          await dioClient.put(' /api/auth/update-profile', data: formData);
+      final resp = await dioClient.put(
+        ' /api/auth/update-profile',
+        data: formData,
+      );
 
       return resp;
     } catch (e) {
-      print("Error saving user profile: $e");
+      debugPrint("Error saving user profile: $e");
       return false;
     }
   }

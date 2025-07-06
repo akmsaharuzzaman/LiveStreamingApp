@@ -29,7 +29,7 @@ class DioClient {
     dio.interceptors
         .add(InterceptorsWrapper(onRequest: (options, handler) async {
       final prefs = await SharedPreferences.getInstance();
-      final String? token = prefs.getString('token');
+      final String? token = prefs.getString('auth_token');
       /*final String? token =
           "129|OUvoVQg7bzitXrT8WYWMKPUbgBFwPCUWQ4Mfyhie01afd0b6";*/
       // String authTokentwo =

@@ -1,11 +1,11 @@
 {
-    "name": "streaming_djlive",
-    "short_name": "streaming_djlive",
+    "name": "DLStarLive",
+    "short_name": "DLStarLive",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#hexcode",
+    "theme_color": "#hexcode",
+    "description": "Package to change project configurations.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

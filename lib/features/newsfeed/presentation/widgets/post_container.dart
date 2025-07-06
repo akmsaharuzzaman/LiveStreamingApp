@@ -2,25 +2,19 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:streaming_djlive/features/newsfeed/presentation/widgets/profile_avatar.dart';
+import 'package:dlstarlive/features/newsfeed/presentation/widgets/profile_avatar.dart';
 
 import '../../data/models/mock_models/post_model.dart';
 
 class PostContainer extends StatelessWidget {
   final Post post;
 
-  const PostContainer({
-    Key? key,
-    required this.post,
-  }) : super(key: key);
+  const PostContainer({Key? key, required this.post}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: EdgeInsets.symmetric(
-        vertical: 5.sp,
-        horizontal: 0.0,
-      ),
+      margin: EdgeInsets.symmetric(vertical: 5.sp, horizontal: 0.0),
       elevation: 1.sp,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.sp)),
       child: Container(
@@ -62,10 +56,7 @@ class PostContainer extends StatelessWidget {
 class _PostHeader extends StatelessWidget {
   final Post post;
 
-  const _PostHeader({
-    Key? key,
-    required this.post,
-  }) : super(key: key);
+  const _PostHeader({Key? key, required this.post}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -79,24 +70,15 @@ class _PostHeader extends StatelessWidget {
             children: [
               Text(
                 post.user.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               Row(
                 children: [
                   Text(
                     '${post.timeAgo} • ',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12.0,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12.0),
                   ),
-                  Icon(
-                    Icons.public,
-                    color: Colors.grey[600],
-                    size: 12.0,
-                  )
+                  Icon(Icons.public, color: Colors.grey[600], size: 12.0),
                 ],
               ),
             ],
@@ -114,10 +96,7 @@ class _PostHeader extends StatelessWidget {
 class _PostStats extends StatelessWidget {
   final Post post;
 
-  const _PostStats({
-    Key? key,
-    required this.post,
-  }) : super(key: key);
+  const _PostStats({Key? key, required this.post}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -141,16 +120,12 @@ class _PostStats extends StatelessWidget {
             Expanded(
               child: Text(
                 '${post.likes}',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(color: Colors.grey[600]),
               ),
             ),
             Text(
               '${post.comments} Comments',
-              style: TextStyle(
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(color: Colors.grey[600]),
             ),
             const SizedBox(width: 8.0),
           ],
@@ -207,11 +182,7 @@ class _PostButton extends StatelessWidget {
             height: 25.0,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                icon,
-                const SizedBox(width: 4.0),
-                Text(label),
-              ],
+              children: [icon, const SizedBox(width: 4.0), Text(label)],
             ),
           ),
         ),

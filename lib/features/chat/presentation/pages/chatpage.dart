@@ -80,16 +80,10 @@ class _ChatPageScreenState extends State<ChatPageScreen>
               AppBar(
                 backgroundColor: const Color(0xfffafafa),
                 centerTitle: false,
-                title: Text(
-                  'Messages',
-                  style: MyTheme.kAppTitle,
-                ),
+                title: Text('Messages', style: MyTheme.kAppTitle),
                 actions: [
                   IconButton(
-                    icon: const Icon(
-                      Iconsax.camera,
-                      color: Color(0xff2c3968),
-                    ),
+                    icon: const Icon(Iconsax.camera, color: Color(0xff2c3968)),
                     onPressed: () {},
                   ),
                   IconButton(
@@ -100,10 +94,7 @@ class _ChatPageScreenState extends State<ChatPageScreen>
                     onPressed: () {},
                   ),
                   IconButton(
-                    icon: const Icon(
-                      Iconsax.more,
-                      color: Color(0xff2c3968),
-                    ),
+                    icon: const Icon(Iconsax.more, color: Color(0xff2c3968)),
                     onPressed: () {},
                   ),
                 ],
@@ -122,11 +113,12 @@ class _ChatPageScreenState extends State<ChatPageScreen>
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 20.sp),
               decoration: BoxDecoration(
-                  color: const Color(0xfffafafa),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(30.r),
-                    topRight: Radius.circular(30.r),
-                  )),
+                color: const Color(0xfffafafa),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(30.r),
+                  topRight: Radius.circular(30.r),
+                ),
+              ),
               child: TabBarView(
                 controller: tabController,
                 children: const [
@@ -154,15 +146,13 @@ class _ChatPageScreenState extends State<ChatPageScreen>
           }
         },
         backgroundColor: const Color(0xff2c3968).withOpacity(0.7),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         child: Icon(
           currentTabIndex == 0
               ? Iconsax.message
               : currentTabIndex == 1
-                  ? Iconsax.status
-                  : Iconsax.call,
+              ? Iconsax.status
+              : Iconsax.call,
           color: Colors.white,
         ),
       ),
@@ -174,7 +164,10 @@ class ChatListPage extends StatelessWidget {
   List<User> users = [
     User(id: 0, name: 'You', avatar: 'assets/images/new_images/person.png'),
     User(
-        id: 1, name: 'Addison', avatar: 'assets/images/new_images/profile.png'),
+      id: 1,
+      name: 'Addison',
+      avatar: 'assets/images/new_images/profile.png',
+    ),
     User(id: 2, name: 'Angel', avatar: 'assets/images/new_images/person.png'),
     User(id: 3, name: 'Deanna', avatar: 'assets/images/new_images/profile.png'),
     User(id: 4, name: 'Json', avatar: 'assets/images/new_images/profile.png'),
@@ -182,7 +175,10 @@ class ChatListPage extends StatelessWidget {
     User(id: 6, name: 'Leslie', avatar: 'assets/images/new_images/person.png'),
     User(id: 7, name: 'Nathan', avatar: 'assets/images/new_images/profile.png'),
     User(
-        id: 8, name: 'Stanley', avatar: 'assets/images/new_images/profile.png'),
+      id: 8,
+      name: 'Stanley',
+      avatar: 'assets/images/new_images/profile.png',
+    ),
     User(
       id: 9,
       name: 'Shahadat Vai Astha',
@@ -193,9 +189,7 @@ class ChatListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chat List'),
-      ),
+      appBar: AppBar(title: const Text('Chat List')),
       body: ListView.builder(
         itemCount: users.length,
         itemBuilder: (context, index) {
@@ -229,9 +223,7 @@ class StatusListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Status List'),
-      ),
+      appBar: AppBar(title: const Text('Status List')),
       body: ListView.builder(
         itemCount: users.length,
         itemBuilder: (context, index) {
@@ -264,9 +256,7 @@ class CallListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Call List'),
-      ),
+      appBar: AppBar(title: const Text('Call List')),
       body: ListView.builder(
         itemCount: users.length,
         itemBuilder: (context, index) {

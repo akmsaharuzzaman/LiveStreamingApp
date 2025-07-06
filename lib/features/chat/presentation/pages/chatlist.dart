@@ -4,8 +4,8 @@ import '../widgets/all_chats.dart';
 
 class ChatPage extends StatelessWidget {
   const ChatPage({
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -12,8 +12,8 @@ class User {
   factory User.empty() {
     return User(
       id: 0,
-      name: 'Wahid',
-      avatar: 'assets/images/new_images/person.png',
+      name: 'No Name',
+      avatar: '',
     );
   }
 }

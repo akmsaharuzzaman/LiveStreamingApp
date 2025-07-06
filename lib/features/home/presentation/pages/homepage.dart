@@ -1,17 +1,21 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_carousel_widget/flutter_carousel_widget.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../components/utilities/chat_theme.dart';
 import '../../../../components/utilities/custom_networkimage.dart';
 import '../../../../components/utilities/touchable_opacity_widget.dart';
+import '../../../../core/network/socket_service.dart';
+import '../../../live-streaming/data/models/room_models.dart';
 import '../../data/models/category_model.dart';
-import '../../data/models/live_streaming_model.dart';
 import '../../data/models/user_model.dart';
 
 class HomePageScreen extends StatefulWidget {
@@ -21,17 +25,104 @@ class HomePageScreen extends StatefulWidget {
   State<HomePageScreen> createState() => _HomePageScreenState();
 }
 
-class _HomePageScreenState extends State<HomePageScreen> {
-  int _currentIndex = 0;
+class _HomePageScreenState extends State<HomePageScreen>
+    with SingleTickerProviderStateMixin {
+  final SocketService _socketService = SocketService.instance;
+  RoomListResponse? _availableRooms;
+
+  // Stream subscriptions for proper cleanup
+  StreamSubscription? _connectionStatusSubscription;
+  StreamSubscription? _roomListSubscription;
+  StreamSubscription? _errorSubscription;
+
+  // Tab controller for horizontal sliding tabs
+  late TabController _tabController;
 
   List<String> imageUrls = [
+    // "assets/images/new_images/banner.png",
     'assets/images/new_images/banners1.jpg',
     'assets/images/new_images/banners1.jpg',
     "assets/images/new_images/banners2.jpg",
     "assets/images/new_images/banners3.jpg",
     "assets/images/new_images/banners4.jpg",
-    "assets/images/new_images/banners5.jpg"
+    "assets/images/new_images/banners5.jpg",
   ];
+
+  /// Initialize socket connection when entering live streaming page
+  Future<void> _initializeSocket() async {
+    try {
+      // Connect to socket with user ID
+      final prefs = await SharedPreferences.getInstance();
+      final String? userId = prefs.getString('uid');
+      final connected = await _socketService.connect(userId!);
+
+      if (connected) {
+        _setupSocketListeners();
+        // Get list of available rooms
+        await _socketService.getRooms();
+      } else {
+        debugPrint('Failed to connect to server');
+      }
+    } catch (e) {
+      debugPrint('Connection error: $e');
+    }
+  }
+
+  /// Setup socket event listeners
+  void _setupSocketListeners() {
+    // Connection status
+    debugPrint("Setting up socket listeners");
+    _connectionStatusSubscription = _socketService.connectionStatusStream
+        .listen((isConnected) {
+          if (mounted) {
+            if (isConnected) {
+              // _showSnackBar('✅ Connected to server', Colors.green);
+              debugPrint("Connected to server");
+            } else {
+              // _showSnackBar('❌ Disconnected from server', Colors.red);
+              debugPrint("Disconnected from server");
+            }
+          }
+        }); // Room list updates
+    _roomListSubscription = _socketService.roomListStream.listen((rooms) {
+      if (mounted) {
+        setState(() {
+          _availableRooms = rooms;
+          debugPrint("Available rooms: ${rooms.roomIds} from Frontend");
+        });
+      }
+    }); // Error handling
+    _errorSubscription = _socketService.errorStream.listen((error) {
+      if (mounted) {
+        // _showSnackBar('❌ Error: $error', Colors.red);
+        debugPrint("Socket error: $error");
+      }
+    });
+  }
+
+  @override
+  void initState() {
+    // Initialize tab controller with 4 tabs
+    _tabController = TabController(length: 4, vsync: this);
+
+    _initializeSocket();
+    _setupSocketListeners();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    // Cancel all stream subscriptions to prevent setState calls after disposal
+    _connectionStatusSubscription?.cancel();
+    _roomListSubscription?.cancel();
+    _errorSubscription?.cancel();
+
+    // Dispose tab controller
+    _tabController.dispose();
+
+    debugPrint("HomePage disposed - stream subscriptions canceled");
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,209 +139,212 @@ class _HomePageScreenState extends State<HomePageScreen> {
         surfaceTintColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0.0,
         automaticallyImplyLeading: false,
-        centerTitle: true,
+        centerTitle: false,
+        titleSpacing: 16.w,
         title: Row(
           children: [
-            Image.asset(
-              'assets/images/new_images/ic_logo_white.png',
-              height: 40,
+            // Logo
+            SvgPicture.asset(
+              'assets/svg/dl_star_logo.svg',
+              height: 16,
               width: 40,
             ),
-            SizedBox(width: 8.sp),
-            Text(
-              "StreamBird",
-              style: MyTheme.kAppTitle,
+            SizedBox(width: 12.w),
+            // Tab Bar
+            Expanded(
+              child: SizedBox(
+                height: 36.h,
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: Colors.black,
+                  unselectedLabelColor: Colors.black54,
+                  labelStyle: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  unselectedLabelStyle: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  indicator: const UnderlineTabIndicator(
+                    borderSide: BorderSide(
+                      width: 3.0,
+                      color: Color(0xFFFE82A7),
+                    ),
+                    insets: EdgeInsets.symmetric(horizontal: 16.0),
+                  ),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  dividerColor: Colors.transparent,
+                  labelPadding: EdgeInsets.symmetric(horizontal: 4.w),
+                  tabs: const [
+                    Tab(text: 'Popular'),
+                    Tab(text: 'Live'),
+                    Tab(text: 'Party'),
+                    Tab(text: 'PK'),
+                  ],
+                ),
+              ),
             ),
+            SizedBox(width: 16.w),
+            // Search and notification icons
+            SvgPicture.asset(
+              'assets/svg/search_icon.svg',
+              height: 22.sp,
+              width: 22.sp,
+            ),
+            SizedBox(width: 12.sp),
+            Icon(Iconsax.notification, size: 22.sp, color: Colors.black),
           ],
         ),
-        actions: [
-          SizedBox(
-            width: 110.w,
-            // padding: EdgeInsets.symmetric(horizontal: 16.sp),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Icon(
-                      Iconsax.search_favorite,
-                      size: 22.sp,
-                      color: Colors.black,
-                    ),
-                    SizedBox(width: 12.sp),
-                    Icon(
-                      Iconsax.notification,
-                      size: 22.sp,
-                      color: Colors.black,
-                    ),
-                    SizedBox(width: 12.sp),
-                    GestureDetector(
-                      onTap: () {
-                        context.push('/leaderboard');
-                      },
-                      child: Icon(
-                        Iconsax.ranking_1,
-                        size: 22.sp,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ],
-                )
-              ],
-            ),
-          ),
-        ],
       ),
       body: SafeArea(
         bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: TabBarView(
+          controller: _tabController,
           children: [
-            SizedBox(height: 0.sp),
-            const ListCategoryHome(),
-            SizedBox(height: 20.sp),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.sp),
-              child: Text(
-                'Following',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            SizedBox(height: 7.sp),
-            const ListUserFollow(),
-            SizedBox(height: 12.sp),
-            Padding(
-              padding: EdgeInsets.only(right: 8.sp, left: 8.sp),
-              child: SizedBox(
-                height: 75.sp,
-                width: double.infinity,
-                child: FlutterCarousel(
-                  options: FlutterCarouselOptions(
-                    height: 75.sp,
-                    autoPlay: true,
-                    viewportFraction: 1.0,
-                    enlargeCenterPage: false,
-                    showIndicator: true,
-                    indicatorMargin: 8,
-                    slideIndicator: CircularSlideIndicator(
-                      slideIndicatorOptions: SlideIndicatorOptions(
-                        alignment: Alignment.bottomCenter,
-                        currentIndicatorColor: Colors.white,
-                        indicatorBackgroundColor: Colors.white.withOpacity(0.5),
-                        indicatorBorderColor: Colors.transparent,
-                        indicatorBorderWidth: 0.5,
-                        indicatorRadius: 3.8,
-                        itemSpacing: 15,
-                        padding: const EdgeInsets.only(top: 10.0),
-                        enableHalo: false,
-                        enableAnimation: true,
-                      ),
-                    ),
-                  ),
-                  items: imageUrls.map((url) {
-                    return Builder(
-                      builder: (BuildContext context) {
-                        return Container(
-                          width: double.infinity,
-                          margin: const EdgeInsets.symmetric(horizontal: 8.0),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8.0),
-                            child: Image.asset(
-                              url,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Center(
-                                  child: Icon(Icons.broken_image,
-                                      size: 50, color: Colors.red),
-                                );
-                              },
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  }).toList(),
-                ),
-              ),
-            ),
-            SizedBox(height: 18.sp),
-            const ListLiveStream(),
+            // Popular Tab - Current homepage content
+            _buildPopularTab(),
+            // Live Tab - Dummy content
+            _buildDummyTab('Live', Icons.live_tv),
+            // Party Tab - Dummy content
+            _buildDummyTab('Party', Icons.party_mode),
+            // PK Tab - Dummy content
+            _buildDummyTab('PK', Icons.sports_kabaddi),
           ],
         ),
       ),
     );
   }
-}
 
-class ListCategoryHome extends StatefulWidget {
-  const ListCategoryHome({super.key});
-
-  @override
-  State<ListCategoryHome> createState() => _ListCategoryHomeState();
-}
-
-class _ListCategoryHomeState extends State<ListCategoryHome> {
-  int _currentIndex = 0;
-
-  @override
-  Widget build(BuildContext context) {
+  // Popular tab with current homepage content
+  Widget _buildPopularTab() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        SizedBox(height: 7.sp),
+        const ListUserFollow(),
+        SizedBox(height: 12.sp),
+        Padding(
+          padding: EdgeInsets.only(right: 8.sp, left: 8.sp),
+          child: SizedBox(
+            height: 132.sp,
+            width: double.infinity,
+            child: FlutterCarousel(
+              options: FlutterCarouselOptions(
+                height: 132.sp,
+                autoPlay: true,
+                viewportFraction: 1.0,
+                enlargeCenterPage: false,
+                showIndicator: true,
+                indicatorMargin: 8,
+
+                slideIndicator: CircularSlideIndicator(
+                  slideIndicatorOptions: SlideIndicatorOptions(
+                    alignment: Alignment.bottomCenter,
+                    currentIndicatorColor: Colors.white,
+                    indicatorBackgroundColor: Colors.white.withOpacity(0.5),
+                    indicatorBorderColor: Colors.transparent,
+                    indicatorBorderWidth: 0.5,
+                    indicatorRadius: 3.8,
+                    itemSpacing: 15,
+                    padding: const EdgeInsets.only(top: 10.0),
+                    enableHalo: false,
+                    enableAnimation: true,
+                  ),
+                ),
+              ),
+              items: imageUrls.map((url) {
+                return Builder(
+                  builder: (BuildContext context) {
+                    return Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.symmetric(horizontal: 8.0),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8.0),
+                        child: Image.asset(
+                          url,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Center(
+                              child: Icon(
+                                Icons.broken_image,
+                                size: 50,
+                                color: Colors.red,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        SizedBox(height: 18.sp),
         // Padding(
-        //   padding: EdgeInsets.symmetric(horizontal: 16.sp),
+        //   padding: const EdgeInsets.symmetric(horizontal: 18.0),
         //   child: Row(
         //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
         //     children: [
-        //       Text(
-        //         'Categories',
-        //         style: TextStyle(
-        //           color: Colors.black,
-        //           fontSize: 13.sp,
-        //           fontWeight: FontWeight.w700,
-        //         ),
+        //       Image.asset(
+        //         'assets/images/top_sender.png',
+        //         height: MediaQuery.of(context).size.height * 0.08,
+        //       ),
+        //       Image.asset(
+        //         'assets/images/top_host.png',
+        //         height: MediaQuery.of(context).size.height * 0.08,
+        //       ),
+        //       Image.asset(
+        //         'assets/images/top_agency.png',
+        //         height: MediaQuery.of(context).size.height * 0.08,
         //       ),
         //     ],
         //   ),
         // ),
-        SizedBox(height: 8.sp),
-        SizedBox(
-          height: 32.5.sp,
-          width: double.infinity,
-          child: ListView.builder(
-            padding: EdgeInsets.symmetric(horizontal: 16.sp),
-            itemCount: listCategoryFake.length,
-            shrinkWrap: true,
-            scrollDirection: Axis.horizontal,
-            itemBuilder: ((context, index) {
-              return CategoryCard(
-                categoryModel: listCategoryFake[index],
-                isCheck: _currentIndex == index,
-                onTap: () {
-                  setState(() {
-                    _currentIndex = index;
-                  });
-                },
-              );
-            }),
-          ),
+        // SizedBox(height: 18.sp),
+        ListLiveStream(
+          availableRooms: _availableRooms ?? RoomListResponse(rooms: {}),
         ),
       ],
+    );
+  }
+
+  // Dummy tab content for other tabs
+  Widget _buildDummyTab(String title, IconData icon) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 80.sp, color: Colors.grey.shade400),
+          SizedBox(height: 20.h),
+          Text(
+            '$title Page',
+            style: TextStyle(
+              fontSize: 24.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          SizedBox(height: 10.h),
+          Text(
+            'Coming Soon!',
+            style: TextStyle(fontSize: 16.sp, color: Colors.grey.shade500),
+          ),
+        ],
+      ),
     );
   }
 }
 
 class ListLiveStream extends StatelessWidget {
-  const ListLiveStream({super.key});
+  final RoomListResponse availableRooms;
+  const ListLiveStream({super.key, required this.availableRooms});
 
   @override
   Widget build(BuildContext context) {
@@ -258,11 +352,7 @@ class ListLiveStream extends StatelessWidget {
       child: GridView.builder(
         padding: EdgeInsets.symmetric(
           horizontal: 16.sp,
-        ).add(
-          EdgeInsets.only(
-            bottom: 80.sp,
-          ),
-        ),
+        ).add(EdgeInsets.only(bottom: 80.sp)),
         physics: const BouncingScrollPhysics(),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
@@ -270,14 +360,18 @@ class ListLiveStream extends StatelessWidget {
           crossAxisSpacing: 10.sp,
           childAspectRatio: 0.70,
         ),
-        itemCount: listLiveStreamFake.length,
+        // itemCount: listLiveStreamFake.length,
+        itemCount: availableRooms.roomIds.length,
         itemBuilder: (context, index) {
           return LiveStreamCard(
-            liveStreamModel: listLiveStreamFake[index],
-            onTap: (() {
-              // Navigator.of(context).push(MaterialPageRoute(
-              //     builder: (context) => const StreamScreen()));
-            }),
+            liveStreamModel: availableRooms.roomDataList[index],
+            onTap: () {
+              debugPrint(
+                "Live joining Room ID: ${availableRooms.roomIds[index]}",
+              );
+              // Navigate to the live stream screen with the room ID
+              context.push('/go-live?roomId=${availableRooms.roomIds[index]}');
+            },
           );
         },
       ),
@@ -291,7 +385,7 @@ class ListUserFollow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 74.sp,
+      height: 90.sp,
       width: double.infinity,
       child: ListView.builder(
         padding: EdgeInsets.symmetric(horizontal: 16.sp),
@@ -299,9 +393,7 @@ class ListUserFollow extends StatelessWidget {
         shrinkWrap: true,
         scrollDirection: Axis.horizontal,
         itemBuilder: ((context, index) {
-          return UserWidget(
-            userModel: listUserFake[index],
-          );
+          return UserWidget(userModel: listUserFake[index]);
         }),
       ),
     );
@@ -325,10 +417,7 @@ class CategoryCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         margin: EdgeInsets.only(right: 10.sp),
-        padding: EdgeInsets.symmetric(
-          horizontal: 16.sp,
-          vertical: 4.sp,
-        ),
+        padding: EdgeInsets.symmetric(horizontal: 16.sp, vertical: 4.sp),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22.sp),
           color: isCheck ? MyTheme.kPrimaryColor : Colors.white,
@@ -343,7 +432,7 @@ class CategoryCard extends StatelessWidget {
                 color: isCheck ? Colors.white : Colors.black,
                 fontSize: 10.sp,
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -358,80 +447,71 @@ class UserWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          margin: EdgeInsets.only(right: 8.sp),
-          child: Column(
-            children: [
-              Container(
-                padding: EdgeInsets.all(3.5.sp),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    width: 1.2.sp,
-                    color: userModel.isLiveStream ? Colors.pink : Colors.black,
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 12.0),
+            child: Column(
+              children: [
+                Container(
+                  decoration: BoxDecoration(shape: BoxShape.circle),
+                  child: CustomNetworkImage(
+                    height: 45.sp,
+                    width: 45.sp,
+                    urlToImage: userModel.urlToImage,
+                    shape: BoxShape.circle,
                   ),
                 ),
-                child: CustomNetworkImage(
-                  height: 42.sp,
-                  width: 42.sp,
-                  urlToImage: userModel.urlToImage,
-                  shape: BoxShape.circle,
+                SizedBox(height: 6.sp),
+                Text(
+                  userModel.fullName,
+                  style: TextStyle(color: Colors.black, fontSize: 14.sp),
                 ),
-              ),
-              SizedBox(height: 6.sp),
-              Text(
-                userModel.fullName,
-                style: TextStyle(
-                  color: userModel.isLiveStream ? Colors.black : Colors.blue,
-                  fontSize: 10.sp,
-                  fontWeight: userModel.isLiveStream ? FontWeight.w500 : null,
-                ),
-              )
-            ],
+              ],
+            ),
           ),
-        ),
-        Visibility(
-          visible: userModel.isLiveStream,
-          child: Positioned(
-            right: 15,
-            child: Container(
-              padding: const EdgeInsets.only(
-                left: 1,
-                bottom: 1,
-                right: 1,
-              ),
-              alignment: Alignment.center,
-              color: Theme.of(context).scaffoldBackgroundColor,
+          Visibility(
+            visible: userModel.isLiveStream,
+            child: Positioned(
+              top: 0,
               child: Container(
-                padding: EdgeInsets.symmetric(vertical: 2.sp, horizontal: 9.sp),
-                decoration: BoxDecoration(
-                  color: Colors.redAccent,
-                  borderRadius: BorderRadius.circular(10.sp),
-                ),
-                child: Text(
-                  'Live',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 7.sp,
-                    fontWeight: FontWeight.w500,
+                alignment: Alignment.center,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    borderRadius: BorderRadius.circular(10.sp),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text(
+                      'Live',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        )
-      ],
+        ],
+      ),
     );
   }
 }
 
 class LiveStreamCard extends StatelessWidget {
-  final LiveStreamModel liveStreamModel;
+  final RoomData liveStreamModel;
   final Function() onTap;
-  const LiveStreamCard(
-      {super.key, required this.liveStreamModel, required this.onTap});
+  const LiveStreamCard({
+    super.key,
+    required this.liveStreamModel,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -440,12 +520,11 @@ class LiveStreamCard extends StatelessWidget {
       child: Stack(
         children: [
           CustomNetworkImage(
-            urlToImage: liveStreamModel.urlToImage,
+            urlToImage:
+                'https://cdn.dribbble.com/users/3245638/screenshots/15628559/media/21f20574f74b6d6f8e74f92bde7de2fd.png?compress=1&resize=400x300&vertical=top',
             height: 180.sp,
             shape: BoxShape.rectangle,
-            borderRadius: BorderRadius.circular(
-              13.sp,
-            ),
+            borderRadius: BorderRadius.circular(13.sp),
             // fit: BoxFit.cover,
           ),
           Column(
@@ -457,14 +536,12 @@ class LiveStreamCard extends StatelessWidget {
                   gradient: LinearGradient(
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(0.89)
+                      Colors.black.withOpacity(0.89),
                     ],
                     end: Alignment.bottomCenter,
                     begin: Alignment.topCenter,
                   ),
-                  borderRadius: BorderRadius.circular(
-                    13.sp,
-                  ),
+                  borderRadius: BorderRadius.circular(13.sp),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -477,10 +554,7 @@ class LiveStreamCard extends StatelessWidget {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(10.sp),
                           child: BackdropFilter(
-                            filter: ImageFilter.blur(
-                              sigmaX: 5,
-                              sigmaY: 10,
-                            ),
+                            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 10),
                             child: Container(
                               padding: EdgeInsets.symmetric(
                                 horizontal: 6.sp,
@@ -499,13 +573,13 @@ class LiveStreamCard extends StatelessWidget {
                                   ),
                                   SizedBox(width: 5.sp),
                                   Text(
-                                    '${liveStreamModel.peopleParticipant}',
+                                    '${liveStreamModel.members.length}',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 9.sp,
                                       fontWeight: FontWeight.w500,
                                     ),
-                                  )
+                                  ),
                                 ],
                               ),
                             ),
@@ -517,13 +591,13 @@ class LiveStreamCard extends StatelessWidget {
                             vertical: 2.sp,
                           ),
                           decoration: BoxDecoration(
-                            color: liveStreamModel.getColorType,
-                            borderRadius: BorderRadius.circular(
-                              9.sp,
-                            ),
+                            color: liveStreamModel == 'Live'
+                                ? Colors.redAccent
+                                : Colors.blueAccent,
+                            borderRadius: BorderRadius.circular(9.sp),
                           ),
                           child: Text(
-                            liveStreamModel.getTitleType,
+                            liveStreamModel.hostDetails.name,
                             style: TextStyle(
                               color: Colors.black,
                               fontSize: 9.sp,
@@ -534,10 +608,7 @@ class LiveStreamCard extends StatelessWidget {
                     ),
                     Text(
                       'You are live now',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11.sp,
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 11.sp),
                     ),
                   ],
                 ),
@@ -557,7 +628,7 @@ class LiveStreamCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Wahidur Zaman',
+                          liveStreamModel.hostDetails.name,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.black,
@@ -573,7 +644,7 @@ class LiveStreamCard extends StatelessWidget {
                             fontSize: 9.sp,
                             fontWeight: FontWeight.w500,
                           ),
-                        )
+                        ),
                       ],
                     ),
                   ),
@@ -593,169 +664,55 @@ class LiveStreamCard extends StatelessWidget {
                     },
                     itemBuilder: (BuildContext context) =>
                         <PopupMenuEntry<String>>[
-                      /* PopupMenuItem<String>(
-              value: 'Option 1',
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Image.asset(
-                    'assets/profile/share-03.png',
-                    width: 20.sp,
-                    height: 20.sp,
+                          PopupMenuItem<String>(
+                            value: 'Option 3',
+                            child: GestureDetector(
+                              onTap: () {},
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Follow",
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 14.sp,
+                                      fontFamily: 'Aeonik',
+                                      fontWeight: FontWeight.w500,
+                                      height: 0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'Option 2',
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Report',
+                                  style: TextStyle(
+                                    color: Color(0xFFDC3030),
+                                    fontSize: 14.sp,
+                                    fontFamily: 'Aeonik',
+                                    fontWeight: FontWeight.w500,
+                                    height: 0,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                   ),
-                  SizedBox(
-                    width: 12.sp,
-                  ),
-                  const Text(
-                    'Share Profile',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontFamily: 'Aeonik',
-                      fontWeight: FontWeight.w500,
-                      height: 0,
-                    ),
-                  )
                 ],
               ),
-            ),*/
-                      PopupMenuItem<String>(
-                        value: 'Option 3',
-                        child: GestureDetector(
-                          onTap: () {},
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Follow",
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 14.sp,
-                                  fontFamily: 'Aeonik',
-                                  fontWeight: FontWeight.w500,
-                                  height: 0,
-                                ),
-                              )
-                            ],
-                          ),
-                        ),
-                      ),
-                      PopupMenuItem<String>(
-                        value: 'Option 2',
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Report',
-                              style: TextStyle(
-                                color: Color(0xFFDC3030),
-                                fontSize: 14.sp,
-                                fontFamily: 'Aeonik',
-                                fontWeight: FontWeight.w500,
-                                height: 0,
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                    ],
-                  )
-                ],
-              )
             ],
           ),
         ],
       ),
-    );
-  }
-
-  void _showPopupMenu(BuildContext context) {
-    final RenderBox renderBox = context.findRenderObject() as RenderBox;
-    Offset offset = renderBox.localToGlobal(Offset.zero);
-    PopupMenuButton<String>(
-      color: const Color(0xff1C262A),
-      position: PopupMenuPosition.under,
-      icon: Image.asset(
-        'assets/profile/three_dots.png',
-        width: 48.sp,
-        height: 48.sp,
-      ),
-      onSelected: (String result) {
-        // Handle your menu selection here
-      },
-      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-        /* PopupMenuItem<String>(
-              value: 'Option 1',
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Image.asset(
-                    'assets/profile/share-03.png',
-                    width: 20.sp,
-                    height: 20.sp,
-                  ),
-                  SizedBox(
-                    width: 12.sp,
-                  ),
-                  const Text(
-                    'Share Profile',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontFamily: 'Aeonik',
-                      fontWeight: FontWeight.w500,
-                      height: 0,
-                    ),
-                  )
-                ],
-              ),
-            ),*/
-        PopupMenuItem<String>(
-          value: 'Option 3',
-          child: GestureDetector(
-            onTap: () {},
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Text(
-                  "Follow",
-                  style: const TextStyle(
-                    color: Color(0xFFDC3030),
-                    fontSize: 16,
-                    fontFamily: 'Aeonik',
-                    fontWeight: FontWeight.w500,
-                    height: 0,
-                  ),
-                )
-              ],
-            ),
-          ),
-        ),
-        PopupMenuItem<String>(
-          value: 'Option 2',
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              const Text(
-                'Report',
-                style: TextStyle(
-                  color: Color(0xFFDC3030),
-                  fontSize: 16,
-                  fontFamily: 'Aeonik',
-                  fontWeight: FontWeight.w500,
-                  height: 0,
-                ),
-              )
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
