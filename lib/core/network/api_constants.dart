@@ -1,11 +1,10 @@
 /// API constants for the live streaming application
 class ApiConstants {
   // Base URLs
-  static const String baseUrl = 'https://api.yourlivestream.com/api/v1';
-  static const String authBaseUrl = 'https://api.yourlivestream.com/auth';
-  static const String streamingBaseUrl =
-      'https://api.yourlivestream.com/streaming';
-  static const String mediaBaseUrl = 'https://media.yourlivestream.com';
+  static const String baseUrl = 'http://dlstarlive.com:8000';
+  static const String authBaseUrl = 'http://dlstarlive.com:8000';
+  static const String streamingBaseUrl = 'http://dlstarlive.com:8000';
+  static const String mediaBaseUrl = 'http://dlstarlive.com:8000';
 
   // Timeout durations
   static const Duration connectTimeout = Duration(seconds: 30);
@@ -117,4 +116,31 @@ class ApiConstants {
   static const String notFoundError = 'Resource not found';
   static const String validationError = 'Validation failed';
   static const String unknownError = 'Unknown error occurred';
+
+  //Feed endpoints
+  static const String createPost = '/api/posts/create';
+  static const String editPost = '/api/posts/edit';
+  static String getAllPosts(int page, int limit) =>
+      '/api/posts/?page=$page&limit=$limit';
+  static String deletePost(String postId) => '/api/posts/delete/$postId';
+  static const String reactToPost = '/api/posts/react';
+  static const String commentToPost = '/api/posts/comment';
+
+  // Reels endpoints
+  static String getReels(int page, int limit) =>
+      '/api/reels/?page=$page&limit=$limit';
+  static const String reactToReel = '/api/reels/react/';
+  static const String commentOnReel = '/api/reels/comment/';
+  static String shareReel(String reelId) => '/api/reels/$reelId/share';
+  static const String createReel = '/api/reels/create';
+  static String deleteReel(String reelId) => '/api/reels/delete/$reelId';
+
+  // Reel comments endpoints
+  static String getReelComments(String reelId, int page, int limit) =>
+      '/api/reels/$reelId/comments?page=$page&limit=$limit';
+  static const String editReelComment = '/api/reels/comment/edit';
+  static String deleteReelComment(String reelId, String commentId) =>
+      '/api/reels/$reelId/comment/delete/$commentId';
+  static const String reactToReelComment = '/api/reels/comment/react';
+  static const String replyToReelComment = '/api/reels/comment/reply';
 }

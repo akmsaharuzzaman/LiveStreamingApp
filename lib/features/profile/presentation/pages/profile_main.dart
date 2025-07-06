@@ -6,11 +6,12 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:streaming_djlive/components/utilities/chat_theme.dart';
-import 'package:streaming_djlive/features/core/services/login_provider.dart';
-import 'package:streaming_djlive/features/profile/presentation/bloc/profile_bloc.dart';
+import 'package:dlstarlive/components/utilities/chat_theme.dart';
+import 'package:dlstarlive/features/core/services/login_provider.dart';
+import 'package:dlstarlive/features/profile/presentation/bloc/profile_bloc.dart';
 
 import '../../../../components/custom_widgets/quick_help.dart';
+import '../widgets/asset_widget.dart';
 import '../widgets/dashboardItemWidget.dart';
 
 class MainProfileScreen extends StatefulWidget {
@@ -164,7 +165,7 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: 35.sp),
+                  SizedBox(height: 64.sp),
                   Padding(
                     padding: EdgeInsets.only(right: 18.sp, left: 18.sp),
                     child: Row(
@@ -201,11 +202,10 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                                   backgroundColor: Colors
                                       .grey[200], // Fallback background color
                                 )
-                              : CircleAvatar(
-                                  radius: 36.r, // Size of the avatar
-                                  backgroundImage: const AssetImage(
-                                    'assets/images/new_images/profile.png',
-                                  ),
+                              : Icon(
+                                  Icons.person,
+                                  size: 36.r,
+                                  color: Colors.grey,
                                 ),
                         ),
                         Text(
@@ -231,8 +231,7 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                                 ),
                               ),
                             ),
-                            SizedBox(width: 3.sp),
-                            SizedBox(width: 3.sp),
+                            SizedBox(width: 4.sp),
                             GestureDetector(
                               onTap: () {
                                 QuickHelp.copyText(
@@ -257,16 +256,15 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                             fontSize: 16.sp,
                           ),
                         ),
-                        SizedBox(height: 5.sp),
+                        SizedBox(height: 8.sp),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const SizedBox(width: 5),
                             Image.asset(
                               QuickHelp.levelVipBanner(currentCredit: 5000),
-                              scale: 2.2,
+                              height: 20.sp,
                             ),
-                            const SizedBox(width: 5),
+                            const SizedBox(width: 4),
                             Padding(
                               padding: const EdgeInsets.only(top: 1),
                               child: ClipRRect(
@@ -275,11 +273,11 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                                 ),
                                 child: Image.asset(
                                   QuickHelp.levelImage(pointsInApp: 50000),
-                                  width: 37,
+                                  height: 20.sp,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 5),
+                            const SizedBox(width: 4),
                             Visibility(
                               // visible: QuickHelp.isMvpUser(user),
                               visible: true,
@@ -287,7 +285,7 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                                 padding: const EdgeInsets.only(top: 1),
                                 child: Image.asset(
                                   "assets/images/new_images/vip_member.png",
-                                  width: 36,
+                                  height: 20.sp,
                                 ),
                               ),
                             ),
@@ -296,7 +294,26 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 40.sp),
+                  SizedBox(height: 45.sp),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        AssetWidget(type: AssetWidgetType.dymond, value: 100),
+                        AssetWidget(type: AssetWidgetType.gold, value: 100),
+                      ],
+                    ),
+                  ),
+                  //Divider
+                  Container(
+                    margin: EdgeInsets.symmetric(
+                      horizontal: 20.sp,
+                      vertical: 10.sp,
+                    ),
+                    height: 1.sp,
+                    color: Colors.grey.shade300,
+                  ),
                   Padding(
                     padding: EdgeInsets.only(right: 25.sp, left: 25.sp),
                     child: Row(
@@ -305,7 +322,7 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                         Column(
                           children: [
                             Text(
-                              "1.3K",
+                              "0",
                               style: TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.w700,
@@ -314,7 +331,7 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                             ),
                             SizedBox(height: 2.sp),
                             Text(
-                              "Follow",
+                              "Friends",
                               style: TextStyle(
                                 color: MyTheme.kPrimaryColorVariant,
                                 fontWeight: FontWeight.w500,
@@ -326,7 +343,7 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                         Column(
                           children: [
                             Text(
-                              "7.3K",
+                              "0",
                               style: TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.w700,
@@ -347,7 +364,7 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                         Column(
                           children: [
                             Text(
-                              "2.5K",
+                              "0",
                               style: TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.w700,
@@ -356,7 +373,7 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                             ),
                             SizedBox(height: 2.sp),
                             Text(
-                              "Visitors",
+                              "Following",
                               style: TextStyle(
                                 color: MyTheme.kPrimaryColorVariant,
                                 fontWeight: FontWeight.w500,
@@ -367,27 +384,17 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                         ),
                         Column(
                           children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Iconsax.user_octagon,
-                                  color: Colors.pinkAccent,
-                                  size: 17.sp,
-                                ),
-                                SizedBox(width: 2.sp),
-                                Text(
-                                  "300",
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16.sp,
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              "0",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16.sp,
+                              ),
                             ),
                             SizedBox(height: 2.sp),
                             Text(
-                              "Friends",
+                              "Likes",
                               style: TextStyle(
                                 color: MyTheme.kPrimaryColorVariant,
                                 fontWeight: FontWeight.w500,
@@ -399,49 +406,7 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 18.sp),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 11.sp),
-                    child: Container(
-                      height: 195.sp,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14.r),
-                        color: Colors.white,
-                      ),
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          top: 0.sp,
-                          left: 20.sp,
-                          right: 20.sp,
-                        ),
-                        child: GridView.count(
-                          crossAxisCount: 4,
-                          crossAxisSpacing: 20.sp,
-                          mainAxisSpacing: 20.sp,
-                          physics: const NeverScrollableScrollPhysics(),
-                          children: items.map((item) {
-                            return DashboardTile(
-                              title: item.title ?? "",
-                              imagePath: item.imagePath ?? "",
-                              backgroundColor:
-                                  item.gradientColor ?? Colors.grey,
-                              onTap: () {
-                                if (item.title == 'Sign Out') {
-                                  final LoginInfo _loginInfo = LoginInfo();
-                                  _loginInfo.logout();
-                                  context.push('/welcome-screen');
-                                } else {
-                                  // Handle other taps
-                                  print("Tapped on ${item.title}");
-                                }
-                              },
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 7.sp),
+                  SizedBox(height: 12.sp),
                   Padding(
                     padding: EdgeInsets.only(right: 8.sp, left: 8.sp),
                     child: SizedBox(
@@ -506,7 +471,64 @@ class _MainProfileScreenState extends State<MainProfileScreen> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 7.sp),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 11.sp),
+                    child: Container(
+                      height: 195.sp,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14.r),
+                        color: Colors.white,
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top: 0.sp,
+                          left: 20.sp,
+                          right: 20.sp,
+                        ),
+                        child: GridView.count(
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 20.sp,
+                          mainAxisSpacing: 20.sp,
+                          physics: const NeverScrollableScrollPhysics(),
+                          children: items.map((item) {
+                            return DashboardTile(
+                              title: item.title ?? "",
+                              imagePath: item.imagePath ?? "",
+                              backgroundColor:
+                                  item.gradientColor ?? Colors.grey,
+                              onTap: () async {
+                                if (item.title == 'Sign Out') {
+                                  try {
+                                    // Clear shared preferences
+                                    final prefs =
+                                        await SharedPreferences.getInstance();
+                                    await prefs.clear();
+
+                                    // Update the login provider
+                                    if (context.mounted) {
+                                      context.read<LoginInfo>().logout();
+                                      // Use go instead of pushReplacement to completely reset navigation
+                                      context.go('/welcome-screen');
+                                    }
+                                  } catch (e) {
+                                    debugPrint('Error during logout: $e');
+                                    // Still try to navigate even if there's an error
+                                    if (context.mounted) {
+                                      context.go('/welcome-screen');
+                                    }
+                                  }
+                                } else {
+                                  // Handle other taps
+                                  print("Tapped on ${item.title}");
+                                }
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ),
+
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 11.sp),
                     child: Container(

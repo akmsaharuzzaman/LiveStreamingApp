@@ -23,13 +23,19 @@ class HostInfo extends StatelessWidget {
         spacing: 5,
         children: [
           // holds the image of the user
-          CircleAvatar(
-            radius: 18,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(100),
-              child: Image.network(imageUrl),
-            ),
-          ),
+          imageUrl.isEmpty
+              ? CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.grey[400],
+                  child: Icon(Icons.person, color: Colors.white, size: 24),
+                )
+              : CircleAvatar(
+                  radius: 18,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(100),
+                    child: Image.network(imageUrl),
+                  ),
+                ),
           Column(
             spacing: 2,
             crossAxisAlignment: CrossAxisAlignment.start,

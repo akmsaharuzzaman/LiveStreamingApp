@@ -6,9 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:logger/logger.dart';
-import 'package:streaming_djlive/features/auth/data/models/user_profile_data_response/user_profile_data_response.dart';
-import 'package:streaming_djlive/features/auth/presentation/bloc/log_in_bloc/log_in_bloc.dart';
+import 'package:dlstarlive/features/auth/data/models/user_profile_data_response/user_profile_data_response.dart';
+import 'package:dlstarlive/features/auth/presentation/bloc/log_in_bloc/log_in_bloc.dart';
 
 import '../../../core/services/dio_client.dart';
 import '../models/user_profile.dart';
@@ -95,7 +94,9 @@ class LogInRepository {
       UserProfileDataResponse userDataResponse =
           UserProfileDataResponse.fromJson(jsonDecode(jsonEncode(resp)));
 
-      print("User Response is $userDataResponse");
+      debugPrint(
+        "User Profile loaded: ${userDataResponse.result?.email?.toString() ?? 'No Email'}",
+      );
       return userDataResponse;
     } catch (e) {
       rethrow;
@@ -105,26 +106,25 @@ class LogInRepository {
   Future<bool> isProfileComplete(UserProfileDataResponse user) async {
     final profile = user.result;
 
-    print('Checking profile completeness...');
-    print('Profile: $profile');
+    debugPrint('Checking profile completeness...');
 
     if (profile == null) {
-      print('Profile is null');
+      debugPrint('Profile is null');
       return false;
     }
 
-    print('First Name: "${profile.firstName}"');
-    print('Last Name: "${profile.lastName}"');
-    print('Birthday: ${profile.birthday}');
-    print('Bio: "${profile.bio}"');
+    debugPrint(
+      'All Profile Fields exist: '
+      '${profile.firstName != null}, '
+      '${profile.lastName != null}, '
+      '${profile.birthday != null}',
+    );
 
     final isComplete =
         profile.firstName?.trim().isNotEmpty == true &&
         profile.lastName?.trim().isNotEmpty == true &&
         profile.birthday != null;
-    // profile.bio?.trim().isNotEmpty == true;
-
-    print('Is profile complete? $isComplete');
+    debugPrint('Profile Completion Status: $isComplete');
     return isComplete;
   }
 
@@ -169,9 +169,9 @@ class LogInRepository {
         MapEntry("country_languages", jsonEncode(countryLanguages)),
       ]);
 
-      print('FormData being sent:');
+      debugPrint('FormData being sent:');
       formData.fields.forEach((field) {
-        print('${field.key}: ${field.value}');
+        debugPrint('${field.key}: ${field.value}');
       });
 
       final resp = await dioClient.put(
@@ -181,7 +181,7 @@ class LogInRepository {
 
       return resp;
     } catch (e) {
-      print("Error saving user profile: $e");
+      debugPrint("Error saving user profile: $e");
       return false;
     }
   }
@@ -200,7 +200,7 @@ class LogInRepository {
 
       return resp;
     } catch (e) {
-      print("Error saving user profile: $e");
+      debugPrint("Error saving user profile: $e");
       return false;
     }
   }

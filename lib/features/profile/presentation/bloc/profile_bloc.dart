@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:streaming_djlive/features/profile/data/models/profile_data_response/result.dart';
+import 'package:dlstarlive/features/profile/data/models/profile_data_response/result.dart';
 
 import '../../data/models/profile_data_response/user_profile_data_response.dart';
 import '../../data/repositories/profile_repository.dart';
@@ -26,28 +26,28 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   }
 
   Future<void> _userDataLoaded(
-      _UserDataLoaded event, Emitter<ProfileState> emit) async {
+    _UserDataLoaded event,
+    Emitter<ProfileState> emit,
+  ) async {
     emit(state.copyWith(logInStatus: ProfileStatus.inProgress));
 
     try {
       final user = await ProfileRepository().profileDataLoad(uid: event.uid);
 
-      emit(state.copyWith(
-        userProfile: user,
-        logInStatus: ProfileStatus.success,
-      ));
+      emit(
+        state.copyWith(userProfile: user, logInStatus: ProfileStatus.success),
+      );
     } catch (e) {
       emit(state.copyWith(logInStatus: ProfileStatus.failure));
     }
   }
 
   _imagePicked(_ImagePicked event, Emitter<ProfileState> emit) async {
-    emit(state.copyWith(
-      logInStatus: ProfileStatus.initial,
-    ));
+    emit(state.copyWith(logInStatus: ProfileStatus.initial));
     try {
-      final XFile? pickedImage =
-          await ProfileRepository().openImagePicker(event.cameraImage);
+      final XFile? pickedImage = await ProfileRepository().openImagePicker(
+        event.cameraImage,
+      );
       if (pickedImage == null) return;
 
       final imageBytes = await pickedImage.readAsBytes();
@@ -58,20 +58,22 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         );
       }
 
-      emit(state.copyWith(
-        imageBytes: imageBytes,
-        pickedImageFile: pickedImage,
-        logInStatus: ProfileStatus.success,
-      ));
+      emit(
+        state.copyWith(
+          imageBytes: imageBytes,
+          pickedImageFile: pickedImage,
+          logInStatus: ProfileStatus.success,
+        ),
+      );
     } catch (e) {
-      emit(state.copyWith(
-        logInStatus: ProfileStatus.failure,
-      ));
+      emit(state.copyWith(logInStatus: ProfileStatus.failure));
     }
   }
 
   Future<void> _saveUserProfile(
-      _SaveUserProfile event, Emitter<ProfileState> emit) async {
+    _SaveUserProfile event,
+    Emitter<ProfileState> emit,
+  ) async {
     emit(state.copyWith(logInStatus: ProfileStatus.inProgress));
 
     try {
@@ -82,26 +84,29 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       );
       final userProfile = state.userProfile;
       final resultList = userProfile.result;
-      emit(state.copyWith(
-        //userInfoProfile: userData,
-        userProfile: userProfile.copyWith(
+      emit(
+        state.copyWith(
+          //userInfoProfile: userData,
+          userProfile: userProfile.copyWith(
             result: Result(
-          name: event.name,
-          birthday: event.birthday,
-          bio: event.bio,
-          firstName: resultList?.firstName,
-          lastName: resultList?.lastName,
-          uid: resultList?.uid,
-          country: resultList?.country,
-          countryLanguages: resultList?.countryLanguages,
-          countryCode: resultList?.countryCode,
-          userPoints: resultList?.userPoints,
-          avatar: resultList?.avatar,
-          resellerCoins: resultList?.resellerCoins,
-          resellerHistory: resultList?.resellerHistory,
-        )),
-        logInStatus: ProfileStatus.success,
-      ));
+              name: event.name,
+              birthday: event.birthday,
+              bio: event.bio,
+              firstName: resultList?.firstName,
+              lastName: resultList?.lastName,
+              uid: resultList?.uid,
+              country: resultList?.country,
+              countryLanguages: resultList?.countryLanguages,
+              countryCode: resultList?.countryCode,
+              userPoints: resultList?.userPoints,
+              avatar: resultList?.avatar,
+              resellerCoins: resultList?.resellerCoins,
+              resellerHistory: resultList?.resellerHistory,
+            ),
+          ),
+          logInStatus: ProfileStatus.success,
+        ),
+      );
 
       await Fluttertoast.showToast(
         webPosition: "center",

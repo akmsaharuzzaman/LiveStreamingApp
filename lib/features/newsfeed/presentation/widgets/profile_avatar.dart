@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:streaming_djlive/components/utilities/chat_theme.dart';
+import 'package:dlstarlive/components/utilities/chat_theme.dart';
 
 class ProfileAvatar extends StatelessWidget {
   final String imageUrl;
@@ -7,11 +7,11 @@ class ProfileAvatar extends StatelessWidget {
   final bool hasBorder;
 
   const ProfileAvatar({
-    Key? key,
+    super.key,
     required this.imageUrl,
     this.isActive = false,
     this.hasBorder = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +23,12 @@ class ProfileAvatar extends StatelessWidget {
           child: CircleAvatar(
             radius: hasBorder ? 17.0 : 20.0,
             backgroundColor: Colors.grey[200],
-            backgroundImage: NetworkImage(imageUrl),
+            backgroundImage: (imageUrl.isNotEmpty)
+                ? NetworkImage(imageUrl)
+                : null,
+            child: (imageUrl.isEmpty)
+                ? const Icon(Icons.person, color: Colors.grey, size: 22)
+                : null,
           ),
         ),
         isActive
@@ -36,10 +41,7 @@ class ProfileAvatar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.green,
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      width: 2.0,
-                      color: Colors.white,
-                    ),
+                    border: Border.all(width: 2.0, color: Colors.white),
                   ),
                 ),
               )

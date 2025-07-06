@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity WebGL Player | Greedy Cat Game</title>
+     <style>
+      #loading-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 24px;
+        z-index: 1000;
+        color: white;
+    }
+        #loading-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        z-index: 1000;
+      }
+
+      #loading-text {
+        font-size: 18px;
+        margin-top: 10px;
+      }
+
+      #loading-icon {
+        width: 200px;
+        height: 110px;
+        margin: 0 auto;
+        margin-bottom: 30px;
+      }
+
+      #loading-bar {
+        width: 80%;
+        max-width: 300px;
+        height: 10px;
+        background-color: #ffffff;
+        border-radius: 10px;
+        margin: 20px auto;
+        overflow: hidden;
+        position: relative;
+        margin-bottom: 80px;
+      }
+
+      #loading-bar-fill {
+        width: 0%;
+        height: 100%;
+        background-color: #FF8000;
+        transition: width 0.2s ease;
+      }
+    </style>
+  </head>
+  <body style="text-align: center; padding: 0; border: 0; margin: 0;">
+    <canvas id="unity-canvas" width=340 height=600 tabindex="-1" style="width: 340px; height: 600px; background: url('bg.png') center / cover"></canvas>
+    <div id="loading-container">
+      <img id="loading-icon" src="game-icon.png" alt="Game Icon">
+      <div id="loading-text">Loading..</div>
+      <div id="loading-bar">
+          <div id="loading-bar-fill"></div>
+        </div>
+     </div>
+    <script src="Build/bdc4f51480fbd61e9a3bc0263615b471.loader.js"></script>
+    <script>
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        // Mobile device style: fill the whole browser client area with the game canvas:
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+        document.getElementsByTagName('head')[0].appendChild(meta);
+
+        var canvas = document.querySelector("#unity-canvas");
+        canvas.style.width = "100%";
+        canvas.style.height = "100%";
+        canvas.style.position = "fixed";
+
+        document.body.style.textAlign = "left";
+      }
+      let myGameInstance;
+      var loadingTime;
+      createUnityInstance(document.querySelector("#unity-canvas"), {
+        dataUrl: "Build/98561af5f5cae17c8bf2c7519da3be5d.data.unityweb",
+        frameworkUrl: "Build/d2822e4a9f0d71c41427f922e253050a.framework.js.unityweb",
+        codeUrl: "Build/5cb1f4fd7aed6f236284832b8408896e.wasm.unityweb",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "SGDSOFT.com",
+        productName: "Greedy Cat Game",
+        productVersion: "1.0",
+      }, (progress) => {
+        document.getElementById("loading-text").style.display = "block";
+        document.getElementById("loading-container").style.display = "block";
+        // Update the progress bar as Unity loads
+        let loadingPercent = Math.round(100 * progress);
+        //document.getElementById("loading-text").innerText = `Loading: ${loadingPercent}%`;
+
+        let loadingBarFill = document.getElementById("loading-bar-fill");
+        loadingBarFill.style.width = `${loadingPercent}%`;
+        console.log(100 * progress + "%");
+      }).then((instance) => {
+           document.getElementById("loading-text").style.display = "none"; 
+          document.getElementById("loading-container").style.display = "none"; 
+          myGameInstance = instance;
+          console.log("Unity instance initialized.");
+
+          const jsonData = JSON.stringify({ exampleKey: "exampleValue" }); // Replace with your JSON data
+          AwakeCall();
+      }).catch((error) => {
+          console.error("Error initializing Unity instance:", error);
+      });
+
+        function AwakeCall() {
+            var url_string = window.location.href;
+            var url = new URL(url_string);
+            var _spain_time = url.searchParams.get("spain_time");
+            var _profit = url.searchParams.get("profit");
+            var _user_id = url.searchParams.get("user_id");
+            var _baseurl = url.searchParams.get("baseurl");
+
+            var obj = new Object();
+            obj.spain_time = _spain_time;
+            obj.profit = _profit;
+            obj.user_id = _user_id;
+            obj.base_url = _baseurl;
+            obj.serverIPWithPort = "ws://147.93.103.135:9001/";
+            var jsonString = JSON.stringify(obj);
+            myGameInstance.SendMessage('LevelLoader', 'Initilization', jsonString);
+        }
+
+        function GoHome() {
+        if (window.flutter_inappwebview) {
+                      window.flutter_inappwebview.callHandler('GoHomeFromUnity');
+                    } else {
+                      console.warn("flutter_inappwebview not found");
+                    }
+        }
+
+        function Recharge() {
+
+        }
+
+        function MoreGames() {
+
+        }
+
+    </script>
+  </body>
+</html>

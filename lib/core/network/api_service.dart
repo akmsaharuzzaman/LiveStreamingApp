@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:streaming_djlive/core/network/api_constants.dart';
-import 'package:streaming_djlive/core/network/api_interceptors.dart';
-import 'package:streaming_djlive/core/network/api_result.dart';
-import 'package:streaming_djlive/core/network/network_exceptions.dart';
+import 'package:dlstarlive/core/network/api_constants.dart';
+import 'package:dlstarlive/core/network/api_interceptors.dart';
+import 'package:dlstarlive/core/network/api_result.dart';
+import 'package:dlstarlive/core/network/network_exceptions.dart';
 
 /// Comprehensive API service using Dio for all HTTP operations
 /// Supports GET, POST, PUT, PATCH, DELETE, and file uploads
@@ -368,5 +368,25 @@ class ApiService {
   /// Cancel all pending requests
   void cancelAllRequests() {
     _dio.close(force: true);
+  }
+
+  // Authentication & User Profile API methods
+
+  /// Get current user profile
+  Future<ApiResult<Map<String, dynamic>>> getCurrentUserProfile(
+    String userId,
+  ) async {
+    return await get<Map<String, dynamic>>(
+      '/api/auth/user/$userId',
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
+
+  /// Logout user (if backend requires logout call)
+  Future<ApiResult<Map<String, dynamic>>> logoutUser() async {
+    return await post<Map<String, dynamic>>(
+      '/api/auth/logout',
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
   }
 }

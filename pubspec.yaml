@@ -1,4 +1,4 @@
-name: streaming_djlive
+name: dlstarlive
 description: "A comprehensive Flutter live streaming application with video editing capabilities."
 version: 1.0.0+1
 
@@ -12,190 +12,190 @@ dependencies:
   # ============================
   # CORE FLUTTER DEPENDENCIES
   # ============================
-  
+
   # Cross-platform utilities
   universal_platform: ^1.1.0
-  
+
   # ============================
   # STATE MANAGEMENT & ARCHITECTURE
   # ============================
-  
+
   # BLoC pattern for state management
   flutter_bloc: ^9.1.1
   equatable:
   bloc_concurrency:
   provider:
-  
+
   # Form validation
   formz:
-  
+
   # Background processing and isolates
   flutter_isolate: ^2.1.0
-  
+
   # ============================
   # NETWORKING & HTTP
   # ============================
-  
+
   # HTTP clients
   http:
   dio:
-  
+
   # Socket.IO client for real-time communication
   socket_io_client: ^3.1.2
-  
+
   # HTTP server framework and static file serving
   shelf: ^1.4.2
   shelf_static: ^1.1.3
   webview_flutter: ^4.13.0
-  
+
   # ============================
   # FIREBASE SERVICES
   # ============================
-  
+
   # Core Firebase
   firebase_core: ^3.14.0
   firebase_auth: ^5.6.0
   firebase_messaging: ^15.2.7
   firebase_analytics: ^11.5.0
   cloud_functions: ^5.5.2
-  
+
   # ============================
   # SOCIAL AUTHENTICATION
   # ============================
-  
+
   # Social login providers
   google_sign_in: ^6.3.0
   sign_in_with_apple: ^7.0.1
-  
+
   # ============================
   # LIVE STREAMING & MEDIA
   # ============================
-  
+
   # Agora SDK for live streaming
   agora_rtc_engine: ^6.5.2
-  
+
   # Video players and viewers
   video_player: ^2.10.0
   reels_viewer: ^2.0.0
-  
+
   # Video processing (replacing video_thumbnail)
   video_compress: ^3.1.4
   # flutter_ffmpeg_utils: ^1.0.3
-  
+
   # Video editing capabilities
   easy_video_editor: ^0.1.2
-  
+
   # ============================
   # UI & DESIGN COMPONENTS
   # ============================
-  
+
   # Responsive design
   flutter_screenutil:
 
   # Google Fonts
   google_fonts: ^6.2.1
-  
+
   # Navigation
   go_router:
-  
+
   # Icons and visual elements
   iconsax:
   material_design_icons_flutter:
-  
+
   # Loading and animations
   loading_animation_widget: ^1.3.0
   lottie: ^3.3.1
   shimmer: ^3.0.0
   fade_shimmer: ^2.4.0
-  
+
   # Carousel widgets
   flutter_carousel_widget: ^3.1.0
   preload_page_view: ^0.2.0
-  
+
   # ============================
   # USER INTERACTION & INPUT
   # ============================
-  
+
   # Permissions management
   permission_handler: ^12.0.0+1
-  
+
   # Keyboard handling
   flutter_keyboard_visibility: ^6.0.0
-  
+
   # User feedback
   vibration: ^3.1.3
   fluttertoast: ^8.2.12
-  
+
   # Emoji picker
   emoji_picker_flutter: ^4.3.0
-  
+
   # ============================
   # LOCALIZATION & REGION
   # ============================
-  
+
   # Country and region pickers
   country_code_picker: ^3.3.0
   country_picker: ^2.0.27
-  
+
   # Internationalization
   intl: any
-  
+
   # ============================
   # MEDIA & FILE HANDLING
   # ============================
-  
+
   # Image and media selection
   image_picker: ^1.1.2
   wechat_assets_picker: ^9.5.1
-  
+
   # Image processing
   flutter_image_compress: ^2.4.0
-  
+
   # File system access
   path_provider: ^2.1.5
-  
+
   # ============================
   # DATA PERSISTENCE & STORAGE
   # ============================
-  
+
   # Local storage
   shared_preferences:
-  
+
   # ============================
   # UTILITIES & HELPERS
   # ============================
-  
+
   # Sharing functionality
   share_plus: ^11.0.0
-  
+
   # Device information
   device_info_plus: ^11.5.0
-  
+
   # Unique identifiers
   uuid: ^4.5.1
-  
-  # Logging
-  logger: ^2.5.0
 
-  # Tools 
+  # Logging
+  logger: ^2.6.0
+
+  # Tools
   flutter_svg: ^2.2.0
   image_cropper: ^9.1.0
   video_editor: ^3.0.0
-  
+
   # Environment variables
   flutter_dotenv:
-  
+
   # WebView integration
   flutter_inappwebview:
-  
+
   # ============================
   # CODE GENERATION ANNOTATIONS
   # ============================
-  
+
   # JSON serialization
   json_annotation: any
   freezed_annotation: any
-
+  file_picker: ^10.2.0
 
 # ============================
 # DEVELOPMENT DEPENDENCIES
@@ -204,13 +204,13 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  
+
   # Linting and code quality
   flutter_lints: ^6.0.0
-  
+
   # App icons and branding
   flutter_launcher_icons: "^0.14.3"
-  
+
   # Code generation tools
   freezed: any
   build_runner: any
@@ -227,6 +227,7 @@ flutter:
   # Asset directories
   assets:
     - assets/images/
+    - assets/icon/
     - assets/images/splash/
     - assets/images/vip_level/
     - assets/images/level/
@@ -235,8 +236,35 @@ flutter:
     - assets/lottie/
     - assets/images/new_images/
     - .env
-    - assets/unityweb/
-    - assets/unityweb/Build/
+
+    # Game assets (dynamic structure)
+    - assets/games/
+    - assets/games/games_config.json
+    
+    # Greedy V3
+    - assets/games/greedyv3/
+    - assets/games/greedyv3/Build/
+    - assets/games/greedyv3/index.html
+    - assets/games/greedyv3/bg.png
+    - assets/games/greedyv3/game-icon.png
+    - assets/games/greedyv3/Build/Greedy V3.jpg
+    - assets/games/greedyv3/Build/bdc4f51480fbd61e9a3bc0263615b471.loader.js
+    - assets/games/greedyv3/Build/98561af5f5cae17c8bf2c7519da3be5d.data.unityweb
+    - assets/games/greedyv3/Build/d2822e4a9f0d71c41427f922e253050a.framework.js.unityweb
+    - assets/games/greedyv3/Build/5cb1f4fd7aed6f236284832b8408896e.wasm.unityweb
+
+    #Teen Patty
+    - assets/games/teenpatty/
+    - assets/games/teenpatty/Build/
+    - assets/games/teenpatty/index.html
+    - assets/games/teenpatty/bg.png
+    - assets/games/teenpatty/game-icon.png
+    - assets/games/teenpatty/Build/TeenPatty V3.jpg
+    - assets/games/teenpatty/Build/396b08c57ecdf705a51bb0db874ac84f.loader.js
+    - assets/games/teenpatty/Build/32f003745b633b435f0f9e1ff24a85bb.data
+    - assets/games/teenpatty/Build/5bc02a926db619f520ab8851b88e64ca.framework.js
+    - assets/games/teenpatty/Build/ab12d88d9afba56143772d2bdab4b0d7.wasm
+  # Teen Patty
 
 # ============================
 # APP BRANDING & SPLASH SCREEN
@@ -246,16 +274,16 @@ flutter_native_splash:
   # Light theme splash
   color: "#ffffff"
   image: assets/images/ic_logo_white.png
-  
+
   # Dark theme splash
   color_dark: "#000000"
   image_dark: assets/images/ic_logo_white.png
-  
+
   # Platform support
   android: true
   ios: true
   web: true
-  
+
   # Android 12+ configuration
   android_12:
     image: assets/images/ic_logo_white.png
@@ -263,16 +291,6 @@ flutter_native_splash:
     image_dark: assets/images/ic_logo_white.png
     icon_background_color_dark: "#000000"
     android: true
-
-# ============================
-# APP LAUNCHER ICONS
-# ============================
-
-flutter_launcher_icons:
-  android: "launcher_icon"
-  ios: true
-  image_path: "assets/images/icon.png"
-
 # ============================
 # CUSTOM FONTS (EXAMPLE)
 # ============================

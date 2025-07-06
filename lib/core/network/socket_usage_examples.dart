@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:streaming_djlive/core/network/socket_service.dart';
+import 'package:dlstarlive/core/network/socket_service.dart';
+import '../../features/live-streaming/data/models/room_models.dart';
 
 /// 🎯 SOCKET SERVICE USAGE EXAMPLES
 ///
@@ -29,7 +30,7 @@ class LiveStreamingPageState extends State<LiveStreamingPage> {
   bool _isConnected = false;
   bool _isConnecting = false;
   String? _currentRoomId;
-  List<String> _availableRooms = [];
+  RoomListResponse? _availableRooms;
   String? _errorMessage;
 
   @override
@@ -122,9 +123,7 @@ class LiveStreamingPageState extends State<LiveStreamingPage> {
     _socketService.userLeftStream.listen((data) {
       final userName = data['userName'] ?? 'Unknown';
       _showSnackBar('👋 $userName left the stream', Colors.orange);
-    });
-
-    // Room list updates
+    }); // Room list updates
     _socketService.roomListStream.listen((rooms) {
       setState(() {
         _availableRooms = rooms;
@@ -220,6 +219,37 @@ class LiveStreamingPageState extends State<LiveStreamingPage> {
         ),
       );
     }
+  }
+
+  /// Check if user can join a specific room
+  bool canUserJoinRoom(String roomId) {
+    if (_availableRooms == null) return false;
+
+    final roomData = _availableRooms!.getRoomById(roomId);
+    if (roomData == null) return false;
+
+    // User cannot join if they are banned
+    if (roomData.isUserBanned(widget.userId)) return false;
+
+    return true;
+  }
+
+  /// Get room information for display
+  Map<String, dynamic>? getRoomInfo(String roomId) {
+    if (_availableRooms == null) return null;
+
+    final roomData = _availableRooms!.getRoomById(roomId);
+    if (roomData == null) return null;
+
+    return {
+      'roomId': roomId,
+      'hostName': roomData.hostDetails.name,
+      'hostCountry': roomData.hostDetails.country,
+      'memberCount': roomData.memberCount,
+      'isUserHost': roomData.isUserHost(widget.userId),
+      'isUserMember': roomData.isUserMember(widget.userId),
+      'isUserBanned': roomData.isUserBanned(widget.userId),
+    };
   }
 
   @override
@@ -406,14 +436,20 @@ class LiveStreamingPageState extends State<LiveStreamingPage> {
             ),
             SizedBox(height: 16),
             Expanded(
-              child: _availableRooms.isEmpty
+              child: (_availableRooms?.roomCount ?? 0) == 0
                   ? Center(child: Text('No rooms available'))
                   : ListView.builder(
-                      itemCount: _availableRooms.length,
+                      itemCount: _availableRooms?.roomCount ?? 0,
                       itemBuilder: (context, index) {
-                        final roomId = _availableRooms[index];
+                        final roomId = _availableRooms!.roomIds[index];
+                        final roomData = _availableRooms!.getRoomById(roomId);
                         return ListTile(
                           title: Text(roomId),
+                          subtitle: roomData != null
+                              ? Text(
+                                  'Host: ${roomData.hostDetails.name} • ${roomData.memberCount} members',
+                                )
+                              : null,
                           trailing: _currentRoomId == roomId
                               ? Icon(Icons.check, color: Colors.green)
                               : null,
@@ -510,7 +546,7 @@ class LiveStreamingService {
     final completer = Completer<List<String>>();
 
     _socketService.roomListStream.take(1).listen((rooms) {
-      completer.complete(rooms);
+      completer.complete(rooms.roomIds);
     });
 
     return completer.future.timeout(

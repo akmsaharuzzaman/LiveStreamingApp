@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import '../../features/live-streaming/data/models/room_models.dart';
 
 /// Comprehensive Socket Service for Live Streaming
 /// Handles all socket operations including room management and real-time events
@@ -10,10 +11,9 @@ class SocketService {
   bool _isConnected = false;
   String? _currentUserId;
   String? _currentRoomId;
-
   // Stream controllers for different events
-  final StreamController<List<String>> _roomListController =
-      StreamController<List<String>>.broadcast();
+  final StreamController<RoomListResponse> _roomListController =
+      StreamController<RoomListResponse>.broadcast();
   final StreamController<String> _roomCreatedController =
       StreamController<String>.broadcast();
   final StreamController<String> _roomDeletedController =
@@ -46,7 +46,7 @@ class SocketService {
   SocketService._internal();
 
   /// Stream getters for listening to events
-  Stream<List<String>> get roomListStream => _roomListController.stream;
+  Stream<RoomListResponse> get roomListStream => _roomListController.stream;
   Stream<String> get roomCreatedStream => _roomCreatedController.stream;
   Stream<String> get roomDeletedStream => _roomDeletedController.stream;
   Stream<Map<String, dynamic>> get userJoinedStream =>
@@ -207,14 +207,32 @@ class SocketService {
         _userLeftController.add(data);
       }
     });
-
     _socket!.on('room-list', (data) {
       if (kDebugMode) {
         print('📋 Rooms list received: $data');
       }
-      if (data is List) {
-        final rooms = data.map((room) => room.toString()).toList();
-        _roomListController.add(rooms);
+
+      try {
+        if (data is Map<String, dynamic>) {
+          // Parse the new room list format
+          final roomListResponse = RoomListResponse.fromJson(data);
+          _roomListController.add(roomListResponse);
+        } else {
+          // Handle legacy format (fallback)
+          if (kDebugMode) {
+            print('⚠️ Received legacy room list format');
+          }
+          final emptyResponse = RoomListResponse(rooms: {});
+          _roomListController.add(emptyResponse);
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('❌ Error parsing room list: $e');
+        }
+        _errorController.add('Failed to parse room list: $e');
+        // Send empty response on error
+        final emptyResponse = RoomListResponse(rooms: {});
+        _roomListController.add(emptyResponse);
       }
     });
 
@@ -477,5 +495,30 @@ class SocketService {
 
     await disconnect();
     return await connect(_currentUserId!);
+  }
+
+  /// Helper method to get room IDs from the latest room list response
+  List<String> getAvailableRoomIds() {
+    // This would need to be implemented based on how you store the latest room list
+    // For now, returning empty list
+    return [];
+  }
+
+  /// Helper method to get room data by ID from the latest room list response
+  RoomData? getRoomData(String roomId) {
+    // This would need to be implemented based on how you store the latest room list
+    // For now, returning null
+    return null;
+  }
+
+  /// Helper method to check if user can join a specific room
+  bool canUserJoinRoom(String roomId, String userId) {
+    final roomData = getRoomData(roomId);
+    if (roomData == null) return false;
+
+    // User cannot join if they are banned
+    if (roomData.isUserBanned(userId)) return false;
+
+    return true;
   }
 }

@@ -5,9 +5,9 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:streaming_djlive/features/auth/data/models/user_profile.dart';
-import 'package:streaming_djlive/features/auth/data/models/user_profile_data_response/user_profile_data_response.dart';
-import 'package:streaming_djlive/features/auth/data/repositories/log_in_repository.dart';
+import 'package:dlstarlive/features/auth/data/models/user_profile.dart';
+import 'package:dlstarlive/features/auth/data/models/user_profile_data_response/user_profile_data_response.dart';
+import 'package:dlstarlive/features/auth/data/repositories/log_in_repository.dart';
 
 import '../../../../core/services/login_provider.dart';
 
@@ -38,18 +38,23 @@ class LogInBloc extends Bloc<LogInEvent, LogInState> {
   }
 
   Future<void> _googleLogIn(
-      _GoogleLogIn event, Emitter<LogInState> emit) async {
+    _GoogleLogIn event,
+    Emitter<LogInState> emit,
+  ) async {
     emit(state.copyWith(logInStatus: LogInStatus.inProgress));
     final route = GoRouter.of(event.context);
     try {
-      final googleSignUpResponse =
-          await LogInRepository().signInWithGoogle(body: event.body);
+      final googleSignUpResponse = await LogInRepository().signInWithGoogle(
+        body: event.body,
+      );
       print("userrrr $googleSignUpResponse");
 
-      emit(state.copyWith(
-        userProfile: googleSignUpResponse,
-        logInStatus: LogInStatus.success,
-      ));
+      emit(
+        state.copyWith(
+          userProfile: googleSignUpResponse,
+          logInStatus: LogInStatus.success,
+        ),
+      );
 
       String? token = googleSignUpResponse.accessToken;
       if (kDebugMode) {
@@ -58,9 +63,11 @@ class LogInBloc extends Bloc<LogInEvent, LogInState> {
 
       final prefs = await SharedPreferences.getInstance();
       if (token != null) {
-        await prefs.setString("token", token);
+        await prefs.setString("auth_token", token);
         await prefs.setString(
-            "uid", googleSignUpResponse.result?.first.id ?? "");
+          "uid",
+          googleSignUpResponse.result?.first.id ?? "",
+        );
       }
 
       final info = event.context.read<LoginInfo>();
@@ -79,29 +86,38 @@ class LogInBloc extends Bloc<LogInEvent, LogInState> {
   }
 
   Future<void> _isProfileComplete(
-      _IsProfileComplete event, Emitter<LogInState> emit) async {
+    _IsProfileComplete event,
+    Emitter<LogInState> emit,
+  ) async {
     emit(state.copyWith(logInStatus: LogInStatus.inProgress));
     try {
-      final value =
-          await logInRepository.isProfileComplete(state.userInfoProfile);
-      emit(state.copyWith(
-        isProfileComplete: value,
-        logInStatus: LogInStatus.success,
-      ));
+      final value = await logInRepository.isProfileComplete(
+        state.userInfoProfile,
+      );
+      emit(
+        state.copyWith(
+          isProfileComplete: value,
+          logInStatus: LogInStatus.success,
+        ),
+      );
     } catch (e) {
       emit(state.copyWith(logInStatus: LogInStatus.failure));
     }
   }
 
   Future<void> _profileDataLoad(
-      _ProfileDataLoad event, Emitter<LogInState> emit) async {
+    _ProfileDataLoad event,
+    Emitter<LogInState> emit,
+  ) async {
     emit(state.copyWith(logInStatus: LogInStatus.inProgress));
     try {
       final userData = await logInRepository.profileDataLoad(uid: event.uId);
-      emit(state.copyWith(
-        userInfoProfile: userData,
-        logInStatus: LogInStatus.success,
-      ));
+      emit(
+        state.copyWith(
+          userInfoProfile: userData,
+          logInStatus: LogInStatus.success,
+        ),
+      );
     } catch (e) {
       print("Profile data load error: $e");
       emit(state.copyWith(logInStatus: LogInStatus.failure));
@@ -109,32 +125,42 @@ class LogInBloc extends Bloc<LogInEvent, LogInState> {
   }
 
   Future<void> _firstNameChanged(
-      _FirstNameChanged event, Emitter<LogInState> emit) async {
+    _FirstNameChanged event,
+    Emitter<LogInState> emit,
+  ) async {
     final userProfile = state.userInfoProfile;
     final resultList = userProfile.result;
 
     if (resultList != null) {
-      final updatedResult =
-          userProfile.result?.copyWith(firstName: event.firstName);
+      final updatedResult = userProfile.result?.copyWith(
+        firstName: event.firstName,
+      );
 
-      emit(state.copyWith(
-        userInfoProfile: userProfile.copyWith(result: updatedResult),
-      ));
+      emit(
+        state.copyWith(
+          userInfoProfile: userProfile.copyWith(result: updatedResult),
+        ),
+      );
     }
   }
 
   Future<void> _lastNameChanged(
-      _LastNameChanged event, Emitter<LogInState> emit) async {
+    _LastNameChanged event,
+    Emitter<LogInState> emit,
+  ) async {
     final userProfile = state.userInfoProfile;
     final resultList = userProfile.result;
 
     if (resultList != null) {
-      final updatedResult =
-          userProfile.result?.copyWith(lastName: event.lastName);
+      final updatedResult = userProfile.result?.copyWith(
+        lastName: event.lastName,
+      );
 
-      emit(state.copyWith(
-        userInfoProfile: userProfile.copyWith(result: updatedResult),
-      ));
+      emit(
+        state.copyWith(
+          userInfoProfile: userProfile.copyWith(result: updatedResult),
+        ),
+      );
     }
   }
 
@@ -145,14 +171,18 @@ class LogInBloc extends Bloc<LogInEvent, LogInState> {
     if (resultList != null) {
       final updatedResult = userProfile.result?.copyWith(bio: event.bio);
 
-      emit(state.copyWith(
-        userInfoProfile: userProfile.copyWith(result: updatedResult),
-      ));
+      emit(
+        state.copyWith(
+          userInfoProfile: userProfile.copyWith(result: updatedResult),
+        ),
+      );
     }
   }
 
   Future<void> _genderChanged(
-      _GenderChanged event, Emitter<LogInState> emit) async {
+    _GenderChanged event,
+    Emitter<LogInState> emit,
+  ) async {
     final userProfile = state.userProfile;
     final resultList = userProfile.result;
 
@@ -161,62 +191,79 @@ class LogInBloc extends Bloc<LogInEvent, LogInState> {
       final updatedResultList = [...resultList];
       updatedResultList[0] = updatedResult;
 
-      emit(state.copyWith(
-        userProfile: userProfile.copyWith(result: updatedResultList),
-      ));
+      emit(
+        state.copyWith(
+          userProfile: userProfile.copyWith(result: updatedResultList),
+        ),
+      );
     }
   }
 
   Future<void> _countryChanged(
-      _CountryChanged event, Emitter<LogInState> emit) async {
+    _CountryChanged event,
+    Emitter<LogInState> emit,
+  ) async {
     final userProfile = state.userInfoProfile;
     final resultList = userProfile.result;
 
     if (resultList != null) {
-      final updatedResult =
-          userProfile.result?.copyWith(country: event.countryName);
+      final updatedResult = userProfile.result?.copyWith(
+        country: event.countryName,
+      );
 
-      emit(state.copyWith(
-        userInfoProfile: userProfile.copyWith(result: updatedResult),
-      ));
+      emit(
+        state.copyWith(
+          userInfoProfile: userProfile.copyWith(result: updatedResult),
+        ),
+      );
     }
   }
 
   Future<void> _birthDayChanged(
-      _BirthDayChanged event, Emitter<LogInState> emit) async {
+    _BirthDayChanged event,
+    Emitter<LogInState> emit,
+  ) async {
     final userProfile = state.userInfoProfile;
     final resultList = userProfile.result;
 
     if (resultList != null) {
-      final updatedResult =
-          userProfile.result?.copyWith(birthday: event.birthDay);
+      final updatedResult = userProfile.result?.copyWith(
+        birthday: event.birthDay,
+      );
 
-      emit(state.copyWith(
-        userInfoProfile: userProfile.copyWith(result: updatedResult),
-      ));
+      emit(
+        state.copyWith(
+          userInfoProfile: userProfile.copyWith(result: updatedResult),
+        ),
+      );
     }
   }
 
   Future<void> _saveUserProfile(
-      _SaveUserProfile event, Emitter<LogInState> emit) async {
+    _SaveUserProfile event,
+    Emitter<LogInState> emit,
+  ) async {
     emit(state.copyWith(profileSaveStatus: ProfileSaveStatus.inProgress));
     final route = GoRouter.of(event.context);
 
     try {
       await logInRepository.saveUserProfile(
-          firstName: event.firstName,
-          lastName: event.lastName,
-          birthday: event.birthday,
-          gender: event.gender,
-          bio: event.bio,
-          countryName: event.countryName,
-          countryDialCode: event.countryDialCode,
-          countryIsoCode: event.countryIsoCode,
-          countryLanguages: [event.countryLanguages.toString()]);
-      emit(state.copyWith(
-        //userInfoProfile: userData,
-        logInStatus: LogInStatus.success,
-      ));
+        firstName: event.firstName,
+        lastName: event.lastName,
+        birthday: event.birthday,
+        gender: event.gender,
+        bio: event.bio,
+        countryName: event.countryName,
+        countryDialCode: event.countryDialCode,
+        countryIsoCode: event.countryIsoCode,
+        countryLanguages: [event.countryLanguages.toString()],
+      );
+      emit(
+        state.copyWith(
+          //userInfoProfile: userData,
+          logInStatus: LogInStatus.success,
+        ),
+      );
       route.go('/home');
     } catch (e) {
       print("Profile submit error is $e");
@@ -225,12 +272,11 @@ class LogInBloc extends Bloc<LogInEvent, LogInState> {
   }
 
   _imagePicked(_ImagePicked event, Emitter<LogInState> emit) async {
-    emit(state.copyWith(
-      logInStatus: LogInStatus.initial,
-    ));
+    emit(state.copyWith(logInStatus: LogInStatus.initial));
     try {
-      final XFile? pickedImage =
-          await logInRepository.openImagePicker(event.cameraImage);
+      final XFile? pickedImage = await logInRepository.openImagePicker(
+        event.cameraImage,
+      );
       if (pickedImage == null) return;
 
       final imageBytes = await pickedImage.readAsBytes();
@@ -241,15 +287,15 @@ class LogInBloc extends Bloc<LogInEvent, LogInState> {
         );
       }
 
-      emit(state.copyWith(
-        imageBytes: imageBytes,
-        pickedImageFile: pickedImage,
-        logInStatus: LogInStatus.success,
-      ));
+      emit(
+        state.copyWith(
+          imageBytes: imageBytes,
+          pickedImageFile: pickedImage,
+          logInStatus: LogInStatus.success,
+        ),
+      );
     } catch (e) {
-      emit(state.copyWith(
-        logInStatus: LogInStatus.failure,
-      ));
+      emit(state.copyWith(logInStatus: LogInStatus.failure));
     }
   }
 }

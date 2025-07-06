@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'package:streaming_djlive/features/auth/data/repositories/log_in_repository.dart';
-import 'package:streaming_djlive/features/auth/presentation/bloc/log_in_bloc/log_in_bloc.dart';
-import 'package:streaming_djlive/features/profile/presentation/bloc/profile_bloc.dart';
+import 'package:dlstarlive/features/auth/data/repositories/log_in_repository.dart';
+import 'package:dlstarlive/features/auth/presentation/bloc/log_in_bloc/log_in_bloc.dart';
+import 'package:dlstarlive/features/profile/presentation/bloc/profile_bloc.dart';
 
 // Import the new router
 import '../core/routing/app_router.dart';
+import '../core/auth/auth_provider.dart';
 import '../features/core/services/login_provider.dart';
 import '../features/core/services/navbar_provider.dart';
 import '../features/chat/data/models/user_model.dart';
@@ -37,7 +38,7 @@ class _MyAppState extends State<MyApp> {
     return ChangeNotifierProvider.value(
       value: _loginInfo,
       child: ScreenUtilInit(
-        designSize: const Size(390, 844),
+        designSize: const Size(430, 932),
         minTextAdapt: true,
         splitScreenMode: true,
         builder: (context, _) {
@@ -50,16 +51,18 @@ class _MyAppState extends State<MyApp> {
               ),
               BlocProvider(create: (context) => ProfileBloc()),
             ],
-            child: MaterialApp.router(
-              title: 'DLStar',
-              routerConfig: _appRouter.router,
-              debugShowCheckedModeBanner: false,
-              locale: const Locale('en'),
-              theme: ThemeData(
-                colorScheme: ColorScheme.fromSeed(
-                  seedColor: const Color.fromARGB(255, 15, 15, 15),
+            child: AuthProvider(
+              child: MaterialApp.router(
+                title: 'DLStar',
+                routerConfig: _appRouter.router,
+                debugShowCheckedModeBanner: false,
+                locale: const Locale('en'),
+                theme: ThemeData(
+                  colorScheme: ColorScheme.fromSeed(
+                    seedColor: const Color.fromARGB(255, 15, 15, 15),
+                  ),
+                  useMaterial3: true,
                 ),
-                useMaterial3: true,
               ),
             ),
           );

@@ -1,11 +1,13 @@
 # Flutter/Dart related
-lib/firebase_options.dart
+/lib/firebase_options.dart
 .dart_tool/
 .packages
 .pub-cache/
-build/
+/build/
 pubspec.lock
-
+/docs/
+/android/app/google-services.json
+/lib/firebase_options.dart
 # Generated files
 macos/Flutter/GeneratedPluginRegistrant.swift
 
@@ -44,3 +46,4 @@ coverage/
 # Dart tool configs
 .dart_tool/package_config_subset
 .dart_tool/package_config.json
+

@@ -1,19 +1,38 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
-
 import '../../../../components/utilities/chat_theme.dart';
-import '../../data/models/mock_models/data.dart';
-import '../../data/models/mock_models/post_model.dart';
+import '../../../../core/services/post_service.dart';
+import '../../../../core/network/api_service.dart';
+import '../../../../core/services/simple_auth_service.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../auth/domain/entities/user_entity.dart';
+import '../../../chat/data/models/user_model.dart';
+import '../../data/models/mock_models/data.dart' as MockData;
+import '../../data/models/stories_api_response_model.dart' as api;
+import '../../injection_container.dart';
+import '../bloc/newsfeed_bloc.dart';
 import '../widgets/create_post_container.dart';
-import '../widgets/post_container.dart';
+import '../widgets/api_post_container.dart';
 import '../widgets/stories.dart';
+import '../widgets/api_stories.dart';
+
+// Helper function to convert UserEntity to the User model expected by widgets
+User userEntityToUser(UserEntity userEntity) {
+  return User(
+    id: userEntity.id.hashCode, // Convert string ID to int
+    name: userEntity.name,
+    avatar: userEntity.avatar?.url ?? '',
+  );
+}
 
 class NewsFeedScreen extends StatefulWidget {
   const NewsFeedScreen({super.key});
@@ -24,89 +43,319 @@ class NewsFeedScreen extends StatefulWidget {
 
 class _NewsFeedScreenState extends State<NewsFeedScreen> {
   final TrackingScrollController scrollController = TrackingScrollController();
+  late NewsfeedBloc _newsfeedBloc;
+  final GlobalKey _apiStoriesKey = GlobalKey();
+
+  // Toggle between mock stories and API stories
+  bool useApiStories =
+      true; // Set to true to use API stories, false for mock stories
+
+  @override
+  void initState() {
+    super.initState();
+    _newsfeedBloc = NewsfeedDependencyContainer.createNewsfeedBloc();
+    // Load initial posts
+    _newsfeedBloc.add(const LoadPostsEvent());
+  }
 
   @override
   void dispose() {
     scrollController.dispose();
+    _newsfeedBloc.close();
     super.dispose();
+  }
+
+  Future<void> _refreshFeed() async {
+    // Refresh posts
+    _newsfeedBloc.add(RefreshPostsEvent());
+
+    // Refresh stories if using API stories
+    if (useApiStories && _apiStoriesKey.currentState != null) {
+      final apiStoriesState = _apiStoriesKey.currentState as dynamic;
+      await apiStoriesState.refreshStories();
+    }
+
+    // Wait for the state to change
+    await Future.delayed(const Duration(milliseconds: 500));
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        body: CustomScrollView(
-          controller: scrollController,
-          slivers: [
-            SliverAppBar(
-              backgroundColor: Colors.white,
-              title: Row(
-                children: [
-                  Image.asset(
-                    'assets/images/new_images/ic_logo_white.png',
-                    height: 40.sp,
-                    width: 40.sp,
-                  ),
-                  SizedBox(width: 5.sp),
-                  Text('DLStar Live', style: MyTheme.kAppTitle),
-                ],
-              ),
-              centerTitle: false,
-              floating: true,
-              actions: [
-                GestureDetector(
-                  onTap: () {
-                    context.push("/reels");
-                  },
-                  child: Row(
+    return BlocProvider<NewsfeedBloc>(
+      create: (context) => _newsfeedBloc,
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Scaffold(
+          body: RefreshIndicator(
+            // Position indicator at 30% of screen height instead of bottom
+            displacement: MediaQuery.of(context).size.height * 0.3,
+            onRefresh: _refreshFeed,
+            child: CustomScrollView(
+              controller: scrollController,
+              slivers: [
+                SliverAppBar(
+                  pinned: true,
+                  backgroundColor: Colors.white,
+                  title: Row(
                     children: [
-                      Icon(Iconsax.instagram, size: 16.sp),
-                      SizedBox(width: 5.sp),
-                      Text(
-                        'Reels',
-                        style: GoogleFonts.aBeeZee(
-                          fontSize: 13.sp,
-                          color: const Color(0xff2c3968),
-                        ),
+                      SvgPicture.asset(
+                        'assets/svg/dl_star_logo.svg',
+                        height: 16,
+                        width: 40,
                       ),
                     ],
                   ),
+                  centerTitle: false,
+                  floating: true,
+                  actions: [
+                    GestureDetector(
+                      onTap: () {
+                        // Use try-catch for better error handling
+                        try {
+                          context.push("/reels");
+                        } catch (e) {
+                          debugPrint('Error navigating to reels: $e');
+                          // Fallback navigation
+                          Navigator.of(context).pushNamed('/reels');
+                        }
+                      },
+                      child: Row(
+                        children: [
+                          Icon(Iconsax.instagram, size: 16.sp),
+                          SizedBox(width: 5.sp),
+                          Text(
+                            'Reels',
+                            style: GoogleFonts.aBeeZee(
+                              fontSize: 13.sp,
+                              color: const Color(0xff2c3968),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 20.sp),
+                    Icon(Icons.search, size: 22.sp),
+                    SizedBox(width: 15.sp),
+                    GestureDetector(
+                      onTap: () {
+                        context.push("/live-chat");
+                      },
+                      child: Image.asset(
+                        'assets/images/new_images/messenger.png',
+                        height: 28.sp,
+                        width: 28.sp,
+                      ),
+                    ),
+                    SizedBox(width: 15.sp),
+                  ],
+                  systemOverlayStyle: SystemUiOverlayStyle.dark,
                 ),
-                SizedBox(width: 20.sp),
-                Icon(Icons.search, size: 22.sp),
-                SizedBox(width: 15.sp),
-                GestureDetector(
-                  onTap: () {
-                    context.push("/live-chat");
-                  },
-                  child: Image.asset(
-                    'assets/images/new_images/messenger.png',
-                    height: 28.sp,
-                    width: 28.sp,
+                SliverToBoxAdapter(
+                  child: BlocBuilder<AuthBloc, AuthState>(
+                    builder: (context, authState) {
+                      // Use auth user data instead of mock currentUser
+                      if (authState is AuthAuthenticated) {
+                        final user = userEntityToUser(authState.user);
+                        return CreatePostContainer(
+                          currentUser: user,
+                          onCreatePost: () async {
+                            // Navigate to create post page
+                            final result = await Navigator.push<bool>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CreatePostPage(),
+                              ),
+                            );
+
+                            // If post was created successfully, refresh the feed
+                            if (result == true) {
+                              _newsfeedBloc.add(RefreshPostsEvent());
+                            }
+                          },
+                        );
+                      }
+                      // Fallback to mock user if not authenticated
+                      return BlocBuilder<AuthBloc, AuthState>(
+                        builder: (context, state) {
+                          return CreatePostContainer(
+                            currentUser: (state is AuthAuthenticated)
+                                ? userEntityToUser(state.user)
+                                : MockData.currentUser,
+                            onCreatePost: () async {
+                              // Navigate to create post page
+                              final result = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CreatePostPage(),
+                                ),
+                              );
+
+                              // If post was created successfully, refresh the feed
+                              if (result == true) {
+                                _newsfeedBloc.add(RefreshPostsEvent());
+                              }
+                            },
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
-                SizedBox(width: 15.sp),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
+                  sliver: SliverToBoxAdapter(
+                    child: BlocBuilder<AuthBloc, AuthState>(
+                      builder: (context, authState) {
+                        if (authState is AuthAuthenticated) {
+                          final user = userEntityToUser(authState.user);
+                          return useApiStories
+                              ? ApiStories(
+                                  key: _apiStoriesKey,
+                                  currentUser: user,
+                                  onStoryUploaded: _refreshFeed,
+                                )
+                              : Stories(
+                                  currentUser: user,
+                                  storyGroups: const <api.UserStoryGroup>[],
+                                );
+                        }
+                        // Fallback to mock user if not authenticated
+                        return useApiStories
+                            ? ApiStories(
+                                key: _apiStoriesKey,
+                                currentUser: MockData.currentUser,
+                                onStoryUploaded: _refreshFeed,
+                              )
+                            : Stories(
+                                currentUser: MockData.currentUser,
+                                storyGroups: const <api.UserStoryGroup>[],
+                              );
+                      },
+                    ),
+                  ),
+                ),
+                // Use BlocBuilder to show posts from API
+                BlocBuilder<NewsfeedBloc, NewsfeedState>(
+                  builder: (context, state) {
+                    if (state is NewsfeedLoading) {
+                      return const SliverToBoxAdapter(
+                        child: Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                      );
+                    } else if (state is NewsfeedLoaded) {
+                      return SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            if (index >= state.posts.length) {
+                              // Show loading indicator at the end
+                              if (!state.hasReachedMax) {
+                                // Trigger load more posts
+                                _newsfeedBloc.add(LoadMorePostsEvent());
+                                return const Padding(
+                                  padding: EdgeInsets.all(20.0),
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+                              }
+                              return null;
+                            }
+                            final post = state.posts[index];
+                            return ApiPostContainer(
+                              post: post,
+                              onPostDeleted: () {
+                                // Refresh the feed when a post is deleted
+                                _newsfeedBloc.add(RefreshPostsEvent());
+                              },
+                              onPostUpdated: () {
+                                // Only refresh for major updates (not likes/comments)
+                                // Most updates are now handled optimistically
+                                debugPrint(
+                                  'Post updated callback - considering refresh',
+                                );
+                                // We can add logic here to determine if a full refresh is needed
+                                // For now, we'll skip the refresh since likes and comments are optimistic
+                              },
+                            );
+                          },
+                          childCount: state.hasReachedMax
+                              ? state.posts.length
+                              : state.posts.length + 1,
+                        ),
+                      );
+                    } else if (state is NewsfeedError) {
+                      return SliverToBoxAdapter(
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Column(
+                              children: [
+                                Text(
+                                  'Error loading posts: ${state.message}',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 16.sp,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(height: 16.h),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    _newsfeedBloc.add(RefreshPostsEvent());
+                                  },
+                                  child: const Text('Retry'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    // Show no posts message when API is not working or no posts available
+                    return SliverToBoxAdapter(
+                      child: Container(
+                        padding: EdgeInsets.all(40.w),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.post_add_outlined,
+                              size: 64.sp,
+                              color: Colors.grey[400],
+                            ),
+                            SizedBox(height: 16.h),
+                            Text(
+                              'No posts yet',
+                              style: TextStyle(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            SizedBox(height: 8.h),
+                            Text(
+                              'Be the first to share something!',
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                color: Colors.grey[500],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                SliverPadding(padding: EdgeInsets.only(top: 20.sp)),
               ],
-              systemOverlayStyle: SystemUiOverlayStyle.dark,
             ),
-            SliverToBoxAdapter(
-              child: CreatePostContainer(currentUser: currentUser),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
-              sliver: SliverToBoxAdapter(
-                child: Stories(currentUser: currentUser, stories: stories),
-              ),
-            ),
-            SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final Post post = posts[index];
-                return PostContainer(post: post);
-              }, childCount: posts.length),
-            ),
-            SliverPadding(padding: EdgeInsets.only(top: 20.sp)),
-          ],
+          ),
         ),
       ),
     );
@@ -123,7 +372,15 @@ class CreatePostPage extends StatefulWidget {
 class _CreatePostPageState extends State<CreatePostPage> {
   final TextEditingController _postController = TextEditingController();
   bool _isPostEnabled = false;
+  bool _isPosting = false;
   File? _selectedImage;
+  late PostService _postService;
+
+  @override
+  void initState() {
+    super.initState(); // Initialize post creation service
+    _postService = PostService(ApiService.instance, AuthService());
+  }
 
   @override
   void dispose() {
@@ -133,135 +390,386 @@ class _CreatePostPageState extends State<CreatePostPage> {
 
   void _onPostChanged(String text) {
     setState(() {
-      _isPostEnabled = text.isNotEmpty;
+      _isPostEnabled = text.trim().isNotEmpty || _selectedImage != null;
     });
   }
 
-  void _createPost() {
-    if (_isPostEnabled) {
-      Navigator.pop(context, _postController.text);
+  void _onImageSelected() {
+    setState(() {
+      _isPostEnabled =
+          _postController.text.trim().isNotEmpty || _selectedImage != null;
+    });
+  }
+
+  Future<void> _createPost() async {
+    if (!_isPostEnabled || _isPosting) return;
+
+    setState(() {
+      _isPosting = true;
+    });
+
+    try {
+      final result = await _postService.createPost(
+        postCaption: _postController.text.trim().isNotEmpty
+            ? _postController.text.trim()
+            : null,
+        mediaFile: _selectedImage,
+      );
+
+      if (result.isSuccess) {
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Post created successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Return success result to refresh the feed
+          Navigator.pop(context, true);
+        }
+      } else {
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.errorOrNull ?? 'Failed to create post'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPosting = false;
+        });
+      }
     }
   }
 
-  void _selectImage() async {
-    final XFile? image = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-    );
-    if (image != null) {
-      setState(() {
-        _selectedImage = File(image.path);
-      });
+  Future<void> _selectImage() async {
+    try {
+      final XFile? image = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        setState(() {
+          _selectedImage = File(image.path);
+        });
+        _onImageSelected();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error selecting image: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
+  }
+
+  void _removeImage() {
+    setState(() {
+      _selectedImage = null;
+    });
+    _onImageSelected();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Create Post'),
+        title: const Text('Create Post'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 1,
         actions: [
-          IconButton(
-            icon: Icon(Icons.send),
-            onPressed: _isPostEnabled ? _createPost : null,
+          Padding(
+            padding: EdgeInsets.only(right: 16.w),
+            child: _isPosting
+                ? Container(
+                    width: 20.w,
+                    height: 20.h,
+                    margin: EdgeInsets.symmetric(vertical: 12.h),
+                    child: const CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : TextButton(
+                    onPressed: _isPostEnabled ? _createPost : null,
+                    style: TextButton.styleFrom(
+                      backgroundColor: _isPostEnabled
+                          ? MyTheme.kPrimaryColor
+                          : Colors.grey[300],
+                      foregroundColor: _isPostEnabled
+                          ? Colors.white
+                          : Colors.grey[600],
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 8.h,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                    ),
+                    child: Text(
+                      'Post',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
           ),
         ],
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(16.w),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Profile Picture and Name
-              Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.grey,
-                    radius: 20,
-                    child: Image.asset('assets/images/new_images/person.png'),
-                  ),
-                  SizedBox(width: 10),
-                  Text('Wahidur Zaman'),
-                ],
+              BlocBuilder<AuthBloc, AuthState>(
+                builder: (context, authState) {
+                  final userName = authState is AuthAuthenticated
+                      ? authState.user.name
+                      : 'Your Name';
+                  final userAvatar = authState is AuthAuthenticated
+                      ? authState.user.avatar?.url
+                      : null;
+
+                  return Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Colors.grey[300],
+                        radius: 20.r,
+                        backgroundImage: userAvatar != null
+                            ? NetworkImage(userAvatar)
+                            : null,
+                        child: userAvatar == null
+                            ? Icon(
+                                Icons.person,
+                                size: 24.sp,
+                                color: Colors.grey[600],
+                              )
+                            : null,
+                      ),
+                      SizedBox(width: 12.w),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            userName,
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.public,
+                                size: 12.sp,
+                                color: Colors.grey[600],
+                              ),
+                              SizedBox(width: 4.w),
+                              Text(
+                                'Public',
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
               ),
-              SizedBox(height: 10),
+              SizedBox(height: 16.h),
 
               // Text Field
               TextFormField(
                 controller: _postController,
                 onChanged: _onPostChanged,
-                maxLines: 5,
+                maxLines: null,
+                minLines: 3,
+                style: TextStyle(fontSize: 16.sp),
                 decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
                   hintText: 'What\'s on your mind?',
                   hintStyle: TextStyle(
-                    color: const Color(0xff3E5057),
-                    fontWeight: FontWeight.w400,
-                    fontSize: 14.sp,
+                    color: Colors.grey[500],
+                    fontSize: 16.sp,
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16.sp).r,
-                    borderSide: BorderSide(
-                      width: 1.sp,
-                      color: Colors.grey.shade200,
-                    ),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16.sp),
-                    borderSide: BorderSide(
-                      width: 1.w,
-                      color: Colors.grey.shade200,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16.sp),
-                    borderSide: BorderSide(
-                      width: 1.w,
-                      color: Colors.grey.shade200,
-                    ),
-                  ),
-                  focusedErrorBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16.sp),
-                    borderSide: BorderSide(
-                      width: 1.w,
-                      color: Colors.grey.shade200,
-                    ),
-                  ),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
                 ),
               ),
 
               // Image Preview
-              if (_selectedImage != null)
+              if (_selectedImage != null) ...[
+                SizedBox(height: 16.h),
                 Container(
-                  height: 300.sp,
-                  width: 450,
-                  margin: EdgeInsets.only(top: 10),
-                  child: Image.file(_selectedImage!),
+                  width: double.infinity,
+                  constraints: BoxConstraints(maxHeight: 300.h),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12.r),
+                        child: Image.file(
+                          _selectedImage!,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: 8.h,
+                        right: 8.w,
+                        child: GestureDetector(
+                          onTap: _removeImage,
+                          child: Container(
+                            padding: EdgeInsets.all(4.sp),
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 16.sp,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              SizedBox(height: 10),
-              // Add Image Button
-              GestureDetector(
-                onTap: _selectImage,
+              ],
+
+              SizedBox(height: 20.h),
+
+              // Options Row
+              Container(
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Add to your post',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    Row(
+                      children: [
+                        _buildOptionButton(
+                          icon: Iconsax.gallery,
+                          label: 'Photo',
+                          color: Colors.green,
+                          onTap: _selectImage,
+                        ),
+                        SizedBox(width: 16.w),
+                        _buildOptionButton(
+                          icon: Icons.videocam_outlined,
+                          label: 'Video',
+                          color: Colors.blue,
+                          onTap: () {
+                            // TODO: Implement video selection
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Video selection coming soon!'),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 20.h),
+
+              // Post Guidelines
+              Container(
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     Icon(
-                      Iconsax.gallery,
-                      size: 22,
-                      color: MyTheme.kPrimaryColor,
+                      Icons.info_outline,
+                      color: Colors.blue[600],
+                      size: 16.sp,
                     ),
-                    SizedBox(width: 5),
-                    Text('Photo'),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        'Share what\'s on your mind! You can post text, photos, or both.',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: Colors.blue[700],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildOptionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 20.sp, color: color),
+          SizedBox(width: 6.w),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 // Import your pages
 import '../../features/home/presentation/pages/homepage.dart';
+import '../../features/live-streaming/presentation/pages/live_summary_screen.dart';
+import '../../features/live-streaming/presentation/pages/ready_for_live_screen.dart';
 import '../../features/newsfeed/presentation/pages/newsfeed.dart';
 import '../../features/live-streaming/presentation/pages/golive_screen.dart';
 import '../../features/chat/presentation/pages/chatpage.dart';
@@ -157,6 +158,11 @@ class AppRouter {
         builder: (context, state) => LeaderBoardScreen(),
       ),
       GoRoute(
+        name: "ready-to-go-live",
+        path: "/ready-to-go-live",
+        builder: (context, state) => ReadyForLiveScreen(),
+      ),
+      GoRoute(
         name: "profile-details",
         path: "/profile-details",
         builder: (context, state) => ProfileDetailsScreen(),
@@ -165,6 +171,23 @@ class AppRouter {
         name: "edit-profile",
         path: "/edit-profile",
         builder: (context, state) => EditProfileScreen(),
+      ),
+      GoRoute(
+        name: "live-summary",
+        path: "/live-summary",
+        builder: (context, state) {
+          // Get the extra data passed from the live stream
+          final extra = state.extra as Map<String, dynamic>?;
+
+          return LiveSummaryScreen(
+            userName: extra?['userName'] ?? "Unknown User",
+            userId: extra?['userId'] ?? "000000",
+            earnedPoints: extra?['earnedPoints'] ?? 0,
+            newFollowers: extra?['newFollowers'] ?? 0,
+            totalDuration: extra?['totalDuration'] ?? "00:00:00",
+            userAvatar: extra?['userAvatar'],
+          );
+        },
       ),
     ],
     redirect: (BuildContext context, GoRouterState state) async {

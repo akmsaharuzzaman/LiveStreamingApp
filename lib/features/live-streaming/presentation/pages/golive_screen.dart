@@ -1,9 +1,13 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+import 'package:dlstarlive/features/live-streaming/presentation/component/agora_token_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/network/socket_service.dart';
@@ -12,8 +16,11 @@ import '../../../profile/presentation/bloc/profile_bloc.dart';
 import '../component/active_viwers.dart';
 import '../component/custom_live_button.dart';
 import '../component/diamond_star_status.dart';
+import '../component/end_stream_overlay.dart';
+import '../component/game_bottomsheet.dart';
 import '../component/host_info.dart';
 import '../component/live_screen_menu_button.dart';
+import '../widgets/live_chat_widget.dart';
 
 enum LiveScreenLeaveOptions { disconnect, muteCall, viewProfile }
 
@@ -27,40 +34,33 @@ class GoliveScreen extends StatefulWidget {
 
 class _GoliveScreenState extends State<GoliveScreen> {
   final TextEditingController _titleController = TextEditingController();
-  bool _isLoading = false;
-
-  void _checkRoom() {
-    if (_currentRoomId != null) {
-      _showSnackBar(
-        'You are already in a room: $_currentRoomId',
-        Colors.orange,
-      );
-      _createRoom();
-      // Timer(Duration(seconds: 2), () {
-      //   _deleteRoom();
-      // });
-    } else {
-      _createRoom();
-      _currentRoomId = null;
-      _showSnackBar('You are not in a room', Colors.red);
-    }
-  }
 
   final SocketService _socketService = SocketService.instance;
-  bool _isConnected = false;
-  bool _isConnecting = false;
   String? _currentRoomId;
-  List<String> _availableRooms = [];
-  String? _errorMessage;
   String? userId;
   bool isHost = true;
-  String roomId = "DJLiveRoom";
+  String roomId = "default_channel";
+
+  // Live stream timing
+  DateTime? _streamStartTime;
+  Timer? _durationTimer;
+  Duration _streamDuration = Duration.zero;
+
+  // Stream subscriptions for proper cleanup
+  StreamSubscription? _connectionStatusSubscription;
+  StreamSubscription? _roomCreatedSubscription;
+  StreamSubscription? _roomJoinedSubscription;
+  StreamSubscription? _roomLeftSubscription;
+  StreamSubscription? _roomDeletedSubscription;
+  StreamSubscription? _errorSubscription;
+
+  // Chat messages
+  List<ChatMessage> _chatMessages = [];
 
   @override
   void initState() {
     super.initState();
     extractRoomId();
-    initAgoraLoad();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUidAndDispatchEvent();
     });
@@ -73,15 +73,26 @@ class _GoliveScreenState extends State<GoliveScreen> {
       debugPrint("Extracted room ID: $roomId");
     } else {
       isHost = true; // Default to host if no room ID provided
-      roomId = "default_channel"; // Set a default room ID
-      debugPrint("No room ID provided, using default: $roomId");
+      // Don't set roomId here - it will be set dynamically using userId when creating room
+      debugPrint("No room ID provided, will create dynamic room with userId");
     }
   }
 
-  void initAgoraLoad() async {
-    await initAgora();
-    _initializeSocket();
-    _setupSocketListeners();
+  Future<void> initAgoraLoad() async {
+    try {
+      // _showSnackBar('🚀 Setting up live stream...', Colors.blue);
+      debugPrint('🚀 Setting up live stream...');
+      await initAgora();
+      // _showSnackBar('📡 Connecting to server...', Colors.blue);
+      debugPrint('📡 Connecting to server...');
+      await _initializeSocket();
+      _setupSocketListeners();
+      // _showSnackBar('✅ Live stream ready!', Colors.green);
+      debugPrint('✅ Live stream ready!');
+    } catch (e) {
+      debugPrint('❌ Error in initAgoraLoad: $e');
+      _showSnackBar('❌ Failed to setup live stream', Colors.red);
+    }
   }
 
   Future<void> _loadUidAndDispatchEvent() async {
@@ -95,29 +106,24 @@ class _GoliveScreenState extends State<GoliveScreen> {
         debugPrint("User ID set: $userId");
         context.read<ProfileBloc>().add(ProfileEvent.userDataLoaded(uid: uid));
       });
+
+      // Initialize Agora and socket AFTER userId is loaded
+      await initAgoraLoad();
     } else {
       debugPrint("No UID found");
+      debugPrint("User ID is null, cannot initialize live streaming");
+      // _showSnackBar('❌ User authentication required', Colors.red);
     }
   }
 
   /// Initialize socket connection when entering live streaming page
   Future<void> _initializeSocket() async {
-    setState(() {
-      _isConnecting = true;
-      _errorMessage = null;
-    });
-
     try {
       // Connect to socket with user ID
       final connected = await _socketService.connect(userId!);
 
       if (connected) {
         _setupSocketListeners();
-
-        setState(() {
-          _isConnected = true;
-          _isConnecting = false;
-        });
 
         // If roomId is provided, join the room
         if (isHost) {
@@ -129,16 +135,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
         // Get list of available rooms
         await _socketService.getRooms();
       } else {
-        setState(() {
-          _isConnecting = false;
-          _errorMessage = 'Failed to connect to server';
-        });
+        debugPrint('Failed to connect to server');
+        // _showSnackBar('❌ Failed to connect to server', Colors.red);
       }
     } catch (e) {
-      setState(() {
-        _isConnecting = false;
-        _errorMessage = 'Connection error: $e';
-      });
+      debugPrint('Connection error: $e');
+      // _showSnackBar('❌ Connection error', Colors.red);
     }
   }
 
@@ -146,67 +148,90 @@ class _GoliveScreenState extends State<GoliveScreen> {
   void _setupSocketListeners() {
     // Connection status
     debugPrint("Setting up socket listeners");
-    _socketService.connectionStatusStream.listen((isConnected) {
-      setState(() {
-        _isConnected = isConnected;
-      });
+    _connectionStatusSubscription = _socketService.connectionStatusStream
+        .listen((isConnected) {
+          if (mounted) {
+            if (isConnected) {
+              // _showSnackBar('✅ Connected to server', Colors.green);
+              debugPrint("Connected to server");
+            } else {
+              // _showSnackBar('❌ Disconnected from server', Colors.red);
+              debugPrint("Disconnected from server");
+            }
+          }
+        });
 
-      if (isConnected) {
-        _showSnackBar('✅ Connected to server', Colors.green);
-      } else {
-        _showSnackBar('❌ Disconnected from server', Colors.red);
+    // Room events
+    _roomCreatedSubscription = _socketService.roomCreatedStream.listen((
+      roomId,
+    ) {
+      if (mounted) {
+        // _showSnackBar('🏠 Room created: $roomId', Colors.blue);
+        debugPrint("🏠 Room created: $roomId");
+        setState(() {
+          _currentRoomId = roomId;
+        });
       }
     });
 
-    // Room events
-    _socketService.roomCreatedStream.listen((roomId) {
-      _showSnackBar('🏠 Room created: $roomId', Colors.blue);
-      setState(() {
-        _currentRoomId = roomId;
-      });
-    });
-
-    _socketService.roomDeletedStream.listen((roomId) {
-      _showSnackBar('🗑️ Room deleted: $roomId', Colors.orange);
-      if (_currentRoomId == roomId) {
-        setState(() {
-          _currentRoomId = null;
-        });
+    _roomDeletedSubscription = _socketService.roomDeletedStream.listen((
+      roomId,
+    ) {
+      if (mounted) {
+        // _showSnackBar('🗑️ Room deleted: $roomId', Colors.orange);
+        debugPrint("🗑️ Room deleted: $roomId");
+        if (_currentRoomId == roomId) {
+          setState(() {
+            _currentRoomId = null;
+          });
+        }
       }
     });
 
     // User events
     _socketService.userJoinedStream.listen((data) {
-      final userName = data['userName'] ?? 'Unknown';
-      debugPrint("User joined: $userName , console from UI");
-      _showSnackBar('👋 $userName joined the stream', Colors.green);
+      if (mounted) {
+        final userName = data['userName'] ?? 'Unknown';
+        debugPrint("User joined: $userName , console from UI");
+        // _showSnackBar('👋 $userName joined the stream', Colors.green);
+        debugPrint("👋 $userName joined the stream");
+      }
     });
 
     _socketService.userLeftStream.listen((data) {
-      final userName = data['userName'] ?? 'Unknown';
-      _showSnackBar('👋 $userName left the stream', Colors.orange);
-    });
-
-    // Room list updates
+      if (mounted) {
+        final userName = data['userName'] ?? 'Unknown';
+        // _showSnackBar('👋 $userName left the stream', Colors.orange);
+        debugPrint("👋 $userName left the stream");
+      }
+    }); // Room list updates
     _socketService.roomListStream.listen((rooms) {
-      setState(() {
-        _availableRooms = rooms;
-        debugPrint("Available rooms: $_availableRooms from Frontend");
-      });
+      if (mounted) {
+        debugPrint("Available rooms: ${rooms.roomIds} from Frontend");
+      }
     });
 
     // Error handling
-    _socketService.errorStream.listen((error) {
-      _showSnackBar('❌ Error: $error', Colors.red);
+    _errorSubscription = _socketService.errorStream.listen((error) {
+      if (mounted) {
+        // _showSnackBar('❌ Error: $error', Colors.red);
+        debugPrint("Error from socket: $error");
+      }
     });
 
     // Custom live streaming events
     _socketService.on('stream-started', (data) {
-      _showSnackBar('🎥 Stream started!', Colors.green);
+      if (mounted) {
+        // _showSnackBar('🎥 Stream started!', Colors.green);
+        debugPrint("🎥 Stream started!");
+      }
     });
 
     _socketService.on('stream-ended', (data) {
-      _showSnackBar('🛑 Stream ended', Colors.red);
+      if (mounted) {
+        // _showSnackBar('🛑 Stream ended', Colors.red);
+        debugPrint("🛑 Stream ended");
+      }
     });
 
     _socketService.on('viewer-count-updated', (data) {
@@ -217,14 +242,31 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   /// Create a new room (for hosts)
   Future<void> _createRoom() async {
-    // final roomId = 'room_${userId}_${DateTime.now().millisecondsSinceEpoch}';
-    final roomId = userId;
-    final success = await _socketService.createRoom(roomId!);
+    if (userId == null) {
+      debugPrint('❌ Cannot create room: userId is null');
+      // _showSnackBar('❌ User not authenticated', Colors.red);
+      return;
+    }
+
+    // Use userId as the room name for dynamic room creation
+    final dynamicRoomId = userId!;
+    debugPrint('🏠 Creating room with dynamic name: $dynamicRoomId');
+
+    final success = await _socketService.createRoom(dynamicRoomId);
 
     if (success) {
       setState(() {
-        _currentRoomId = roomId;
+        _currentRoomId = dynamicRoomId;
+        roomId = dynamicRoomId; // Update the roomId for Agora channel
       });
+      debugPrint('✅ Room created successfully: $dynamicRoomId');
+      // _showSnackBar('🏠 Room created: $dynamicRoomId', Colors.green);
+
+      // Now join the Agora channel with the dynamic room ID
+      await _joinChannelWithDynamicToken();
+    } else {
+      debugPrint('❌ Failed to create room: $dynamicRoomId');
+      // _showSnackBar('❌ Failed to create room', Colors.red);
     }
   }
 
@@ -286,54 +328,162 @@ class _GoliveScreenState extends State<GoliveScreen> {
     }
   }
 
+  /// Generate dummy chat message
+  void _generateDummyMessage() {
+    final random = Random();
+    final dummyUsers = [
+      'Habib',
+      'Nasim Replay',
+      'Nahid',
+      'Sarah',
+      'Ahmed',
+      'Fatima',
+      'Omar',
+      'Aisha',
+    ];
+    final dummyMessages = [
+      'how are you',
+      'fine and you',
+      'Joined the room',
+      'Hello everyone!',
+      'Great stream!',
+      'Love this content',
+      'Amazing performance',
+      'Keep it up!',
+      'Nice work',
+      'Awesome!',
+    ];
+
+    final userName = dummyUsers[random.nextInt(dummyUsers.length)];
+    final message = dummyMessages[random.nextInt(dummyMessages.length)];
+    final level = random.nextInt(25) + 1; // Level 1-25
+    final isVip =
+        random.nextBool() && level > 10; // VIP more likely for higher levels
+
+    final newMessage = ChatMessage(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      userName: userName,
+      message: message,
+      timestamp: DateTime.now(),
+      level: level,
+      isVip: isVip,
+    );
+
+    setState(() {
+      _chatMessages.add(newMessage);
+      // Keep only last 50 messages to prevent memory issues
+      if (_chatMessages.length > 50) {
+        _chatMessages.removeAt(0);
+      }
+    });
+  }
+
   //Agora SDK
   late final RtcEngine _engine;
   int? _remoteUid;
   bool _localUserJoined = false;
   final List<int> _remoteUsers = [];
   bool _muted = false;
-  bool _cameraEnabled = true;
   int _viewerCount = 0;
+  bool _isInitializingCamera = false;
 
   Future<void> initAgora() async {
-    // retrieve permissions
-    PermissionHelper.hasLiveStreamPermissions().then((hasPermissions) {
-      if (!hasPermissions) {
-        PermissionHelper.requestLiveStreamPermissions().then((granted) {
-          if (!granted) {
-            if (mounted) {
-              PermissionHelper.showPermissionDialog(context);
-            }
-          }
-        });
-      }
-    });
+    try {
+      setState(() {
+        _isInitializingCamera = true;
+      });
 
-    //create the engine
-    _engine = createAgoraRtcEngine();
-    await _engine.initialize(
-      RtcEngineContext(
-        appId: dotenv.env['AGORA_APP_ID'] ?? '',
-        channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
-      ),
-    );
+      // Check permissions FIRST and wait for the result
+      bool hasPermissions = await PermissionHelper.hasLiveStreamPermissions();
+
+      if (!hasPermissions) {
+        debugPrint('⚠️ Live streaming permissions not granted, requesting...');
+        _showSnackBar(
+          '📹 Camera and microphone permissions required',
+          Colors.orange,
+        );
+
+        // Request permissions and wait for the result
+        bool granted = await PermissionHelper.requestLiveStreamPermissions();
+        if (!granted) {
+          debugPrint('❌ Live streaming permissions denied');
+          _showSnackBar(
+            '❌ Cannot start live stream without permissions',
+            Colors.red,
+          );
+          if (mounted) {
+            PermissionHelper.showPermissionDialog(context);
+          }
+          setState(() {
+            _isInitializingCamera = false;
+          });
+          // Don't initialize Agora if permissions not granted
+          return;
+        }
+      }
+
+      // Only initialize Agora AFTER permissions are confirmed
+      debugPrint('✅ Permissions granted, initializing Agora engine...');
+      // _showSnackBar('🎥 Initializing camera...', Colors.blue);
+      debugPrint('🎥 Initializing camera...');
+
+      //create the engine
+      _engine = createAgoraRtcEngine();
+      await _engine.initialize(
+        RtcEngineContext(
+          appId: dotenv.env['AGORA_APP_ID'] ?? '',
+          channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
+        ),
+      );
+
+      setState(() {
+        _isInitializingCamera = false;
+      });
+    } catch (e) {
+      debugPrint('❌ Error in initAgora: $e');
+      _showSnackBar('❌ Failed to initialize live streaming', Colors.red);
+      setState(() {
+        _isInitializingCamera = false;
+      });
+      return;
+    }
 
     _engine.registerEventHandler(
       RtcEngineEventHandler(
         onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
-          debugPrint("local user ${connection.localUid} joined");
+          debugPrint(
+            "local user ${connection.localUid} joined channel: ${connection.channelId}",
+          );
           setState(() {
             _localUserJoined = true;
-            _remoteUid = connection.localUid;
+            // Don't set _remoteUid here - it should only be set when a remote user joins
           });
+
+          // Start timing the stream when successfully joined
+          _startStreamTimer();
+
+          // Show success message
+          if (isHost) {
+            // _showSnackBar('🎥 Live stream started!', Colors.green);
+            debugPrint('🎥 Live stream started!');
+          } else {
+            // _showSnackBar('📺 Connected to stream!', Colors.green);
+            debugPrint('📺 Connected to stream!');
+          }
         },
         onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
-          debugPrint("remote user $remoteUid joined");
+          debugPrint(
+            "remote user $remoteUid joined channel: ${connection.channelId}",
+          );
+          debugPrint("Current isHost: $isHost, _remoteUid before: $_remoteUid");
           setState(() {
             _remoteUid = remoteUid;
             _remoteUsers.add(remoteUid);
             _viewerCount = _remoteUsers.length;
           });
+          debugPrint(
+            "_remoteUid after: $_remoteUid, total users: ${_remoteUsers.length}",
+          );
 
           // Update viewer count in Firestore
           if (isHost) {
@@ -348,7 +498,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
             ) {
               debugPrint("remote user $remoteUid left channel");
               setState(() {
-                _remoteUid = null;
+                // Only set _remoteUid to null if it was the user who left
+                if (_remoteUid == remoteUid) {
+                  _remoteUid = null;
+                }
                 _remoteUsers.remove(remoteUid);
                 _viewerCount = _remoteUsers.length;
                 generateActiveViewers(_viewerCount);
@@ -369,17 +522,84 @@ class _GoliveScreenState extends State<GoliveScreen> {
         },
       ),
     );
-
     await _engine.setClientRole(
       role: isHost
           ? ClientRoleType.clientRoleBroadcaster
           : ClientRoleType.clientRoleAudience,
     );
     await _engine.enableVideo();
-    await _engine.startPreview();
+
+    // Only start preview for broadcasters
+    if (isHost) {
+      await _engine.startPreview();
+    }
+
+    // For viewers, join channel immediately
+    // For hosts, wait for room creation to set dynamic roomId
+    if (!isHost) {
+      await _joinChannelWithDynamicToken();
+    }
+  }
+
+  /// Generate dynamic token and join Agora channel
+  Future<void> _joinChannelWithDynamicToken() async {
+    try {
+      if (userId == null) {
+        debugPrint('User ID is null, cannot generate token');
+        _showSnackBar('❌ User not authenticated', Colors.red);
+        return;
+      }
+
+      // _showSnackBar('🔑 Generating access token...', Colors.blue);
+      debugPrint('🔑 Generating access token...');
+
+      // Generate token using the API
+      // final result = await _liveStreamService.generateAgoraToken(
+      //   channelName: roomId, // Use the room ID as channel name
+      //   uid: userId!, // Use the user ID
+      // );
+      final result = await AgoraTokenService.getRtcToken(
+        channelName: roomId,
+        role: isHost ? 'publisher' : 'subscriber',
+      );
+      debugPrint('💲💲Token generation result new: ${result.token}');
+      if (result.token.isNotEmpty) {
+        final dynamicToken = result.token;
+        debugPrint('✅ Token generated successfully : $dynamicToken');
+
+        // _showSnackBar('📡 Joining live stream...', Colors.blue);
+        debugPrint('📡 Joining live stream...');
+
+        // Join channel with dynamic token
+        await _engine.joinChannel(
+          token: dynamicToken,
+          channelId: roomId, // Use the room ID as channel
+          uid: 0, // Let Agora assign UID
+          options: const ChannelMediaOptions(),
+        );
+      } else {
+        debugPrint('Failed to generate token: ${result.success}');
+        _showSnackBar(
+          '❌ Token generation failed, using fallback',
+          Colors.orange,
+        );
+        // Fallback to static token
+        await _joinChannelWithStaticToken();
+      }
+    } catch (e) {
+      debugPrint('Error generating token: $e');
+      _showSnackBar('❌ Connection error, using fallback', Colors.orange);
+      // Fallback to static token
+      await _joinChannelWithStaticToken();
+    }
+  }
+
+  /// Fallback method to join with static token
+  Future<void> _joinChannelWithStaticToken() async {
+    debugPrint('Using fallback static token');
     await _engine.joinChannel(
       token: dotenv.env['AGORA_TOKEN'] ?? '',
-      channelId: dotenv.env['DEFAULT_CHANNEL'] ?? roomId,
+      channelId: dotenv.env['DEFAULT_CHANNEL'] ?? 'default_channel',
       uid: 0,
       options: const ChannelMediaOptions(),
     );
@@ -393,22 +613,39 @@ class _GoliveScreenState extends State<GoliveScreen> {
     });
   }
 
-  // Toggle camera
-  void _toggleCamera() async {
-    await _engine.muteLocalVideoStream(!_cameraEnabled);
-    setState(() {
-      _cameraEnabled = !_cameraEnabled;
+  // Start stream timer
+  void _startStreamTimer() {
+    _streamStartTime = DateTime.now();
+    _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted && _streamStartTime != null) {
+        setState(() {
+          _streamDuration = DateTime.now().difference(_streamStartTime!);
+        });
+      }
     });
   }
 
-  // Switch camera
-  void _switchCamera() async {
-    await _engine.switchCamera();
+  // Stop stream timer
+  void _stopStreamTimer() {
+    _durationTimer?.cancel();
+    _durationTimer = null;
+  }
+
+  // Format duration to string
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    String hours = twoDigits(duration.inHours);
+    String minutes = twoDigits(duration.inMinutes.remainder(60));
+    String seconds = twoDigits(duration.inSeconds.remainder(60));
+    return "$hours:$minutes:$seconds";
   }
 
   // End live stream
   void _endLiveStream() async {
     try {
+      // Stop the stream timer
+      _stopStreamTimer();
+
       if (isHost) {
         // If host, delete the room
         await _deleteRoom();
@@ -416,10 +653,35 @@ class _GoliveScreenState extends State<GoliveScreen> {
         // If viewer, leave the room
         await _leaveRoom();
       }
-      if (mounted) {
-        Navigator.of(context).pop();
+      if (isHost) {
+        if (mounted) {
+          // Get user profile data for the summary screen
+          final profileState = context.read<ProfileBloc>().state;
+          final userProfile = profileState.userProfile.result;
+
+          // Navigate to live summary screen with data
+          context.go(
+            '/live-summary',
+            extra: {
+              'userName': userProfile?.name ?? "Unknown User",
+              'userId': userProfile?.id?.substring(0, 6) ?? "000000",
+              'earnedPoints':
+                  0, // You can calculate this based on your app logic
+              'newFollowers':
+                  0, // You can calculate this based on your app logic
+              'totalDuration': _formatDuration(_streamDuration),
+              'userAvatar': userProfile?.avatar?.url,
+            },
+          );
+        }
+      } else {
+        // If viewer, just navigate back
+        if (mounted) {
+          context.go("/home");
+        }
       }
     } catch (e) {
+      debugPrint('Error ending live stream: $e');
       // Still navigate back even if update fails
       if (mounted) {
         Navigator.of(context).pop();
@@ -432,8 +694,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
-        // Here you can handle the pop event, if needed
-        print('Back navigation invoked: $didPop');
+        // Always trigger cleanup when back navigation is invoked
+        _endLiveStream();
+        debugPrint(
+          'Back navigation invoked: '
+          '(cleanup triggered)',
+        );
       },
       child: BlocBuilder<ProfileBloc, ProfileState>(
         builder: (context, state) {
@@ -455,7 +721,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                           children: [
                             // *shows user informations
                             HostInfo(
-                              imageUrl: "https://thispersondoesnotexist.com/",
+                              imageUrl:
+                                  state.userProfile.result?.avatar?.url ?? "",
                               name:
                                   state.userProfile.result?.name ?? "Host Name",
                               id:
@@ -470,19 +737,37 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             ActiveViewers(activeUserList: activeViewers),
 
                             // * to show the leave button
-                            LiveScreenMenuButton(
-                              onDisconnect: () {
-                                _endLiveStream();
-                                print("Disconnect pressed");
-                              },
-                              onMuteCall: () {
-                                print("Mute call pressed");
-                                _toggleMute();
-                              },
-                              onViewProfile: () {
-                                print("View profile pressed");
-                              },
-                            ),
+                            (isHost)
+                                ? GestureDetector(
+                                    onTap: () {
+                                      EndStreamOverlay.show(
+                                        context,
+                                        onKeepStream: () {
+                                          debugPrint("Keep stream pressed");
+                                        },
+                                        onEndStream: () {
+                                          _endLiveStream();
+                                          debugPrint("End stream pressed");
+                                        },
+                                      );
+                                    },
+                                    child: Image.asset(
+                                      "assets/icon/live_exit_icon.png",
+                                      height: 40,
+                                      width: 40,
+                                    ),
+                                  )
+                                : InkWell(
+                                    onTap: () {
+                                      _endLiveStream();
+                                      debugPrint("Disconnect pressed");
+                                    },
+                                    child: Image.asset(
+                                      "assets/icon/live_exit_icon.png",
+                                      height: 40,
+                                      width: 40,
+                                    ),
+                                  ),
                           ],
                         ),
 
@@ -494,32 +779,158 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
                         Spacer(),
 
-                        // the bottom buttons
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            CustomLiveButton(
-                              icon: Icons.chat_bubble_outline,
-                              onTap: () {},
-                            ),
-                            CustomLiveButton(icon: Icons.call, onTap: () {}),
-                            CustomLiveButton(
-                              icon: Icons.mic_off,
-                              onTap: () {
-                                _toggleMute();
-                              },
-                            ),
-                            CustomLiveButton(icon: Icons.redeem, onTap: () {}),
-                            CustomLiveButton(
-                              icon: Icons.music_note,
-                              onTap: () {},
-                            ),
-                            CustomLiveButton(
-                              icon: Icons.more_vert,
-                              onTap: () {},
-                            ),
-                          ],
+                        // Chat widget - positioned at bottom left
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: LiveChatWidget(messages: _chatMessages),
                         ),
+
+                        const SizedBox(height: 10),
+
+                        // the bottom buttons
+                        if (isHost)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              CustomLiveButton(
+                                iconPath: "assets/icon/chat_icon.png",
+                                onTap: () {
+                                  _generateDummyMessage();
+                                  // _showSnackBar(
+                                  //   '💬 Message added to chat!',
+                                  //   Colors.green,
+                                  // );
+                                },
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/call_icon.png",
+                                onTap: () {
+                                  _showSnackBar(
+                                    '📞 Not implemented yet! Comming soon!',
+                                    Colors.green,
+                                  );
+                                  // showCallBottomSheet(context);
+                                },
+                              ),
+                              CustomLiveButton(
+                                iconPath: _muted
+                                    ? "assets/icon/mute_icon.png"
+                                    : "assets/icon/mute_icon.png",
+                                onTap: () {
+                                  !isHost
+                                      ? _showSnackBar(
+                                          '🎤 You cannot mute yourself as host',
+                                          Colors.orange,
+                                        )
+                                      : _toggleMute();
+                                },
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/gift_icon.png",
+                                onTap: () {
+                                  _showSnackBar(
+                                    '🎁 Not implemented yet',
+                                    Colors.green,
+                                  );
+                                  // showGiftBottomSheet(context);
+                                },
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/pk_icon.png",
+                                onTap: () {
+                                  _showSnackBar(
+                                    '🎶 Not implemented yet',
+                                    Colors.green,
+                                  );
+                                  // showMusicBottomSheet(context);
+                                },
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/music_icon.png",
+                                onTap: () {
+                                  _showSnackBar(
+                                    '🎶 Not implemented yet',
+                                    Colors.green,
+                                  );
+                                  // showMusicBottomSheet(context);
+                                },
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/threedot_icon.png",
+                                onTap: () {
+                                  showGameBottomSheet(
+                                    context,
+                                    userId: userId,
+                                    isHost: isHost,
+                                  );
+                                },
+                              ),
+                            ],
+                          )
+                        else
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              InkWell(
+                                onTap: () {
+                                  _showSnackBar(
+                                    '💬 Not implemented yet',
+                                    Colors.green,
+                                  );
+                                  // showChatBottomSheet(context);
+                                },
+                                child: Stack(
+                                  children: [
+                                    Image.asset(
+                                      "assets/icon/message_icon.png",
+                                      height: 40,
+                                      width: 170,
+                                    ),
+                                    Positioned(
+                                      left: 10,
+                                      top: 0,
+                                      bottom: 0,
+                                      child: Row(
+                                        children: [
+                                          Image.asset(
+                                            "assets/icon/message_user_icon.png",
+                                            height: 25,
+                                            width: 25,
+                                          ),
+                                          SizedBox(width: 5),
+                                          Text(
+                                            'Say Hi..',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 18.sp,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/gift_user_icon.png",
+                                onTap: () {},
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/game_user_icon.png",
+                                onTap: () {
+                                  showGameBottomSheet(context, userId: userId);
+                                },
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/share_user_icon.png",
+                                onTap: () {},
+                              ),
+                              CustomLiveButton(
+                                iconPath: "assets/icon/menu_icon.png",
+                                onTap: () {},
+                              ),
+                            ],
+                          ),
                       ],
                     ),
                   ),
@@ -536,6 +947,39 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   // Main video view
   Widget _buildVideoView() {
+    debugPrint(
+      "Building video view - isHost: $isHost, _localUserJoined: $_localUserJoined, _remoteUid: $_remoteUid, _isInitializingCamera: $_isInitializingCamera",
+    );
+
+    // Show loading indicator during camera initialization
+    if (_isInitializingCamera) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+              SizedBox(height: 20),
+              Text(
+                '🎥 Initializing camera...',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 10),
+              Text(
+                'Please wait while we set up your stream',
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (isHost) {
       // Show local video for broadcaster
       return _localUserJoined
@@ -545,7 +989,26 @@ class _GoliveScreenState extends State<GoliveScreen> {
                 canvas: const VideoCanvas(uid: 0),
               ),
             )
-          : const Center(child: CircularProgressIndicator(color: Colors.white));
+          : Container(
+              color: Colors.black,
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(color: Colors.white),
+                    SizedBox(height: 20),
+                    Text(
+                      '📡 Connecting to stream...',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
     } else {
       // Show remote video for viewers
       return _remoteVideo();
@@ -558,85 +1021,54 @@ class _GoliveScreenState extends State<GoliveScreen> {
         controller: VideoViewController.remote(
           rtcEngine: _engine,
           canvas: VideoCanvas(uid: _remoteUid),
-          connection: const RtcConnection(channelId: "default_channel"),
+          connection: RtcConnection(channelId: roomId), // Use dynamic roomId
         ),
       );
     } else {
-      return const Text(
-        'Please wait for remote user to join',
-        textAlign: TextAlign.center,
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+              SizedBox(height: 20),
+              Text(
+                '📡 Waiting for broadcaster...',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 10),
+              Text(
+                'The stream will start soon',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
       );
     }
   }
 
-  // Bottom controls for broadcaster
-  Widget _buildBottomControls() {
-    if (!isHost) return const SizedBox.shrink();
-
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          bottom: MediaQuery.of(context).padding.bottom + 10,
-          top: 10,
-        ),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [Colors.black.withValues(alpha: .7), Colors.transparent],
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            // Mute button
-            IconButton(
-              onPressed: _toggleMute,
-              icon: Icon(
-                _muted ? Icons.mic_off : Icons.mic,
-                color: _muted ? Colors.red : Colors.white,
-                size: 28,
-              ),
-            ),
-
-            // Camera toggle
-            IconButton(
-              onPressed: _toggleCamera,
-              icon: Icon(
-                _cameraEnabled ? Icons.videocam : Icons.videocam_off,
-                color: _cameraEnabled ? Colors.white : Colors.red,
-                size: 28,
-              ),
-            ),
-
-            // Switch camera
-            IconButton(
-              onPressed: _switchCamera,
-              icon: const Icon(
-                Icons.flip_camera_ios,
-                color: Colors.white,
-                size: 28,
-              ),
-            ),
-
-            // End stream
-            IconButton(
-              onPressed: _endLiveStream,
-              icon: const Icon(Icons.call_end, color: Colors.red, size: 28),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   void dispose() {
+    // Cancel all stream subscriptions to prevent setState calls after disposal
+    _connectionStatusSubscription?.cancel();
+    _roomCreatedSubscription?.cancel();
+    _roomJoinedSubscription?.cancel();
+    _roomLeftSubscription?.cancel();
+    _roomDeletedSubscription?.cancel();
+    _errorSubscription?.cancel();
+
+    // Stop the duration timer
+    _stopStreamTimer();
+
+    // Dispose other resources
     _titleController.dispose();
     _dispose();
     super.dispose();
@@ -648,7 +1080,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   }
 }
 
-const activeViewers = [];
+const List<Map<String, String>> activeViewers = [];
 
 void generateActiveViewers(int count) {
   activeViewers.clear();
