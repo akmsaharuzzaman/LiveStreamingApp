@@ -25,7 +25,16 @@ enum LiveScreenLeaveOptions { disconnect, muteCall, viewProfile }
 
 class GoliveScreen extends StatefulWidget {
   final String? roomId;
-  const GoliveScreen({super.key, this.roomId});
+  final String? hostName;
+  final String? hostUserId;
+  final String? hostAvatar;
+  const GoliveScreen({
+    super.key,
+    this.roomId,
+    this.hostName,
+    this.hostUserId,
+    this.hostAvatar,
+  });
 
   @override
   State<GoliveScreen> createState() => _GoliveScreenState();
@@ -724,14 +733,24 @@ class _GoliveScreenState extends State<GoliveScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              // *shows user informations
-                              HostInfo(
-                                imageUrl:
-                                    state.user.avatar ??
-                                    "https://thispersondoesnotexist.com/",
-                                name: state.user.name,
-                                id: state.user.id.substring(0, 4),
-                              ),
+                              if (isHost)
+                                HostInfo(
+                                  imageUrl:
+                                      state.user.avatar ??
+                                      "https://thispersondoesnotexist.com/",
+                                  name: state.user.name,
+                                  id: state.user.id.substring(0, 4),
+                                )
+                              else
+                                HostInfo(
+                                  imageUrl:
+                                      widget.hostAvatar ??
+                                      "https://thispersondoesnotexist.com/",
+                                  name: widget.hostName ?? "Host",
+                                  id:
+                                      widget.hostUserId?.substring(0, 4) ??
+                                      "Host",
+                                ),
 
                               // *show the viwers
                               ActiveViewers(activeUserList: activeViewers),

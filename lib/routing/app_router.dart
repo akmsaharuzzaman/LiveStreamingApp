@@ -89,7 +89,15 @@ final GoRouter appRouter = GoRouter(
       name: 'onGoingLive',
       builder: (context, state) {
         final roomId = state.uri.queryParameters['roomId'] ?? '';
-        return GoliveScreen(roomId: roomId);
+        final hostName = state.uri.queryParameters['hostName'] ?? '';
+        final hostUserId = state.uri.queryParameters['hostUserId'] ?? '';
+        final hostAvatar = state.uri.queryParameters['hostAvatar'] ?? '';
+        return GoliveScreen(
+          roomId: roomId,
+          hostName: hostName,
+          hostUserId: hostUserId,
+          hostAvatar: hostAvatar,
+        );
       },
     ),
     GoRoute(

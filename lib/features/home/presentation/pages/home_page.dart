@@ -391,8 +391,16 @@ class ListLiveStream extends StatelessWidget {
                       .getRoomById(availableRooms.roomIds[index])!
                       .hostDetails
                       .name,
-                      'hostId': availableRooms
-                  
+                  'hostUserId': availableRooms
+                      .getRoomById(availableRooms.roomIds[index])!
+                      .hostDetails
+                      .uid,
+                  'hostAvatar':
+                      availableRooms
+                          .getRoomById(availableRooms.roomIds[index])!
+                          .hostDetails
+                          .avatar ??
+                      '',
                 },
               );
             },
