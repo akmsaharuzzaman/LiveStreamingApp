@@ -1,5 +1,5 @@
-import 'package:dlstarlive/core/network_temp/api_constants.dart';
 import 'package:dio/dio.dart';
+import 'package:dlstarlive/core/constants/app_constants.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -17,7 +17,7 @@ class AuthInterceptor extends Interceptor {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString(ApiConstants.authTokenKey);
+      final token = prefs.getString(DataConstants.tokenKey);
 
       if (token != null && token.isNotEmpty) {
         options.headers[ApiConstants.authHeader] = 'Bearer $token';
@@ -83,7 +83,7 @@ class AuthInterceptor extends Interceptor {
 
       final dio = Dio();
       final response = await dio.post(
-        '${ApiConstants.baseUrl}${ApiConstants.refreshToken}',
+        '${DataConstants.baseUrl}${ApiConstants.refreshToken}',
         data: {'refresh_token': refreshToken},
       );
 

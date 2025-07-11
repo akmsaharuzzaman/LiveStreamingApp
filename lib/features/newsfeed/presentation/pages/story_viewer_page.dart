@@ -2,7 +2,7 @@ import 'package:dlstarlive/core/network_temp/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/network_temp/post_service.dart';
-import '../../../../core/network_temp/simple_auth_service.dart';
+import '../../../../core/auth/auth_bloc_adapter.dart';
 import '../../data/models/story_response_model.dart';
 
 class StoryViewerPage extends StatefulWidget {
@@ -109,7 +109,7 @@ class _StoryViewerPageState extends State<StoryViewerPage>
 
     // Initialize services
     final apiService = ApiService.instance;
-    final authService = AuthService();
+    final authService = AuthBlocAdapter(context);
     _postService = PostService(apiService, authService);
 
     // Set current user ID from parameter

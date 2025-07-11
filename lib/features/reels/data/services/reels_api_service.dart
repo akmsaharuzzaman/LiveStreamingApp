@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:dlstarlive/core/constants/app_constants.dart';
 import 'package:dlstarlive/core/network_temp/api_service.dart';
 
-import '../../../../core/network_temp/api_constants.dart';
 import '../models/reel_api_response_model.dart';
 
 class ReelsApiService {
@@ -305,7 +305,7 @@ class ReelsApiService {
   Future<void> testConnection() async {
     try {
       log('Testing connection to reels API...');
-      log('Base URL: ${ApiConstants.baseUrl}');
+      log('Base URL: ${DataConstants.baseUrl}');
       log('Endpoint: ${ApiConstants.getReels(1, 5)}');
 
       final result = await _apiService.get(ApiConstants.getReels(1, 5));

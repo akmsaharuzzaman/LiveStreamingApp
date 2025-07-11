@@ -1,12 +1,12 @@
 import 'package:dlstarlive/core/network_temp/api_result.dart';
 import 'package:dlstarlive/core/network_temp/api_service.dart';
 import 'package:dio/dio.dart';
-import '../../../../core/network_temp/simple_auth_service.dart';
+import '../../../../core/auth/i_auth_service.dart';
 
 /// Service for live streaming related API operations
 class LiveStreamService {
   final ApiService _apiService;
-  final AuthService _authService;
+  final IAuthService _authService;
 
   LiveStreamService(this._apiService, this._authService);
 

@@ -3,11 +3,11 @@ import 'package:dlstarlive/core/network_temp/api_result.dart';
 import 'package:dlstarlive/core/network_temp/api_service.dart';
 import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart';
-import 'simple_auth_service.dart';
+import '../auth/i_auth_service.dart';
 
 class PostService {
   final ApiService _apiService;
-  final AuthService _authService;
+  final IAuthService _authService;
 
   PostService(this._apiService, this._authService);
 

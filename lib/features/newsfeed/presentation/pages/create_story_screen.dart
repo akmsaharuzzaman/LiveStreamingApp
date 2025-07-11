@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:dlstarlive/core/network_temp/api_service.dart';
 import 'package:dlstarlive/core/network_temp/post_service.dart';
-import 'package:dlstarlive/core/network_temp/simple_auth_service.dart';
+import 'package:dlstarlive/core/auth/auth_bloc_adapter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -39,7 +39,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
     super.initState();
     // Initialize API service
     final apiService = ApiService.instance;
-    final authService = AuthService();
+    final authService = AuthBlocAdapter(context);
     _postService = PostService(apiService, authService);
   }
 

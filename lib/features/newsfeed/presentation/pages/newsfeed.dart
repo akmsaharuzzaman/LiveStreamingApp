@@ -13,7 +13,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../../core/network_temp/simple_auth_service.dart';
+import '../../../../core/auth/auth_bloc_adapter.dart';
 import '../../injection_container.dart';
 import '../bloc/newsfeed_bloc.dart';
 import '../widgets/create_post_container.dart';
@@ -372,7 +372,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
   @override
   void initState() {
     super.initState(); // Initialize post creation service
-    _postService = PostService(ApiService.instance, AuthService());
+    _postService = PostService(ApiService.instance, AuthBlocAdapter(context));
   }
 
   @override

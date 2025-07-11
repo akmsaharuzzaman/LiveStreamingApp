@@ -1,4 +1,4 @@
-import 'package:dlstarlive/core/network_temp/api_constants.dart';
+import 'package:dlstarlive/core/constants/app_constants.dart';
 import 'package:dlstarlive/core/network_temp/api_interceptors.dart';
 import 'package:dlstarlive/core/network_temp/api_result.dart';
 import 'package:dlstarlive/core/network_temp/network_exceptions.dart';
@@ -26,7 +26,7 @@ class ApiService {
   /// Configure Dio with base settings and interceptors
   void _setupDio() {
     _dio.options = BaseOptions(
-      baseUrl: ApiConstants.baseUrl,
+      baseUrl: DataConstants.baseUrl,
       connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
       sendTimeout: const Duration(seconds: 30),

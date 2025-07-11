@@ -1,5 +1,5 @@
 import 'package:dlstarlive/core/network_temp/api_service.dart';
-import 'package:dlstarlive/core/network_temp/simple_auth_service.dart';
+import 'package:dlstarlive/core/auth/auth_bloc_adapter.dart';
 import 'package:dlstarlive/features/newsfeed/data/models/mock_models/user_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -34,7 +34,7 @@ class _ApiStoriesState extends State<ApiStories> {
   void initState() {
     super.initState(); // Initialize services
     final apiService = ApiService.instance;
-    final authService = AuthService();
+    final authService = AuthBlocAdapter(context);
     _postService = PostService(apiService, authService);
     _loadStories();
   }
