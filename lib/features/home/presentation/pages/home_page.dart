@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:dlstarlive/core/network_temp/room_models.dart';
 import 'package:dlstarlive/core/network_temp/socket_service.dart';
+import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_carousel_widget/flutter_carousel_widget.dart';
@@ -368,8 +369,11 @@ class ListLiveStream extends StatelessWidget {
               debugPrint(
                 "Live joining Room ID: ${availableRooms.roomIds[index]}",
               );
-              // Navigate to the live stream screen with the room ID
-              context.push('/go-live?roomId=${availableRooms.roomIds[index]}');
+              // Navigate to the live stream screen with the room ID using the named route
+              context.pushNamed(
+                AppRoutes.onGoingLive,
+                queryParameters: {'roomId': availableRooms.roomIds[index]},
+              );
             },
           );
         },
