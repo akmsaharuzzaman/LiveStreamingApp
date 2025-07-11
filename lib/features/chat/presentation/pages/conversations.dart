@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../data/models/chat_models.dart';
 
 class Conversation extends StatelessWidget {
@@ -8,73 +9,91 @@ class Conversation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      reverse: true,
-      itemCount: messages.length,
-      itemBuilder: (context, int index) {
-        final message = messages[index];
-        bool isMe = message.sender?.id == currentUser.id;
-        return Container(
-          margin: EdgeInsets.only(top: 10),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: isMe
-                    ? MainAxisAlignment.end
-                    : MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (!isMe)
-                    CircleAvatar(
-                      radius: 15,
-                      backgroundImage: AssetImage(user.avatar),
-                    ),
-                  SizedBox(width: 10),
-                  Container(
-                    padding: EdgeInsets.all(10),
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isMe ? Colors.blue[100] : Colors.grey[200],
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(16),
-                        topRight: Radius.circular(16),
-                        bottomLeft: Radius.circular(isMe ? 12 : 0),
-                        bottomRight: Radius.circular(isMe ? 0 : 12),
-                      ),
-                    ),
-                    child: Text(
-                      messages[index].text,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: isMe ? Colors.black87 : Colors.black87,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 5),
-                child: Row(
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      child: ListView.builder(
+        reverse: true,
+        itemCount: messages.length,
+        itemBuilder: (context, int index) {
+          final message = messages[index];
+          bool isMe = message.sender?.id == currentUser.id;
+          return Container(
+            margin: EdgeInsets.only(bottom: 16.h),
+            child: Column(
+              children: [
+                Row(
                   mainAxisAlignment: isMe
                       ? MainAxisAlignment.end
                       : MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    if (!isMe) SizedBox(width: 40),
-                    Icon(Icons.done_all, size: 20, color: Colors.blue),
-                    SizedBox(width: 8),
-                    Text(
-                      message.time,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    if (!isMe)
+                      Container(
+                        margin: EdgeInsets.only(right: 8.w),
+                        child: CircleAvatar(
+                          radius: 16.r,
+                          backgroundImage: NetworkImage(user.avatar),
+                        ),
+                      ),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 12.h,
+                      ),
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isMe
+                            ? Theme.of(context).primaryColor.withOpacity(0.1)
+                            : Colors.grey[100],
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(20.r),
+                          topRight: Radius.circular(20.r),
+                          bottomLeft: Radius.circular(isMe ? 20.r : 4.r),
+                          bottomRight: Radius.circular(isMe ? 4.r : 20.r),
+                        ),
+                      ),
+                      child: Text(
+                        messages[index].text,
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          color: isMe ? Colors.black87 : Colors.black87,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+                Padding(
+                  padding: EdgeInsets.only(top: 4.h),
+                  child: Row(
+                    mainAxisAlignment: isMe
+                        ? MainAxisAlignment.end
+                        : MainAxisAlignment.start,
+                    children: [
+                      if (!isMe) SizedBox(width: 40.w),
+                      if (isMe)
+                        Icon(
+                          Icons.done_all,
+                          size: 16.sp,
+                          color: message.isRead ? Colors.blue : Colors.grey,
+                        ),
+                      SizedBox(width: 4.w),
+                      Text(
+                        message.time,
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }

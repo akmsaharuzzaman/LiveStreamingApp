@@ -154,7 +154,7 @@ enum MessageType { text, image, video, audio, file, location, sticker, gif }
 final ChatUser currentUser = ChatUser(
   id: '1',
   name: 'Me',
-  avatar: 'assets/images/user/default_avatar.png',
+  avatar: 'https://i.pravatar.cc/150?img=1',
   isOnline: true,
 );
 
@@ -165,7 +165,7 @@ final List<ChatMessage> messages = [
     sender: ChatUser(
       id: '2',
       name: 'John Doe',
-      avatar: 'assets/images/user/avatar1.png',
+      avatar: 'https://i.pravatar.cc/150?img=2',
       isOnline: true,
     ),
     timestamp: DateTime.now().subtract(Duration(minutes: 10)),
@@ -186,7 +186,7 @@ final List<ChatMessage> messages = [
     sender: ChatUser(
       id: '2',
       name: 'John Doe',
-      avatar: 'assets/images/user/avatar1.png',
+      avatar: 'https://i.pravatar.cc/150?img=2',
       isOnline: true,
     ),
     timestamp: DateTime.now().subtract(Duration(minutes: 5)),
@@ -201,13 +201,13 @@ final List<ChatConversation> allChats = [
     sender: ChatUser(
       id: '2',
       name: 'John Doe',
-      avatar: 'assets/images/user/avatar1.png',
+      avatar: 'https://i.pravatar.cc/150?img=2',
       isOnline: true,
     ),
     text: 'Are you coming to the party tonight?',
     time: '10:35 AM',
     unreadCount: 2,
-    avatar: 'assets/images/user/avatar1.png',
+    avatar: 'https://i.pravatar.cc/150?img=2',
     lastMessageTime: DateTime.now().subtract(Duration(minutes: 5)),
   ),
   ChatConversation(
@@ -215,13 +215,13 @@ final List<ChatConversation> allChats = [
     sender: ChatUser(
       id: '3',
       name: 'Sarah Wilson',
-      avatar: 'assets/images/user/avatar2.png',
+      avatar: 'https://i.pravatar.cc/150?img=3',
       isOnline: false,
     ),
     text: 'Thanks for the help!',
     time: '9:20 AM',
     unreadCount: 0,
-    avatar: 'assets/images/user/avatar2.png',
+    avatar: 'https://i.pravatar.cc/150?img=3',
     lastMessageTime: DateTime.now().subtract(Duration(hours: 1)),
   ),
   ChatConversation(
@@ -229,13 +229,41 @@ final List<ChatConversation> allChats = [
     sender: ChatUser(
       id: '4',
       name: 'Mike Johnson',
-      avatar: 'assets/images/user/avatar3.png',
+      avatar: 'https://i.pravatar.cc/150?img=4',
       isOnline: true,
     ),
     text: 'See you tomorrow!',
     time: 'Yesterday',
     unreadCount: 1,
-    avatar: 'assets/images/user/avatar3.png',
+    avatar: 'https://i.pravatar.cc/150?img=4',
     lastMessageTime: DateTime.now().subtract(Duration(days: 1)),
+  ),
+  ChatConversation(
+    id: '4',
+    sender: ChatUser(
+      id: '5',
+      name: 'Emily Davis',
+      avatar: 'https://i.pravatar.cc/150?img=5',
+      isOnline: true,
+    ),
+    text: 'Good morning! How was your weekend?',
+    time: '8:15 AM',
+    unreadCount: 0,
+    avatar: 'https://i.pravatar.cc/150?img=5',
+    lastMessageTime: DateTime.now().subtract(Duration(hours: 2)),
+  ),
+  ChatConversation(
+    id: '5',
+    sender: ChatUser(
+      id: '6',
+      name: 'Alex Brown',
+      avatar: 'https://i.pravatar.cc/150?img=6',
+      isOnline: false,
+    ),
+    text: 'Let me know when you are free',
+    time: '7:45 AM',
+    unreadCount: 1,
+    avatar: 'https://i.pravatar.cc/150?img=6',
+    lastMessageTime: DateTime.now().subtract(Duration(hours: 3)),
   ),
 ];

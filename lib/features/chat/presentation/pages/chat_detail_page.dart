@@ -24,12 +24,23 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     // Find the chat user based on the userId
     chatUser =
         allChats
-            .firstWhere((chat) => chat.sender?.id == widget.userId)
+            .firstWhere(
+              (chat) => chat.sender?.id == widget.userId,
+              orElse: () => ChatConversation(
+                id: '',
+                sender: null,
+                text: '',
+                time: '',
+                unreadCount: 0,
+                avatar: '',
+                lastMessageTime: DateTime.now(),
+              ),
+            )
             .sender ??
         ChatUser(
           id: widget.userId,
           name: 'Unknown User',
-          avatar: 'assets/images/user/default_avatar.png',
+          avatar: 'https://i.pravatar.cc/150?img=8',
         );
   }
 
@@ -71,7 +82,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           children: [
             CircleAvatar(
               radius: 20.r,
-              backgroundImage: AssetImage(chatUser.avatar),
+              backgroundImage: NetworkImage(chatUser.avatar),
             ),
             SizedBox(width: 12.w),
             Expanded(
@@ -132,12 +143,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       body: Column(
         children: [
           // Messages List
-          Expanded(
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: Conversation(user: chatUser),
-            ),
-          ),
+          Expanded(child: Conversation(user: chatUser)),
 
           // Message Input
           Container(
