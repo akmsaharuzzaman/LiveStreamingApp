@@ -1,16 +1,16 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/core/network/socket_service.dart';
 import 'package:dlstarlive/features/live/data/models/room_models.dart';
-import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_carousel_widget/flutter_carousel_widget.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/models/category_model.dart';
 import '../../data/models/user_model.dart';
@@ -50,10 +50,24 @@ class _HomePageState extends State<HomePage>
   /// Initialize socket connection when entering live streaming page
   Future<void> _initializeSocket() async {
     try {
-      // Connect to socket with user ID
-      final prefs = await SharedPreferences.getInstance();
-      final String? userId = prefs.getString('uid');
-      final connected = await _socketService.connect(userId!);
+      // Get user ID from AuthBloc instead of SharedPreferences
+      final authBloc = context.read<AuthBloc>();
+      final authState = authBloc.state;
+
+      String? userId;
+      if (authState is AuthAuthenticated) {
+        userId = authState.user.id;
+      } else if (authState is AuthProfileIncomplete) {
+        userId = authState.user.id;
+      }
+
+      if (userId == null || userId.isEmpty) {
+        debugPrint('User ID is null or empty, cannot connect to socket');
+        return;
+      }
+
+      debugPrint('Connecting to socket with user ID: $userId');
+      final connected = await _socketService.connect(userId);
 
       if (connected) {
         _setupSocketListeners();
@@ -370,8 +384,16 @@ class ListLiveStream extends StatelessWidget {
               );
               // Navigate to the live stream screen with the room ID using the named route
               context.pushNamed(
-                AppRoutes.onGoingLive,
-                queryParameters: {'roomId': availableRooms.roomIds[index]},
+                'onGoingLive',
+                queryParameters: {
+                  'roomId': availableRooms.roomIds[index],
+                  'hostName': availableRooms
+                      .getRoomById(availableRooms.roomIds[index])!
+                      .hostDetails
+                      .name,
+                      'hostId': availableRooms
+                  
+                },
               );
             },
           );
@@ -523,6 +545,7 @@ class LiveStreamCard extends StatelessWidget {
         children: [
           CustomNetworkImage(
             urlToImage:
+                liveStreamModel.hostDetails.avatar ??
                 'https://cdn.dribbble.com/users/3245638/screenshots/15628559/media/21f20574f74b6d6f8e74f92bde7de2fd.png?compress=1&resize=400x300&vertical=top',
             height: 180.sp,
             shape: BoxShape.rectangle,
@@ -593,23 +616,23 @@ class LiveStreamCard extends StatelessWidget {
                             vertical: 2.sp,
                           ),
                           decoration: BoxDecoration(
-                            color: liveStreamModel == 'Live'
-                                ? Colors.redAccent
-                                : Colors.blueAccent,
+                            color:
+                                Colors.redAccent, // Always red for live streams
                             borderRadius: BorderRadius.circular(9.sp),
                           ),
                           child: Text(
-                            liveStreamModel.hostDetails.name,
+                            'Live',
                             style: TextStyle(
-                              color: Colors.black,
+                              color: Colors.white,
                               fontSize: 9.sp,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
                       ],
                     ),
                     Text(
-                      'You are live now',
+                      '${liveStreamModel.hostDetails.name} is live now',
                       style: TextStyle(color: Colors.white, fontSize: 11.sp),
                     ),
                   ],
@@ -621,8 +644,11 @@ class LiveStreamCard extends StatelessWidget {
                 children: [
                   CustomNetworkImage(
                     urlToImage:
+                        liveStreamModel.hostDetails.avatar ??
                         'https://cdn.dribbble.com/users/3245638/screenshots/15628559/media/21f20574f74b6d6f8e74f92bde7de2fd.png?compress=1&resize=400x300&vertical=top',
                     height: 30.sp,
+                    width: 30.sp,
+                    shape: BoxShape.circle,
                   ),
                   SizedBox(width: 5.sp),
                   Expanded(
@@ -639,7 +665,7 @@ class LiveStreamCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '159K Followers',
+                          'ID: ${liveStreamModel.hostDetails.uid.substring(0, 6)}',
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.black,

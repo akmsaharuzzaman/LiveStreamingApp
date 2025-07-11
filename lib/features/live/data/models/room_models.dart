@@ -141,19 +141,20 @@
 //   }
 // }
 
-
 /// Model for room host details
 class RoomHostDetails {
   final String id;
   final String name;
   final String uid;
   final String country;
+  final String? avatar;
 
   const RoomHostDetails({
     required this.id,
     required this.name,
     required this.uid,
     required this.country,
+    this.avatar,
   });
 
   factory RoomHostDetails.fromJson(Map<String, dynamic> json) {
@@ -162,11 +163,18 @@ class RoomHostDetails {
       name: json['name'] ?? '',
       uid: json['uid'] ?? '',
       country: json['country'] ?? '',
+      avatar: json['avatar'],
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'_id': id, 'name': name, 'uid': uid, 'country': country};
+    return {
+      '_id': id,
+      'name': name,
+      'uid': uid,
+      'country': country,
+      'avatar': avatar,
+    };
   }
 
   @override
