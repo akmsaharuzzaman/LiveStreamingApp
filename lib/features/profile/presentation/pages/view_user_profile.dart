@@ -506,7 +506,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 40),
+      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 60, top: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         // borderRadius: BorderRadius.circular(22),
