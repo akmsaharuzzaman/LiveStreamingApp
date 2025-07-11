@@ -1,3 +1,4 @@
+import 'package:dlstarlive/features/chat/presentation/pages/chat_page.dart';
 import 'package:dlstarlive/features/live/presentation/pages/golive_screen.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_page.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_summary_screen.dart';
@@ -26,6 +27,7 @@ class AppRoutes {
   static const String live = '/live';
   static const String onGoingLive = '/on-going-live';
   static const String liveSummary = '/live-summary';
+  static const String chats = '/chats';
 }
 
 final GoRouter appRouter = GoRouter(
@@ -83,6 +85,11 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.live,
       name: 'live',
       builder: (context, state) => const LivePage(),
+    ),
+    GoRoute(
+      path: AppRoutes.chats,
+      name: 'chats',
+      builder: (context, state) => const ChatPage(),
     ),
     GoRoute(
       path: AppRoutes.onGoingLive,

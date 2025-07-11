@@ -2,6 +2,7 @@ import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/core/models/user_model.dart';
 import 'package:dlstarlive/features/newsfeed/data/models/mock_models/user_model.dart';
 import 'package:dlstarlive/features/newsfeed/presentation/pages/create_post_page.dart';
+import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -130,7 +131,7 @@ class _NewsfeedPageState extends State<NewsfeedPage> {
                     SizedBox(width: 15.sp),
                     GestureDetector(
                       onTap: () {
-                        context.push("/live-chat");
+                        context.push(AppRoutes.chats);
                       },
                       child: Image.asset(
                         'assets/images/general/messenger.png',
