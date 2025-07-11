@@ -115,10 +115,14 @@ class _SplashScreenState extends State<SplashScreen>
                             ),
                           ],
                         ),
-                        child: Icon(
-                          Icons.music_note,
-                          size: 60,
-                          color: Theme.of(context).colorScheme.primary,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(60),
+                          child: Image.asset(
+                            'assets/icons/icon.png',
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                     );

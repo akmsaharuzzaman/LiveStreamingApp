@@ -72,7 +72,12 @@ class _LoginPageState extends State<LoginPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // App Logo/Icon
-                      Icon(Icons.star, size: 80, color: colorScheme.primary),
+                      Image.asset(
+                        'assets/icons/icon.png',
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.contain,
+                      ),
                       const SizedBox(height: 16),
 
                       // App Title

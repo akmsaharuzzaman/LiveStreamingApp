@@ -100,6 +100,17 @@ class _RegisterPageState extends State<RegisterPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // App Logo/Icon
+                    Center(
+                      child: Image.asset(
+                        'assets/icons/icon.png',
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
                     // Welcome Text
                     Text(
                       'Join Us',
