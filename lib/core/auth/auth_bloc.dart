@@ -476,7 +476,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       if (response.isSuccess && response.data != null) {
         // Handle both token formats for compatibility
-        _currentToken = response.data!['access_token'] as String? ?? response.data!['token'] as String?;
+        _currentToken =
+            response.data!['access_token'] as String? ??
+            response.data!['token'] as String?;
 
         // Extract user data from the 'result' array
         final resultList = response.data!['result'] as List<dynamic>?;

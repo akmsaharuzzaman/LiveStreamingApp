@@ -84,7 +84,9 @@ class AuthApiClient {
         if (profilePictureUrl != null) 'avatar': profilePictureUrl,
       },
       options: Options(
-        sendTimeout: const Duration(minutes: 2), // Increase timeout to 2 minutes
+        sendTimeout: const Duration(
+          minutes: 2,
+        ), // Increase timeout to 2 minutes
         receiveTimeout: const Duration(minutes: 2),
       ),
     );
