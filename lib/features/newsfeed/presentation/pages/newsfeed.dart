@@ -1,8 +1,5 @@
-import 'dart:io';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/core/models/user_model.dart';
-import 'package:dlstarlive/core/network/api_service.dart';
-import 'package:dlstarlive/features/newsfeed/data/datasources/post_service.dart';
 import 'package:dlstarlive/features/newsfeed/data/models/mock_models/user_model.dart';
 import 'package:dlstarlive/features/newsfeed/presentation/pages/create_post_page.dart';
 import 'package:flutter/material.dart';
@@ -13,8 +10,6 @@ import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:image_picker/image_picker.dart';
-import '../../../../core/auth/auth_bloc_adapter.dart';
 import '../../injection_container.dart';
 import '../bloc/newsfeed_bloc.dart';
 import '../widgets/create_post_container.dart';
@@ -90,6 +85,7 @@ class _NewsfeedPageState extends State<NewsfeedPage> {
               controller: scrollController,
               slivers: [
                 SliverAppBar(
+                  // forceMaterialTransparency: true,
                   pinned: true,
                   backgroundColor: Colors.white,
                   title: Row(
