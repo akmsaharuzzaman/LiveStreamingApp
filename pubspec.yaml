@@ -1,0 +1,142 @@
+name: dlstarlive
+description: "A comprehensive Flutter live streaming application with video editing capabilities."
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Core Flutter UI
+  cupertino_icons: ^1.0.8
+  flutter_svg: ^2.2.0
+  google_fonts: ^6.2.1
+  iconsax: ^0.0.8
+  flutter_screenutil: ^5.9.3
+  flutter_carousel_widget: ^3.1.0
+
+  # State Management
+  flutter_bloc: ^9.1.1
+
+  # Dependency Injection
+  get_it: ^8.0.3
+  injectable: ^2.5.0
+
+  # Routing
+  go_router: ^16.0.0
+
+  # Networking
+  dio: ^5.8.0+1
+  socket_io_client: ^3.1.2
+
+  # Data Classes & JSON Serialization
+  equatable: ^2.0.7
+  json_annotation: ^4.9.0
+
+  # Local Storage
+  shared_preferences: ^2.5.3
+
+  # Utility Libraries
+  dartz: ^0.10.1
+  intl: any
+
+  # File & Media Pickers
+  file_picker: ^10.2.0
+  image_picker: ^1.1.2
+  image_cropper: ^9.1.0
+  cached_network_image: ^3.4.1
+  video_player: ^2.10.0
+
+  # Firebase & Authentication
+  firebase_core: ^3.15.1
+  firebase_auth: ^5.6.2
+  google_sign_in: ^7.1.0
+
+  # Environment Variables
+  flutter_dotenv: ^5.2.1
+
+  # WebView & Web Support
+  flutter_inappwebview: ^6.1.5
+  shelf: ^1.4.2
+  shelf_static: ^1.1.3
+  path: ^1.9.1
+  path_provider: ^2.1.5
+
+  # Real-Time & Video Communication
+  agora_rtc_engine: ^6.5.2
+  permission_handler: ^12.0.1
+
+  # Media Viewers & Editors
+  reels_viewer: ^2.0.0
+  share_plus: ^11.0.0
+  video_editor: ^3.0.0
+  easy_video_editor: ^0.1.2
+
+  # UX Enhancements
+  preload_page_view: ^0.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Linting
+  flutter_lints: ^6.0.0
+
+  # Code Generation
+  build_runner: ^2.5.4
+  injectable_generator: ^2.7.0
+  json_serializable: ^6.9.5
+
+  # Package Renaming
+  package_rename: ^1.10.0
+
+# ============================
+# FLUTTER CONFIGURATION
+# ============================
+
+flutter:
+  generate: true
+  uses-material-design: true
+
+  assets:
+    # Fonts & General Assets
+    - assets/fonts/
+    - assets/icons/
+    - assets/images/
+    - .env
+
+    # Images
+    - assets/images/logos/
+    - assets/images/general/
+    - assets/images/general/banners/
+    - assets/images/onboarding/
+
+    # Game Assets
+    - assets/games/
+    - assets/games/games_config.json
+
+    # Greedy V3 Game
+    - assets/games/greedyv3/
+    - assets/games/greedyv3/Build/
+    - assets/games/greedyv3/index.html
+    - assets/games/greedyv3/bg.png
+    - assets/games/greedyv3/game-icon.png
+    - assets/games/greedyv3/Build/Greedy V3.jpg
+    - assets/games/greedyv3/Build/bdc4f51480fbd61e9a3bc0263615b471.loader.js
+    - assets/games/greedyv3/Build/98561af5f5cae17c8bf2c7519da3be5d.data.unityweb
+    - assets/games/greedyv3/Build/d2822e4a9f0d71c41427f922e253050a.framework.js.unityweb
+    - assets/games/greedyv3/Build/5cb1f4fd7aed6f236284832b8408896e.wasm.unityweb
+
+    # Teen Patty Game
+    - assets/games/teenpatty/
+    - assets/games/teenpatty/Build/
+    - assets/games/teenpatty/index.html
+    - assets/games/teenpatty/bg.png
+    - assets/games/teenpatty/game-icon.png
+    - assets/games/teenpatty/Build/TeenPatty V3.jpg
+    - assets/games/teenpatty/Build/396b08c57ecdf705a51bb0db874ac84f.loader.js
+    - assets/games/teenpatty/Build/32f003745b633b435f0f9e1ff24a85bb.data
+    - assets/games/teenpatty/Build/5bc02a926db619f520ab8851b88e64ca.framework.js
+    - assets/games/teenpatty/Build/ab12d88d9afba56143772d2bdab4b0d7.wasm

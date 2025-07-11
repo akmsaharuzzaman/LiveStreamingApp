@@ -1,0 +1,52 @@
+# Flutter/Dart related
+/lib/firebase_options.dart
+.dart_tool/
+.packages
+.pub-cache/
+/build/
+pubspec.lock
+/docs/
+/android/app/google-services.json
+/lib/firebase_options.dart
+# Generated files
+macos/Flutter/GeneratedPluginRegistrant.swift
+
+# IDEs and editors
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Xcode
+*.xcworkspace
+*.xcuserstate
+*.xcuserdata
+
+# Android Studio
+*.iml
+
+# Miscellaneous
+*.log
+*.tmp
+
+# Coverage
+coverage/
+
+# Local configuration and environment
+*.local
+.env
+
+# Flutter plugin files
+.flutter-plugins
+.flutter-plugins-dependencies
+.flutter-plugins-dependencies.json
+.flutter-plugins.json
+
+# Dart tool configs
+.dart_tool/package_config_subset
+.dart_tool/package_config.json
+
+dlstarlive.7z
+firebase.json
+assets/games/

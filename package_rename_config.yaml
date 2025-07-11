@@ -1,0 +1,35 @@
+# Runnig command:
+# dart run package_rename
+
+# Packages renamed by `package_rename` will be listed here.
+package_rename_config:
+  android:
+    app_name: BLoC pattern with GoogleSignIn
+    package_name: com.decodersfamily.dlstarlivewithgoolesignin
+    override_old_package: com.decodersfamily.dlstarlive
+    lang: kotlin
+
+  ios:
+    app_name: BLoC pattern with GoogleSignIn
+    bundle_name: dlstarlivewithgoolesignin
+    package_name: com.decodersfamily.dlstarlivewithgoolesignin
+
+  web:
+    app_name: BLoC pattern with GoogleSignIn
+    description: A Flutter web application demonstrating BLoC pattern with Google Sign-In integration.
+
+  linux:
+    app_name: BLoC pattern with GoogleSignIn
+    package_name: com.decodersfamily.dlstarlivewithgoolesignin
+    exe_name: dlstarlivewithgoolesignin-linux-x64
+
+  windows:
+    app_name: BLoC pattern with GoogleSignIn
+    organization: deCodersFamily
+    copyright_notice: Copyright ©️ 2022. All rights reserved.
+    exe_name: dlstarlivewithgoolesignin-win32
+
+  macos:
+    app_name: BLoC pattern with GoogleSignIn
+    package_name:  com.decodersfamily.dlstarlivewithgoolesignin
+    copyright_notice: Copyright ©️ 2022. All rights reserved.
