@@ -6,6 +6,7 @@ import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/core/network_temp/socket_service.dart';
 import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:dlstarlive/features/live/presentation/component/agora_token_service.dart';
+import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -653,28 +654,25 @@ class _GoliveScreenState extends State<GoliveScreen> {
       }
       if (isHost) {
         if (mounted) {
-          BlocListener<AuthBloc, AuthState>(
-            listener: (context, state) {
-              if (state is AuthAuthenticated) {
-                context.go(
-                  '/live-summary',
-                  extra: {
-                    'userName': state.user.name,
-                    'userId': state.user.id.substring(0, 6),
-                    'earnedPoints': 0,
-                    'newFollowers': 0,
-                    'totalDuration': _formatDuration(_streamDuration),
-                    'userAvatar': state.user.avatar,
-                  },
-                );
-              }
-            },
-          );
+          final state = context.read<AuthBloc>().state;
+          if (state is AuthAuthenticated) {
+            context.go(
+              AppRoutes.liveSummary,
+              extra: {
+                'userName': state.user.name,
+                'userId': state.user.id.substring(0, 6),
+                'earnedPoints': 0,
+                'newFollowers': 0,
+                'totalDuration': _formatDuration(_streamDuration),
+                'userAvatar': state.user.avatar,
+              },
+            );
+          }
         }
       } else {
         // If viewer, just navigate back
         if (mounted) {
-          context.go("/home");
+          context.go("/");
         }
       }
     } catch (e) {
@@ -757,7 +755,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                         );
                                       },
                                       child: Image.asset(
-                                        "assets/icon/live_exit_icon.png",
+                                        "assets/icons/live_exit_icon.png",
                                         height: 40,
                                         width: 40,
                                       ),
@@ -768,7 +766,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                         debugPrint("Disconnect pressed");
                                       },
                                       child: Image.asset(
-                                        "assets/icon/live_exit_icon.png",
+                                        "assets/icons/live_exit_icon.png",
                                         height: 40,
                                         width: 40,
                                       ),
@@ -798,7 +796,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
                                 CustomLiveButton(
-                                  iconPath: "assets/icon/chat_icon.png",
+                                  iconPath: "assets/icons/chat_icon.png",
                                   onTap: () {
                                     _generateDummyMessage();
                                     // _showSnackBar(
@@ -808,7 +806,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   },
                                 ),
                                 CustomLiveButton(
-                                  iconPath: "assets/icon/call_icon.png",
+                                  iconPath: "assets/icons/call_icon.png",
                                   onTap: () {
                                     _showSnackBar(
                                       '📞 Not implemented yet! Comming soon!',
@@ -819,8 +817,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 ),
                                 CustomLiveButton(
                                   iconPath: _muted
-                                      ? "assets/icon/mute_icon.png"
-                                      : "assets/icon/mute_icon.png",
+                                      ? "assets/icons/mute_icon.png"
+                                      : "assets/icons/mute_icon.png",
                                   onTap: () {
                                     !isHost
                                         ? _showSnackBar(
@@ -831,7 +829,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   },
                                 ),
                                 CustomLiveButton(
-                                  iconPath: "assets/icon/gift_icon.png",
+                                  iconPath: "assets/icons/gift_icon.png",
                                   onTap: () {
                                     _showSnackBar(
                                       '🎁 Not implemented yet',
@@ -841,7 +839,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   },
                                 ),
                                 CustomLiveButton(
-                                  iconPath: "assets/icon/pk_icon.png",
+                                  iconPath: "assets/icons/pk_icon.png",
                                   onTap: () {
                                     _showSnackBar(
                                       '🎶 Not implemented yet',
@@ -851,7 +849,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   },
                                 ),
                                 CustomLiveButton(
-                                  iconPath: "assets/icon/music_icon.png",
+                                  iconPath: "assets/icons/music_icon.png",
                                   onTap: () {
                                     _showSnackBar(
                                       '🎶 Not implemented yet',
@@ -861,7 +859,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   },
                                 ),
                                 CustomLiveButton(
-                                  iconPath: "assets/icon/threedot_icon.png",
+                                  iconPath: "assets/icons/threedot_icon.png",
                                   onTap: () {
                                     showGameBottomSheet(
                                       context,
@@ -887,7 +885,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   child: Stack(
                                     children: [
                                       Image.asset(
-                                        "assets/icon/message_icon.png",
+                                        "assets/icons/message_icon.png",
                                         height: 40,
                                         width: 170,
                                       ),
@@ -898,7 +896,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                         child: Row(
                                           children: [
                                             Image.asset(
-                                              "assets/icon/message_user_icon.png",
+                                              "assets/icons/message_user_icon.png",
                                               height: 25,
                                               width: 25,
                                             ),
@@ -917,11 +915,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   ),
                                 ),
                                 CustomLiveButton(
-                                  iconPath: "assets/icon/gift_user_icon.png",
+                                  iconPath: "assets/icons/gift_user_icon.png",
                                   onTap: () {},
                                 ),
                                 CustomLiveButton(
-                                  iconPath: "assets/icon/game_user_icon.png",
+                                  iconPath: "assets/icons/game_user_icon.png",
                                   onTap: () {
                                     showGameBottomSheet(
                                       context,
@@ -930,11 +928,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   },
                                 ),
                                 CustomLiveButton(
-                                  iconPath: "assets/icon/share_user_icon.png",
+                                  iconPath: "assets/icons/share_user_icon.png",
                                   onTap: () {},
                                 ),
                                 CustomLiveButton(
-                                  iconPath: "assets/icon/menu_icon.png",
+                                  iconPath: "assets/icons/menu_icon.png",
                                   onTap: () {},
                                 ),
                               ],

@@ -1,4 +1,8 @@
+import 'package:dlstarlive/features/live/presentation/pages/golive_screen.dart';
+import 'package:dlstarlive/features/live/presentation/pages/live_page.dart';
+import 'package:dlstarlive/features/live/presentation/pages/live_summary_screen.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/view_user_profile.dart';
+import 'package:dlstarlive/features/reels/presentation/pages/reels.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/home/presentation/pages/main_navigation_page.dart';
@@ -20,6 +24,10 @@ class AppRoutes {
   static const String profileCompletion = '/profile-completion';
   static const String profileUpdate = '/profile-update';
   static const String viewProfile = '/view-profile';
+  static const String reels = '/reels';
+  static const String live = '/live';
+  static const String onGoingLive = '/on-going-live';
+  static const String liveSummary = '/live-summary';
 }
 
 final GoRouter appRouter = GoRouter(
@@ -72,6 +80,29 @@ final GoRouter appRouter = GoRouter(
         final userId = state.uri.queryParameters['userId'] ?? '';
         return ViewUserProfile(userId: userId);
       },
+    ),
+    GoRoute(
+      path: AppRoutes.reels,
+      name: 'reels',
+      builder: (context, state) => const ReelsScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.live,
+      name: 'live',
+      builder: (context, state) => const LivePage(),
+    ),
+    GoRoute(
+      path: AppRoutes.onGoingLive,
+      name: 'onGoingLive',
+      builder: (context, state) {
+        final roomId = state.uri.queryParameters['roomId'] ?? '';
+        return GoliveScreen(roomId: roomId);
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.liveSummary,
+      name: 'liveSummary',
+      builder: (context, state) => const LiveSummaryScreen(),
     ),
   ],
   errorBuilder: (context, state) => Scaffold(

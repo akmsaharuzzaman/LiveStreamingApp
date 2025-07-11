@@ -83,22 +83,22 @@ class LiveSummaryScreen extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Image.asset(
-                                  "assets/icon/level_badge.png",
+                                  "assets/icons/level_badge.png",
                                   height: 18.h,
                                 ),
                                 SizedBox(width: 8.w),
                                 Image.asset(
-                                  "assets/icon/host_level.png",
+                                  "assets/icons/host_level.png",
                                   height: 18.h,
                                 ),
                                 SizedBox(width: 8.w),
                                 Image.asset(
-                                  "assets/icon/mc_icon.png",
+                                  "assets/icons/mc_icon.png",
                                   height: 18.h,
                                 ),
                                 SizedBox(width: 8.w),
                                 Image.asset(
-                                  "assets/icon/svip_icon.png",
+                                  "assets/icons/svip_icon.png",
                                   height: 18.h,
                                 ),
                               ],
@@ -124,7 +124,7 @@ class LiveSummaryScreen extends StatelessWidget {
                                 // Earned Points
                                 Expanded(
                                   child: _buildStatItem(
-                                    iconPath: "assets/icon/money_icon.png",
+                                    iconPath: "assets/icons/money_icon.png",
                                     title: "Earned Points",
                                     value: earnedPoints.toString(),
                                   ),
@@ -135,7 +135,7 @@ class LiveSummaryScreen extends StatelessWidget {
                                 // New Followers
                                 Expanded(
                                   child: _buildStatItem(
-                                    iconPath: "assets/icon/person_icon.png",
+                                    iconPath: "assets/icons/person_icon.png",
                                     title: "New followers",
                                     value: newFollowers.toString(),
                                   ),
@@ -199,7 +199,7 @@ class LiveSummaryScreen extends StatelessWidget {
                       Row(
                         children: [
                           Image.asset(
-                            "assets/icon/clock_icon.png",
+                            "assets/icons/clock_icon.png",
                             height: 20.sp,
                             width: 20.sp,
                           ),
@@ -226,7 +226,7 @@ class LiveSummaryScreen extends StatelessWidget {
                   height: 46.h,
                   child: ElevatedButton(
                     onPressed: () {
-                      context.go('/home');
+                      context.go('/');
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFF85A3),
@@ -254,8 +254,6 @@ class LiveSummaryScreen extends StatelessWidget {
       ),
     );
   }
-
-
 
   Widget _buildStatItem({
     required String iconPath,

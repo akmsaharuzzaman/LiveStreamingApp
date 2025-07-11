@@ -1,3 +1,4 @@
+import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -33,7 +34,7 @@ class _LivePageState extends State<LivePage> {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      context.go('/home');
+                      context.go('/');
                     },
                     child: Container(
                       width: 40.w,
@@ -337,12 +338,12 @@ class _LivePageState extends State<LivePage> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildActionButton(
-                      icon: "assets/icon/camera_icon.png",
+                      icon: "assets/icons/camera_icon.png",
                       label: 'Flip Camera',
                       onTap: () {},
                     ),
                     _buildActionButton(
-                      icon: "assets/icon/beauty_icon.png",
+                      icon: "assets/icons/beauty_icon.png",
                       label: 'Beauty',
                       onTap: () {},
                     ),
@@ -358,7 +359,7 @@ class _LivePageState extends State<LivePage> {
                 height: 56.h,
                 child: ElevatedButton(
                   onPressed: () {
-                    context.push('/go-live');
+                    context.push(AppRoutes.onGoingLive);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFF85A3),

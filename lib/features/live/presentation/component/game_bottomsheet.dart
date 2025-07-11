@@ -135,7 +135,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                               (game) => Padding(
                                 padding: EdgeInsets.only(right: 16.w),
                                 child: _buildGameOption(
-                                  icon: "assets/icon/greedy_icon.png",
+                                  icon: "assets/icons/greedy_icon.png",
                                   label: game.title,
                                   isLoading:
                                       _isStartingGame &&
@@ -185,7 +185,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                         childAspectRatio: 0.8,
                         children: [
                           _buildControlOption(
-                            iconPath: "assets/icon/share_grid_icon.png",
+                            iconPath: "assets/icons/share_grid_icon.png",
                             label: 'Share',
                             onTap: () {
                               Navigator.pop(context);
@@ -193,7 +193,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                             },
                           ),
                           _buildControlOption(
-                            iconPath: "assets/icon/coin_grid_icon.png",
+                            iconPath: "assets/icons/coin_grid_icon.png",
                             label: 'Coin Bag',
                             onTap: () {
                               Navigator.pop(context);
@@ -201,7 +201,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                             },
                           ),
                           _buildControlOption(
-                            iconPath: "assets/icon/sticker_grid_icon.png",
+                            iconPath: "assets/icons/sticker_grid_icon.png",
                             label: 'Sticker',
                             onTap: () {
                               Navigator.pop(context);
@@ -209,7 +209,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                             },
                           ),
                           _buildControlOption(
-                            iconPath: "assets/icon/camera_flip_grid_icon.png",
+                            iconPath: "assets/icons/camera_flip_grid_icon.png",
                             label: 'Flip Camera',
                             onTap: () {
                               Navigator.pop(context);
@@ -217,7 +217,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                             },
                           ),
                           _buildControlOption(
-                            iconPath: "assets/icon/effect_grid_icon.png",
+                            iconPath: "assets/icons/effect_grid_icon.png",
                             label: 'Effect',
                             onTap: () {
                               Navigator.pop(context);
@@ -225,7 +225,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                             },
                           ),
                           _buildControlOption(
-                            iconPath: "assets/icon/inbox_grid_icon.png",
+                            iconPath: "assets/icons/inbox_grid_icon.png",
                             label: 'Inbox',
                             onTap: () {
                               Navigator.pop(context);
@@ -233,7 +233,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                             },
                           ),
                           _buildControlOption(
-                            iconPath: "assets/icon/flash_grid_icon.png",
+                            iconPath: "assets/icons/flash_grid_icon.png",
                             label: 'Flash on',
                             onTap: () {
                               Navigator.pop(context);
@@ -241,7 +241,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                             },
                           ),
                           _buildControlOption(
-                            iconPath: "assets/icon/beauty_cam_grid_icon.png",
+                            iconPath: "assets/icons/beauty_cam_grid_icon.png",
                             label: 'Beauty Camera',
                             onTap: () {
                               Navigator.pop(context);
