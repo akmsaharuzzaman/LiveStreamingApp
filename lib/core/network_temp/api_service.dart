@@ -347,46 +347,6 @@ class ApiService {
     }
   }
 
-  /// Set authorization token
-  void setAuthToken(String token) {
-    _dio.options.headers['Authorization'] = 'Bearer $token';
-  }
-
-  /// Clear authorization token
-  void clearAuthToken() {
-    _dio.options.headers.remove('Authorization');
-  }
-
-  /// Update base URL
-  void updateBaseUrl(String newBaseUrl) {
-    _dio.options.baseUrl = newBaseUrl;
-  }
-
   /// Get current Dio instance (for advanced usage)
   Dio get dio => _dio;
-
-  /// Cancel all pending requests
-  void cancelAllRequests() {
-    _dio.close(force: true);
-  }
-
-  // Authentication & User Profile API methods
-
-  /// Get current user profile
-  Future<ApiResult<Map<String, dynamic>>> getCurrentUserProfile(
-    String userId,
-  ) async {
-    return await get<Map<String, dynamic>>(
-      '/api/auth/user/$userId',
-      fromJson: (data) => data as Map<String, dynamic>,
-    );
-  }
-
-  /// Logout user (if backend requires logout call)
-  Future<ApiResult<Map<String, dynamic>>> logoutUser() async {
-    return await post<Map<String, dynamic>>(
-      '/api/auth/logout',
-      fromJson: (data) => data as Map<String, dynamic>,
-    );
-  }
 }
