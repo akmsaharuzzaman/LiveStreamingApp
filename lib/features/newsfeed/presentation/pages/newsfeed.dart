@@ -485,6 +485,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
     return Scaffold(
       appBar: AppBar(
         forceMaterialTransparency: true,
+
         title: const Text('Create Post'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -601,8 +602,10 @@ class _CreatePostPageState extends State<CreatePostPage> {
                 onChanged: _onPostChanged,
                 maxLines: null,
                 minLines: 3,
+
                 style: TextStyle(fontSize: 16.sp),
                 decoration: InputDecoration(
+                  filled: false,
                   hintText: 'What\'s on your mind?',
                   hintStyle: TextStyle(
                     color: Colors.grey[500],

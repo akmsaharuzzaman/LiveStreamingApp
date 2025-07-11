@@ -43,6 +43,7 @@ class MyApp extends StatelessWidget {
             title: 'DL Star',
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
+            themeMode: ThemeMode.light,
             routerConfig: appRouter,
             debugShowCheckedModeBanner: false,
           ),

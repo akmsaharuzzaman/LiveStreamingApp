@@ -72,6 +72,7 @@ class AuthApiClient {
     required String googleId,
     String? profilePictureUrl,
   }) async {
+    // Use longer timeout for Google registration as it may involve additional processing
     final response = await _apiService.post<Map<String, dynamic>>(
       ApiConstants.registerGoogleAuthEndpoint,
       data: {
@@ -82,11 +83,17 @@ class AuthApiClient {
         'uid': googleId,
         if (profilePictureUrl != null) 'avatar': profilePictureUrl,
       },
+      options: Options(
+        sendTimeout: const Duration(minutes: 2), // Increase timeout to 2 minutes
+        receiveTimeout: const Duration(minutes: 2),
+      ),
     );
+    print('Google Auth Response: $response');
 
     return response.fold((data) {
-      // Handle success case
-      final token = data['access_token'] as String?;
+      print('Google Auth Response: $data');
+      // Handle success case - try both token formats for compatibility
+      final token = data['access_token'] as String? ?? data['token'] as String?;
       if (token != null) {
         _saveToken(token);
         _apiService.setAuthToken(token);
