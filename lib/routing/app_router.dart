@@ -103,7 +103,17 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.liveSummary,
       name: 'liveSummary',
-      builder: (context, state) => const LiveSummaryScreen(),
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return LiveSummaryScreen(
+          userName: extra?['userName'] ?? "User",
+          userId: extra?['userId'] ?? "123456",
+          earnedPoints: extra?['earnedPoints'] ?? 0,
+          newFollowers: extra?['newFollowers'] ?? 0,
+          totalDuration: extra?['totalDuration'] ?? "0:0:0",
+          userAvatar: extra?['userAvatar'],
+        );
+      },
     ),
   ],
   errorBuilder: (context, state) => Scaffold(
