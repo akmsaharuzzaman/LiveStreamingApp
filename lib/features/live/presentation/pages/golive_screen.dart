@@ -3,7 +3,7 @@ import 'dart:math';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
-import 'package:dlstarlive/core/network_temp/socket_service.dart';
+import 'package:dlstarlive/core/network/socket_service.dart';
 import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:dlstarlive/features/live/presentation/component/agora_token_service.dart';
 import 'package:dlstarlive/routing/app_router.dart';
@@ -13,7 +13,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../component/active_viwers.dart';
 import '../component/custom_live_button.dart';
 import '../component/diamond_star_status.dart';
@@ -96,8 +95,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
   }
 
   Future<void> _loadUidAndDispatchEvent() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? uid = prefs.getString('uid');
+    final state = context.read<AuthBloc>().state;
+    final String? uid = state is AuthAuthenticated ? state.user.id : null;
 
     if (uid != null && uid.isNotEmpty) {
       debugPrint("Userid: $uid");
@@ -109,9 +108,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
       // Initialize Agora and socket AFTER userId is loaded
       await initAgoraLoad();
     } else {
-      debugPrint("No UID found");
       debugPrint("User ID is null, cannot initialize live streaming");
-      // _showSnackBar('❌ User authentication required', Colors.red);
     }
   }
 

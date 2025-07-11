@@ -1,7 +1,5 @@
 import 'package:dlstarlive/core/constants/app_constants.dart';
-import 'package:dlstarlive/core/network_temp/api_result.dart';
-import 'package:dlstarlive/core/network_temp/api_service.dart';
-import '../../../../core/network_temp/network_exceptions.dart';
+import 'package:dlstarlive/core/network/api_service.dart';
 import '../models/post_response_model.dart';
 
 abstract class NewsfeedRemoteDataSource {

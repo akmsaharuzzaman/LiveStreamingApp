@@ -1,4 +1,4 @@
-import 'package:dlstarlive/core/network_temp/api_result.dart';
+import 'package:dlstarlive/core/network/api_service.dart';
 import '../../data/models/post_response_model.dart';
 
 abstract class NewsfeedRepository {

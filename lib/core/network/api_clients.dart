@@ -21,18 +21,17 @@ class AuthApiClient {
     final response = await _apiService.post<Map<String, dynamic>>(
       ApiConstants.loginEndpoint,
       data: {'email': email, 'password': password},
-      parser: (data) => data as Map<String, dynamic>,
     );
 
-    if (response.isSuccess && response.data != null) {
-      final token = response.data!['token'] as String?;
+    return response.fold((data) {
+      // Handle success case
+      final token = data['token'] as String?;
       if (token != null) {
-        await _saveToken(token);
+        _saveToken(token);
         _apiService.setAuthToken(token);
       }
-    }
-
-    return response;
+      return ApiResponse.success(data: data);
+    }, (error) => ApiResponse.failure(message: error));
   }
 
   /// Register new user
@@ -52,18 +51,17 @@ class AuthApiClient {
         'last_name': lastName,
         if (phone != null) 'phone': phone,
       },
-      parser: (data) => data as Map<String, dynamic>,
     );
 
-    if (response.isSuccess && response.data != null) {
-      final token = response.data!['token'] as String?;
+    return response.fold((data) {
+      // Handle success case
+      final token = data['token'] as String?;
       if (token != null) {
-        await _saveToken(token);
+        _saveToken(token);
         _apiService.setAuthToken(token);
       }
-    }
-
-    return response;
+      return ApiResponse.success(data: data);
+    }, (error) => ApiResponse.failure(message: error));
   }
 
   /// Register/Login with Google
@@ -84,51 +82,53 @@ class AuthApiClient {
         'uid': googleId,
         if (profilePictureUrl != null) 'avatar': profilePictureUrl,
       },
-      parser: (data) => data as Map<String, dynamic>,
     );
 
-    if (response.isSuccess && response.data != null) {
-      final token = response.data!['access_token'] as String?;
+    return response.fold((data) {
+      // Handle success case
+      final token = data['access_token'] as String?;
       if (token != null) {
-        await _saveToken(token);
+        _saveToken(token);
         _apiService.setAuthToken(token);
       }
-    }
-
-    return response;
+      return ApiResponse.success(data: data);
+    }, (error) => ApiResponse.failure(message: error));
   }
 
   /// Refresh authentication token
   Future<ApiResponse<Map<String, dynamic>>> refreshToken() async {
     final response = await _apiService.post<Map<String, dynamic>>(
       ApiConstants.refreshTokenEndpoint,
-      requiresAuth: true,
-      parser: (data) => data as Map<String, dynamic>,
     );
 
-    if (response.isSuccess && response.data != null) {
-      final token = response.data!['token'] as String?;
+    return response.fold((data) {
+      // Handle success case
+      final token = data['token'] as String?;
       if (token != null) {
-        await _saveToken(token);
+        _saveToken(token);
         _apiService.setAuthToken(token);
       }
-    }
-
-    return response;
+      return ApiResponse.success(data: data);
+    }, (error) => ApiResponse.failure(message: error));
   }
 
   /// Logout
   Future<ApiResponse<bool>> logout() async {
-    final response = await _apiService.post<bool>(
-      ApiConstants.logoutEndpoint,
-      requiresAuth: true,
-      parser: (data) => true,
+    final response = await _apiService.post<bool>(ApiConstants.logoutEndpoint);
+
+    return response.fold(
+      (data) {
+        _clearToken();
+        _apiService.clearAuthToken();
+        return ApiResponse.success(data: data);
+      },
+      (error) {
+        // Even if logout fails, clear local token
+        _clearToken();
+        _apiService.clearAuthToken();
+        return ApiResponse.failure(message: error);
+      },
     );
-
-    await _clearToken();
-    _apiService.clearAuthToken();
-
-    return response;
   }
 
   /// Initialize authentication state
@@ -180,11 +180,12 @@ class AuthApiClient {
     final response = await _apiService.put<Map<String, dynamic>>(
       ApiConstants.userProfileUpdateEndpoint,
       data: formData,
-      requiresAuth: true,
-      parser: (data) => data as Map<String, dynamic>,
     );
 
-    return response;
+    return response.fold(
+      (data) => ApiResponse.success(data: data),
+      (error) => ApiResponse.failure(message: error),
+    );
   }
 
   /// Update user profile with optional fields (name, first_name, avatar)
@@ -207,37 +208,22 @@ class AuthApiClient {
       formData['gender'] = gender;
     }
 
-    // If we have an avatar file, we need to use our custom file upload method with PUT
+    // If we have an avatar file, we need to use file upload
     if (avatarFile != null) {
       try {
-        // Create FormData with the file and additional fields
-        final fileName = avatarFile.path.split('/').last;
-        final uploadFormData = FormData();
-
-        // Add the file
-        uploadFormData.files.add(
-          MapEntry(
-            'avatar',
-            await MultipartFile.fromFile(avatarFile.path, filename: fileName),
-          ),
-        );
-
-        // Add other fields
-        formData.forEach((key, value) {
-          uploadFormData.fields.add(MapEntry(key, value.toString()));
-        });
-
-        // Use custom file upload method with PUT
         final response = await _apiService
             .customFileUpload<Map<String, dynamic>>(
               endpoint: ApiConstants.userProfileUpdateEndpoint,
-              formData: uploadFormData,
-              method: HttpMethod.put,
-              requiresAuth: true,
-              parser: (data) => data as Map<String, dynamic>,
+              filePath: avatarFile.path,
+              method: 'PUT', // Use PUT method for profile updates
+              fieldName: 'avatar',
+              data: formData,
             );
 
-        return response;
+        return response.fold(
+          (data) => ApiResponse.success(data: data),
+          (error) => ApiResponse.failure(message: error),
+        );
       } catch (e) {
         return ApiResponse.failure(
           message: 'Error uploading file: ${e.toString()}',
@@ -246,11 +232,14 @@ class AuthApiClient {
       }
     } else if (formData.isNotEmpty) {
       // If we only have text fields, use regular PUT
-      return await _apiService.put<Map<String, dynamic>>(
+      final response = await _apiService.put<Map<String, dynamic>>(
         ApiConstants.userProfileUpdateEndpoint,
         data: formData,
-        requiresAuth: true,
-        parser: (data) => data as Map<String, dynamic>,
+      );
+
+      return response.fold(
+        (data) => ApiResponse.success(data: data),
+        (error) => ApiResponse.failure(message: error),
       );
     } else {
       // Nothing to update
@@ -271,19 +260,25 @@ class UserApiClient {
 
   /// Get user profile
   Future<ApiResponse<Map<String, dynamic>>> getUserProfile() async {
-    return await _apiService.get<Map<String, dynamic>>(
+    final response = await _apiService.get<Map<String, dynamic>>(
       ApiConstants.userProfileEndpoint,
-      requiresAuth: true,
-      parser: (data) => data as Map<String, dynamic>,
+    );
+
+    return response.fold(
+      (data) => ApiResponse.success(data: data),
+      (error) => ApiResponse.failure(message: error),
     );
   }
 
   /// Get user profile by ID
   Future<ApiResponse<Map<String, dynamic>>> getUserById(String userId) async {
-    return await _apiService.get<Map<String, dynamic>>(
+    final response = await _apiService.get<Map<String, dynamic>>(
       '/api/auth/user/$userId',
-      requiresAuth: true,
-      parser: (data) => data as Map<String, dynamic>,
+    );
+
+    return response.fold(
+      (data) => ApiResponse.success(data: data),
+      (error) => ApiResponse.failure(message: error),
     );
   }
 
@@ -291,11 +286,14 @@ class UserApiClient {
   Future<ApiResponse<Map<String, dynamic>>> updateUserProfile(
     Map<String, dynamic> userData,
   ) async {
-    return await _apiService.put<Map<String, dynamic>>(
+    final response = await _apiService.put<Map<String, dynamic>>(
       ApiConstants.userProfileEndpoint,
       data: userData,
-      requiresAuth: true,
-      parser: (data) => data as Map<String, dynamic>,
+    );
+
+    return response.fold(
+      (data) => ApiResponse.success(data: data),
+      (error) => ApiResponse.failure(message: error),
     );
   }
 
@@ -303,25 +301,28 @@ class UserApiClient {
   Future<ApiResponse<Map<String, dynamic>>> uploadProfilePicture(
     File imageFile,
   ) async {
-    final request = FileUploadRequest(
+    final response = await _apiService.customFileUpload<Map<String, dynamic>>(
       endpoint: '${ApiConstants.userProfileEndpoint}/picture',
-      file: imageFile,
+      filePath: imageFile.path,
+      method: 'PUT', // Use PUT method for profile picture uploads
       fieldName: 'profile_picture',
-      requiresAuth: true,
     );
 
-    return await _apiService.uploadFile<Map<String, dynamic>>(
-      request,
-      parser: (data) => data as Map<String, dynamic>,
+    return response.fold(
+      (data) => ApiResponse.success(data: data),
+      (error) => ApiResponse.failure(message: error),
     );
   }
 
   /// Delete user account
   Future<ApiResponse<bool>> deleteAccount() async {
-    return await _apiService.delete<bool>(
+    final response = await _apiService.delete<bool>(
       ApiConstants.userProfileEndpoint,
-      requiresAuth: true,
-      parser: (data) => true,
+    );
+
+    return response.fold(
+      (data) => ApiResponse.success(data: data),
+      (error) => ApiResponse.failure(message: error),
     );
   }
 }
@@ -349,18 +350,17 @@ class FileUploadApiClient {
       );
     }
 
-    final request = FileUploadRequest(
-      endpoint: customEndpoint ?? ApiConstants.uploadFileEndpoint,
-      file: file,
+    final response = await _apiService.uploadFile<Map<String, dynamic>>(
+      customEndpoint ?? ApiConstants.uploadFileEndpoint,
+      file.path,
       fieldName: fieldName,
-      additionalFields: additionalFields,
-      requiresAuth: requiresAuth,
-      onProgress: onProgress,
+      data: additionalFields,
+      onSendProgress: onProgress,
     );
 
-    return await _apiService.uploadFile<Map<String, dynamic>>(
-      request,
-      parser: (data) => data as Map<String, dynamic>,
+    return response.fold(
+      (data) => ApiResponse.success(data: data),
+      (error) => ApiResponse.failure(message: error),
     );
   }
 
@@ -382,18 +382,19 @@ class FileUploadApiClient {
       }
     }
 
-    final request = MultiFileUploadRequest(
-      endpoint: customEndpoint ?? ApiConstants.uploadFileEndpoint,
-      files: files,
-      fieldName: fieldName,
-      additionalFields: additionalFields,
-      requiresAuth: requiresAuth,
-      onProgress: onProgress,
-    );
+    final filePaths = files.map((file) => file.path).toList();
+    final response = await _apiService
+        .uploadMultipleFiles<Map<String, dynamic>>(
+          customEndpoint ?? ApiConstants.uploadFileEndpoint,
+          filePaths,
+          fieldName: fieldName,
+          data: additionalFields,
+          onSendProgress: onProgress,
+        );
 
-    return await _apiService.uploadFiles<Map<String, dynamic>>(
-      request,
-      parser: (data) => data as Map<String, dynamic>,
+    return response.fold(
+      (data) => ApiResponse.success(data: data),
+      (error) => ApiResponse.failure(message: error),
     );
   }
 
@@ -430,16 +431,17 @@ class GenericApiClient {
   Future<ApiResponse<T>> get<T>(
     String endpoint, {
     Map<String, dynamic>? queryParameters,
-    Map<String, String>? headers,
-    bool requiresAuth = false,
-    T Function(dynamic)? parser,
+    T Function(dynamic)? fromJson,
   }) async {
-    return await _apiService.get<T>(
+    final response = await _apiService.get<T>(
       endpoint,
       queryParameters: queryParameters,
-      headers: headers,
-      requiresAuth: requiresAuth,
-      parser: parser,
+      fromJson: fromJson,
+    );
+
+    return response.fold(
+      (data) => ApiResponse.success(data: data),
+      (error) => ApiResponse.failure(message: error),
     );
   }
 
@@ -448,17 +450,18 @@ class GenericApiClient {
     String endpoint, {
     Map<String, dynamic>? data,
     Map<String, dynamic>? queryParameters,
-    Map<String, String>? headers,
-    bool requiresAuth = false,
-    T Function(dynamic)? parser,
+    T Function(dynamic)? fromJson,
   }) async {
-    return await _apiService.post<T>(
+    final response = await _apiService.post<T>(
       endpoint,
       data: data,
       queryParameters: queryParameters,
-      headers: headers,
-      requiresAuth: requiresAuth,
-      parser: parser,
+      fromJson: fromJson,
+    );
+
+    return response.fold(
+      (data) => ApiResponse.success(data: data),
+      (error) => ApiResponse.failure(message: error),
     );
   }
 
@@ -467,17 +470,18 @@ class GenericApiClient {
     String endpoint, {
     Map<String, dynamic>? data,
     Map<String, dynamic>? queryParameters,
-    Map<String, String>? headers,
-    bool requiresAuth = false,
-    T Function(dynamic)? parser,
+    T Function(dynamic)? fromJson,
   }) async {
-    return await _apiService.put<T>(
+    final response = await _apiService.put<T>(
       endpoint,
       data: data,
       queryParameters: queryParameters,
-      headers: headers,
-      requiresAuth: requiresAuth,
-      parser: parser,
+      fromJson: fromJson,
+    );
+
+    return response.fold(
+      (data) => ApiResponse.success(data: data),
+      (error) => ApiResponse.failure(message: error),
     );
   }
 
@@ -486,17 +490,18 @@ class GenericApiClient {
     String endpoint, {
     Map<String, dynamic>? data,
     Map<String, dynamic>? queryParameters,
-    Map<String, String>? headers,
-    bool requiresAuth = false,
-    T Function(dynamic)? parser,
+    T Function(dynamic)? fromJson,
   }) async {
-    return await _apiService.patch<T>(
+    final response = await _apiService.patch<T>(
       endpoint,
       data: data,
       queryParameters: queryParameters,
-      headers: headers,
-      requiresAuth: requiresAuth,
-      parser: parser,
+      fromJson: fromJson,
+    );
+
+    return response.fold(
+      (data) => ApiResponse.success(data: data),
+      (error) => ApiResponse.failure(message: error),
     );
   }
 
@@ -505,55 +510,18 @@ class GenericApiClient {
     String endpoint, {
     Map<String, dynamic>? data,
     Map<String, dynamic>? queryParameters,
-    Map<String, String>? headers,
-    bool requiresAuth = false,
-    T Function(dynamic)? parser,
+    T Function(dynamic)? fromJson,
   }) async {
-    return await _apiService.delete<T>(
+    final response = await _apiService.delete<T>(
       endpoint,
       data: data,
       queryParameters: queryParameters,
-      headers: headers,
-      requiresAuth: requiresAuth,
-      parser: parser,
+      fromJson: fromJson,
     );
-  }
 
-  /// Send form data
-  Future<ApiResponse<T>> sendFormData<T>(
-    String endpoint, {
-    required Map<String, dynamic> data,
-    Map<String, dynamic>? queryParameters,
-    Map<String, String>? headers,
-    bool requiresAuth = false,
-    T Function(dynamic)? parser,
-  }) async {
-    return await _apiService.sendFormData<T>(
-      endpoint,
-      data: data,
-      queryParameters: queryParameters,
-      headers: headers,
-      requiresAuth: requiresAuth,
-      parser: parser,
-    );
-  }
-
-  /// Send multipart form data
-  Future<ApiResponse<T>> sendMultipartFormData<T>(
-    String endpoint, {
-    required Map<String, dynamic> data,
-    Map<String, dynamic>? queryParameters,
-    Map<String, String>? headers,
-    bool requiresAuth = false,
-    T Function(dynamic)? parser,
-  }) async {
-    return await _apiService.sendMultipartFormData<T>(
-      endpoint,
-      data: data,
-      queryParameters: queryParameters,
-      headers: headers,
-      requiresAuth: requiresAuth,
-      parser: parser,
+    return response.fold(
+      (data) => ApiResponse.success(data: data),
+      (error) => ApiResponse.failure(message: error),
     );
   }
 
@@ -562,17 +530,18 @@ class GenericApiClient {
     String endpoint,
     String savePath, {
     Map<String, dynamic>? queryParameters,
-    Map<String, String>? headers,
-    bool requiresAuth = false,
     ProgressCallback? onProgress,
   }) async {
-    return await _apiService.downloadFile(
+    final response = await _apiService.downloadFile(
       endpoint,
       savePath,
       queryParameters: queryParameters,
-      headers: headers,
-      requiresAuth: requiresAuth,
-      onProgress: onProgress,
+      onReceiveProgress: onProgress,
+    );
+
+    return response.fold(
+      (data) => ApiResponse.success(data: data),
+      (error) => ApiResponse.failure(message: error),
     );
   }
 }

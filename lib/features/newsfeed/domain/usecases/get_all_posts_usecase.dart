@@ -1,4 +1,4 @@
-import '../../../../core/network_temp/api_result.dart';
+import '../../../../core/network/api_service.dart';
 import '../../data/models/post_response_model.dart';
 import '../repositories/newsfeed_repository.dart';
 

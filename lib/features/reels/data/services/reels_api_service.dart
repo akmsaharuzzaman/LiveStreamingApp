@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:dlstarlive/core/constants/app_constants.dart';
-import 'package:dlstarlive/core/network_temp/api_service.dart';
+import 'package:dlstarlive/core/network/api_service.dart';
 
 import '../models/reel_api_response_model.dart';
 

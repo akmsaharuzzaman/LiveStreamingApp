@@ -1,4 +1,4 @@
-import 'package:dlstarlive/core/network_temp/dio_client.dart';
+import 'package:dlstarlive/core/network/dio_client.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 

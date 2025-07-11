@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/core/models/user_model.dart';
-import 'package:dlstarlive/core/network_temp/api_service.dart';
-import 'package:dlstarlive/core/network_temp/post_service.dart';
+import 'package:dlstarlive/core/network/api_service.dart';
+import 'package:dlstarlive/features/newsfeed/data/datasources/post_service.dart';
 import 'package:dlstarlive/features/newsfeed/data/models/mock_models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

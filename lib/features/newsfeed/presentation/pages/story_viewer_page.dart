@@ -1,7 +1,7 @@
-import 'package:dlstarlive/core/network_temp/api_service.dart';
+import 'package:dlstarlive/core/network/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../../../core/network_temp/post_service.dart';
+import '../../data/datasources/post_service.dart';
 import '../../../../core/auth/auth_bloc_adapter.dart';
 import '../../data/models/story_response_model.dart';
 

@@ -188,7 +188,6 @@ class ApiConstants {
 
   // Error messages
 
-
   //Feed endpoints
   static const String createPost = '/api/posts/create';
   static const String editPost = '/api/posts/edit';

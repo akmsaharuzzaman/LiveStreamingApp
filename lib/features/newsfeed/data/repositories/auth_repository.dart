@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-import '../../../../core/network_temp/dio_client.dart';
+import '../../../../core/network/dio_client.dart';
 
 class AuthRepository {
   late DioClient dioClient;

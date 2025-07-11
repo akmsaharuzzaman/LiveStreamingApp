@@ -784,64 +784,6 @@ class ApiService {
     }
   }
 
-  /// Custom file upload that supports different HTTP methods (PUT, POST, etc.)
-  Future<ApiResult<T>> customFileUpload<T>({
-    required String endpoint,
-    required String filePath,
-    required String method, // 'POST' or 'PUT'
-    String fieldName = 'file',
-    Map<String, dynamic>? data,
-    ProgressCallback? onSendProgress,
-    CancelToken? cancelToken,
-    T Function(dynamic)? fromJson,
-  }) async {
-    try {
-      final formData = FormData();
-
-      // Add file
-      formData.files.add(
-        MapEntry(fieldName, await MultipartFile.fromFile(filePath)),
-      );
-
-      // Add additional data
-      if (data != null) {
-        data.forEach((key, value) {
-          formData.fields.add(MapEntry(key, value.toString()));
-        });
-      }
-
-      final options = Options(headers: {'Content-Type': 'multipart/form-data'});
-
-      Response response;
-      switch (method.toUpperCase()) {
-        case 'POST':
-          response = await _dio.post(
-            endpoint,
-            data: formData,
-            onSendProgress: onSendProgress,
-            cancelToken: cancelToken,
-            options: options,
-          );
-          break;
-        case 'PUT':
-          response = await _dio.put(
-            endpoint,
-            data: formData,
-            onSendProgress: onSendProgress,
-            cancelToken: cancelToken,
-            options: options,
-          );
-          break;
-        default:
-          throw Exception('Unsupported HTTP method: $method. Use POST or PUT.');
-      }
-
-      return _handleLegacyResponse<T>(response, fromJson);
-    } catch (e) {
-      return ApiResult.failure(NetworkExceptions.handleError(e));
-    }
-  }
-
   /// Upload multiple files (legacy compatible)
   Future<ApiResult<T>> uploadMultipleFiles<T>(
     String endpoint,

@@ -32,29 +32,29 @@ class _LivePageState extends State<LivePage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  GestureDetector(
-                    onTap: () {
-                      context.go('/');
-                    },
-                    child: Container(
-                      width: 40.w,
-                      height: 40.h,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20.r),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.arrow_back_ios_new,
-                        color: Colors.white,
-                        size: 18.sp,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
+                  // GestureDetector(
+                  //   onTap: () {
+                  //     context.go('/');
+                  //   },
+                  //   child: Container(
+                  //     width: 40.w,
+                  //     height: 40.h,
+                  //     decoration: BoxDecoration(
+                  //       color: Colors.white.withValues(alpha: 0.1),
+                  //       borderRadius: BorderRadius.circular(20.r),
+                  //       border: Border.all(
+                  //         color: Colors.white.withValues(alpha: 0.3),
+                  //         width: 1,
+                  //       ),
+                  //     ),
+                  //     child: Icon(
+                  //       Icons.arrow_back_ios_new,
+                  //       color: Colors.white,
+                  //       size: 18.sp,
+                  //     ),
+                  //   ),
+                  // ),
+                  // SizedBox(width: 12.w),
                   Center(
                     child: InkWell(
                       onTap: () {
@@ -174,9 +174,10 @@ class _LivePageState extends State<LivePage> {
                               fontSize: 16.sp,
                             ),
                             decoration: InputDecoration(
+                              filled: false,
                               hintText: 'Add a title',
                               hintStyle: TextStyle(
-                                color: Colors.white.withOpacity(0.7),
+                                color: Colors.white.withValues(alpha: 0.7),
                                 fontSize: 16.sp,
                               ),
                               hintMaxLines: 2,

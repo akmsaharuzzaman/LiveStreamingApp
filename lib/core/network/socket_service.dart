@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:dlstarlive/core/network_temp/room_models.dart';
+import 'package:dlstarlive/features/live/data/models/room_models.dart';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 

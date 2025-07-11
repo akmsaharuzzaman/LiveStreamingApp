@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
-
-import 'package:dlstarlive/core/network_temp/room_models.dart';
-import 'package:dlstarlive/core/network_temp/socket_service.dart';
+import 'package:dlstarlive/core/network/socket_service.dart';
+import 'package:dlstarlive/features/live/data/models/room_models.dart';
 import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

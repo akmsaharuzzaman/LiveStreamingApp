@@ -1,9 +1,9 @@
-import 'package:dlstarlive/core/network_temp/api_service.dart';
+import 'package:dlstarlive/core/network/api_service.dart';
 import 'package:dlstarlive/core/auth/auth_bloc_adapter.dart';
 import 'package:dlstarlive/features/newsfeed/data/models/mock_models/user_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../../../core/network_temp/post_service.dart';
+import '../../data/datasources/post_service.dart';
 import '../pages/create_story_screen.dart';
 import '../pages/story_viewer_page.dart';
 

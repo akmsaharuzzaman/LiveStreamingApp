@@ -1,5 +1,4 @@
-import 'package:dlstarlive/core/network_temp/api_result.dart';
-import 'package:dlstarlive/core/network_temp/network_exceptions.dart';
+import 'package:dlstarlive/core/network/api_service.dart';
 import '../models/post_response_model.dart';
 import '../datasources/newsfeed_remote_datasource.dart';
 import '../../domain/repositories/newsfeed_repository.dart';
@@ -15,7 +14,7 @@ class NewsfeedRepositoryImpl implements NewsfeedRepository {
     int limit = 10,
   }) async {
     try {
-      return await _remoteDataSource.getAllPosts(page: page, limit: limit);
+      return _remoteDataSource.getAllPosts(page: page, limit: limit);
     } catch (e) {
       return ApiResult.failure(
         NetworkExceptions.defaultError('Repository error: $e'),

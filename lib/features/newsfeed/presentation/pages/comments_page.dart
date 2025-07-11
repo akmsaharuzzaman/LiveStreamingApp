@@ -1,7 +1,6 @@
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
-import 'package:dlstarlive/core/network_temp/api_result.dart';
-import 'package:dlstarlive/core/network_temp/api_service.dart';
-import 'package:dlstarlive/core/network_temp/post_service.dart';
+import 'package:dlstarlive/core/network/api_service.dart';
+import 'package:dlstarlive/features/newsfeed/data/datasources/post_service.dart';
 import 'package:dlstarlive/core/auth/auth_bloc_adapter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

@@ -9,29 +9,30 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'package:dlstarlive/core/auth/auth_bloc.dart' as _i832;
-import 'package:dlstarlive/core/auth/google_auth_module.dart' as _i43;
-import 'package:dlstarlive/core/auth/google_auth_service.dart' as _i831;
-import 'package:dlstarlive/core/network/api_clients.dart' as _i755;
-import 'package:dlstarlive/core/network/api_example_bloc.dart' as _i324;
-import 'package:dlstarlive/core/network/api_service.dart' as _i469;
-import 'package:dlstarlive/core/network/network_info.dart' as _i203;
-import 'package:dlstarlive/core/network/network_module.dart' as _i473;
-import 'package:dlstarlive/core/storage/shared_preferences_module.dart'
-    as _i828;
-import 'package:dlstarlive/features/home/data/datasources/counter_local_data_source.dart'
-    as _i371;
-import 'package:dlstarlive/features/home/data/repositories/counter_repository_impl.dart'
-    as _i44;
-import 'package:dlstarlive/features/home/domain/repositories/counter_repository.dart'
-    as _i500;
-import 'package:dlstarlive/features/home/domain/usecases/get_counter.dart'
-    as _i617;
-import 'package:dlstarlive/features/home/domain/usecases/increment_counter.dart'
-    as _i31;
-import 'package:dlstarlive/features/home/presentation/bloc/counter_bloc.dart'
-    as _i617;
 import 'package:dio/dio.dart' as _i361;
+import 'package:dlstarlive/core/auth/auth_bloc.dart' as _i477;
+import 'package:dlstarlive/core/auth/google_auth_module.dart' as _i837;
+import 'package:dlstarlive/core/auth/google_auth_service.dart' as _i475;
+import 'package:dlstarlive/core/network/api_clients.dart' as _i622;
+import 'package:dlstarlive/core/network/api_service.dart' as _i10;
+import 'package:dlstarlive/core/network/api_service_backup.dart' as _i207;
+import 'package:dlstarlive/core/network/merged_api_service.dart' as _i93;
+import 'package:dlstarlive/core/network/network_info.dart' as _i1041;
+import 'package:dlstarlive/core/network/network_module.dart' as _i809;
+import 'package:dlstarlive/core/storage/shared_preferences_module.dart'
+    as _i469;
+import 'package:dlstarlive/features/home/data/datasources/counter_local_data_source.dart'
+    as _i618;
+import 'package:dlstarlive/features/home/data/repositories/counter_repository_impl.dart'
+    as _i756;
+import 'package:dlstarlive/features/home/domain/repositories/counter_repository.dart'
+    as _i89;
+import 'package:dlstarlive/features/home/domain/usecases/get_counter.dart'
+    as _i298;
+import 'package:dlstarlive/features/home/domain/usecases/increment_counter.dart'
+    as _i15;
+import 'package:dlstarlive/features/home/presentation/bloc/counter_bloc.dart'
+    as _i208;
 import 'package:firebase_auth/firebase_auth.dart' as _i59;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:google_sign_in/google_sign_in.dart' as _i116;
@@ -50,73 +51,67 @@ extension GetItInjectableX on _i174.GetIt {
     final sharedPreferencesModule = _$SharedPreferencesModule();
     gh.lazySingleton<_i116.GoogleSignIn>(() => googleAuthModule.googleSignIn);
     gh.lazySingleton<_i59.FirebaseAuth>(() => googleAuthModule.firebaseAuth);
+    gh.lazySingleton<_i10.ApiService>(() => _i10.ApiService());
+    gh.lazySingleton<_i93.ApiService>(() => _i93.ApiService());
     gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
-    gh.lazySingleton<_i203.NetworkInfo>(() => networkModule.networkInfo);
+    gh.lazySingleton<_i1041.NetworkInfo>(() => networkModule.networkInfo);
     await gh.lazySingletonAsync<_i460.SharedPreferences>(
       () => sharedPreferencesModule.sharedPreferences,
       preResolve: true,
     );
-    gh.lazySingleton<_i831.GoogleAuthService>(
-      () => _i831.GoogleAuthServiceImpl(
+    gh.lazySingleton<_i475.GoogleAuthService>(
+      () => _i475.GoogleAuthServiceImpl(
         gh<_i116.GoogleSignIn>(),
         gh<_i59.FirebaseAuth>(),
       ),
     );
-    gh.lazySingleton<_i469.ApiService>(() => _i469.ApiService(gh<_i361.Dio>()));
-    gh.lazySingleton<_i755.UserApiClient>(
-      () => _i755.UserApiClient(gh<_i469.ApiService>()),
+    gh.lazySingleton<_i622.UserApiClient>(
+      () => _i622.UserApiClient(gh<_i10.ApiService>()),
     );
-    gh.lazySingleton<_i755.FileUploadApiClient>(
-      () => _i755.FileUploadApiClient(gh<_i469.ApiService>()),
+    gh.lazySingleton<_i622.FileUploadApiClient>(
+      () => _i622.FileUploadApiClient(gh<_i10.ApiService>()),
     );
-    gh.lazySingleton<_i755.GenericApiClient>(
-      () => _i755.GenericApiClient(gh<_i469.ApiService>()),
+    gh.lazySingleton<_i622.GenericApiClient>(
+      () => _i622.GenericApiClient(gh<_i10.ApiService>()),
     );
-    gh.factory<_i371.CounterLocalDataSource>(
-      () => _i371.CounterLocalDataSourceImpl(gh<_i460.SharedPreferences>()),
+    gh.lazySingleton<_i207.ApiService>(() => _i207.ApiService(gh<_i361.Dio>()));
+    gh.factory<_i618.CounterLocalDataSource>(
+      () => _i618.CounterLocalDataSourceImpl(gh<_i460.SharedPreferences>()),
     );
-    gh.lazySingleton<_i755.AuthApiClient>(
-      () => _i755.AuthApiClient(
-        gh<_i469.ApiService>(),
+    gh.lazySingleton<_i622.AuthApiClient>(
+      () => _i622.AuthApiClient(
+        gh<_i10.ApiService>(),
         gh<_i460.SharedPreferences>(),
       ),
     );
-    gh.factory<_i500.CounterRepository>(
-      () => _i44.CounterRepositoryImpl(gh<_i371.CounterLocalDataSource>()),
+    gh.factory<_i89.CounterRepository>(
+      () => _i756.CounterRepositoryImpl(gh<_i618.CounterLocalDataSource>()),
     );
-    gh.factory<_i617.GetCounter>(
-      () => _i617.GetCounter(gh<_i500.CounterRepository>()),
-    );
-    gh.factory<_i31.IncrementCounter>(
-      () => _i31.IncrementCounter(gh<_i500.CounterRepository>()),
-    );
-    gh.factory<_i324.ApiExampleBloc>(
-      () => _i324.ApiExampleBloc(
-        gh<_i755.AuthApiClient>(),
-        gh<_i755.UserApiClient>(),
-        gh<_i755.FileUploadApiClient>(),
-        gh<_i755.GenericApiClient>(),
+    gh.factory<_i477.AuthBloc>(
+      () => _i477.AuthBloc(
+        gh<_i622.AuthApiClient>(),
+        gh<_i622.UserApiClient>(),
+        gh<_i475.GoogleAuthService>(),
       ),
     );
-    gh.factory<_i832.AuthBloc>(
-      () => _i832.AuthBloc(
-        gh<_i755.AuthApiClient>(),
-        gh<_i755.UserApiClient>(),
-        gh<_i831.GoogleAuthService>(),
-      ),
+    gh.factory<_i298.GetCounter>(
+      () => _i298.GetCounter(gh<_i89.CounterRepository>()),
     );
-    gh.factory<_i617.CounterBloc>(
-      () => _i617.CounterBloc(
-        getCounter: gh<_i617.GetCounter>(),
-        incrementCounter: gh<_i31.IncrementCounter>(),
+    gh.factory<_i15.IncrementCounter>(
+      () => _i15.IncrementCounter(gh<_i89.CounterRepository>()),
+    );
+    gh.factory<_i208.CounterBloc>(
+      () => _i208.CounterBloc(
+        getCounter: gh<_i298.GetCounter>(),
+        incrementCounter: gh<_i15.IncrementCounter>(),
       ),
     );
     return this;
   }
 }
 
-class _$GoogleAuthModule extends _i43.GoogleAuthModule {}
+class _$GoogleAuthModule extends _i837.GoogleAuthModule {}
 
-class _$NetworkModule extends _i473.NetworkModule {}
+class _$NetworkModule extends _i809.NetworkModule {}
 
-class _$SharedPreferencesModule extends _i828.SharedPreferencesModule {}
+class _$SharedPreferencesModule extends _i469.SharedPreferencesModule {}

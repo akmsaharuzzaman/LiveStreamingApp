@@ -1,4 +1,4 @@
-import 'package:dlstarlive/core/network_temp/api_service.dart';
+import 'package:dlstarlive/core/network/api_service.dart';
 
 import 'data/repositories/reels_repository_impl.dart';
 import 'data/services/reels_api_service.dart';

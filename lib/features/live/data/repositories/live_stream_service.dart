@@ -1,5 +1,4 @@
-import 'package:dlstarlive/core/network_temp/api_result.dart';
-import 'package:dlstarlive/core/network_temp/api_service.dart';
+import 'package:dlstarlive/core/network/api_service.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/auth/i_auth_service.dart';
 
