@@ -66,9 +66,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
     return Scaffold(
       appBar: AppBar(
+        forceMaterialTransparency: true,
         title: const Text('Create Account'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => context.go('/login'),
         ),
       ),
@@ -331,7 +332,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         return FilledButton(
                           onPressed: isLoading ? null : _onRegister,
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 16.0),
+                            padding: const EdgeInsets.symmetric(vertical: 4.0),
                             child: isLoading
                                 ? const SizedBox(
                                     height: 20,

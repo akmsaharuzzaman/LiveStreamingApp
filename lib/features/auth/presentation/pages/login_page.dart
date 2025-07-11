@@ -72,16 +72,12 @@ class _LoginPageState extends State<LoginPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // App Logo/Icon
-                      Icon(
-                        Icons.music_note,
-                        size: 80,
-                        color: colorScheme.primary,
-                      ),
+                      Icon(Icons.star, size: 80, color: colorScheme.primary),
                       const SizedBox(height: 16),
 
                       // App Title
                       Text(
-                        'Welcome Back',
+                        'DL Star',
                         style: theme.textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: colorScheme.onSurface,
@@ -266,16 +262,6 @@ class _LoginPageState extends State<LoginPage> {
                       ),
 
                       const SizedBox(height: 32),
-
-                      // Demo Login Button (for testing)
-                      OutlinedButton(
-                        onPressed: () {
-                          _emailController.text = 'demo@example.com';
-                          _passwordController.text = 'password123';
-                          _onLogin();
-                        },
-                        child: const Text('Demo Login'),
-                      ),
                     ],
                   ),
                 ),
