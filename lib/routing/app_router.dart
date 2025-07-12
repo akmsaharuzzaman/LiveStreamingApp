@@ -4,6 +4,7 @@ import 'package:dlstarlive/features/live/presentation/pages/golive_screen.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_page.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_summary_screen.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/view_user_profile.dart';
+import 'package:dlstarlive/features/profile/presentation/pages/friends_list_page.dart';
 import 'package:dlstarlive/features/reels/presentation/pages/reels.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -30,6 +31,7 @@ class AppRoutes {
   static const String liveSummary = '/live-summary';
   static const String chatDetail = '/chat-details';
   static const String chats = '/chats';
+  static const String friendsList = '/friends-list';
 }
 
 final GoRouter appRouter = GoRouter(
@@ -131,6 +133,15 @@ final GoRouter appRouter = GoRouter(
         final userId = state.pathParameters['userId'] ?? '';
         final extra = state.extra as Map<String, dynamic>?;
         return ChatDetailPage(userId: userId, userInfo: extra);
+      },
+    ),
+    GoRoute(
+      path: '${AppRoutes.friendsList}/:userId',
+      name: 'friendsList',
+      builder: (context, state) {
+        final userId = state.pathParameters['userId'] ?? '';
+        final title = state.uri.queryParameters['title'] ?? 'Friends';
+        return FriendsListPage(userId: userId, title: title);
       },
     ),
   ],

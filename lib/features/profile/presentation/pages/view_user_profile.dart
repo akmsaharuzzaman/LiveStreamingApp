@@ -512,36 +512,45 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _buildSocialStatItem('0', 'Friends'),
+        _buildSocialStatItem('0', 'Friends', () {
+          context.push('/friends-list/${widget.userId}?title=Friends');
+        }),
         Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
-        _buildSocialStatItem('0', 'Followers'),
+        _buildSocialStatItem('0', 'Followers', () {
+          context.push('/friends-list/${widget.userId}?title=Followers');
+        }),
         Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
-        _buildSocialStatItem('0', 'Following'),
+        _buildSocialStatItem('0', 'Following', () {
+          context.push('/friends-list/${widget.userId}?title=Following');
+        }),
       ],
     );
   }
 
-  Widget _buildSocialStatItem(String count, String label) {
-    return Column(
-      children: [
-        Text(
-          count,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w400,
-            color: Color(0xFF000000),
+  Widget _buildSocialStatItem(String count, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Text(
+            count,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF000000),
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w400,
-            color: Color(0xFF000000),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF000000),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
