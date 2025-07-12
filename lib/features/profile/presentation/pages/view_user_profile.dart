@@ -561,7 +561,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
               height: 44,
               decoration: BoxDecoration(
                 color: relationship?.myFollowing == true
-                    ? null
+                    ? Color(0xFF7C6C70)
                     : Color(0xFF7C6C70),
                 gradient: relationship?.myFollowing == true
                     ? null
