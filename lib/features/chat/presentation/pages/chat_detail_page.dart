@@ -4,8 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/models/chat_models.dart';
-import '../bloc/chat_bloc.dart';
-import 'conversations.dart' as conversation_widget;
+import '../bloc/chat_detail_bloc.dart';
 
 class ChatDetailPage extends StatefulWidget {
   final String userId;
@@ -25,7 +24,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   void initState() {
     super.initState();
 
-    // Use passed user info if available, otherwise find from dummy data
+    // Use passed user info if available, otherwise create a basic ChatUser
     if (widget.userInfo != null) {
       chatUser = ChatUser(
         id: widget.userId,
@@ -36,32 +35,19 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         isOnline: true, // Assume online when coming from profile
       );
     } else {
-      // Find the chat user based on the userId from dummy data
-      chatUser =
-          allChats
-              .firstWhere(
-                (chat) => chat.sender?.id == widget.userId,
-                orElse: () => ChatConversation(
-                  id: '',
-                  sender: null,
-                  text: '',
-                  time: '',
-                  unreadCount: 0,
-                  avatar: '',
-                  lastMessageTime: DateTime.now(),
-                ),
-              )
-              .sender ??
-          ChatUser(
-            id: widget.userId,
-            name: 'Unknown User',
-            email: 'unknown@example.com',
-            avatar: 'https://i.pravatar.cc/150?img=8',
-          );
+      // Create a basic ChatUser when no user info is passed
+      chatUser = ChatUser(
+        id: widget.userId,
+        name: 'Unknown User',
+        email: 'unknown@example.com',
+        avatar: 'https://i.pravatar.cc/150?img=8',
+      );
     }
 
     // Load messages for this user
-    context.read<ChatBloc>().add(LoadMessagesEvent(otherUserId: widget.userId));
+    context.read<ChatDetailBloc>().add(
+      LoadMessagesEvent(otherUserId: widget.userId),
+    );
   }
 
   @override
@@ -72,7 +58,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 
   void _sendMessage(String text) {
-    context.read<ChatBloc>().add(
+    context.read<ChatDetailBloc>().add(
       SendMessageEvent(receiverId: widget.userId, text: text),
     );
   }
@@ -248,69 +234,133 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         children: [
           // Messages List
           Expanded(
-            child: BlocBuilder<ChatBloc, ChatState>(
+            child: BlocBuilder<ChatDetailBloc, ChatDetailState>(
               builder: (context, state) {
-                if (state is ChatLoading) {
+                if (state is ChatDetailLoading) {
                   return const Center(child: CircularProgressIndicator());
-                } else if (state is ChatMessagesLoaded) {
+                } else if (state is ChatDetailMessagesLoaded) {
                   return _buildMessagesArea(state.messages);
-                } else if (state is ChatError) {
+                } else if (state is ChatDetailError) {
+                  // Handle different error scenarios
+                  if (state.message.contains('Conversation not found') ||
+                      state.message.contains('404')) {
+                    // Show "no messages yet" for 404 errors
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.chat_outlined,
+                            size: 80.sp,
+                            color: Colors.grey[400],
+                          ),
+                          SizedBox(height: 16.h),
+                          Text(
+                            'No messages yet',
+                            style: TextStyle(
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          SizedBox(height: 8.h),
+                          Text(
+                            'Start the conversation by sending a message',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Colors.grey[500],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    );
+                  } else {
+                    // Show generic error for other types of errors
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 80.sp,
+                            color: Colors.red[400],
+                          ),
+                          SizedBox(height: 16.h),
+                          Text(
+                            'Error loading messages',
+                            style: TextStyle(
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          SizedBox(height: 8.h),
+                          Text(
+                            state.message,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Colors.grey[500],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 16.h),
+                          ElevatedButton(
+                            onPressed: () {
+                              context.read<ChatDetailBloc>().add(
+                                LoadMessagesEvent(otherUserId: widget.userId),
+                              );
+                            },
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                } else {
+                  // Initial state - show empty state
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.error_outline,
+                          Icons.chat_outlined,
                           size: 80.sp,
-                          color: Colors.red,
+                          color: Colors.grey[400],
                         ),
                         SizedBox(height: 16.h),
                         Text(
-                          'Error Loading Messages',
+                          'No messages yet',
                           style: TextStyle(
                             fontSize: 18.sp,
                             fontWeight: FontWeight.w600,
-                            color: Colors.red,
+                            color: Colors.grey[600],
                           ),
                         ),
                         SizedBox(height: 8.h),
                         Text(
-                          state.message,
+                          'Start the conversation by sending a message',
                           style: TextStyle(
                             fontSize: 14.sp,
-                            color: Colors.grey[600],
+                            color: Colors.grey[500],
                           ),
                           textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 16.h),
-                        ElevatedButton(
-                          onPressed: () {
-                            context.read<ChatBloc>().add(
-                              LoadMessagesEvent(otherUserId: widget.userId),
-                            );
-                          },
-                          child: const Text('Retry'),
                         ),
                       ],
                     ),
                   );
-                } else {
-                  // Fallback to dummy conversation widget
-                  return conversation_widget.Conversation(user: chatUser);
                 }
               },
             ),
           ),
-
-          // Message Input
-          BlocListener<ChatBloc, ChatState>(
+          BlocListener<ChatDetailBloc, ChatDetailState>(
             listener: (context, state) {
-              if (state is ChatMessageSent) {
+              if (state is ChatDetailMessageSent) {
                 _messageController.clear();
                 ScaffoldMessenger.of(
                   context,
                 ).showSnackBar(const SnackBar(content: Text('Message sent!')));
-              } else if (state is ChatError) {
+              } else if (state is ChatDetailError) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Error: ${state.message}')),
                 );

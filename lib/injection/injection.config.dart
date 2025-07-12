@@ -25,6 +25,8 @@ import 'package:dlstarlive/features/chat/data/services/chat_api_service.dart'
     as _i605;
 import 'package:dlstarlive/features/chat/presentation/bloc/chat_bloc.dart'
     as _i551;
+import 'package:dlstarlive/features/chat/presentation/bloc/chat_detail_bloc.dart'
+    as _i684;
 import 'package:dlstarlive/features/home/data/datasources/counter_local_data_source.dart'
     as _i618;
 import 'package:dlstarlive/features/home/data/repositories/counter_repository_impl.dart'
@@ -103,6 +105,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i551.ChatBloc>(
       () => _i551.ChatBloc(gh<_i605.ChatApiService>()),
+    );
+    gh.factory<_i684.ChatDetailBloc>(
+      () => _i684.ChatDetailBloc(gh<_i605.ChatApiService>()),
     );
     gh.factory<_i298.GetCounter>(
       () => _i298.GetCounter(gh<_i89.CounterRepository>()),

@@ -27,8 +27,8 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Refresh conversations when returning to this page
-    _refreshConversations();
+    // Only refresh conversations on initial load, not on every dependency change
+    // This prevents conflicts with chat detail page states
   }
 
   void _refreshConversations() {
@@ -162,6 +162,51 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
           );
         } else if (state is ChatConversationsLoaded) {
           final conversations = state.conversations;
+          if (conversations.isEmpty) {
+            // Show "no conversations" message when list is empty
+            return RefreshIndicator(
+              onRefresh: () async {
+                context.read<ChatBloc>().add(const LoadConversationsEvent());
+                await Future.delayed(const Duration(milliseconds: 500));
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Container(
+                  height: MediaQuery.of(context).size.height * 0.7,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.chat_outlined,
+                          size: 80.sp,
+                          color: Colors.grey[400],
+                        ),
+                        SizedBox(height: 16.h),
+                        Text(
+                          'No conversations yet',
+                          style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        SizedBox(height: 8.h),
+                        Text(
+                          'Start a conversation by messaging someone',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            color: Colors.grey[500],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
           return RefreshIndicator(
             onRefresh: () async {
               context.read<ChatBloc>().add(const LoadConversationsEvent());
