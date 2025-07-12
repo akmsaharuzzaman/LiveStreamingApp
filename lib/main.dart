@@ -8,6 +8,7 @@ import 'core/theme/app_theme.dart';
 import 'injection/injection.dart';
 import 'routing/app_router.dart';
 import 'core/auth/auth_bloc.dart';
+import 'features/chat/presentation/bloc/chat_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +39,7 @@ class MyApp extends StatelessWidget {
         return MultiBlocProvider(
           providers: [
             BlocProvider<AuthBloc>(create: (context) => getIt<AuthBloc>()),
+            BlocProvider<ChatBloc>(create: (context) => getIt<ChatBloc>()),
           ],
           child: MaterialApp.router(
             title: 'DL Star',

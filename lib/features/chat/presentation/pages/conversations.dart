@@ -76,7 +76,7 @@ class Conversation extends StatelessWidget {
                         Icon(
                           Icons.done_all,
                           size: 16.sp,
-                          color: message.isRead ? Colors.blue : Colors.grey,
+                          color: true ? Colors.blue : Colors.grey,
                         ),
                       SizedBox(width: 4.w),
                       Text(

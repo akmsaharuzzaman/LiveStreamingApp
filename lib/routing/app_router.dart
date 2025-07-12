@@ -129,7 +129,8 @@ final GoRouter appRouter = GoRouter(
       name: 'chatDetail',
       builder: (context, state) {
         final userId = state.pathParameters['userId'] ?? '';
-        return ChatDetailPage(userId: userId);
+        final extra = state.extra as Map<String, dynamic>?;
+        return ChatDetailPage(userId: userId, userInfo: extra);
       },
     ),
   ],

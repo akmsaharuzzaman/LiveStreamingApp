@@ -4,30 +4,39 @@ import 'package:equatable/equatable.dart';
 class ChatUser extends Equatable {
   final String id;
   final String name;
+  final String email;
   final String avatar;
   final bool isOnline;
 
   const ChatUser({
     required this.id,
     required this.name,
+    required this.email,
     required this.avatar,
     this.isOnline = false,
   });
 
   @override
-  List<Object?> get props => [id, name, avatar, isOnline];
+  List<Object?> get props => [id, name, email, avatar, isOnline];
 
   factory ChatUser.fromJson(Map<String, dynamic> json) {
     return ChatUser(
-      id: json['id'] ?? '',
+      id: json['_id'] ?? json['id'] ?? '',
       name: json['name'] ?? '',
-      avatar: json['avatar'] ?? '',
+      email: json['email'] ?? '',
+      avatar: json['avatar'] ?? json['profilePicture'] ?? '',
       isOnline: json['isOnline'] ?? false,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'id': id, 'name': name, 'avatar': avatar, 'isOnline': isOnline};
+    return {
+      '_id': id,
+      'name': name,
+      'email': email,
+      'avatar': avatar,
+      'isOnline': isOnline,
+    };
   }
 }
 
@@ -36,51 +45,117 @@ class ChatMessage extends Equatable {
   final String id;
   final String text;
   final ChatUser? sender;
+  final ChatUser? receiver;
   final DateTime timestamp;
   final String time;
-  final bool isRead;
+  final bool seen;
+  final String? roomId;
+  final String? fileUrl;
   final MessageType type;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   const ChatMessage({
     required this.id,
     required this.text,
-    required this.sender,
+    this.sender,
+    this.receiver,
     required this.timestamp,
     required this.time,
-    this.isRead = false,
+    this.seen = false,
+    this.roomId,
+    this.fileUrl,
     this.type = MessageType.text,
+    required this.createdAt,
+    required this.updatedAt,
   });
 
   @override
-  List<Object?> get props => [id, text, sender, timestamp, time, isRead, type];
+  List<Object?> get props => [
+    id,
+    text,
+    sender,
+    receiver,
+    timestamp,
+    time,
+    seen,
+    roomId,
+    fileUrl,
+    type,
+    createdAt,
+    updatedAt,
+  ];
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     return ChatMessage(
-      id: json['id'] ?? '',
+      id: json['_id'] ?? json['id'] ?? '',
       text: json['text'] ?? '',
-      sender: json['sender'] != null ? ChatUser.fromJson(json['sender']) : null,
+      sender: json['senderId'] != null
+          ? ChatUser.fromJson(
+              json['senderId'] is Map<String, dynamic>
+                  ? json['senderId']
+                  : {'_id': json['senderId'], 'name': '', 'email': ''},
+            )
+          : null,
+      receiver: json['recieverId'] != null || json['receiverId'] != null
+          ? ChatUser.fromJson(
+              (json['recieverId'] ?? json['receiverId']) is Map<String, dynamic>
+                  ? (json['recieverId'] ?? json['receiverId'])
+                  : {
+                      '_id': (json['recieverId'] ?? json['receiverId']),
+                      'name': '',
+                      'email': '',
+                    },
+            )
+          : null,
       timestamp: DateTime.parse(
-        json['timestamp'] ?? DateTime.now().toIso8601String(),
+        json['createdAt'] ??
+            json['timestamp'] ??
+            DateTime.now().toIso8601String(),
       ),
-      time: json['time'] ?? '',
-      isRead: json['isRead'] ?? false,
-      type: MessageType.values.firstWhere(
-        (e) => e.name == (json['type'] ?? 'text'),
-        orElse: () => MessageType.text,
+      time:
+          json['time'] ??
+          _formatTime(
+            DateTime.parse(
+              json['createdAt'] ??
+                  json['timestamp'] ??
+                  DateTime.now().toIso8601String(),
+            ),
+          ),
+      seen: json['seen'] ?? json['isRead'] ?? false,
+      roomId: json['roomId'],
+      fileUrl: json['fileUrl'] ?? json['file'],
+      type: json['fileUrl'] != null || json['file'] != null
+          ? MessageType.file
+          : MessageType.text,
+      createdAt: DateTime.parse(
+        json['createdAt'] ?? DateTime.now().toIso8601String(),
+      ),
+      updatedAt: DateTime.parse(
+        json['updatedAt'] ?? DateTime.now().toIso8601String(),
       ),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      '_id': id,
       'text': text,
-      'sender': sender?.toJson(),
+      'senderId': sender?.id,
+      'recieverId': receiver?.id,
       'timestamp': timestamp.toIso8601String(),
       'time': time,
-      'isRead': isRead,
+      'seen': seen,
+      'roomId': roomId,
+      'fileUrl': fileUrl,
       'type': type.name,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
+  }
+
+  static String _formatTime(DateTime dateTime) {
+    return "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}";
   }
 }
 
@@ -150,10 +225,85 @@ class ChatConversation extends Equatable {
 /// Message type enum
 enum MessageType { text, image, video, audio, file, location, sticker, gif }
 
+/// Conversation model for conversation list from API
+class Conversation extends Equatable {
+  final String id;
+  final String roomId;
+  final ChatUser? sender;
+  final ChatUser? receiver;
+  final String lastMessage;
+  final bool seenStatus;
+  final List<String> deletedFor;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  const Conversation({
+    required this.id,
+    required this.roomId,
+    this.sender,
+    this.receiver,
+    required this.lastMessage,
+    required this.seenStatus,
+    required this.deletedFor,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  @override
+  List<Object?> get props => [
+    id,
+    roomId,
+    sender,
+    receiver,
+    lastMessage,
+    seenStatus,
+    deletedFor,
+    createdAt,
+    updatedAt,
+  ];
+
+  factory Conversation.fromJson(Map<String, dynamic> json) {
+    return Conversation(
+      id: json['_id'] ?? json['id'] ?? '',
+      roomId: json['roomId'] ?? '',
+      sender: json['senderId'] != null
+          ? ChatUser.fromJson(json['senderId'])
+          : null,
+      receiver: json['receiverId'] != null
+          ? ChatUser.fromJson(json['receiverId'])
+          : null,
+      lastMessage: json['lastMessage'] ?? '',
+      seenStatus: json['seenStatus'] ?? false,
+      deletedFor: List<String>.from(json['deletedFor'] ?? []),
+      createdAt: DateTime.parse(
+        json['createdAt'] ?? DateTime.now().toIso8601String(),
+      ),
+      updatedAt: DateTime.parse(
+        json['updatedAt'] ?? DateTime.now().toIso8601String(),
+      ),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      '_id': id,
+      'roomId': roomId,
+      'senderId': sender?.toJson(),
+      'receiverId': receiver?.toJson(),
+      'lastMessage': lastMessage,
+      'seenStatus': seenStatus,
+      'deletedFor': deletedFor,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+}
+
 /// Dummy data for testing - replace with real data from your backend
 final ChatUser currentUser = ChatUser(
   id: '1',
   name: 'Me',
+  email: 'me@example.com',
   avatar: 'https://i.pravatar.cc/150?img=1',
   isOnline: true,
 );
@@ -165,12 +315,15 @@ final List<ChatMessage> messages = [
     sender: ChatUser(
       id: '2',
       name: 'John Doe',
+      email: 'john@example.com',
       avatar: 'https://i.pravatar.cc/150?img=2',
       isOnline: true,
     ),
     timestamp: DateTime.now().subtract(Duration(minutes: 10)),
     time: '10:30 AM',
-    isRead: true,
+    seen: true,
+    createdAt: DateTime.now().subtract(Duration(minutes: 10)),
+    updatedAt: DateTime.now().subtract(Duration(minutes: 10)),
   ),
   ChatMessage(
     id: '2',
@@ -178,7 +331,9 @@ final List<ChatMessage> messages = [
     sender: currentUser,
     timestamp: DateTime.now().subtract(Duration(minutes: 8)),
     time: '10:32 AM',
-    isRead: true,
+    seen: true,
+    createdAt: DateTime.now().subtract(Duration(minutes: 8)),
+    updatedAt: DateTime.now().subtract(Duration(minutes: 8)),
   ),
   ChatMessage(
     id: '3',
@@ -186,12 +341,15 @@ final List<ChatMessage> messages = [
     sender: ChatUser(
       id: '2',
       name: 'John Doe',
+      email: 'john@example.com',
       avatar: 'https://i.pravatar.cc/150?img=2',
       isOnline: true,
     ),
     timestamp: DateTime.now().subtract(Duration(minutes: 5)),
     time: '10:35 AM',
-    isRead: false,
+    seen: false,
+    createdAt: DateTime.now().subtract(Duration(minutes: 5)),
+    updatedAt: DateTime.now().subtract(Duration(minutes: 5)),
   ),
 ];
 
@@ -201,6 +359,7 @@ final List<ChatConversation> allChats = [
     sender: ChatUser(
       id: '2',
       name: 'John Doe',
+      email: 'john@example.com',
       avatar: 'https://i.pravatar.cc/150?img=2',
       isOnline: true,
     ),
@@ -215,6 +374,7 @@ final List<ChatConversation> allChats = [
     sender: ChatUser(
       id: '3',
       name: 'Sarah Wilson',
+      email: 'sarah@example.com',
       avatar: 'https://i.pravatar.cc/150?img=3',
       isOnline: false,
     ),
@@ -229,6 +389,7 @@ final List<ChatConversation> allChats = [
     sender: ChatUser(
       id: '4',
       name: 'Mike Johnson',
+      email: 'mike@example.com',
       avatar: 'https://i.pravatar.cc/150?img=4',
       isOnline: true,
     ),
@@ -243,6 +404,7 @@ final List<ChatConversation> allChats = [
     sender: ChatUser(
       id: '5',
       name: 'Emily Davis',
+      email: 'emily@example.com',
       avatar: 'https://i.pravatar.cc/150?img=5',
       isOnline: true,
     ),
@@ -257,6 +419,7 @@ final List<ChatConversation> allChats = [
     sender: ChatUser(
       id: '6',
       name: 'Alex Brown',
+      email: 'alex@example.com',
       avatar: 'https://i.pravatar.cc/150?img=6',
       isOnline: false,
     ),

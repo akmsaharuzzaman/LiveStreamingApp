@@ -21,6 +21,10 @@ import 'package:dlstarlive/core/network/network_info.dart' as _i1041;
 import 'package:dlstarlive/core/network/network_module.dart' as _i809;
 import 'package:dlstarlive/core/storage/shared_preferences_module.dart'
     as _i469;
+import 'package:dlstarlive/features/chat/data/services/chat_api_service.dart'
+    as _i605;
+import 'package:dlstarlive/features/chat/presentation/bloc/chat_bloc.dart'
+    as _i551;
 import 'package:dlstarlive/features/home/data/datasources/counter_local_data_source.dart'
     as _i618;
 import 'package:dlstarlive/features/home/data/repositories/counter_repository_impl.dart'
@@ -84,6 +88,9 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i460.SharedPreferences>(),
       ),
     );
+    gh.factory<_i605.ChatApiService>(
+      () => _i605.ChatApiService(gh<_i93.ApiService>()),
+    );
     gh.factory<_i89.CounterRepository>(
       () => _i756.CounterRepositoryImpl(gh<_i618.CounterLocalDataSource>()),
     );
@@ -93,6 +100,9 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i622.UserApiClient>(),
         gh<_i475.GoogleAuthService>(),
       ),
+    );
+    gh.factory<_i551.ChatBloc>(
+      () => _i551.ChatBloc(gh<_i605.ChatApiService>()),
     );
     gh.factory<_i298.GetCounter>(
       () => _i298.GetCounter(gh<_i89.CounterRepository>()),

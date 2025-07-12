@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/models/user_model.dart';
@@ -52,6 +53,38 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
         errorMessage = 'Error: ${e.toString()}';
         isLoading = false;
       });
+    }
+  }
+
+  void _navigateToChat() {
+    if (userProfile != null) {
+      // Navigate directly to chat conversation with this user
+      // Pass user information as extra data for better UX
+      context.push(
+        '/chat-details/${userProfile!.id}',
+        extra: {
+          'userName': userProfile!.name,
+          'userAvatar': userProfile!.avatar ?? userProfile!.profilePictureUrl,
+          'userEmail': userProfile!.email,
+        },
+      );
+
+      // Optional: Show a quick feedback message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Opening chat with ${userProfile!.name}'),
+          duration: const Duration(seconds: 1),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      // Handle error case
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to start chat. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -582,9 +615,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                 border: Border.all(color: Colors.grey[300]!, width: 2),
               ),
               child: ElevatedButton.icon(
-                onPressed: () {
-                  // Handle follow action
-                },
+                onPressed: () => _navigateToChat(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
