@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../injection/injection.dart';
 import '../../data/models/friends_models.dart';
 import '../../data/services/friends_api_service.dart';
+import '../widgets/user_profile_bottom_sheet.dart';
 
 class FriendsListPage extends StatefulWidget {
   final String userId;
@@ -248,116 +249,77 @@ class _FriendsListPageState extends State<FriendsListPage> {
 
           // User Info
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Name
-                Text(
-                  user.name,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
+            child: InkWell(
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) =>
+                      UserProfileBottomSheet(userId: widget.userId),
+                );
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Name
+                  Text(
+                    user.name,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
                   ),
-                ),
-                SizedBox(height: 4.h),
-                // Badges Row
-                Row(
-                  children: [
-                    // Level Badge
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 6.w,
-                        vertical: 2.h,
+                  SizedBox(height: 4.h),
+                  // Badges Row
+                  Row(
+                    children: [
+                      // Level Badge
+                      Image.asset(
+                        'assets/images/general/level_frame.png',
+                        height: 20.w,
                       ),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFF6B9D), Color(0xFFFF8BA0)],
+                      SizedBox(width: 4.w),
+                      // SVIP Badge
+                      if (user.badges.contains('SVIP'))
+                        Image.asset(
+                          'assets/images/general/svip_frame.png',
+                          height: 20.w,
                         ),
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      child: Text(
-                        user.level,
+                      SizedBox(width: 4.w),
+                      // Coins Badge
+                      if (user.coins != null)
+                        Image.asset(
+                          'assets/images/general/coin_frame.png',
+                          height: 20.w,
+                        ),
+                    ],
+                  ),
+                  SizedBox(height: 4.h),
+                  // Online Status
+                  Row(
+                    children: [
+                      if (user.lastSeen == 'Live')
+                        Icon(
+                          Icons.radio_button_checked,
+                          color: Colors.red,
+                          size: 12.sp,
+                        ),
+                      if (user.lastSeen == 'Live') SizedBox(width: 4.w),
+                      Text(
+                        user.lastSeen,
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 12.sp,
+                          color: user.lastSeen == 'Live'
+                              ? Colors.red
+                              : Colors.grey[600],
                         ),
                       ),
-                    ),
-                    SizedBox(width: 4.w),
-                    // SVIP Badge
-                    if (user.badges.contains('SVIP'))
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 6.w,
-                          vertical: 2.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2D3142),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Text(
-                          'SVIP',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    SizedBox(width: 4.w),
-                    // Coins Badge
-                    if (user.coins != null)
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 6.w,
-                          vertical: 2.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFD700),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('🤍', style: TextStyle(fontSize: 8.sp)),
-                            Text(
-                              user.coins!,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-                SizedBox(height: 4.h),
-                // Online Status
-                Row(
-                  children: [
-                    if (user.lastSeen == 'Live')
-                      Icon(
-                        Icons.radio_button_checked,
-                        color: Colors.red,
-                        size: 12.sp,
-                      ),
-                    if (user.lastSeen == 'Live') SizedBox(width: 4.w),
-                    Text(
-                      user.lastSeen,
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: user.lastSeen == 'Live'
-                            ? Colors.red
-                            : Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -371,12 +333,19 @@ class _FriendsListPageState extends State<FriendsListPage> {
                   GestureDetector(
                     onTap: () => _handleFollowUser(user),
                     child: Container(
-                      padding: EdgeInsets.all(8.w),
-                      decoration: BoxDecoration(
-                        color: Colors.blue,
-                        borderRadius: BorderRadius.circular(20.r),
+                      padding: EdgeInsets.symmetric(
+                        vertical: 8.h,
+                        horizontal: 16.w,
                       ),
-                      child: Icon(Icons.add, color: Colors.white, size: 16.sp),
+                      decoration: BoxDecoration(
+                        color: Color(0xFFF1F1F1),
+                        borderRadius: BorderRadius.all(Radius.circular(16.r)),
+                      ),
+                      child: Icon(
+                        Icons.add,
+                        color: Color(0xFF825CB3),
+                        size: 16.sp,
+                      ),
                     ),
                   ),
                 SizedBox(width: 8.w),
@@ -386,14 +355,10 @@ class _FriendsListPageState extends State<FriendsListPage> {
                   child: Container(
                     padding: EdgeInsets.all(8.w),
                     decoration: BoxDecoration(
-                      color: Colors.grey[300],
+                      // color: Colors.grey[300],
                       borderRadius: BorderRadius.circular(20.r),
                     ),
-                    child: Icon(
-                      Icons.close,
-                      color: Colors.grey[600],
-                      size: 16.sp,
-                    ),
+                    child: Icon(Icons.close, color: Colors.black, size: 20.sp),
                   ),
                 ),
               ],
