@@ -7,6 +7,8 @@ import '../../../../core/models/user_model.dart';
 import '../../../../core/network/api_clients.dart';
 import '../../../../core/network/api_service.dart';
 import '../../../../injection/injection.dart';
+import '../../data/services/friends_api_service.dart';
+import '../../data/models/friends_models.dart';
 
 class ViewUserProfile extends StatefulWidget {
   const ViewUserProfile({super.key, required this.userId});
@@ -22,10 +24,15 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
   bool isFollowLoading = false;
   String? errorMessage;
 
+  // Follower count data
+  FollowerCountResult? followerCounts;
+  bool isLoadingCounts = true;
+
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
+    _loadFollowerCounts();
   }
 
   Future<void> _loadUserProfile() async {
@@ -55,6 +62,36 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
         errorMessage = 'Error: ${e.toString()}';
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> _loadFollowerCounts() async {
+    final friendsService = getIt<FriendsApiService>();
+
+    try {
+      final result = await friendsService.getFollowerAndFollowingCount(
+        widget.userId,
+      );
+
+      result.when(
+        success: (data) {
+          setState(() {
+            followerCounts = data;
+            isLoadingCounts = false;
+          });
+        },
+        failure: (error) {
+          setState(() {
+            isLoadingCounts = false;
+          });
+          print('Error loading follower counts: $error');
+        },
+      );
+    } catch (e) {
+      setState(() {
+        isLoadingCounts = false;
+      });
+      print('Error loading follower counts: $e');
     }
   }
 
@@ -512,17 +549,29 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _buildSocialStatItem('0', 'Friends', () {
-          context.push('/friends-list/${widget.userId}?title=Friends');
-        }),
+        _buildSocialStatItem(
+          isLoadingCounts ? '...' : '${followerCounts?.friendshipCount ?? 0}',
+          'Friends',
+          () {
+            context.push('/friends-list/${widget.userId}?title=Friends');
+          },
+        ),
         Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
-        _buildSocialStatItem('0', 'Followers', () {
-          context.push('/friends-list/${widget.userId}?title=Followers');
-        }),
+        _buildSocialStatItem(
+          isLoadingCounts ? '...' : '${followerCounts?.followerCount ?? 0}',
+          'Followers',
+          () {
+            context.push('/friends-list/${widget.userId}?title=Followers');
+          },
+        ),
         Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
-        _buildSocialStatItem('0', 'Following', () {
-          context.push('/friends-list/${widget.userId}?title=Following');
-        }),
+        _buildSocialStatItem(
+          isLoadingCounts ? '...' : '${followerCounts?.followingCount ?? 0}',
+          'Following',
+          () {
+            context.push('/friends-list/${widget.userId}?title=Following');
+          },
+        ),
       ],
     );
   }

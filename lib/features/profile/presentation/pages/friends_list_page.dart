@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../injection/injection.dart';
+import '../../data/models/friends_models.dart';
+import '../../data/services/friends_api_service.dart';
+
 class FriendsListPage extends StatefulWidget {
   final String userId;
   final String title; // "Friends", "Followers", or "Following"
@@ -22,64 +26,100 @@ class _FriendsListPageState extends State<FriendsListPage> {
     _loadUsers();
   }
 
-  void _loadUsers() {
-    // Simulate loading
-    Future.delayed(const Duration(milliseconds: 1000), () {
+  void _loadUsers() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    final friendsService = getIt<FriendsApiService>();
+
+    try {
+      final result = await _getDataBasedOnTitle(friendsService);
+
+      result.when(
+        success: (data) {
+          setState(() {
+            users = _convertApiDataToUserListItems(data);
+            isLoading = false;
+          });
+          print('${widget.title} loaded successfully: ${users.length} users');
+        },
+        failure: (error) {
+          setState(() {
+            isLoading = false;
+          });
+          print('Error loading ${widget.title}: $error');
+          // Show error message or keep empty list
+        },
+      );
+    } catch (e) {
       setState(() {
         isLoading = false;
-        // Mock data for demonstration
-        users = [
-          UserListItem(
-            id: '1',
-            name: 'Habib Khan',
-            avatar: 'https://i.pravatar.cc/150?img=1',
-            level: 'Lv17',
-            badges: ['SVIP'],
-            coins: '20',
-            lastSeen: '1 d ago',
-            isOnline: false,
-            canFollow: widget.title == 'Followers',
-            isFollowing: false,
-          ),
-          UserListItem(
-            id: '2',
-            name: 'Habib khan214',
-            avatar: 'https://i.pravatar.cc/150?img=2',
-            level: 'Lv17',
-            badges: ['SVIP'],
-            coins: null,
-            lastSeen: 'Moment ago',
-            isOnline: true,
-            canFollow: widget.title == 'Followers',
-            isFollowing: false,
-          ),
-          UserListItem(
-            id: '3',
-            name: 'Habib khan2214',
-            avatar: 'https://i.pravatar.cc/150?img=3',
-            level: 'Lv17',
-            badges: [],
-            coins: null,
-            lastSeen: '22/03/2024',
-            isOnline: false,
-            canFollow: widget.title == 'Followers',
-            isFollowing: false,
-          ),
-          UserListItem(
-            id: '4',
-            name: 'Habib khan2214',
-            avatar: 'https://i.pravatar.cc/150?img=4',
-            level: 'Lv17',
-            badges: [],
-            coins: null,
-            lastSeen: 'Live',
-            isOnline: true,
-            canFollow: widget.title == 'Followers',
-            isFollowing: false,
-          ),
-        ];
       });
-    });
+      print('Error loading ${widget.title}: $e');
+    }
+  }
+
+  Future<dynamic> _getDataBasedOnTitle(FriendsApiService service) {
+    switch (widget.title) {
+      case 'Friends':
+        return service.getFriendList(widget.userId);
+      case 'Followers':
+        return service.getFollowerList(widget.userId);
+      case 'Following':
+        return service.getFollowingList(widget.userId);
+      default:
+        return service.getFriendList(widget.userId);
+    }
+  }
+
+  List<UserListItem> _convertApiDataToUserListItems(dynamic apiResponse) {
+    print('Converting API data for ${widget.title}:');
+    print('API Response Type: ${apiResponse.runtimeType}');
+    print('API Response: $apiResponse');
+
+    List<UserInfo> userInfoList = [];
+
+    if (apiResponse is List<FriendItem>) {
+      print('Processing Friends List with ${apiResponse.length} items');
+      // Friends list - use friendInfo from each item
+      userInfoList = apiResponse.map((item) => item.friendInfo).toList();
+    } else if (apiResponse is List<FollowItem>) {
+      print('Processing Follow List with ${apiResponse.length} items');
+      // For followers/following, we need to determine which user info to use
+      // For followers: use myId (the one who is following me)
+      // For following: use followerId (the one I am following)
+      if (widget.title == 'Followers') {
+        userInfoList = apiResponse.map((item) => item.myId).toList();
+      } else {
+        userInfoList = apiResponse.map((item) => item.followerId).toList();
+      }
+    } else {
+      print('Unknown API response type: ${apiResponse.runtimeType}');
+    }
+
+    print('Extracted ${userInfoList.length} user info items');
+
+    return userInfoList
+        .map(
+          (user) => UserListItem(
+            id: user.id,
+            name: user.name,
+            avatar:
+                'https://i.pravatar.cc/150?u=${user.id}', // Generate avatar from user ID
+            level: 'Lv1', // API doesn't provide level in friends list
+            badges: [], // API doesn't provide badges in friends list
+            coins: null, // API doesn't provide coins in friends list
+            lastSeen:
+                'Recently', // API doesn't provide last seen in friends list
+            isOnline:
+                false, // API doesn't provide online status in friends list
+            canFollow: widget.title == 'Followers',
+            isFollowing:
+                false, // You might want to add this field to the API response
+          ),
+        )
+        .toList();
   }
 
   @override
@@ -118,6 +158,20 @@ class _FriendsListPageState extends State<FriendsListPage> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
+          : users.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
+                  SizedBox(height: 16.h),
+                  Text(
+                    'No ${widget.title.toLowerCase()} found',
+                    style: TextStyle(fontSize: 16.sp, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            )
           : ListView.builder(
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
               itemCount: users.length,

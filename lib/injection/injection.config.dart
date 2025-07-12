@@ -39,6 +39,8 @@ import 'package:dlstarlive/features/home/domain/usecases/increment_counter.dart'
     as _i15;
 import 'package:dlstarlive/features/home/presentation/bloc/counter_bloc.dart'
     as _i208;
+import 'package:dlstarlive/features/profile/data/services/friends_api_service.dart'
+    as _i608;
 import 'package:firebase_auth/firebase_auth.dart' as _i59;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:google_sign_in/google_sign_in.dart' as _i116;
@@ -79,6 +81,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i622.GenericApiClient>(
       () => _i622.GenericApiClient(gh<_i10.ApiService>()),
+    );
+    gh.factory<_i608.FriendsApiService>(
+      () => _i608.FriendsApiService(gh<_i10.ApiService>()),
     );
     gh.lazySingleton<_i207.ApiService>(() => _i207.ApiService(gh<_i361.Dio>()));
     gh.factory<_i618.CounterLocalDataSource>(
