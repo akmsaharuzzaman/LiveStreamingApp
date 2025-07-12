@@ -124,10 +124,10 @@ flutter:
     - assets/games/greedyv3/bg.png
     - assets/games/greedyv3/game-icon.png
     - assets/games/greedyv3/Build/Greedy V3.jpg
-    - assets/games/greedyv3/Build/bdc4f51480fbd61e9a3bc0263615b471.loader.js
-    - assets/games/greedyv3/Build/98561af5f5cae17c8bf2c7519da3be5d.data.unityweb
+    - assets/games/greedyv3/Build/4e777e398274f6af8d8f14acae111808.loader.js
+    - assets/games/greedyv3/Build/2c827871e1d858a70f6291322b708aff.data.unityweb
     - assets/games/greedyv3/Build/d2822e4a9f0d71c41427f922e253050a.framework.js.unityweb
-    - assets/games/greedyv3/Build/5cb1f4fd7aed6f236284832b8408896e.wasm.unityweb
+    - assets/games/greedyv3/Build/512eeb427526359d9071eebc0f5d6f34.wasm.unityweb
 
     # Teen Patty Game
     - assets/games/teenpatty/
