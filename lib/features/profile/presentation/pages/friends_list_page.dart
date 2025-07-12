@@ -131,7 +131,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
         child: AppBar(
           forceMaterialTransparency: true,
           backgroundColor: Colors.transparent,
-          elevation: 50,
+          elevation: 4, // Set elevation here (e.g., 4 for shadow)
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
             onPressed: () => context.pop(),
@@ -152,6 +152,13 @@ class _FriendsListPageState extends State<FriendsListPage> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 5,
+                  offset: Offset(0, 1),
+                ),
+              ],
             ),
           ),
         ),
