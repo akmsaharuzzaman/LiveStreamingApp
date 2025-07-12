@@ -334,6 +334,30 @@ class UserApiClient {
       (error) => ApiResponse.failure(message: error),
     );
   }
+
+  /// Follow a user
+  Future<ApiResponse<Map<String, dynamic>>> followUser(String userId) async {
+    final response = await _apiService.post<Map<String, dynamic>>(
+      '/api/followers/follow/$userId',
+    );
+
+    return response.fold(
+      (data) => ApiResponse.success(data: data),
+      (error) => ApiResponse.failure(message: error),
+    );
+  }
+
+  /// Unfollow a user
+  Future<ApiResponse<Map<String, dynamic>>> unfollowUser(String userId) async {
+    final response = await _apiService.delete<Map<String, dynamic>>(
+      '/api/followers/follow/$userId',
+    );
+
+    return response.fold(
+      (data) => ApiResponse.success(data: data),
+      (error) => ApiResponse.failure(message: error),
+    );
+  }
 }
 
 /// File upload API client

@@ -95,6 +95,18 @@ class UserRelationshipModel extends Equatable {
     'myFollowing': myFollowing,
   };
 
+  UserRelationshipModel copyWith({
+    bool? friendship,
+    bool? myFollower,
+    bool? myFollowing,
+  }) {
+    return UserRelationshipModel(
+      friendship: friendship ?? this.friendship,
+      myFollower: myFollower ?? this.myFollower,
+      myFollowing: myFollowing ?? this.myFollowing,
+    );
+  }
+
   @override
   List<Object?> get props => [friendship, myFollower, myFollowing];
 }

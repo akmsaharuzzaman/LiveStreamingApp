@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/network/api_clients.dart';
+import '../../../../core/network/api_service.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../injection/injection.dart';
 
@@ -18,6 +19,7 @@ class UserProfileBottomSheet extends StatefulWidget {
 class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
   UserModel? userProfile;
   bool isLoading = true;
+  bool isFollowLoading = false;
   String? errorMessage;
 
   @override
@@ -53,6 +55,109 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
         errorMessage = 'Error: ${e.toString()}';
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> _handleFollowToggle() async {
+    if (userProfile == null || isFollowLoading) return;
+
+    setState(() {
+      isFollowLoading = true;
+    });
+
+    try {
+      final userApiClient = getIt<UserApiClient>();
+      final isCurrentlyFollowing =
+          userProfile!.relationship?.myFollowing == true;
+
+      ApiResponse<Map<String, dynamic>> response;
+
+      if (isCurrentlyFollowing) {
+        response = await userApiClient.unfollowUser(userProfile!.id);
+      } else {
+        response = await userApiClient.followUser(userProfile!.id);
+      }
+
+      if (response.isSuccess) {
+        // Update the local state
+        setState(() {
+          userProfile = userProfile!.copyWith(
+            relationship: userProfile!.relationship?.copyWith(
+              myFollowing: !isCurrentlyFollowing,
+            ),
+          );
+        });
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isCurrentlyFollowing
+                  ? 'Unfollowed ${userProfile!.name}'
+                  : 'Following ${userProfile!.name}',
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message ?? 'Failed to update follow status'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } finally {
+      setState(() {
+        isFollowLoading = false;
+      });
+    }
+  }
+
+  void _navigateToChat() {
+    if (userProfile != null) {
+      // Close the bottom sheet first
+      Navigator.of(context).pop();
+
+      // Navigate directly to chat conversation with this user
+      // Pass user information as extra data for better UX
+      context.push(
+        '/chat-details/${userProfile!.id}',
+        extra: {
+          'userName': userProfile!.name,
+          'userAvatar': userProfile!.avatar ?? userProfile!.profilePictureUrl,
+          'userEmail': userProfile!.email,
+        },
+      );
+
+      // Optional: Show a quick feedback message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Opening chat with ${userProfile!.name}'),
+          duration: const Duration(seconds: 1),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      // Handle error case
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to start chat. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -414,17 +519,21 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
           child: Container(
             height: 44,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFF6B9D), Color(0xFFFF8BA0)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
+              gradient: relationship?.myFollowing == true
+                  ? const LinearGradient(
+                      colors: [Color(0xFF7C6C70), Color(0xFF7C6C70)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    )
+                  : const LinearGradient(
+                      colors: [Color(0xFFFF6B9D), Color(0xFFFF8BA0)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
               borderRadius: BorderRadius.circular(22),
             ),
             child: ElevatedButton.icon(
-              onPressed: () {
-                // Handle follow action
-              },
+              onPressed: isFollowLoading ? null : _handleFollowToggle,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
@@ -433,14 +542,29 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 16),
               ),
-              icon: Image.asset(
-                'assets/images/general/plus_icon.png',
-                width: 16,
-                height: 16,
-                color: Colors.white,
-              ),
+              icon: isFollowLoading
+                  ? SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Image.asset(
+                      relationship?.myFollowing == true
+                          ? 'assets/images/general/minus_icon.png'
+                          : 'assets/images/general/plus_icon.png',
+                      width: 16,
+                      height: 16,
+                      color: Colors.white,
+                    ),
               label: Text(
-                relationship?.myFollowing == true ? 'Following' : 'Follow',
+                isFollowLoading
+                    ? 'Loading...'
+                    : (relationship?.myFollowing == true
+                          ? 'Unfollow'
+                          : 'Follow'),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -486,9 +610,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
               border: Border.all(color: Colors.grey[300]!, width: 2),
             ),
             child: ElevatedButton.icon(
-              onPressed: () {
-                // Handle follow action
-              },
+              onPressed: _navigateToChat,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,

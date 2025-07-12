@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../../core/network/api_clients.dart';
+import '../../../../core/network/api_service.dart';
 import '../../../../injection/injection.dart';
 
 class ViewUserProfile extends StatefulWidget {
@@ -18,6 +19,7 @@ class ViewUserProfile extends StatefulWidget {
 class _ViewUserProfileState extends State<ViewUserProfile> {
   UserModel? userProfile;
   bool isLoading = true;
+  bool isFollowLoading = false;
   String? errorMessage;
 
   @override
@@ -52,6 +54,74 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
       setState(() {
         errorMessage = 'Error: ${e.toString()}';
         isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _handleFollowToggle() async {
+    if (userProfile == null || isFollowLoading) return;
+
+    setState(() {
+      isFollowLoading = true;
+    });
+
+    try {
+      final userApiClient = getIt<UserApiClient>();
+      final isCurrentlyFollowing =
+          userProfile!.relationship?.myFollowing == true;
+
+      ApiResponse<Map<String, dynamic>> response;
+
+      if (isCurrentlyFollowing) {
+        response = await userApiClient.unfollowUser(userProfile!.id);
+      } else {
+        response = await userApiClient.followUser(userProfile!.id);
+      }
+
+      if (response.isSuccess) {
+        // Update the local state
+        setState(() {
+          userProfile = userProfile!.copyWith(
+            relationship: userProfile!.relationship?.copyWith(
+              myFollowing: !isCurrentlyFollowing,
+            ),
+          );
+        });
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isCurrentlyFollowing
+                  ? 'Unfollowed ${userProfile!.name}'
+                  : 'Following ${userProfile!.name}',
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message ?? 'Failed to update follow status'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } finally {
+      setState(() {
+        isFollowLoading = false;
       });
     }
   }
@@ -573,9 +643,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                 borderRadius: BorderRadius.circular(22),
               ),
               child: ElevatedButton.icon(
-                onPressed: () {
-                  // Handle follow action
-                },
+                onPressed: isFollowLoading ? null : _handleFollowToggle,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
@@ -584,16 +652,29 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
-                icon: Image.asset(
-                  relationship?.myFollowing == true
-                      ? 'assets/images/general/minus_icon.png'
-                      : 'assets/images/general/plus_icon.png',
-                  width: 16,
-                  height: 16,
-                  color: Colors.white,
-                ),
+                icon: isFollowLoading
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Image.asset(
+                        relationship?.myFollowing == true
+                            ? 'assets/images/general/minus_icon.png'
+                            : 'assets/images/general/plus_icon.png',
+                        width: 16,
+                        height: 16,
+                        color: Colors.white,
+                      ),
                 label: Text(
-                  relationship?.myFollowing == true ? 'Unfollow' : 'Follow',
+                  isFollowLoading
+                      ? 'Loading...'
+                      : (relationship?.myFollowing == true
+                            ? 'Unfollow'
+                            : 'Follow'),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
