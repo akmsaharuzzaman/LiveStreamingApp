@@ -244,18 +244,19 @@ class _FriendsListPageState extends State<FriendsListPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Name and Badges Row
+                // Name
+                Text(
+                  user.name,
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                // Badges Row
                 Row(
                   children: [
-                    Text(
-                      user.name,
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
-                      ),
-                    ),
-                    SizedBox(width: 8.w),
                     // Level Badge
                     Container(
                       padding: EdgeInsets.symmetric(
@@ -328,7 +329,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                   ],
                 ),
                 SizedBox(height: 4.h),
-                // Last Seen
+                // Online Status
                 Row(
                   children: [
                     if (user.lastSeen == 'Live')
