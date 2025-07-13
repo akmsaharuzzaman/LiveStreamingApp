@@ -88,12 +88,14 @@ class _FriendsListPageState extends State<FriendsListPage> {
     } else if (apiResponse is List<FollowItem>) {
       print('Processing Follow List with ${apiResponse.length} items');
       // For followers/following, we need to determine which user info to use
-      // For followers: use myId (the one who is following me)
-      // For following: use followerId (the one I am following)
+      // For followers: use followerId (the ones who are following the user)
+      // For following: use myId (the ones the user is following)
       if (widget.title == 'Followers') {
-        userInfoList = apiResponse.map((item) => item.myId).toList();
-      } else {
         userInfoList = apiResponse.map((item) => item.followerId).toList();
+      } else {
+        // For "Following" list, we want to show the people this user is following
+        // This would be the myId in the context where the current user is the followerId
+        userInfoList = apiResponse.map((item) => item.myId).toList();
       }
     } else {
       print('Unknown API response type: ${apiResponse.runtimeType}');
@@ -107,7 +109,8 @@ class _FriendsListPageState extends State<FriendsListPage> {
             id: user.id,
             name: user.name,
             avatar:
-                'https://i.pravatar.cc/150?u=${user.id}', // Generate avatar from user ID
+                user.avatar ??
+                'https://i.pravatar.cc/150?u=${user.id}', // Use API avatar or fallback
             level: 'Lv1', // API doesn't provide level in friends list
             badges: [], // API doesn't provide badges in friends list
             coins: null, // API doesn't provide coins in friends list
