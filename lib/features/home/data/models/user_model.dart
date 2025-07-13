@@ -150,9 +150,15 @@ List<UserModel> listUserFake = [
   UserModel(fullName: 'Brody', urlToImage: urlUserFake3, isLiveStream: true),
   UserModel(fullName: 'Johnny', urlToImage: urlUserFake2),
   UserModel(fullName: 'Caroline', urlToImage: urlUserFake),
-  UserModel(fullName: 'Jerry', urlToImage: urlUserFake2),
+  UserModel(fullName: 'Jerry', urlToImage: urlUserFake2, isLiveStream: true),
   UserModel(fullName: 'Tommy', urlToImage: urlUserFake),
   UserModel(fullName: 'Cris', urlToImage: urlUserFake2),
+  UserModel(fullName: 'Caroline', urlToImage: urlUserFake),
+  UserModel(fullName: 'Jerry', urlToImage: urlUserFake2),
+  UserModel(fullName: 'Caroline', urlToImage: urlUserFake),
+  UserModel(fullName: 'Jerry', urlToImage: urlUserFake2),
+  UserModel(fullName: 'Brody', urlToImage: urlUserFake3, isLiveStream: true),
+  UserModel(fullName: 'Johnny', urlToImage: urlUserFake2),
 ];
 
 const urlUserFake =

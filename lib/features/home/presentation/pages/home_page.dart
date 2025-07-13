@@ -416,18 +416,58 @@ class ListUserFollow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 90.sp,
-      width: double.infinity,
-      child: ListView.builder(
-        padding: EdgeInsets.symmetric(horizontal: 16.sp),
-        itemCount: listUserFake.length,
-        shrinkWrap: true,
-        scrollDirection: Axis.horizontal,
-        itemBuilder: ((context, index) {
-          return UserWidget(userModel: listUserFake[index]);
-        }),
-      ),
+    return Row(
+      children: [
+        SizedBox(
+          height: 90.sp,
+          width: MediaQuery.of(context).size.width * 0.80,
+          child: ListView.builder(
+            padding: EdgeInsets.symmetric(horizontal: 16.sp),
+            itemCount: listUserFake.length,
+            shrinkWrap: true,
+            scrollDirection: Axis.horizontal,
+            itemBuilder: ((context, index) {
+              return UserWidget(userModel: listUserFake[index]);
+            }),
+          ),
+        ),
+        Spacer(),
+        InkWell(
+          onTap: () {
+            // Navigate to the leaderboard page
+            // context.pushNamed('leaderBoard');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Leaderboard feature coming soon!'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          },
+          child: Column(
+            children: [
+              Container(
+                padding: EdgeInsets.only(
+                  bottom: 8.sp,
+                  top: 8.sp,
+                  left: 8.sp,
+                  right: 8.sp,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.grey,
+                  borderRadius: BorderRadius.circular(50.sp),
+                ),
+                child: Icon(
+                  Icons.leaderboard,
+                  size: 30.sp,
+                  color: Colors.black,
+                ),
+              ),
+              SizedBox(height: 24.sp),
+            ],
+          ),
+        ),
+        SizedBox(width: 20.sp),
+      ],
     );
   }
 }
