@@ -172,7 +172,8 @@ class ReelsRepositoryImpl implements ReelsRepository {
         userInfo: ReelUserEntity(
           id: 'user1',
           name: 'Darshan Patil',
-          avatar: 'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
+          avatar:
+              'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
         ),
         latestReactions: [],
         myReaction: ReelReactionEntity(
@@ -197,7 +198,8 @@ class ReelsRepositoryImpl implements ReelsRepository {
         userInfo: ReelUserEntity(
           id: 'user2',
           name: 'Rahul',
-          avatar: 'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
+          avatar:
+              'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
         ),
         latestReactions: [],
       ),
@@ -215,7 +217,8 @@ class ReelsRepositoryImpl implements ReelsRepository {
         userInfo: ReelUserEntity(
           id: 'user3',
           name: 'Rahul',
-          avatar: 'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
+          avatar:
+              'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
         ),
         latestReactions: [],
       ),

@@ -4,7 +4,8 @@ class ReelEntity {
   final String status;
   final int videoLength;
   final int videoMaximumLength;
-  final String videoUrl; // Keeping as videoUrl for consistency in the domain layer
+  final String
+  videoUrl; // Keeping as videoUrl for consistency in the domain layer
   final int reactions;
   final int comments;
   final String createdAt;
