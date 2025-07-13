@@ -299,27 +299,27 @@ class _HomePageState extends State<HomePage>
             ),
           ),
         ),
-        SizedBox(height: 18.sp),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Image.asset(
-                'assets/images/general/top_sender.png',
-                height: MediaQuery.of(context).size.height * 0.08,
-              ),
-              Image.asset(
-                'assets/images/general/top_host.png',
-                height: MediaQuery.of(context).size.height * 0.08,
-              ),
-              Image.asset(
-                'assets/images/general/top_agency.png',
-                height: MediaQuery.of(context).size.height * 0.08,
-              ),
-            ],
-          ),
-        ),
+        // SizedBox(height: 18.sp),
+        // Padding(
+        //   padding: const EdgeInsets.symmetric(horizontal: 18.0),
+        //   child: Row(
+        //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        //     children: [
+        //       Image.asset(
+        //         'assets/images/general/top_sender.png',
+        //         height: MediaQuery.of(context).size.height * 0.08,
+        //       ),
+        //       Image.asset(
+        //         'assets/images/general/top_host.png',
+        //         height: MediaQuery.of(context).size.height * 0.08,
+        //       ),
+        //       Image.asset(
+        //         'assets/images/general/top_agency.png',
+        //         height: MediaQuery.of(context).size.height * 0.08,
+        //       ),
+        //     ],
+        //   ),
+        // ),
         SizedBox(height: 18.sp),
         ListLiveStream(
           availableRooms: _availableRooms ?? RoomListResponse(rooms: {}),
