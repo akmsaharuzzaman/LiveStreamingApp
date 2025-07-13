@@ -138,6 +138,24 @@ class ReelsRepositoryImpl implements ReelsRepository {
     }
   }
 
+  @override
+  Future<bool> uploadReel(
+    String videoPath,
+    String videoLength, {
+    String? reelCaption,
+  }) async {
+    try {
+      return await apiService.uploadReel(
+        videoPath: videoPath,
+        videoLength: videoLength,
+        reelCaption: reelCaption,
+      );
+    } catch (e) {
+      log('Error uploading reel: $e');
+      return false;
+    }
+  }
+
   List<ReelEntity> _getDummyReels() {
     return [
       ReelEntity(

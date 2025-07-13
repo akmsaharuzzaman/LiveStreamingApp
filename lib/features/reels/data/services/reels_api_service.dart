@@ -301,6 +301,40 @@ class ReelsApiService {
     }
   }
 
+  /// Upload a new reel with proper video content type
+  Future<bool> uploadReel({
+    required String videoPath,
+    required String videoLength,
+    String? reelCaption,
+  }) async {
+    try {
+      log('Uploading reel: $videoPath with length: $videoLength');
+
+      // Use the new uploadVideoFile method with proper video MIME type
+      final result = await _apiService.uploadVideoFile<Map<String, dynamic>>(
+        ApiConstants.createReel,
+        videoPath,
+        fieldName: 'video',
+        data: {'videoLength': videoLength, 'reelCaption': reelCaption ?? ''},
+        fromJson: (data) => data is Map<String, dynamic> ? data : {},
+      );
+
+      return result.when(
+        success: (data) {
+          log('Successfully uploaded reel: $data');
+          return true;
+        },
+        failure: (error) {
+          log('Error uploading reel: $error');
+          return false;
+        },
+      );
+    } catch (e) {
+      log('Error uploading reel: $e');
+      return false;
+    }
+  }
+
   /// Test connection to reels API for debugging
   Future<void> testConnection() async {
     try {

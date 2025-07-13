@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http_parser/http_parser.dart';
 import '../constants/app_constants.dart';
 import '../errors/exceptions.dart';
 
@@ -948,6 +949,51 @@ class ApiService {
       );
 
       return ApiResult.success(savePath);
+    } catch (e) {
+      return ApiResult.failure(NetworkExceptions.handleError(e));
+    }
+  }
+
+  /// Upload video file with proper MIME type
+  Future<ApiResult<T>> uploadVideoFile<T>(
+    String endpoint,
+    String videoPath, {
+    String fieldName = 'video',
+    Map<String, dynamic>? data,
+    ProgressCallback? onSendProgress,
+    CancelToken? cancelToken,
+    T Function(dynamic)? fromJson,
+  }) async {
+    try {
+      final formData = FormData();
+
+      // Add video file with explicit video MIME type
+      final file = await MultipartFile.fromFile(
+        videoPath,
+        filename: videoPath.split('/').last,
+        contentType: MediaType(
+          'video',
+          'mp4',
+        ), // Explicitly set video MIME type
+      );
+      formData.files.add(MapEntry(fieldName, file));
+
+      // Add additional data
+      if (data != null) {
+        data.forEach((key, value) {
+          formData.fields.add(MapEntry(key, value.toString()));
+        });
+      }
+
+      final response = await _dio.post(
+        endpoint,
+        data: formData,
+        onSendProgress: onSendProgress,
+        cancelToken: cancelToken,
+        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
+      );
+
+      return _handleLegacyResponse<T>(response, fromJson);
     } catch (e) {
       return ApiResult.failure(NetworkExceptions.handleError(e));
     }

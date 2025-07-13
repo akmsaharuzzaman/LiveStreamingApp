@@ -5,6 +5,11 @@ abstract class ReelsRepository {
   Future<bool> likeReel(String reelId);
   Future<bool> shareReel(String reelId);
   Future<bool> addComment(String reelId, String comment);
+  Future<bool> uploadReel(
+    String videoPath,
+    String videoLength, {
+    String? reelCaption,
+  });
 
   // Comment management
   Future<List<ReelCommentEntity>?> getReelComments(

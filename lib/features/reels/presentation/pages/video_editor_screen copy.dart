@@ -234,7 +234,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Reel uploaded successfully!')),
           );
-          context.go('/newsfeed');
+          context.go('/');
         } else {
           throw Exception(responseJson['message'] ?? 'Upload failed');
         }
