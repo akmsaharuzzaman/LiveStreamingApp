@@ -14,7 +14,7 @@ class FriendsApiService {
   ) async {
     try {
       final response = await _apiService.get(
-        '/api/followers/follower-and-following-count',
+        '/api/followers/follower-and-following-count/$userId',
       );
 
       return response.fold((data) {
