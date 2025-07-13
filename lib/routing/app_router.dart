@@ -9,6 +9,7 @@ import 'package:dlstarlive/features/reels/presentation/pages/reels.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/home/presentation/pages/main_navigation_page.dart';
+import '../features/reels/presentation/pages/video_editor_screen.dart';
 import '../features/settings/presentation/pages/settings_page.dart';
 import '../features/auth/presentation/pages/splash_screen.dart';
 import '../features/auth/presentation/pages/login_page.dart';
@@ -22,6 +23,7 @@ class AppRoutes {
   static const String register = '/register';
   static const String home = '/';
   static const String settings = '/settings';
+  static const String editVideo = '/edit-video';
   static const String profileCompletion = '/profile-completion';
   static const String profileUpdate = '/profile-update';
   static const String viewProfile = '/view-profile';
@@ -61,6 +63,11 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.settings,
       name: 'settings',
       builder: (context, state) => const SettingsPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.editVideo,
+      name: 'editVideo',
+      builder: (context, state) => const VideoEditorScreen(),
     ),
     GoRoute(
       path: AppRoutes.profileCompletion,

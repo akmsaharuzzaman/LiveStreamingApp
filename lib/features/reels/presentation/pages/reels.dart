@@ -77,12 +77,24 @@ class _ReelsScreenState extends State<ReelsScreen> {
             reelsList = ReelMapper.entitiesToReelModels(state.reels);
 
             if (reelsList.isEmpty) {
-              return const Scaffold(
+              return Scaffold(
                 backgroundColor: Colors.black,
                 body: Center(
-                  child: Text(
-                    'No reels available',
-                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          context.push('/edit-video');
+                        },
+                        child: const Text('Upload your first reels'),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'No reels uploaded yet',
+                        style: TextStyle(color: Colors.white, fontSize: 18),
+                      ),
+                    ],
                   ),
                 ),
               );
