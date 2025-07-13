@@ -448,16 +448,17 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
                         : _buildDefaultAvatar(),
                   ),
                 ),
-                // Profile frame background
-                Image.asset(
-                  'assets/images/general/profile_frame.png',
-                  width: 120.w,
-                  height: 120.h,
-                  fit: BoxFit.contain,
-                ),
+                // Profile frame forground
+                // Image.asset(
+                //   'assets/images/general/profile_frame.png',
+                //   width: 120.w,
+                //   height: 120.h,
+                //   fit: BoxFit.contain,
+                // ),
                 SizedBox(width: double.infinity),
                 Positioned(
-                  top: 40.h,
+                  top: 10
+                      .h, // Adjusted position forground desable that why it's 10 from 40
                   right: 50.w,
                   child: Image.asset(
                     'assets/images/general/car_frame.png',
