@@ -281,14 +281,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 80.sp,
-                            color: Colors.red[400],
-                          ),
                           SizedBox(height: 16.h),
                           Text(
-                            'Error loading messages',
+                            'No messages available',
                             style: TextStyle(
                               fontSize: 18.sp,
                               fontWeight: FontWeight.w600,
@@ -311,7 +306,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                                 LoadMessagesEvent(otherUserId: widget.userId),
                               );
                             },
-                            child: const Text('Retry'),
+                            child: const Text('Refresh Messages'),
                           ),
                         ],
                       ),
@@ -357,13 +352,13 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             listener: (context, state) {
               if (state is ChatDetailMessageSent) {
                 _messageController.clear();
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Message sent!')));
+                // ScaffoldMessenger.of(
+                //   context,
+                // ).showSnackBar(const SnackBar(content: Text('Message sent!')));
               } else if (state is ChatDetailError) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: ${state.message}')),
-                );
+                // ScaffoldMessenger.of(context).showSnackBar(
+                //   SnackBar(content: Text('Error: ${state.message}')),
+                // );
               }
             },
             child: Container(
@@ -400,9 +395,18 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                       ),
                       child: TextField(
                         controller: _messageController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: 'Type a message...',
-                          border: InputBorder.none,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(25.r),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            vertical: 12.h,
+                            horizontal: 0,
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[100],
                         ),
                         onSubmitted: (text) {
                           if (text.trim().isNotEmpty) {

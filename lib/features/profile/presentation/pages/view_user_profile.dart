@@ -177,13 +177,13 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
       );
 
       // Optional: Show a quick feedback message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Opening chat with ${userProfile!.name}'),
-          duration: const Duration(seconds: 1),
-          backgroundColor: Colors.green,
-        ),
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(
+      //     content: Text('Opening chat with ${userProfile!.name}'),
+      //     duration: const Duration(seconds: 1),
+      //     backgroundColor: Colors.green,
+      //   ),
+      // );
     } else {
       // Handle error case
       ScaffoldMessenger.of(context).showSnackBar(
