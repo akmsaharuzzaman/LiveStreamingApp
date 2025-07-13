@@ -352,10 +352,10 @@ class _ReelCommentsPageState extends State<ReelCommentsPage> {
               CircleAvatar(
                 radius: 16.r,
                 backgroundColor: Colors.grey[300],
-                backgroundImage: comment.commentedByInfo.avatar?.url != null
-                    ? NetworkImage(comment.commentedByInfo.avatar!.url)
+                backgroundImage: comment.commentedByInfo.avatar != null
+                    ? NetworkImage(comment.commentedByInfo.avatar!)
                     : null,
-                child: comment.commentedByInfo.avatar?.url == null
+                child: comment.commentedByInfo.avatar == null
                     ? Icon(Icons.person, size: 16.sp, color: Colors.grey[600])
                     : null,
               ),
@@ -472,10 +472,10 @@ class _ReelCommentsPageState extends State<ReelCommentsPage> {
           CircleAvatar(
             radius: 12.r,
             backgroundColor: Colors.grey[300],
-            backgroundImage: reply.commentedByInfo.avatar?.url != null
-                ? NetworkImage(reply.commentedByInfo.avatar!.url)
+            backgroundImage: reply.commentedByInfo.avatar != null
+                ? NetworkImage(reply.commentedByInfo.avatar!)
                 : null,
-            child: reply.commentedByInfo.avatar?.url == null
+            child: reply.commentedByInfo.avatar == null
                 ? Icon(Icons.person, size: 12.sp, color: Colors.grey[600])
                 : null,
           ),

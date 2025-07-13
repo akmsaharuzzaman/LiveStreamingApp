@@ -78,6 +78,7 @@ class ReelsPagination {
 
 class ReelApiModel {
   final String id;
+  final String? reelCaption;
   final String status;
   final int videoLength;
   final int videoMaximumLength;
@@ -91,6 +92,7 @@ class ReelApiModel {
 
   ReelApiModel({
     required this.id,
+    this.reelCaption,
     required this.status,
     required this.videoLength,
     required this.videoMaximumLength,
@@ -106,9 +108,10 @@ class ReelApiModel {
   factory ReelApiModel.fromJson(Map<String, dynamic> json) {
     return ReelApiModel(
       id: json['_id'] ?? '',
+      reelCaption: json['reelCaption'],
       status: json['status'] ?? '',
-      videoLength: json['video_length'] ?? 0,
-      videoMaximumLength: json['video_maximum_length'] ?? 0,
+      videoLength: json['videoLength'] ?? 0,
+      videoMaximumLength: json['videoMaximumLength'] ?? 0,
       reelUrl: json['reelUrl'] ?? '',
       reactions: json['reactions'] ?? 0,
       comments: json['comments'] ?? 0,
@@ -128,9 +131,10 @@ class ReelApiModel {
   Map<String, dynamic> toJson() {
     return {
       '_id': id,
+      'reelCaption': reelCaption,
       'status': status,
-      'video_length': videoLength,
-      'video_maximum_length': videoMaximumLength,
+      'videoLength': videoLength,
+      'videoMaximumLength': videoMaximumLength,
       'reelUrl': reelUrl,
       'reactions': reactions,
       'comments': comments,
@@ -151,7 +155,7 @@ class ReelApiModel {
 class ReelUserInfo {
   final String id;
   final String name;
-  final ReelUserAvatar? avatar;
+  final String? avatar; // Changed to direct string to match new API
 
   ReelUserInfo({required this.id, required this.name, this.avatar});
 
@@ -159,29 +163,12 @@ class ReelUserInfo {
     return ReelUserInfo(
       id: json['_id'] ?? '',
       name: json['name'] ?? '',
-      avatar: json['avatar'] != null
-          ? ReelUserAvatar.fromJson(json['avatar'])
-          : null,
+      avatar: json['avatar'], // Direct string from API
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'_id': id, 'name': name, 'avatar': avatar?.toJson()};
-  }
-}
-
-class ReelUserAvatar {
-  final String name;
-  final String url;
-
-  ReelUserAvatar({required this.name, required this.url});
-
-  factory ReelUserAvatar.fromJson(Map<String, dynamic> json) {
-    return ReelUserAvatar(name: json['name'] ?? '', url: json['url'] ?? '');
-  }
-
-  Map<String, dynamic> toJson() {
-    return {'name': name, 'url': url};
+    return {'_id': id, 'name': name, 'avatar': avatar};
   }
 }
 

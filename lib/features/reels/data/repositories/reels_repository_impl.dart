@@ -160,6 +160,7 @@ class ReelsRepositoryImpl implements ReelsRepository {
     return [
       ReelEntity(
         id: 'dummy1',
+        reelCaption: 'Beautiful nature video',
         status: 'published',
         videoLength: 30,
         videoMaximumLength: 60,
@@ -171,11 +172,7 @@ class ReelsRepositoryImpl implements ReelsRepository {
         userInfo: ReelUserEntity(
           id: 'user1',
           name: 'Darshan Patil',
-          avatar: ReelUserAvatarEntity(
-            name: 'avatar1.jpg',
-            url:
-                'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
-          ),
+          avatar: 'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
         ),
         latestReactions: [],
         myReaction: ReelReactionEntity(
@@ -188,6 +185,7 @@ class ReelsRepositoryImpl implements ReelsRepository {
       ),
       ReelEntity(
         id: 'dummy2',
+        reelCaption: 'Family time with marshmallows',
         status: 'published',
         videoLength: 45,
         videoMaximumLength: 60,
@@ -199,16 +197,13 @@ class ReelsRepositoryImpl implements ReelsRepository {
         userInfo: ReelUserEntity(
           id: 'user2',
           name: 'Rahul',
-          avatar: ReelUserAvatarEntity(
-            name: 'avatar2.jpg',
-            url:
-                'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
-          ),
+          avatar: 'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
         ),
         latestReactions: [],
       ),
       ReelEntity(
         id: 'dummy3',
+        reelCaption: 'Sweet moments in nature',
         status: 'published',
         videoLength: 35,
         videoMaximumLength: 60,
@@ -220,11 +215,7 @@ class ReelsRepositoryImpl implements ReelsRepository {
         userInfo: ReelUserEntity(
           id: 'user3',
           name: 'Rahul',
-          avatar: ReelUserAvatarEntity(
-            name: 'avatar3.jpg',
-            url:
-                'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
-          ),
+          avatar: 'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
         ),
         latestReactions: [],
       ),
