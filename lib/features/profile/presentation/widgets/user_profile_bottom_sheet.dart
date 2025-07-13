@@ -404,6 +404,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
             queryParameters: {'userId': userProfile!.id},
           );
         }
+        context.pop(); // Close the bottom sheet
       },
       child: Container(
         width: double.infinity,
