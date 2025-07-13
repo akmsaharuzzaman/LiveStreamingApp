@@ -4,7 +4,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/auth/auth_bloc.dart';
 import '../../../../core/models/user_model.dart';
+import '../../../../injection/injection.dart';
 import '../../../../routing/app_router.dart';
+import '../../data/models/friends_models.dart';
+import '../../data/services/friends_api_service.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -22,10 +25,54 @@ class ProfilePage extends StatelessWidget {
   }
 }
 
-class _ProfileContent extends StatelessWidget {
+class _ProfileContent extends StatefulWidget {
   final UserModel user;
 
   const _ProfileContent({required this.user});
+
+  @override
+  State<_ProfileContent> createState() => _ProfileContentState();
+}
+
+class _ProfileContentState extends State<_ProfileContent> {
+  bool isLoading = true;
+  bool isFollowLoading = false;
+  bool isLoadingCounts = true;
+  // Follower count data
+  FollowerCountResult? followerCounts;
+  Future<void> _loadFollowerCounts() async {
+    final friendsService = getIt<FriendsApiService>();
+
+    try {
+      final result = await friendsService.getFollowerAndFollowingCount(null);
+
+      result.when(
+        success: (data) {
+          setState(() {
+            followerCounts = data;
+            isLoadingCounts = false;
+          });
+        },
+        failure: (error) {
+          setState(() {
+            isLoadingCounts = false;
+          });
+          print('Error loading follower counts: $error');
+        },
+      );
+    } catch (e) {
+      setState(() {
+        isLoadingCounts = false;
+      });
+      print('Error loading follower counts: $e');
+    }
+  }
+
+  @override
+  void initState() {
+    _loadFollowerCounts();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +125,7 @@ class _ProfileContent extends StatelessWidget {
 
             // User Name
             Text(
-              user.name,
+              widget.user.name,
               style: const TextStyle(
                 fontSize: 25,
                 fontWeight: FontWeight.w400,
@@ -90,7 +137,7 @@ class _ProfileContent extends StatelessWidget {
 
             // User ID and Location
             Text(
-              'ID:${user.id.substring(0, 6)} | Bangladesh', // Truncated ID
+              'ID:${widget.user.id.substring(0, 6)} | Bangladesh', // Truncated ID
               style: const TextStyle(
                 fontSize: 16,
                 color: Color(0xFF202020),
@@ -153,9 +200,11 @@ class _ProfileContent extends StatelessWidget {
         // border: Border.all(color: Colors.white, width: 2),
       ),
       child: ClipOval(
-        child: (user.avatar != null || user.profilePictureUrl != null)
+        child:
+            (widget.user.avatar != null ||
+                widget.user.profilePictureUrl != null)
             ? Image.network(
-                user.avatar ?? user.profilePictureUrl!,
+                widget.user.avatar ?? widget.user.profilePictureUrl!,
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
@@ -247,7 +296,7 @@ class _ProfileContent extends StatelessWidget {
   }
 
   Widget _buildStatsRow() {
-    final stats = user.stats;
+    final stats = widget.user.stats;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -304,36 +353,57 @@ class _ProfileContent extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _buildSocialStatItem('0', 'Friends'),
+        _buildSocialStatItem(
+          isLoadingCounts ? '...' : '${followerCounts?.friendshipCount ?? 0}',
+          'Friends',
+          () {
+            // context.push('/friends-list/${widget.userId}?title=Friends');
+          },
+        ),
         Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
-        _buildSocialStatItem('0', 'Followers'),
+        _buildSocialStatItem(
+          isLoadingCounts ? '...' : '${followerCounts?.followerCount ?? 0}',
+          'Followers',
+          () {
+            // context.push('/friends-list/${widget.userId}?title=Followers');
+          },
+        ),
         Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
-        _buildSocialStatItem('0', 'Following'),
+        _buildSocialStatItem(
+          isLoadingCounts ? '...' : '${followerCounts?.followingCount ?? 0}',
+          'Following',
+          () {
+            // context.push('/friends-list/${widget.userId}?title=Following');
+          },
+        ),
       ],
     );
   }
 
-  Widget _buildSocialStatItem(String count, String label) {
-    return Column(
-      children: [
-        Text(
-          count,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w400,
-            color: Color(0xFF000000),
+  Widget _buildSocialStatItem(String count, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Text(
+            count,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF000000),
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w400,
-            color: Color(0xFF000000),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF000000),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -370,7 +440,7 @@ class _ProfileContent extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '*${user.name.split(' ').first.toUpperCase()}*',
+                  '*${widget.user.name.split(' ').first.toUpperCase()}*',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w500,

@@ -10,11 +10,14 @@ class FriendsApiService {
 
   /// Get follower and following count for a user
   Future<ApiResult<FollowerCountResult>> getFollowerAndFollowingCount(
-    String userId,
+    String? userId,
   ) async {
+    final String url = userId == null
+        ? '/api/followers/follower-and-following-count'
+        : '/api/followers/follower-and-following-count/$userId';
     try {
       final response = await _apiService.get(
-        '/api/followers/follower-and-following-count/$userId',
+        url,
       );
 
       return response.fold((data) {
