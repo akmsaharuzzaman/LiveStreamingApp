@@ -41,6 +41,11 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
       if (response.isSuccess && response.data != null) {
         final userData = response.data!['result'] as Map<String, dynamic>;
         setState(() {
+          try {
+            userProfile = UserModel.fromJson(userData);
+          } catch (e) {
+            errorMessage = 'Error parsing user data: $e';
+          }
           userProfile = UserModel.fromJson(userData);
           isLoading = false;
         });

@@ -36,14 +36,14 @@ class UserStatsModel extends Equatable {
   factory UserStatsModel.fromJson(Map<String, dynamic> json) => UserStatsModel(
     id: json['_id'] as String,
     userId: json['userId'] as String,
-    stars: (json['stars'] as num).toInt(),
-    diamonds: (json['diamonds'] as num).toInt(),
-    coins: (json['coins'] as num).toInt(),
-    levels: (json['levels'] as num).toInt(),
-    gifts: json['gifts'] as List<dynamic>,
+    stars: (json['stars'] as num? ?? 0).toInt(),
+    diamonds: (json['diamonds'] as num? ?? 0).toInt(),
+    coins: (json['coins'] as num? ?? 0).toInt(),
+    levels: (json['levels'] as num? ?? 0).toInt(),
+    gifts: json['gifts'] as List<dynamic>? ?? [],
     createdAt: DateTime.parse(json['createdAt'] as String),
     updatedAt: DateTime.parse(json['updatedAt'] as String),
-    version: (json['__v'] as num).toInt(),
+    version: (json['__v'] as num? ?? 0).toInt(),
   );
 
   Map<String, dynamic> toJson() => {
@@ -65,6 +65,7 @@ class UserStatsModel extends Equatable {
     userId,
     stars,
     diamonds,
+    coins,
     levels,
     gifts,
     createdAt,

@@ -357,7 +357,7 @@ class _ProfileContentState extends State<_ProfileContent> {
           isLoadingCounts ? '...' : '${followerCounts?.friendshipCount ?? 0}',
           'Friends',
           () {
-            context.push('/friends-list/?title=Friends');
+            context.push('/friends-list/${widget.user.id}?title=Friends');
           },
         ),
         Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
@@ -365,7 +365,7 @@ class _ProfileContentState extends State<_ProfileContent> {
           isLoadingCounts ? '...' : '${followerCounts?.followerCount ?? 0}',
           'Followers',
           () {
-            context.push('/friends-list/?title=Followers');
+            context.push('/friends-list/${widget.user.id}?title=Followers');
           },
         ),
         Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
@@ -373,7 +373,7 @@ class _ProfileContentState extends State<_ProfileContent> {
           isLoadingCounts ? '...' : '${followerCounts?.followingCount ?? 0}',
           'Following',
           () {
-            context.push('/friends-list/?title=Following');
+            context.push('/friends-list/${widget.user.id}?title=Following');
           },
         ),
       ],
