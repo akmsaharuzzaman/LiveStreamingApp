@@ -27,6 +27,34 @@ class ReelsRepositoryImpl implements ReelsRepository {
   }
 
   @override
+  Future<List<ReelEntity>> getUserReels(
+    String userId, {
+    int page = 1,
+    int limit = 5,
+  }) async {
+    try {
+      log(
+        'Fetching user reels from API (userId: $userId, page: $page, limit: $limit)',
+      );
+      final apiResponse = await apiService.getUserReels(
+        userId: userId,
+        page: page,
+        limit: limit,
+      );
+      final entities = ReelMapper.apiModelsToEntities(apiResponse.result.data);
+      log('Successfully fetched ${entities.length} user reels from API');
+      return entities;
+    } catch (e) {
+      log('Error fetching user reels from API: $e');
+      log('Falling back to dummy data');
+      // Return dummy data as fallback
+      return _getDummyReels()
+          .where((reel) => reel.userInfo.id == userId)
+          .toList();
+    }
+  }
+
+  @override
   Future<bool> likeReel(String reelId) async {
     try {
       return await apiService.reactToReel(reelId: reelId, reactionType: 'like');

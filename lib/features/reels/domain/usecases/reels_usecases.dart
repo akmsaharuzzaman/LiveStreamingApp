@@ -11,6 +11,20 @@ class GetReelsUseCase {
   }
 }
 
+class GetUserReelsUseCase {
+  final ReelsRepository repository;
+
+  GetUserReelsUseCase(this.repository);
+
+  Future<List<ReelEntity>> call(
+    String userId, {
+    int page = 1,
+    int limit = 5,
+  }) async {
+    return await repository.getUserReels(userId, page: page, limit: limit);
+  }
+}
+
 class LikeReelUseCase {
   final ReelsRepository repository;
 

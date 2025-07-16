@@ -12,6 +12,9 @@ import '../../data/models/friends_models.dart';
 import '../../../newsfeed/data/datasources/post_service.dart';
 import '../../../newsfeed/data/models/post_response_model.dart';
 import '../../../newsfeed/presentation/widgets/api_post_container.dart';
+import '../../../reels/data/services/reels_service.dart';
+import '../../../reels/data/models/reel_response_model.dart';
+import '../../../reels/data/models/reel_api_response_model.dart';
 import '../../../../core/auth/auth_bloc_adapter.dart';
 
 class ViewUserProfile extends StatefulWidget {
@@ -39,13 +42,22 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
   String? postsErrorMessage;
   int _currentPage = 1;
 
+  // Reels data
+  late ReelsService _reelsService;
+  List<ReelApiModel> userReels = [];
+  bool isLoadingReels = true;
+  String? reelsErrorMessage;
+  int _currentReelsPage = 1;
+
   @override
   void initState() {
     super.initState();
     _postService = PostService(ApiService.instance, AuthBlocAdapter(context));
+    _reelsService = ReelsService(ApiService.instance, AuthBlocAdapter(context));
     _loadUserProfile();
     _loadFollowerCounts();
     _loadUserPosts();
+    _loadUserReels();
   }
 
   Future<void> _loadUserProfile() async {
@@ -140,6 +152,42 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
       setState(() {
         postsErrorMessage = 'Error: ${e.toString()}';
         isLoadingPosts = false;
+      });
+    }
+  }
+
+  Future<void> _loadUserReels() async {
+    try {
+      setState(() {
+        isLoadingReels = true;
+        reelsErrorMessage = null;
+      });
+
+      final result = await _reelsService.getUserReels(
+        userId: widget.userId,
+        page: _currentReelsPage,
+        limit: 10,
+      );
+
+      result.when(
+        success: (data) {
+          final reelsResponse = ReelsResponse.fromJson(data);
+          setState(() {
+            userReels = reelsResponse.result.data;
+            isLoadingReels = false;
+          });
+        },
+        failure: (error) {
+          setState(() {
+            reelsErrorMessage = error;
+            isLoadingReels = false;
+          });
+        },
+      );
+    } catch (e) {
+      setState(() {
+        reelsErrorMessage = 'Error: ${e.toString()}';
+        isLoadingReels = false;
       });
     }
   }
@@ -432,33 +480,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
           ),
         ),
         SizedBox(height: 10.h),
-        //reels Grid
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3, // Changed from 2 to 3
-            mainAxisSpacing: 10.h,
-            crossAxisSpacing: 10.w,
-            childAspectRatio: 1.0,
-          ),
-          itemCount: 6, // Example count, adjust as needed
-          itemBuilder: (context, index) {
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  'Moment ${index + 1}',
-                  style: const TextStyle(fontSize: 16, color: Colors.black),
-                ),
-              ),
-            );
-          },
-        ),
-
+        _buildReelsGrid(),
         //Divider Line
         Container(
           height: 1,
@@ -480,6 +502,192 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
         SizedBox(height: 100.h),
       ],
     );
+  }
+
+  Widget _buildReelsGrid() {
+    if (isLoadingReels) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (reelsErrorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                'Error loading reels: $reelsErrorMessage',
+                style: TextStyle(color: Colors.red, fontSize: 14.sp),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadUserReels,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (userReels.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              Icon(
+                Icons.movie_creation_outlined,
+                size: 48,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No reels yet',
+                style: TextStyle(color: Colors.grey[600], fontSize: 16.sp),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Show actual reels in a grid
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 10.h,
+        crossAxisSpacing: 10.w,
+        childAspectRatio: 0.75, // Slightly taller for video thumbnails
+      ),
+      itemCount: userReels.length,
+      itemBuilder: (context, index) {
+        final reel = userReels[index];
+        return GestureDetector(
+          onTap: () {
+            // Navigate to reel viewer with this specific reel
+            // You can implement navigation to full reel viewer here
+            _openReelViewer(reel, index);
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                // Video thumbnail (placeholder for now)
+                Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.3),
+                        Colors.black.withOpacity(0.8),
+                      ],
+                    ),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.play_arrow,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                  ),
+                ),
+                // Reel info overlay
+                Positioned(
+                  bottom: 8,
+                  left: 8,
+                  right: 8,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Reactions count
+                      if (reel.reactions > 0)
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.favorite,
+                              color: Colors.white,
+                              size: 12,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${reel.reactions}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      // Comments count
+                      if (reel.comments > 0)
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.comment,
+                              color: Colors.white,
+                              size: 12,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${reel.comments}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _openReelViewer(ReelApiModel reel, int index) {
+    // Navigate to the reels page with the specific reel
+    // You can implement this navigation based on your app's routing
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Opening reel by ${reel.userInfo.name}'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    // Example navigation (adjust based on your routing setup)
+    // context.push('/reels', extra: {'initialIndex': index, 'userId': widget.userId});
   }
 
   Widget _buildExpandableTile(

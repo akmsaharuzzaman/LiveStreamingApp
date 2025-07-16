@@ -45,6 +45,49 @@ class ReelsApiService {
     }
   }
 
+  /// Fetch user-specific reels from API
+  Future<ReelsApiResponse> getUserReels({
+    required String userId,
+    int page = 1,
+    int limit = 10,
+  }) async {
+    try {
+      log(
+        'Fetching user reels from: ${ApiConstants.getUserReels(userId, page, limit)}',
+      );
+
+      final result = await _apiService.get(
+        ApiConstants.getUserReels(userId, page, limit),
+      );
+
+      log('API Result type: ${result.runtimeType}');
+      log('API Result: $result');
+
+      return result.when(
+        success: (data) {
+          log('Success data type: ${data.runtimeType}');
+          log('Success data: $data');
+
+          if (data is Map<String, dynamic>) {
+            return ReelsApiResponse.fromJson(data);
+          } else if (data is String) {
+            final Map<String, dynamic> jsonData = json.decode(data);
+            return ReelsApiResponse.fromJson(jsonData);
+          } else {
+            throw Exception('Unexpected response format: ${data.runtimeType}');
+          }
+        },
+        failure: (error) {
+          log('API Failure: $error');
+          throw Exception('Failed to load user reels: $error');
+        },
+      );
+    } catch (e) {
+      log('Exception in getUserReels: $e');
+      throw Exception('Error fetching user reels: $e');
+    }
+  }
+
   /// React to a reel
   Future<bool> reactToReel({
     required String reelId,
