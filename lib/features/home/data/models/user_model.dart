@@ -147,18 +147,18 @@ class UserModel {
 }
 
 List<UserModel> listUserFake = [
-  UserModel(fullName: 'Brody', urlToImage: urlUserFake3, isLiveStream: true),
-  UserModel(fullName: 'Johnny', urlToImage: urlUserFake2),
-  UserModel(fullName: 'Caroline', urlToImage: urlUserFake),
-  UserModel(fullName: 'Jerry', urlToImage: urlUserFake2, isLiveStream: true),
-  UserModel(fullName: 'Tommy', urlToImage: urlUserFake),
-  UserModel(fullName: 'Cris', urlToImage: urlUserFake2),
-  UserModel(fullName: 'Caroline', urlToImage: urlUserFake),
-  UserModel(fullName: 'Jerry', urlToImage: urlUserFake2),
-  UserModel(fullName: 'Caroline', urlToImage: urlUserFake),
-  UserModel(fullName: 'Jerry', urlToImage: urlUserFake2),
-  UserModel(fullName: 'Brody', urlToImage: urlUserFake3, isLiveStream: true),
-  UserModel(fullName: 'Johnny', urlToImage: urlUserFake2),
+  UserModel(fullName: 'Alice', urlToImage: urlUserFake3, isLiveStream: true),
+  UserModel(fullName: 'Diana', urlToImage: urlUserFake2, isLiveStream: true),
+  UserModel(fullName: 'Mallory', urlToImage: urlUserFake3, isLiveStream: true),
+  UserModel(fullName: 'Bob', urlToImage: urlUserFake2),
+  UserModel(fullName: 'Charlie', urlToImage: urlUserFake),
+  UserModel(fullName: 'Eve', urlToImage: urlUserFake),
+  UserModel(fullName: 'Frank', urlToImage: urlUserFake2),
+  UserModel(fullName: 'Grace', urlToImage: urlUserFake),
+  UserModel(fullName: 'Heidi', urlToImage: urlUserFake2),
+  UserModel(fullName: 'Ivan', urlToImage: urlUserFake),
+  UserModel(fullName: 'Judy', urlToImage: urlUserFake2),
+  UserModel(fullName: 'Oscar', urlToImage: urlUserFake2),
 ];
 
 const urlUserFake =
