@@ -52,7 +52,7 @@ dependencies:
   # Firebase & Authentication
   firebase_core: ^3.15.1
   firebase_auth: ^5.6.2
-  google_sign_in: ^7.1.0
+  google_sign_in: ^7.1.1
 
   # Environment Variables
   flutter_dotenv: ^5.2.1
@@ -124,10 +124,10 @@ flutter:
     - assets/games/greedyv3/bg.png
     - assets/games/greedyv3/game-icon.png
     - assets/games/greedyv3/Build/Greedy V3.jpg
-    - assets/games/greedyv3/Build/6add3e794fac8ea264cc4b0313878e47.loader.js
-    - assets/games/greedyv3/Build/b88bd41d9dfa7a4bee59142018d0f2ad.data.unityweb
-    - assets/games/greedyv3/Build/d2822e4a9f0d71c41427f922e253050a.framework.js.unityweb
-    - assets/games/greedyv3/Build/14c724512ef7e090a5ba88766528aa66.wasm.unityweb
+    - assets/games/greedyv3/Build/982678a1e362d060404df6a2c570005b.loader.js
+    - assets/games/greedyv3/Build/828605dd8a9c1a7885ddd90a40895a9e.data.unityweb
+    - assets/games/greedyv3/Build/50e5abe1b403cb19f393edf1af7ac85c.framework.js.unityweb
+    - assets/games/greedyv3/Build/b9183d25c217e1056cd43786a59696ce.wasm.unityweb
 
     # Teen Patty Game
     - assets/games/teenpatty/
