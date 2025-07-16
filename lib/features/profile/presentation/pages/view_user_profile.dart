@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:reels_viewer/reels_viewer.dart' as reels_viewer;
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/models/user_model.dart';
@@ -15,6 +16,7 @@ import '../../../newsfeed/presentation/widgets/api_post_container.dart';
 import '../../../reels/data/services/reels_service.dart';
 import '../../../reels/data/models/reel_response_model.dart';
 import '../../../reels/data/models/reel_api_response_model.dart';
+import '../../../reels/presentation/utils/reel_mapper.dart';
 import '../../../../core/auth/auth_bloc_adapter.dart';
 
 class ViewUserProfile extends StatefulWidget {
@@ -677,17 +679,17 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
   }
 
   void _openReelViewer(ReelApiModel reel, int index) {
-    // Navigate to the reels page with the specific reel
-    // You can implement this navigation based on your app's routing
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Opening reel by ${reel.userInfo.name}'),
-        duration: const Duration(seconds: 2),
+    // Navigate to the reels viewer page with the specific reel
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UserReelsViewer(
+          userReels: userReels,
+          initialIndex: index,
+          userId: widget.userId,
+        ),
       ),
     );
-
-    // Example navigation (adjust based on your routing setup)
-    // context.push('/reels', extra: {'initialIndex': index, 'userId': widget.userId});
   }
 
   Widget _buildExpandableTile(
@@ -1138,6 +1140,104 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
           ),
         );
       },
+    );
+  }
+}
+
+/// User Reels Viewer Widget
+class UserReelsViewer extends StatefulWidget {
+  final List<ReelApiModel> userReels;
+  final int initialIndex;
+  final String userId;
+
+  const UserReelsViewer({
+    super.key,
+    required this.userReels,
+    required this.initialIndex,
+    required this.userId,
+  });
+
+  @override
+  State<UserReelsViewer> createState() => _UserReelsViewerState();
+}
+
+class _UserReelsViewerState extends State<UserReelsViewer> {
+  late List<reels_viewer.ReelModel> reelsList;
+  late int currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    currentIndex = widget.initialIndex;
+
+    // Convert ReelApiModel to ReelModel for ReelsViewer
+    reelsList = widget.userReels.map((apiModel) {
+      return ReelMapper.entityToReelModel(
+        ReelMapper.apiModelToEntity(apiModel),
+      );
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.black,
+      body: reels_viewer.ReelsViewer(
+        reelsList: reelsList,
+        appbarTitle: 'User Reels',
+        onShare: (url) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Share feature coming soon!'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+        onLike: (url) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Like feature coming soon!'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+        onFollow: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Follow feature coming soon!'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+        onComment: (comment) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Comment feature coming soon!'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+        onClickMoreBtn: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('More options coming soon!'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+        onClickBackArrow: () {
+          Navigator.pop(context);
+        },
+        onIndexChanged: (index) {
+          setState(() {
+            currentIndex = index;
+          });
+        },
+        showProgressIndicator: true,
+        showVerifiedTick: true,
+        showAppbar: true,
+      ),
     );
   }
 }
