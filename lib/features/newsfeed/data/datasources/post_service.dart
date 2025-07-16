@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:dlstarlive/core/constants/app_constants.dart';
 import 'package:dlstarlive/core/network/api_service.dart';
 import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart';
@@ -504,10 +505,7 @@ class PostService {
 
       // Make API request
       final response = await _apiService.dio.get(
-        '/api/posts/user/$userId',
-        //! TODO: Update this endpoint to use the new constant
-        // '/api/posts/',
-        queryParameters: {'page': page, 'limit': limit},
+        ApiConstants.getUserPosts(userId, page, limit),
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
