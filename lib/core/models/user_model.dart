@@ -12,6 +12,7 @@ class UserStatsModel extends Equatable {
   final String userId;
   final int stars;
   final int diamonds;
+  final int coins;
   final int levels;
   final List<dynamic> gifts;
   final DateTime createdAt;
@@ -24,6 +25,7 @@ class UserStatsModel extends Equatable {
     required this.userId,
     required this.stars,
     required this.diamonds,
+    required this.coins,
     required this.levels,
     required this.gifts,
     required this.createdAt,
@@ -36,6 +38,7 @@ class UserStatsModel extends Equatable {
     userId: json['userId'] as String,
     stars: (json['stars'] as num).toInt(),
     diamonds: (json['diamonds'] as num).toInt(),
+    coins: (json['coins'] as num).toInt(),
     levels: (json['levels'] as num).toInt(),
     gifts: json['gifts'] as List<dynamic>,
     createdAt: DateTime.parse(json['createdAt'] as String),
@@ -48,6 +51,7 @@ class UserStatsModel extends Equatable {
     'userId': userId,
     'stars': stars,
     'diamonds': diamonds,
+    'coins': coins,
     'levels': levels,
     'gifts': gifts,
     'createdAt': createdAt.toIso8601String(),

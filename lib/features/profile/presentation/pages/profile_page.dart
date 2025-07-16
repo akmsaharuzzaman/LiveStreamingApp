@@ -312,7 +312,7 @@ class _ProfileContentState extends State<_ProfileContent> {
             ),
             const SizedBox(width: 8),
             Text(
-              stats?.stars.toString() ?? '100',
+              stats?.coins.toString() ?? '100',
               style: const TextStyle(
                 fontSize: 25,
                 fontWeight: FontWeight.w400,
@@ -357,7 +357,7 @@ class _ProfileContentState extends State<_ProfileContent> {
           isLoadingCounts ? '...' : '${followerCounts?.friendshipCount ?? 0}',
           'Friends',
           () {
-            // context.push('/friends-list/${widget.userId}?title=Friends');
+            context.push('/friends-list/?title=Friends');
           },
         ),
         Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
@@ -365,7 +365,7 @@ class _ProfileContentState extends State<_ProfileContent> {
           isLoadingCounts ? '...' : '${followerCounts?.followerCount ?? 0}',
           'Followers',
           () {
-            // context.push('/friends-list/${widget.userId}?title=Followers');
+            context.push('/friends-list/?title=Followers');
           },
         ),
         Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
@@ -373,7 +373,7 @@ class _ProfileContentState extends State<_ProfileContent> {
           isLoadingCounts ? '...' : '${followerCounts?.followingCount ?? 0}',
           'Following',
           () {
-            // context.push('/friends-list/${widget.userId}?title=Following');
+            context.push('/friends-list/?title=Following');
           },
         ),
       ],

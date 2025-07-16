@@ -251,6 +251,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (e) {
       debugPrint('Auth initialization error: ${e.toString()}');
       emit(AuthError('Failed to initialize authentication: ${e.toString()}'));
+      emit(const AuthUnauthenticated());
     }
   }
 
@@ -290,9 +291,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         }
       } else {
         emit(AuthError(response.message ?? 'Login failed'));
+        emit(const AuthUnauthenticated());
       }
     } catch (e) {
       emit(AuthError('Login error: ${e.toString()}'));
+      emit(const AuthUnauthenticated());
     }
   }
 

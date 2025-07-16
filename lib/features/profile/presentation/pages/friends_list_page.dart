@@ -8,10 +8,10 @@ import '../../data/services/friends_api_service.dart';
 import '../widgets/user_profile_bottom_sheet.dart';
 
 class FriendsListPage extends StatefulWidget {
-  final String userId;
+  final String? userId;
   final String title; // "Friends", "Followers", or "Following"
 
-  const FriendsListPage({super.key, required this.userId, required this.title});
+  const FriendsListPage({super.key, this.userId, required this.title});
 
   @override
   State<FriendsListPage> createState() => _FriendsListPageState();
@@ -258,8 +258,7 @@ class _FriendsListPageState extends State<FriendsListPage> {
                   context: context,
                   isScrollControlled: true,
                   backgroundColor: Colors.transparent,
-                  builder: (context) =>
-                      UserProfileBottomSheet(userId: widget.userId),
+                  builder: (context) => UserProfileBottomSheet(userId: user.id),
                 );
               },
               child: Column(

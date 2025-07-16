@@ -146,7 +146,7 @@ final GoRouter appRouter = GoRouter(
       path: '${AppRoutes.friendsList}/:userId',
       name: 'friendsList',
       builder: (context, state) {
-        final userId = state.pathParameters['userId'] ?? '';
+        final String? userId = state.pathParameters['userId'];
         final title = state.uri.queryParameters['title'] ?? 'Friends';
         return FriendsListPage(userId: userId, title: title);
       },
