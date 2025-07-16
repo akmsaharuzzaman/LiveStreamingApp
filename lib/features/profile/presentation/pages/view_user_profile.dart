@@ -9,6 +9,10 @@ import '../../../../core/network/api_service.dart';
 import '../../../../injection/injection.dart';
 import '../../data/services/friends_api_service.dart';
 import '../../data/models/friends_models.dart';
+import '../../../newsfeed/data/datasources/post_service.dart';
+import '../../../newsfeed/data/models/post_response_model.dart';
+import '../../../newsfeed/presentation/widgets/api_post_container.dart';
+import '../../../../core/auth/auth_bloc_adapter.dart';
 
 class ViewUserProfile extends StatefulWidget {
   const ViewUserProfile({super.key, required this.userId});
@@ -28,11 +32,20 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
   FollowerCountResult? followerCounts;
   bool isLoadingCounts = true;
 
+  // Posts data
+  late PostService _postService;
+  List<PostModel> userPosts = [];
+  bool isLoadingPosts = true;
+  String? postsErrorMessage;
+  int _currentPage = 1;
+
   @override
   void initState() {
     super.initState();
+    _postService = PostService(ApiService.instance, AuthBlocAdapter(context));
     _loadUserProfile();
     _loadFollowerCounts();
+    _loadUserPosts();
   }
 
   Future<void> _loadUserProfile() async {
@@ -92,6 +105,42 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
         isLoadingCounts = false;
       });
       print('Error loading follower counts: $e');
+    }
+  }
+
+  Future<void> _loadUserPosts() async {
+    try {
+      setState(() {
+        isLoadingPosts = true;
+        postsErrorMessage = null;
+      });
+
+      final result = await _postService.getUserPosts(
+        userId: widget.userId,
+        page: _currentPage,
+        limit: 10,
+      );
+
+      result.when(
+        success: (data) {
+          final postResponse = PostResponse.fromJson(data);
+          setState(() {
+            userPosts = postResponse.result.data;
+            isLoadingPosts = false;
+          });
+        },
+        failure: (error) {
+          setState(() {
+            postsErrorMessage = error;
+            isLoadingPosts = false;
+          });
+        },
+      );
+    } catch (e) {
+      setState(() {
+        postsErrorMessage = 'Error: ${e.toString()}';
+        isLoadingPosts = false;
+      });
     }
   }
 
@@ -426,27 +475,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
         ),
 
         SizedBox(height: 10.h),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: 5, // Example count, replace with actual data
-          itemBuilder: (context, index) {
-            return Container(
-              margin: EdgeInsets.only(bottom: 10.h),
-              height: 100.h,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  'Post ${index + 1}',
-                  style: const TextStyle(fontSize: 16, color: Colors.black),
-                ),
-              ),
-            );
-          },
-        ),
+        _buildPostsSection(),
 
         SizedBox(height: 100.h),
       ],
@@ -822,6 +851,85 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPostsSection() {
+    if (isLoadingPosts) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (postsErrorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                'Error loading posts: $postsErrorMessage',
+                style: TextStyle(color: Colors.red, fontSize: 14.sp),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadUserPosts,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (userPosts.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              Icon(Icons.post_add, size: 48, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                'No posts yet',
+                style: TextStyle(color: Colors.grey[600], fontSize: 16.sp),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: userPosts.length,
+      itemBuilder: (context, index) {
+        final post = userPosts[index];
+        return Padding(
+          padding: EdgeInsets.only(bottom: 10.h),
+          child: ApiPostContainer(
+            post: post,
+            onPostDeleted: () {
+              // Remove the post from the list
+              setState(() {
+                userPosts.removeAt(index);
+              });
+            },
+            onPostUpdated: () {
+              // Optionally refresh the post or update UI
+              // For now, we'll just show a brief loading indicator
+              _loadUserPosts();
+            },
+          ),
+        );
+      },
     );
   }
 }

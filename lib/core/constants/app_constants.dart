@@ -193,6 +193,8 @@ class ApiConstants {
   static const String editPost = '/api/posts/edit';
   static String getAllPosts(int page, int limit) =>
       '/api/posts/?page=$page&limit=$limit';
+  static String getUserPosts(String userId, int page, int limit) =>
+      '/api/posts/user/$userId?page=$page&limit=$limit';
   static String deletePost(String postId) => '/api/posts/delete/$postId';
   static const String reactToPost = '/api/posts/react';
   static const String commentToPost = '/api/posts/comment';
