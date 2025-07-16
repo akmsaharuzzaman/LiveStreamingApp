@@ -371,6 +371,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
   Widget _buildMomentsGrid() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         // Moments Title
         Text(
@@ -382,18 +383,17 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
           ),
         ),
         SizedBox(height: 10.h),
-
+        //reels Grid
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            mainAxisSpacing: 8.h,
-            crossAxisSpacing: 8.w,
-            childAspectRatio:
-                0.65, // Width:Height = 0.5 (height is twice the width)
+            crossAxisCount: 3, // Changed from 2 to 3
+            mainAxisSpacing: 10.h,
+            crossAxisSpacing: 10.w,
+            childAspectRatio: 1.0,
           ),
-          itemCount: 16,
+          itemCount: 6, // Example count, adjust as needed
           itemBuilder: (context, index) {
             return Container(
               decoration: BoxDecoration(
@@ -409,6 +409,46 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
             );
           },
         ),
+
+        //Divider Line
+        Container(
+          height: 1,
+          color: const Color(0xFFF1F1F1),
+          margin: EdgeInsets.symmetric(vertical: 20.h),
+        ),
+        Text(
+          'Posts',
+          style: TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w400,
+            color: const Color(0xFF202020),
+          ),
+        ),
+
+        SizedBox(height: 10.h),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: 5, // Example count, replace with actual data
+          itemBuilder: (context, index) {
+            return Container(
+              margin: EdgeInsets.only(bottom: 10.h),
+              height: 100.h,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(
+                  'Post ${index + 1}',
+                  style: const TextStyle(fontSize: 16, color: Colors.black),
+                ),
+              ),
+            );
+          },
+        ),
+
+        SizedBox(height: 100.h),
       ],
     );
   }
