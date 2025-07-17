@@ -185,6 +185,9 @@ class _ProfileContentState extends State<_ProfileContent> {
             _buildFeatureGrid(context),
 
             const SizedBox(height: 100), // Space for bottom navigation
+
+            //Reels and Posts Section
+            _buildReelsAndPostsSection(context),
           ],
         ),
       ),

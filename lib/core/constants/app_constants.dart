@@ -194,9 +194,9 @@ class ApiConstants {
   static String getAllPosts(int page, int limit) =>
       '/api/posts/?page=$page&limit=$limit';
   static String getUserPosts(String userId, int page, int limit) =>
-      // '/api/posts/user/$userId?page=$page&limit=$limit';
-      //! TODO: Update this endpoint to match your API
-      '/api/posts/';
+      '/api/posts/users/$userId?page=$page&limit=$limit';
+  //! TODO: Update this endpoint to match your API
+  // '/api/posts/';
   static String deletePost(String postId) => '/api/posts/delete/$postId';
   static const String reactToPost = '/api/posts/react';
   static const String commentToPost = '/api/posts/comment';
@@ -205,9 +205,9 @@ class ApiConstants {
   static String getReels(int page, int limit) =>
       '/api/reels/?page=$page&limit=$limit';
   static String getUserReels(String userId, int page, int limit) =>
-      // '/api/reels/user/$userId?page=$page&limit=$limit';
-      //! TODO: Update this endpoint to match your API
-      '/api/reels/';
+      '/api/reels/user/$userId?page=$page&limit=$limit';
+  //! TODO: Update this endpoint to match your API
+  // '/api/reels/';
   static const String reactToReel = '/api/reels/react/';
   static const String commentOnReel = '/api/reels/comment/';
   static String shareReel(String reelId) => '/api/reels/$reelId/share';

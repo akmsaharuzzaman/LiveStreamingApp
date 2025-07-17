@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../data/models/chat_models.dart';
 
 class Conversation extends StatelessWidget {
-  const Conversation({Key? key, required this.user}) : super(key: key);
+  const Conversation({super.key, required this.user});
 
   final ChatUser user;
 

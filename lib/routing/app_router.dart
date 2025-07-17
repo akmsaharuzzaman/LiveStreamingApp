@@ -1,5 +1,6 @@
 import 'package:dlstarlive/features/chat/presentation/pages/chat_page.dart';
 import 'package:dlstarlive/features/chat/presentation/pages/chat_detail_page.dart';
+import 'package:dlstarlive/features/chat/presentation/pages/chat_settings.dart';
 import 'package:dlstarlive/features/live/presentation/pages/golive_screen.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_page.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_summary_screen.dart';
@@ -34,6 +35,7 @@ class AppRoutes {
   static const String chatDetail = '/chat-details';
   static const String chats = '/chats';
   static const String friendsList = '/friends-list';
+  static const String chatSettings = '/chat-settings';
 }
 
 final GoRouter appRouter = GoRouter(
@@ -78,6 +80,11 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.profileUpdate,
       name: 'profileUpdate',
       builder: (context, state) => const ProfileUpdatePage(),
+    ),
+    GoRoute(
+      path: AppRoutes.chatSettings,
+      name: 'chatSettings',
+      builder: (context, state) => const InboxSettings(),
     ),
     GoRoute(
       path: AppRoutes.viewProfile,
