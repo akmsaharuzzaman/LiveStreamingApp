@@ -2,12 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:reels_viewer/reels_viewer.dart' as reels_viewer;
 import '../../../../core/auth/auth_bloc.dart';
 import '../../../../core/models/user_model.dart';
+import '../../../../core/network/api_service.dart';
+import '../../../../core/auth/auth_bloc_adapter.dart';
 import '../../../../injection/injection.dart';
 import '../../../../routing/app_router.dart';
 import '../../data/models/friends_models.dart';
 import '../../data/services/friends_api_service.dart';
+import '../../../newsfeed/data/datasources/post_service.dart';
+import '../../../newsfeed/data/models/post_response_model.dart';
+import '../../../newsfeed/presentation/widgets/api_post_container.dart';
+import '../../../reels/data/services/reels_service.dart';
+import '../../../reels/data/models/reel_response_model.dart';
+import '../../../reels/data/models/reel_api_response_model.dart';
+import '../../../reels/presentation/utils/reel_mapper.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -40,6 +50,20 @@ class _ProfileContentState extends State<_ProfileContent> {
   bool isLoadingCounts = true;
   // Follower count data
   FollowerCountResult? followerCounts;
+
+  // Posts data
+  late PostService _postService;
+  List<PostModel> userPosts = [];
+  bool isLoadingPosts = true;
+  String? postsErrorMessage;
+  int _currentPage = 1;
+
+  // Reels data
+  late ReelsService _reelsService;
+  List<ReelApiModel> userReels = [];
+  bool isLoadingReels = true;
+  String? reelsErrorMessage;
+  int _currentReelsPage = 1;
   Future<void> _loadFollowerCounts() async {
     final friendsService = getIt<FriendsApiService>();
 
@@ -70,8 +94,12 @@ class _ProfileContentState extends State<_ProfileContent> {
 
   @override
   void initState() {
-    _loadFollowerCounts();
     super.initState();
+    _postService = PostService(ApiService.instance, AuthBlocAdapter(context));
+    _reelsService = ReelsService(ApiService.instance, AuthBlocAdapter(context));
+    _loadFollowerCounts();
+    _loadUserPosts();
+    _loadUserReels();
   }
 
   @override
@@ -184,8 +212,7 @@ class _ProfileContentState extends State<_ProfileContent> {
             // Feature Icons Grid
             _buildFeatureGrid(context),
 
-            const SizedBox(height: 100), // Space for bottom navigation
-
+            SizedBox(height: 20.h), // Space for bottom navigation
             //Reels and Posts Section
             _buildReelsAndPostsSection(context),
           ],
@@ -569,6 +596,413 @@ class _ProfileContentState extends State<_ProfileContent> {
             textAlign: TextAlign.center,
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _loadUserPosts() async {
+    try {
+      setState(() {
+        isLoadingPosts = true;
+        postsErrorMessage = null;
+      });
+
+      final result = await _postService.getUserPosts(
+        userId: widget.user.id,
+        page: _currentPage,
+        limit: 10,
+      );
+
+      result.when(
+        success: (data) {
+          final postResponse = PostResponse.fromJson(data);
+          setState(() {
+            userPosts = postResponse.result.data;
+            isLoadingPosts = false;
+          });
+        },
+        failure: (error) {
+          setState(() {
+            postsErrorMessage = error;
+            isLoadingPosts = false;
+          });
+        },
+      );
+    } catch (e) {
+      setState(() {
+        postsErrorMessage = 'Error: ${e.toString()}';
+        isLoadingPosts = false;
+      });
+    }
+  }
+
+  Future<void> _loadUserReels() async {
+    try {
+      setState(() {
+        isLoadingReels = true;
+        reelsErrorMessage = null;
+      });
+
+      final result = await _reelsService.getUserReels(
+        userId: widget.user.id,
+        page: _currentReelsPage,
+        limit: 10,
+      );
+
+      result.when(
+        success: (data) {
+          final reelsResponse = ReelsResponse.fromJson(data);
+          setState(() {
+            userReels = reelsResponse.result.data;
+            isLoadingReels = false;
+          });
+        },
+        failure: (error) {
+          setState(() {
+            reelsErrorMessage = error;
+            isLoadingReels = false;
+          });
+        },
+      );
+    } catch (e) {
+      setState(() {
+        reelsErrorMessage = 'Error: ${e.toString()}';
+        isLoadingReels = false;
+      });
+    }
+  }
+
+  Widget _buildReelsAndPostsSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        // Moments Title
+        Text(
+          'Moments',
+          style: TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w400,
+            color: const Color(0xFF202020),
+          ),
+        ),
+        SizedBox(height: 10.h),
+        _buildReelsGrid(),
+        //Divider Line
+        Container(
+          height: 1,
+          color: const Color(0xFFF1F1F1),
+          margin: EdgeInsets.symmetric(vertical: 20.h),
+        ),
+        Text(
+          'Posts',
+          style: TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w400,
+            color: const Color(0xFF202020),
+          ),
+        ),
+        SizedBox(height: 10.h),
+        _buildPostsSection(),
+        SizedBox(height: 100.h),
+      ],
+    );
+  }
+
+  Widget _buildReelsGrid() {
+    if (isLoadingReels) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (reelsErrorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                'Error loading reels: $reelsErrorMessage',
+                style: TextStyle(color: Colors.red, fontSize: 14.sp),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadUserReels,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (userReels.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              Icon(
+                Icons.movie_creation_outlined,
+                size: 48,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No reels yet',
+                style: TextStyle(color: Colors.grey[600], fontSize: 16.sp),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Show actual reels in a grid
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 10.h,
+        crossAxisSpacing: 10.w,
+        childAspectRatio: 0.75, // Slightly taller for video thumbnails
+      ),
+      itemCount: userReels.length,
+      itemBuilder: (context, index) {
+        final reel = userReels[index];
+        return GestureDetector(
+          onTap: () {
+            _openReelViewer(reel, index);
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [BoxShadow(offset: const Offset(0, 2))],
+            ),
+            child: Stack(
+              children: [
+                // Video thumbnail (placeholder for now)
+                Container(),
+                // Reel info overlay
+                Positioned(
+                  bottom: 8,
+                  left: 8,
+                  right: 8,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.play_arrow, color: Colors.white, size: 24),
+                      Text(
+                        '${reel.reactions}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _openReelViewer(ReelApiModel reel, int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UserReelsViewer(
+          userReels: userReels,
+          initialIndex: index,
+          userId: widget.user.id,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPostsSection() {
+    if (isLoadingPosts) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (postsErrorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                'Error loading posts: $postsErrorMessage',
+                style: TextStyle(color: Colors.red, fontSize: 14.sp),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadUserPosts,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (userPosts.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              Icon(Icons.post_add, size: 48, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                'No posts yet',
+                style: TextStyle(color: Colors.grey[600], fontSize: 16.sp),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: userPosts.length,
+      itemBuilder: (context, index) {
+        final post = userPosts[index];
+        return Padding(
+          padding: EdgeInsets.only(bottom: 10.h),
+          child: ApiPostContainer(
+            post: post,
+            onPostDeleted: () {
+              setState(() {
+                userPosts.removeAt(index);
+              });
+            },
+            onPostUpdated: () {
+              _loadUserPosts();
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// User Reels Viewer Widget
+class UserReelsViewer extends StatefulWidget {
+  final List<ReelApiModel> userReels;
+  final int initialIndex;
+  final String userId;
+
+  const UserReelsViewer({
+    super.key,
+    required this.userReels,
+    required this.initialIndex,
+    required this.userId,
+  });
+
+  @override
+  State<UserReelsViewer> createState() => _UserReelsViewerState();
+}
+
+class _UserReelsViewerState extends State<UserReelsViewer> {
+  late List<reels_viewer.ReelModel> reelsList;
+  late int currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    currentIndex = widget.initialIndex;
+
+    // Convert ReelApiModel to ReelModel for ReelsViewer
+    reelsList = widget.userReels.map((apiModel) {
+      return ReelMapper.entityToReelModel(
+        ReelMapper.apiModelToEntity(apiModel),
+      );
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.black,
+      body: reels_viewer.ReelsViewer(
+        reelsList: reelsList,
+        appbarTitle: 'User Reels',
+        onShare: (url) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Share feature coming soon!'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+        onLike: (url) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Like feature coming soon!'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+        onFollow: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Follow feature coming soon!'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+        onComment: (comment) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Comment feature coming soon!'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+        onClickMoreBtn: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('More options coming soon!'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+        onClickBackArrow: () {
+          Navigator.pop(context);
+        },
+        onIndexChanged: (index) {
+          setState(() {
+            currentIndex = index;
+          });
+        },
+        showProgressIndicator: true,
+        showVerifiedTick: true,
+        showAppbar: true,
       ),
     );
   }

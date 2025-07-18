@@ -1,5 +1,7 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 import '../../../../core/auth/auth_bloc.dart';
@@ -66,270 +68,119 @@ class _LoginPageState extends State<LoginPage> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Background video
-          if (_isVideoInitialized)
-            Positioned.fill(
-              child: AspectRatio(
-                aspectRatio: _videoController.value.aspectRatio,
-                child: VideoPlayer(_videoController),
-              ),
-            ),
-
-          // Dark overlay for better text readability
-          Container(color: Colors.black.withOpacity(0.4)),
-
-          // Login form content
-          BlocListener<AuthBloc, AuthState>(
-            listener: (context, state) {
-              if (state is AuthAuthenticated) {
-                // Navigate to home on successful login
-                context.go('/');
-              } else if (state is AuthProfileIncomplete) {
-                // Navigate to profile completion page
-                context.go('/profile-completion');
-              } else if (state is AuthError) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: colorScheme.error,
+    return GestureDetector(
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.white, Colors.white],
+          ),
+        ),
+        child: Scaffold(
+          backgroundColor: Colors.white,
+          resizeToAvoidBottomInset: false,
+          body: Stack(
+            children: [
+              // Background video
+              if (_isVideoInitialized)
+                Positioned.fill(
+                  child: AspectRatio(
+                    aspectRatio: _videoController.value.aspectRatio,
+                    child: VideoPlayer(_videoController),
                   ),
-                );
-              }
-            },
-            child: SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24.0),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 400),
-                    child: Form(
-                      key: _formKey,
+                ),
+
+              // Dark overlay for better text readability
+              Container(
+                width: double.infinity,
+                height: double.infinity,
+                color: const Color(0xff2c3968).withValues(alpha: 0.5.sp),
+              ),
+
+              // Login form content
+              BlocListener<AuthBloc, AuthState>(
+                listener: (context, state) {
+                  if (state is AuthAuthenticated) {
+                    // Navigate to home on successful login
+                    context.go('/');
+                  } else if (state is AuthProfileIncomplete) {
+                    // Navigate to profile completion page
+                    context.go('/profile-completion');
+                  } else if (state is AuthError) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.message),
+                        backgroundColor: colorScheme.error,
+                      ),
+                    );
+                  }
+                },
+                child: Positioned(
+                  bottom: 0,
+                  right: 0,
+                  left: 0,
+                  child: Container(
+                    height: 450.sp,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(12.sp),
+                        topRight: Radius.circular(12.sp),
+                      ),
+                      color: const Color(0xff2c3968).withValues(alpha: 0.2.sp),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.all(12.sp),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // App Logo/Icon
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.1),
-                            ),
-                            child: Image.asset(
-                              'assets/icons/icon.png',
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // App Title
-                          Text(
-                            'DL Star',
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              shadows: [
-                                Shadow(
-                                  offset: const Offset(0, 2),
-                                  blurRadius: 4,
-                                  color: Colors.black.withOpacity(0.5),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(99.r),
+                                child: Image.asset(
+                                  "assets/icons/icon.png",
+                                  height: 90.sp,
+                                  width: 90.sp,
+                                  //color: kPrimaryColor,
                                 ),
-                              ],
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-
-                          Text(
-                            'Sign in to your account',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: Colors.white.withOpacity(0.9),
-                              shadows: [
-                                Shadow(
-                                  offset: const Offset(0, 1),
-                                  blurRadius: 2,
-                                  color: Colors.black.withOpacity(0.5),
-                                ),
-                              ],
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 32), // Email Field
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: TextFormField(
-                              controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
-                              textInputAction: TextInputAction.next,
-                              decoration: const InputDecoration(
-                                labelText: 'Email',
-                                prefixIcon: Icon(Icons.email_outlined),
-                                border: OutlineInputBorder(),
-                                fillColor: Colors.transparent,
-                                filled: true,
                               ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter your email';
-                                }
-                                if (!RegExp(
-                                  r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                                ).hasMatch(value)) {
-                                  return 'Please enter a valid email';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Password Field
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: TextFormField(
-                              controller: _passwordController,
-                              obscureText: _obscurePassword,
-                              textInputAction: TextInputAction.done,
-                              onFieldSubmitted: (_) => _onLogin(),
-                              decoration: InputDecoration(
-                                labelText: 'Password',
-                                prefixIcon: const Icon(Icons.lock_outlined),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscurePassword
-                                        ? Icons.visibility_outlined
-                                        : Icons.visibility_off_outlined,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscurePassword = !_obscurePassword;
-                                    });
-                                  },
-                                ),
-                                border: const OutlineInputBorder(),
-                                fillColor: Colors.transparent,
-                                filled: true,
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter your password';
-                                }
-                                if (value.length < 6) {
-                                  return 'Password must be at least 6 characters';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(
-                            height: 16,
-                          ), // Remember Me & Forgot Password
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Checkbox(
-                                  value: _rememberMe,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _rememberMe = value ?? false;
-                                    });
-                                  },
-                                  fillColor: WidgetStateProperty.all(
-                                    Colors.white,
-                                  ),
-                                  checkColor: Colors.black,
-                                ),
-                                Text(
-                                  'Remember me',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    shadows: [
-                                      Shadow(
-                                        offset: const Offset(0, 1),
-                                        blurRadius: 2,
-                                        color: Colors.black.withOpacity(0.5),
-                                      ),
+                              SizedBox(height: 16.sp),
+                              ShaderMask(
+                                shaderCallback: (Rect bounds) {
+                                  return LinearGradient(
+                                    colors: [
+                                      Colors.white,
+                                      Colors.purple.shade200,
                                     ],
+                                    tileMode: TileMode.clamp,
+                                  ).createShader(bounds);
+                                },
+                                child: const Text(
+                                  'Stream Anywhere Anytime.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
                                   ),
                                 ),
-                                const Spacer(),
-                                TextButton(
-                                  onPressed: () {
-                                    // TODO: Implement forgot password
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Forgot password not implemented yet',
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  child: Text(
-                                    'Forgot Password?',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      shadows: [
-                                        Shadow(
-                                          offset: const Offset(0, 1),
-                                          blurRadius: 2,
-                                          color: Colors.black.withOpacity(0.5),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 24),
-
-                          // Login Button
+                          SizedBox(height: 25.sp),
+                          SizedBox(),
                           BlocBuilder<AuthBloc, AuthState>(
                             builder: (context, state) {
                               final isLoading = state is AuthLoading;
-                              return FilledButton(
-                                onPressed: isLoading ? null : _onLogin,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 4.0,
-                                  ),
-                                  child: isLoading
-                                      ? const SizedBox(
-                                          height: 20,
-                                          width: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : const Text('Sign In'),
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Google Sign-In Button
-                          BlocBuilder<AuthBloc, AuthState>(
-                            builder: (context, state) {
-                              final isLoading = state is AuthLoading;
-                              return GoogleSignInButton(
-                                text: 'Sign in with Google',
+                              return CustomButton(
+                                text: 'Continue with Google',
+                                svgPath: 'assets/icons/google_logo.svg',
                                 isLoading: isLoading,
                                 onPressed: () {
                                   context.read<AuthBloc>().add(
@@ -339,96 +190,89 @@ class _LoginPageState extends State<LoginPage> {
                               );
                             },
                           ),
-                          const SizedBox(height: 16), // Divider
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Divider(
-                                  color: Colors.white.withOpacity(0.5),
-                                  thickness: 1,
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                child: Text(
-                                  'OR',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: Colors.white.withOpacity(0.8),
-                                    fontWeight: FontWeight.w500,
-                                    shadows: [
-                                      Shadow(
-                                        offset: const Offset(0, 1),
-                                        blurRadius: 2,
-                                        color: Colors.black.withOpacity(0.5),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: Divider(
-                                  color: Colors.white.withOpacity(0.5),
-                                  thickness: 1,
-                                ),
-                              ),
-                            ],
+                          SizedBox(height: 20.sp),
+                          BlocBuilder<AuthBloc, AuthState>(
+                            builder: (context, state) {
+                              final isLoading = state is AuthLoading;
+                              return CustomButton(
+                                text: 'Sign In with UserID',
+                                isLoading: isLoading,
+                              );
+                            },
                           ),
-                          const SizedBox(height: 16),
-
-                          // Register Link
-                          Container(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Don\'t have an account? ',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: Colors.white.withOpacity(0.9),
-                                    shadows: [
-                                      Shadow(
-                                        offset: const Offset(0, 1),
-                                        blurRadius: 2,
-                                        color: Colors.black.withOpacity(0.5),
-                                      ),
-                                    ],
-                                  ),
+                          SizedBox(height: 35.sp),
+                          Center(
+                            child: Text.rich(
+                              TextSpan(
+                                text: 'By continuing, you agree to our ',
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: Colors.white,
                                 ),
-                                TextButton(
-                                  onPressed: () {
-                                    context.go('/register');
-                                  },
-                                  child: Text(
-                                    'Sign Up',
+                                children: <TextSpan>[
+                                  TextSpan(
+                                    text: 'Terms of Service',
                                     style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      shadows: [
+                                      shadows: const [
                                         Shadow(
-                                          offset: const Offset(0, 1),
-                                          blurRadius: 2,
-                                          color: Colors.black.withOpacity(0.5),
+                                          color: Colors.white,
+                                          offset: Offset(0, -1),
                                         ),
                                       ],
+                                      height: 1.5,
+                                      fontSize: 12.sp,
+                                      color: Colors.transparent,
+                                      decoration: TextDecoration.underline,
+                                      decorationThickness: 1,
+                                      decorationColor: Colors.white,
                                     ),
+                                    recognizer: TapGestureRecognizer()
+                                      ..onTap = () {
+                                        // context.push('/policy');
+                                      },
                                   ),
-                                ),
-                              ],
+                                  TextSpan(
+                                    text: ' & ',
+                                    style: TextStyle(
+                                      fontSize: 12.sp,
+                                      color: Colors.white,
+                                    ),
+                                    children: <TextSpan>[
+                                      TextSpan(
+                                        text: 'Privacy Policy',
+                                        style: TextStyle(
+                                          shadows: const [
+                                            Shadow(
+                                              color: Colors.white,
+                                              offset: Offset(0, -2),
+                                            ),
+                                          ],
+                                          fontSize: 12.sp,
+                                          color: Colors.transparent,
+                                          decoration: TextDecoration.underline,
+                                          decorationThickness: 1,
+                                          decorationColor: Colors.white,
+                                        ),
+                                        recognizer: TapGestureRecognizer()
+                                          ..onTap = () {
+                                            // context.push('/policy');
+                                          },
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-
-                          const SizedBox(height: 32),
                         ],
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

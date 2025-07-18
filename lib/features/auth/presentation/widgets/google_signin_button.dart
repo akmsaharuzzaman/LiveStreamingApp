@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 /// Google Sign-In button widget that follows Material Design 3 guidelines
-class GoogleSignInButton extends StatelessWidget {
+class CustomButton extends StatelessWidget {
   final VoidCallback? onPressed;
+  final String? svgPath;
   final String text;
   final bool isLoading;
   final bool isOutlined;
 
-  const GoogleSignInButton({
+  const CustomButton({
     super.key,
     this.onPressed,
     this.text = 'Continue with Google',
     this.isLoading = false,
+    this.svgPath,
     this.isOutlined = true,
   });
 
@@ -27,14 +31,22 @@ class GoogleSignInButton extends StatelessWidget {
           ? OutlinedButton.icon(
               onPressed: isLoading ? null : onPressed,
               icon: isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : _buildGoogleIcon(),
-              label: Text(text),
+                  : _buildGoogleIcon(svgPath),
+              label: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: isLoading ? Colors.white70 : Colors.white,
+                ),
+              ),
               style: OutlinedButton.styleFrom(
+                backgroundColor: Colors.white12,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
@@ -53,9 +65,17 @@ class GoogleSignInButton extends StatelessWidget {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : _buildGoogleIcon(),
-              label: Text(text),
+                  : _buildGoogleIcon(svgPath),
+              label: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: isLoading ? Colors.white70 : Colors.white,
+                ),
+              ),
               style: FilledButton.styleFrom(
+                backgroundColor: Colors.white12,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
@@ -68,24 +88,10 @@ class GoogleSignInButton extends StatelessWidget {
     );
   }
 
-  Widget _buildGoogleIcon() {
-    return Container(
-      width: 18,
-      height: 18,
-      decoration: BoxDecoration(
-        color: const Color(0xFF4285F4),
-        borderRadius: BorderRadius.circular(2),
-      ),
-      child: const Center(
-        child: Text(
-          'G',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
+  Widget _buildGoogleIcon(String? iconPath) {
+    if (iconPath != null) {
+      return SvgPicture.asset(iconPath, width: 20.sp, height: 20.sp);
+    }
+    return SizedBox.shrink();
   }
 }

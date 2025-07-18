@@ -360,7 +360,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     const SizedBox(height: 16),
 
                     // Google Sign-In Button
-                    const GoogleSignInButton(text: 'Sign up with Google'),
+                    const CustomButton(text: 'Sign up with Google'),
                     const SizedBox(height: 16),
 
                     // Divider
