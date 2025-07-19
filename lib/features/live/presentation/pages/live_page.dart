@@ -42,7 +42,7 @@ class _LivePageState extends State<LivePage> {
 
       // Load camera preference from SharedPreferences
       final prefs = await SharedPreferences.getInstance();
-      _isFrontCamera = prefs.getBool('is_front_camera') ?? true;
+      _isFrontCamera = await prefs.setBool('is_front_camera', true);
 
       // Check permissions
       bool hasPermissions = await PermissionHelper.hasLiveStreamPermissions();
@@ -91,6 +91,7 @@ class _LivePageState extends State<LivePage> {
         setState(() {
           _isFrontCamera = !_isFrontCamera;
         });
+        debugPrint('Camera flipped to ${_isFrontCamera ? 'front' : 'back'}');
 
         // Save camera preference
         await _saveCameraPreference(_isFrontCamera);
@@ -507,6 +508,9 @@ class _LivePageState extends State<LivePage> {
                     height: 56.h,
                     child: ElevatedButton(
                       onPressed: () {
+                        print(
+                          "Going live with title: ${_isFrontCamera ? 'Front Camera' : 'Back Camera'}",
+                        );
                         context.push(AppRoutes.onGoingLive);
                       },
                       style: ElevatedButton.styleFrom(
