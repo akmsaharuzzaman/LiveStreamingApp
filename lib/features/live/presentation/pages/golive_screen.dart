@@ -733,36 +733,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
       _showSnackBar('🎤 Joining audio call...', Colors.blue);
 
-      // Get stored token
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? token = prefs.getString('agora_token');
-
-      if (token == null || token.isEmpty) {
-        _showSnackBar('❌ No valid token found', Colors.red);
-        setState(() {
-          _isJoiningAsAudioCaller = false;
-        });
-        return;
-      }
-
-      // Leave current channel first
-      await _engine.leaveChannel();
-
-      // Set role to broadcaster (to enable audio publishing)
-      await _engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
-
-      // Configure audio settings
-      await _engine.disableVideo(); // Disable video publishing
-      await _engine.enableAudio(); // Enable audio
-      await _engine.muteLocalVideoStream(true); // Ensure video is muted
-
-      // Rejoin channel with broadcasting capabilities
-      await _engine.joinChannel(
-        token: token,
-        channelId: roomId,
-        uid: 0, // Let Agora assign UID
-        options: const ChannelMediaOptions(),
-      );
+      // DON'T leave channel - just change role and settings
+      // This prevents video freezing for the user
+      await _switchToAudioCaller();
 
       setState(() {
         _isAudioCaller = true;
@@ -790,32 +763,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
     try {
       _showSnackBar('🎤 Leaving audio call...', Colors.blue);
 
-      // Get stored token
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? token = prefs.getString('agora_token');
-
-      if (token == null || token.isEmpty) {
-        _showSnackBar('❌ No valid token found', Colors.red);
-        return;
-      }
-
-      // Leave current channel
-      await _engine.leaveChannel();
-
-      // Set role back to audience
-      await _engine.setClientRole(role: ClientRoleType.clientRoleAudience);
-
-      // Disable audio publishing
-      await _engine.disableAudio();
-      await _engine.enableVideo(); // Re-enable video reception
-
-      // Rejoin channel as audience
-      await _engine.joinChannel(
-        token: token,
-        channelId: roomId,
-        uid: 0,
-        options: const ChannelMediaOptions(),
-      );
+      // DON'T leave channel - just change role and settings
+      // This prevents video freezing for the user
+      await _switchToAudience();
 
       setState(() {
         _isAudioCaller = false;
@@ -844,6 +794,47 @@ class _GoliveScreenState extends State<GoliveScreen> {
       return 'Join Audio Call';
     }
     return 'Audio Call (${_audioCallerUids.length}/$_maxAudioCallers)';
+  }
+
+  /// Optimized role switching without channel interruption
+  Future<void> _switchToAudioCaller() async {
+    try {
+      // Set role to broadcaster to enable audio publishing
+      await _engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
+
+      // Configure media settings for audio caller
+      await _engine.enableLocalAudio(true); // Enable audio publishing
+      await _engine.enableLocalVideo(false); // Disable video publishing
+      await _engine.muteLocalAudioStream(false); // Unmute microphone
+      await _engine.muteLocalVideoStream(true); // Ensure video is muted
+
+      debugPrint(
+        "✅ Switched to audio caller role without channel interruption",
+      );
+    } catch (e) {
+      debugPrint("❌ Error switching to audio caller: $e");
+      rethrow;
+    }
+  }
+
+  /// Optimized role switching back to audience
+  Future<void> _switchToAudience() async {
+    try {
+      // Set role back to audience
+      await _engine.setClientRole(role: ClientRoleType.clientRoleAudience);
+
+      // Configure media settings for audience
+      await _engine.enableLocalAudio(false); // Disable audio publishing
+      await _engine.enableLocalVideo(false); // Keep video disabled for audience
+      await _engine.muteLocalAudioStream(true); // Mute microphone
+
+      debugPrint(
+        "✅ Switched back to audience role without channel interruption",
+      );
+    } catch (e) {
+      debugPrint("❌ Error switching to audience: $e");
+      rethrow;
+    }
   }
 
   // Toggle microphone
