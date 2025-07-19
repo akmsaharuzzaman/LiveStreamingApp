@@ -12,6 +12,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../component/active_viwers.dart';
 import '../component/custom_live_button.dart';
@@ -588,6 +589,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
         role: isHost ? 'publisher' : 'subscriber',
       );
       debugPrint('💲💲Token generation result new: ${result.token}');
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('agora_token', result.token);
       if (result.token.isNotEmpty) {
         final dynamicToken = result.token;
         debugPrint('✅ Token generated successfully : $dynamicToken');
@@ -625,6 +628,23 @@ class _GoliveScreenState extends State<GoliveScreen> {
     await _engine.joinChannel(
       token: dotenv.env['AGORA_TOKEN'] ?? '',
       channelId: dotenv.env['DEFAULT_CHANNEL'] ?? 'default_channel',
+      uid: 0,
+      options: const ChannelMediaOptions(),
+    );
+  }
+
+  Future<void> _promoteToAudioCaller() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('agora_token');
+    await _engine.leaveChannel();
+
+    await _engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
+    await _engine.disableVideo(); // audio only
+    await _engine.enableAudio();
+
+    await _engine.joinChannel(
+      token: token!,
+      channelId: roomId,
       uid: 0,
       options: const ChannelMediaOptions(),
     );
@@ -978,7 +998,29 @@ class _GoliveScreenState extends State<GoliveScreen> {
                     ),
                   ),
 
-                  // _buildBottomControls(),
+                  if (!isHost)
+                    Positioned(
+                      bottom: 140.h,
+                      right: 30.w,
+                      child: GestureDetector(
+                        onTap: () {
+                          _promoteToAudioCaller();
+                          debugPrint("Promoting to audio caller");
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.call,
+                            color: Colors.white,
+                            size: 40,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             );
