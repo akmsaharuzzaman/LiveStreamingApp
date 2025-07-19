@@ -161,30 +161,30 @@ class _LivePageState extends State<LivePage> {
           ),
 
           // Flip camera button
-          Positioned(
-            top: 60.h,
-            right: 16.w,
-            child: GestureDetector(
-              onTap: _flipCamera,
-              child: Container(
-                width: 40.w,
-                height: 40.w,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Icon(
-                  Icons.flip_camera_ios,
-                  color: Colors.white,
-                  size: 20.sp,
-                ),
-              ),
-            ),
-          ),
+          // Positioned(
+          //   top: 60.h,
+          //   right: 16.w,
+          //   child: GestureDetector(
+          //     onTap: _flipCamera,
+          //     child: Container(
+          //       width: 40.w,
+          //       height: 40.w,
+          //       decoration: BoxDecoration(
+          //         color: Colors.black.withOpacity(0.5),
+          //         shape: BoxShape.circle,
+          //         border: Border.all(
+          //           color: Colors.white.withOpacity(0.3),
+          //           width: 1,
+          //         ),
+          //       ),
+          //       child: Icon(
+          //         Icons.flip_camera_ios,
+          //         color: Colors.white,
+          //         size: 20.sp,
+          //       ),
+          //     ),
+          //   ),
+          // ),
 
           // Main content
           SafeArea(
