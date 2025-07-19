@@ -12,7 +12,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../component/active_viwers.dart';
 import '../component/custom_live_button.dart';
@@ -393,6 +392,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
   int _viewerCount = 0;
   bool _isInitializingCamera = false;
 
+  // Audio caller feature variables
+  bool _isAudioCaller = false;
+  final List<int> _audioCallerUids = [];
+  final int _maxAudioCallers = 3;
+  bool _isJoiningAsAudioCaller = false;
+
   Future<void> _applyCameraPreference() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -502,11 +507,18 @@ class _GoliveScreenState extends State<GoliveScreen> {
             "remote user $remoteUid joined channel: ${connection.channelId}",
           );
           debugPrint("Current isHost: $isHost, _remoteUid before: $_remoteUid");
+
           setState(() {
-            _remoteUid = remoteUid;
+            // Only set _remoteUid for the first video user (host)
+            if (_remoteUid == null && !isHost) {
+              _remoteUid = remoteUid;
+              debugPrint("Set host video UID: $_remoteUid");
+            }
+
             _remoteUsers.add(remoteUid);
             _viewerCount = _remoteUsers.length;
           });
+
           debugPrint(
             "_remoteUid after: $_remoteUid, total users: ${_remoteUsers.length}",
           );
@@ -516,6 +528,67 @@ class _GoliveScreenState extends State<GoliveScreen> {
             // _firestoreService.updateViewerCount(widget.streamId, _viewerCount);
           }
         },
+        onRemoteVideoStateChanged:
+            (
+              RtcConnection connection,
+              int remoteUid,
+              RemoteVideoState state,
+              RemoteVideoStateReason reason,
+              int elapsed,
+            ) {
+              debugPrint(
+                "Remote video state changed for UID $remoteUid: $state",
+              );
+
+              // If remote video is disabled, this might be an audio caller
+              if (state == RemoteVideoState.remoteVideoStateStopped ||
+                  state == RemoteVideoState.remoteVideoStateStarting) {
+                setState(() {
+                  // Add to audio callers if not already present and not the host
+                  if (!_audioCallerUids.contains(remoteUid) &&
+                      remoteUid != _remoteUid &&
+                      _audioCallerUids.length < _maxAudioCallers) {
+                    _audioCallerUids.add(remoteUid);
+                    debugPrint(
+                      "Added audio caller: $remoteUid, total: ${_audioCallerUids.length}",
+                    );
+                  }
+                });
+              }
+            },
+        onRemoteAudioStateChanged:
+            (
+              RtcConnection connection,
+              int remoteUid,
+              RemoteAudioState state,
+              RemoteAudioStateReason reason,
+              int elapsed,
+            ) {
+              debugPrint(
+                "Remote audio state changed for UID $remoteUid: $state",
+              );
+
+              // Track audio-only users (audio callers)
+              if (state == RemoteAudioState.remoteAudioStateStarting ||
+                  state == RemoteAudioState.remoteAudioStateDecoding) {
+                setState(() {
+                  // Add to audio callers if not already present and not the host
+                  if (!_audioCallerUids.contains(remoteUid) &&
+                      remoteUid != _remoteUid &&
+                      _audioCallerUids.length < _maxAudioCallers) {
+                    _audioCallerUids.add(remoteUid);
+                    debugPrint(
+                      "Added audio caller via audio state: $remoteUid",
+                    );
+                  }
+                });
+              } else if (state == RemoteAudioState.remoteAudioStateStopped) {
+                setState(() {
+                  _audioCallerUids.remove(remoteUid);
+                  debugPrint("Removed audio caller: $remoteUid");
+                });
+              }
+            },
         onUserOffline:
             (
               RtcConnection connection,
@@ -524,7 +597,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
             ) {
               debugPrint("remote user $remoteUid left channel");
               setState(() {
-                // Only set _remoteUid to null if it was the user who left
+                // Remove from audio callers if they were audio caller
+                _audioCallerUids.remove(remoteUid);
+
+                // Only set _remoteUid to null if it was the host who left
                 if (_remoteUid == remoteUid) {
                   _remoteUid = null;
                 }
@@ -633,29 +709,162 @@ class _GoliveScreenState extends State<GoliveScreen> {
     );
   }
 
+  /// Promote viewer to audio caller (join audio call)
   Future<void> _promoteToAudioCaller() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? token = prefs.getString('agora_token');
-    await _engine.leaveChannel();
+    if (_isAudioCaller) {
+      _showSnackBar('🎤 You are already an audio caller', Colors.orange);
+      return;
+    }
 
-    await _engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
-    await _engine.disableVideo(); // audio only
-    await _engine.enableAudio();
+    if (_audioCallerUids.length >= _maxAudioCallers) {
+      _showSnackBar('🎤 Audio call is full ($_maxAudioCallers/3)', Colors.red);
+      return;
+    }
 
-    await _engine.joinChannel(
-      token: token!,
-      channelId: roomId,
-      uid: 0,
-      options: const ChannelMediaOptions(),
-    );
+    if (_isJoiningAsAudioCaller) {
+      _showSnackBar('🎤 Please wait, joining audio call...', Colors.blue);
+      return;
+    }
+
+    try {
+      setState(() {
+        _isJoiningAsAudioCaller = true;
+      });
+
+      _showSnackBar('🎤 Joining audio call...', Colors.blue);
+
+      // Get stored token
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('agora_token');
+
+      if (token == null || token.isEmpty) {
+        _showSnackBar('❌ No valid token found', Colors.red);
+        setState(() {
+          _isJoiningAsAudioCaller = false;
+        });
+        return;
+      }
+
+      // Leave current channel first
+      await _engine.leaveChannel();
+
+      // Set role to broadcaster (to enable audio publishing)
+      await _engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
+
+      // Configure audio settings
+      await _engine.disableVideo(); // Disable video publishing
+      await _engine.enableAudio(); // Enable audio
+      await _engine.muteLocalVideoStream(true); // Ensure video is muted
+
+      // Rejoin channel with broadcasting capabilities
+      await _engine.joinChannel(
+        token: token,
+        channelId: roomId,
+        uid: 0, // Let Agora assign UID
+        options: const ChannelMediaOptions(),
+      );
+
+      setState(() {
+        _isAudioCaller = true;
+        _muted = false; // Enable microphone for audio caller
+        _isJoiningAsAudioCaller = false;
+      });
+
+      _showSnackBar('🎤 Joined as audio caller!', Colors.green);
+      debugPrint("Successfully promoted to audio caller");
+    } catch (e) {
+      debugPrint('❌ Error promoting to audio caller: $e');
+      _showSnackBar('❌ Failed to join audio call', Colors.red);
+      setState(() {
+        _isJoiningAsAudioCaller = false;
+      });
+    }
+  }
+
+  /// Leave audio caller role and return to audience
+  Future<void> _leaveAudioCaller() async {
+    if (!_isAudioCaller) {
+      return;
+    }
+
+    try {
+      _showSnackBar('🎤 Leaving audio call...', Colors.blue);
+
+      // Get stored token
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('agora_token');
+
+      if (token == null || token.isEmpty) {
+        _showSnackBar('❌ No valid token found', Colors.red);
+        return;
+      }
+
+      // Leave current channel
+      await _engine.leaveChannel();
+
+      // Set role back to audience
+      await _engine.setClientRole(role: ClientRoleType.clientRoleAudience);
+
+      // Disable audio publishing
+      await _engine.disableAudio();
+      await _engine.enableVideo(); // Re-enable video reception
+
+      // Rejoin channel as audience
+      await _engine.joinChannel(
+        token: token,
+        channelId: roomId,
+        uid: 0,
+        options: const ChannelMediaOptions(),
+      );
+
+      setState(() {
+        _isAudioCaller = false;
+        _muted = true; // Mute as audience
+      });
+
+      _showSnackBar('👥 Returned to audience', Colors.green);
+      debugPrint("Successfully left audio caller role");
+    } catch (e) {
+      debugPrint('❌ Error leaving audio caller: $e');
+      _showSnackBar('❌ Failed to leave audio call', Colors.red);
+    }
+  }
+
+  /// Check if user can become audio caller
+  bool _canJoinAudioCall() {
+    return !isHost &&
+        !_isAudioCaller &&
+        _audioCallerUids.length < _maxAudioCallers &&
+        !_isJoiningAsAudioCaller;
+  }
+
+  /// Get audio caller count text
+  String _getAudioCallerText() {
+    if (_audioCallerUids.isEmpty) {
+      return 'Join Audio Call';
+    }
+    return 'Audio Call (${_audioCallerUids.length}/$_maxAudioCallers)';
   }
 
   // Toggle microphone
   void _toggleMute() async {
-    await _engine.muteLocalAudioStream(!_muted);
-    setState(() {
-      _muted = !_muted;
-    });
+    if (isHost || _isAudioCaller) {
+      await _engine.muteLocalAudioStream(!_muted);
+      setState(() {
+        _muted = !_muted;
+      });
+
+      if (_muted) {
+        _showSnackBar('🔇 Microphone muted', Colors.orange);
+      } else {
+        _showSnackBar('🎤 Microphone unmuted', Colors.green);
+      }
+    } else {
+      _showSnackBar(
+        '🎤 Only hosts and audio callers can use microphone',
+        Colors.orange,
+      );
+    }
   }
 
   // Start stream timer
@@ -690,6 +899,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
     try {
       // Stop the stream timer
       _stopStreamTimer();
+
+      // Reset audio caller state
+      setState(() {
+        _isAudioCaller = false;
+        _audioCallerUids.clear();
+        _isJoiningAsAudioCaller = false;
+      });
 
       if (isHost) {
         // If host, delete the room
@@ -864,11 +1080,18 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 CustomLiveButton(
                                   iconPath: "assets/icons/call_icon.png",
                                   onTap: () {
-                                    _showSnackBar(
-                                      '📞 Not implemented yet! Comming soon!',
-                                      Colors.green,
-                                    );
-                                    // showCallBottomSheet(context);
+                                    if (_audioCallerUids.isNotEmpty) {
+                                      _showSnackBar(
+                                        '🎤 ${_audioCallerUids.length} audio caller${_audioCallerUids.length > 1 ? 's' : ''} connected',
+                                        Colors.green,
+                                      );
+                                    } else {
+                                      _showSnackBar(
+                                        '📞 Waiting for audio callers to join...',
+                                        Colors.blue,
+                                      );
+                                    }
+                                    // Future: showCallManagementBottomSheet(context);
                                   },
                                 ),
                                 CustomLiveButton(
@@ -876,12 +1099,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                       ? "assets/icons/mute_icon.png"
                                       : "assets/icons/mute_icon.png",
                                   onTap: () {
-                                    !isHost
-                                        ? _showSnackBar(
-                                            '🎤 You cannot mute yourself as host',
-                                            Colors.orange,
-                                          )
-                                        : _toggleMute();
+                                    _toggleMute();
                                   },
                                 ),
                                 CustomLiveButton(
@@ -970,10 +1188,24 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                     ],
                                   ),
                                 ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/gift_user_icon.png",
-                                  onTap: () {},
-                                ),
+
+                                // Show microphone button only for audio callers
+                                if (_isAudioCaller) ...[
+                                  CustomLiveButton(
+                                    iconPath: _muted
+                                        ? "assets/icons/mute_icon.png"
+                                        : "assets/icons/mute_icon.png",
+                                    onTap: () {
+                                      _toggleMute();
+                                    },
+                                  ),
+                                ] else ...[
+                                  CustomLiveButton(
+                                    iconPath: "assets/icons/gift_user_icon.png",
+                                    onTap: () {},
+                                  ),
+                                ],
+
                                 CustomLiveButton(
                                   iconPath: "assets/icons/game_user_icon.png",
                                   onTap: () {
@@ -1002,23 +1234,116 @@ class _GoliveScreenState extends State<GoliveScreen> {
                     Positioned(
                       bottom: 140.h,
                       right: 30.w,
-                      child: GestureDetector(
-                        onTap: () {
-                          _promoteToAudioCaller();
-                          debugPrint("Promoting to audio caller");
-                        },
-                        child: Container(
-                          padding: EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Audio caller status indicator
+                          if (_audioCallerUids.isNotEmpty)
+                            Container(
+                              margin: EdgeInsets.only(bottom: 10),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: Text(
+                                '🎤 ${_audioCallerUids.length}/$_maxAudioCallers',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+
+                          // Main call button
+                          GestureDetector(
+                            onTap: () {
+                              if (_isJoiningAsAudioCaller) {
+                                _showSnackBar(
+                                  '🎤 Please wait...',
+                                  Colors.orange,
+                                );
+                                return;
+                              }
+
+                              if (_isAudioCaller) {
+                                _leaveAudioCaller();
+                                debugPrint("Leaving audio caller");
+                              } else {
+                                _promoteToAudioCaller();
+                                debugPrint("Promoting to audio caller");
+                              }
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: _isJoiningAsAudioCaller
+                                    ? Colors.grey
+                                    : _isAudioCaller
+                                    ? Colors.orange
+                                    : _canJoinAudioCall()
+                                    ? Colors.green
+                                    : Colors.red,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 8,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: _isJoiningAsAudioCaller
+                                  ? SizedBox(
+                                      width: 40,
+                                      height: 40,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 3,
+                                      ),
+                                    )
+                                  : Icon(
+                                      _isAudioCaller
+                                          ? Icons.call_end
+                                          : Icons.call,
+                                      color: Colors.white,
+                                      size: 40,
+                                    ),
+                            ),
                           ),
-                          child: Icon(
-                            Icons.call,
-                            color: Colors.white,
-                            size: 40,
+
+                          // Button label
+                          Container(
+                            margin: EdgeInsets.only(top: 8),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              _isJoiningAsAudioCaller
+                                  ? 'Joining...'
+                                  : _isAudioCaller
+                                  ? 'Leave Call'
+                                  : _canJoinAudioCall()
+                                  ? _getAudioCallerText()
+                                  : 'Call Full',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                 ],
