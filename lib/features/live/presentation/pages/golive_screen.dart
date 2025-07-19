@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../component/active_viwers.dart';
@@ -791,7 +792,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   /// Get audio caller count text
   String _getAudioCallerText() {
     if (_audioCallerUids.isEmpty) {
-      return 'Join Audio Call';
+      return 'Join';
     }
     return 'Audio Call (${_audioCallerUids.length}/$_maxAudioCallers)';
   }
@@ -1270,67 +1271,61 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               }
                             },
                             child: Container(
-                              padding: EdgeInsets.all(12),
+                              height: 80.h,
+                              width: 80.w,
+                              alignment: Alignment.center,
                               decoration: BoxDecoration(
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(8.r),
+                                ),
                                 color: _isJoiningAsAudioCaller
                                     ? Colors.grey
                                     : _isAudioCaller
                                     ? Colors.orange
                                     : _canJoinAudioCall()
-                                    ? Colors.green
-                                    : Colors.red,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black26,
-                                    blurRadius: 8,
-                                    offset: Offset(0, 4),
+                                    ? Color(0xFFFEB86F)
+                                    : Color(0xFFFEB86F),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+
+                                children: [
+                                  _isJoiningAsAudioCaller
+                                      ? SizedBox(
+                                          width: 40,
+                                          height: 40,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 3,
+                                          ),
+                                        )
+                                      : _isAudioCaller
+                                      ? SvgPicture.asset(
+                                          "assets/icons/join_call_icon.svg",
+                                          height: 40.h,
+                                          width: 40.w,
+                                        )
+                                      : SvgPicture.asset(
+                                          "assets/icons/join_call_icon.svg",
+                                          height: 40.h,
+                                          width: 40.w,
+                                        ),
+                                  Text(
+                                    _isJoiningAsAudioCaller
+                                        ? 'Joining'
+                                        : _isAudioCaller
+                                        ? 'Leave'
+                                        : _canJoinAudioCall()
+                                        ? _getAudioCallerText()
+                                        : 'Call Full',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18.sp,
+                                      fontWeight: FontWeight.w400,
+                                    ),
                                   ),
                                 ],
-                              ),
-                              child: _isJoiningAsAudioCaller
-                                  ? SizedBox(
-                                      width: 40,
-                                      height: 40,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 3,
-                                      ),
-                                    )
-                                  : Icon(
-                                      _isAudioCaller
-                                          ? Icons.call_end
-                                          : Icons.call,
-                                      color: Colors.white,
-                                      size: 40,
-                                    ),
-                            ),
-                          ),
-
-                          // Button label
-                          Container(
-                            margin: EdgeInsets.only(top: 8),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black54,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              _isJoiningAsAudioCaller
-                                  ? 'Joining...'
-                                  : _isAudioCaller
-                                  ? 'Leave Call'
-                                  : _canJoinAudioCall()
-                                  ? _getAudioCallerText()
-                                  : 'Call Full',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10.sp,
-                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
