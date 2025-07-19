@@ -10,6 +10,7 @@ import 'package:dlstarlive/features/reels/presentation/pages/reels.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/home/presentation/pages/main_navigation_page.dart';
+import '../features/newsfeed/presentation/pages/newsfeed.dart';
 import '../features/reels/presentation/pages/video_editor_screen.dart';
 import '../features/settings/presentation/pages/settings_page.dart';
 import '../features/auth/presentation/pages/splash_screen.dart';
@@ -36,6 +37,7 @@ class AppRoutes {
   static const String chats = '/chats';
   static const String friendsList = '/friends-list';
   static const String chatSettings = '/chat-settings';
+  static const String newsfeed = '/newsfeed';
 }
 
 final GoRouter appRouter = GoRouter(
@@ -60,6 +62,11 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.home,
       name: 'home',
       builder: (context, state) => const MainNavigationPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.newsfeed,
+      name: 'newsfeed',
+      builder: (context, state) => const NewsfeedPage(),
     ),
     GoRoute(
       path: AppRoutes.settings,
