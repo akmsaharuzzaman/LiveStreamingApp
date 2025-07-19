@@ -392,6 +392,23 @@ class _GoliveScreenState extends State<GoliveScreen> {
   int _viewerCount = 0;
   bool _isInitializingCamera = false;
 
+  Future<void> _applyCameraPreference() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      bool isFrontCamera = prefs.getBool('is_front_camera') ?? true;
+
+      // If the saved preference is for rear camera, switch to it
+      if (!isFrontCamera) {
+        await _engine.switchCamera();
+        debugPrint('Applied camera preference: Rear camera');
+      } else {
+        debugPrint('Applied camera preference: Front camera');
+      }
+    } catch (e) {
+      debugPrint('Error applying camera preference: $e');
+    }
+  }
+
   Future<void> initAgora() async {
     try {
       setState(() {
@@ -444,6 +461,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
       setState(() {
         _isInitializingCamera = false;
       });
+
+      // Load camera preference and apply it
+      await _applyCameraPreference();
     } catch (e) {
       debugPrint('❌ Error in initAgora: $e');
       _showSnackBar('❌ Failed to initialize live streaming', Colors.red);

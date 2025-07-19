@@ -1,7 +1,9 @@
 import 'package:dlstarlive/features/home/presentation/pages/home_page.dart';
 import 'package:dlstarlive/features/newsfeed/presentation/pages/newsfeed.dart';
+import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../live/presentation/pages/live_page.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
@@ -20,7 +22,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   final List<Widget> _pages = [
     const HomePage(),
     const NewsfeedPage(),
-    const LivePage(),
+    const SizedBox(),
     const ChatPage(),
     const ProfilePage(),
   ];
@@ -46,6 +48,11 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
           currentIndex: _currentIndex,
           onTap: (index) {
             setState(() {
+              if (index == 2) {
+                // Skip the middle item (Live Stream)
+                context.push(AppRoutes.live);
+                return;
+              }
               _currentIndex = index;
             });
           },
