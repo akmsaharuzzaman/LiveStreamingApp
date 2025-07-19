@@ -2,6 +2,10 @@ import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:dlstarlive/core/utils/permission_helper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LivePage extends StatefulWidget {
   const LivePage({super.key});
@@ -17,6 +21,117 @@ class _LivePageState extends State<LivePage> {
   bool isPasswordEnabled = false;
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  
+  // Camera related variables
+  late RtcEngine _engine;
+  bool _isCameraInitialized = false;
+  bool _isFrontCamera = true;
+  bool _isInitializingCamera = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeCamera();
+  }
+
+  Future<void> _initializeCamera() async {
+    try {
+      setState(() {
+        _isInitializingCamera = true;
+      });
+
+      // Check permissions
+      bool hasPermissions = await PermissionHelper.hasLiveStreamPermissions();
+      if (!hasPermissions) {
+        bool granted = await PermissionHelper.requestLiveStreamPermissions();
+        if (!granted) {
+          setState(() {
+            _isInitializingCamera = false;
+          });
+          return;
+        }
+      }
+
+      // Initialize Agora engine
+      _engine = createAgoraRtcEngine();
+      await _engine.initialize(
+        RtcEngineContext(
+          appId: dotenv.env['AGORA_APP_ID'] ?? '',
+          channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
+        ),
+      );
+
+      await _engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
+      await _engine.enableVideo();
+      await _engine.startPreview();
+
+      setState(() {
+        _isCameraInitialized = true;
+        _isInitializingCamera = false;
+      });
+
+      // Save camera preference
+      await _saveCameraPreference(_isFrontCamera);
+    } catch (e) {
+      debugPrint('Error initializing camera: $e');
+      setState(() {
+        _isInitializingCamera = false;
+      });
+    }
+  }
+
+  Future<void> _flipCamera() async {
+    if (_isCameraInitialized) {
+      try {
+        await _engine.switchCamera();
+        setState(() {
+          _isFrontCamera = !_isFrontCamera;
+        });
+        
+        // Save camera preference
+        await _saveCameraPreference(_isFrontCamera);
+      } catch (e) {
+        debugPrint('Error flipping camera: $e');
+      }
+    }
+  }
+
+  Future<void> _saveCameraPreference(bool isFrontCamera) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_front_camera', isFrontCamera);
+  }
+
+  Widget _buildCameraPreview() {
+    if (_isInitializingCamera) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: CircularProgressIndicator(
+            color: Colors.white,
+          ),
+        ),
+      );
+    }
+
+    if (!_isCameraInitialized) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: Text(
+            'Camera not available',
+            style: TextStyle(color: Colors.white, fontSize: 16),
+          ),
+        ),
+      );
+    }
+
+    return AgoraVideoView(
+      controller: VideoViewController(
+        rtcEngine: _engine,
+        canvas: const VideoCanvas(uid: 0),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
