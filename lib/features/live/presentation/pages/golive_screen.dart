@@ -547,7 +547,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                 if (state == RemoteVideoState.remoteVideoStateStarting ||
                     state == RemoteVideoState.remoteVideoStateDecoding) {
                   // User enabled video
-                  if (!_videoCallerUids.contains(remoteUid) && 
+                  if (!_videoCallerUids.contains(remoteUid) &&
                       remoteUid != _remoteUid) {
                     _videoCallerUids.add(remoteUid);
                     debugPrint("Added video caller: $remoteUid");
@@ -556,7 +556,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                   // User disabled video
                   _videoCallerUids.remove(remoteUid);
                   debugPrint("Removed video caller: $remoteUid");
-                  
+
                   // Add to audio callers if they're still broadcasting audio
                   if (!_audioCallerUids.contains(remoteUid) &&
                       remoteUid != _remoteUid &&
@@ -819,7 +819,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
       }
 
       if (!_isAudioCaller) {
-        _showSnackBar('🎤 Only audio callers can control camera', Colors.orange);
+        _showSnackBar(
+          '🎤 Only audio callers can control camera',
+          Colors.orange,
+        );
         return;
       }
 
@@ -833,7 +836,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
       if (isCameraEnabled) {
         debugPrint('📷 Camera turned on');
-        _showSnackBar('📷 Camera turned on - You are now visible!', Colors.green);
+        _showSnackBar(
+          '📷 Camera turned on - You are now visible!',
+          Colors.green,
+        );
       } else {
         debugPrint('📷 Camera turned off');
         _showSnackBar('📷 Camera turned off - Audio only mode', Colors.orange);
@@ -857,7 +863,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
       // Configure media settings for audio caller
       await _engine.enableLocalAudio(true); // Enable audio publishing
       await _engine.enableLocalVideo(false); // Start with video disabled
-      await _engine.muteLocalVideoStream(true); // Ensure video is muted initially
+      await _engine.muteLocalVideoStream(
+        true,
+      ); // Ensure video is muted initially
       await _engine.muteLocalAudioStream(false); // Unmute microphone
 
       // Reset camera state to false for audio callers
@@ -884,6 +892,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
       await _engine.enableLocalAudio(false); // Disable audio publishing
       await _engine.enableLocalVideo(false); // Keep video disabled for audience
       await _engine.muteLocalAudioStream(true); // Mute microphone
+
+      // Reset camera state
+      setState(() {
+        isCameraEnabled = false;
+      });
 
       debugPrint(
         "✅ Switched back to audience role without channel interruption",
@@ -952,7 +965,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
       setState(() {
         _isAudioCaller = false;
         _audioCallerUids.clear();
+        _videoCallerUids.clear();
         _isJoiningAsAudioCaller = false;
+        isCameraEnabled = false;
       });
 
       if (isHost) {
@@ -1426,10 +1441,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
     );
   }
 
-  // Main video view
+  // Main video view with multi-broadcaster support
   Widget _buildVideoView() {
     debugPrint(
-      "Building video view - isHost: $isHost, _localUserJoined: $_localUserJoined, _remoteUid: $_remoteUid, _isInitializingCamera: $_isInitializingCamera",
+      "Building video view - isHost: $isHost, _localUserJoined: $_localUserJoined, _remoteUid: $_remoteUid, video callers: ${_videoCallerUids.length}",
     );
 
     // Show loading indicator during camera initialization
@@ -1462,50 +1477,59 @@ class _GoliveScreenState extends State<GoliveScreen> {
     }
 
     if (isHost) {
-      // Show local video for broadcaster
-      return _localUserJoined
-          ? AgoraVideoView(
-              controller: VideoViewController(
-                rtcEngine: _engine,
-                canvas: const VideoCanvas(uid: 0),
-              ),
-            )
-          : Container(
-              color: Colors.black,
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(color: Colors.white),
-                    SizedBox(height: 20),
-                    Text(
-                      '📡 Connecting to stream...',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
+      // Host view with multi-broadcaster layout
+      return _buildHostMultiView();
     } else {
-      // Show remote video for viewers
-      return _remoteVideo();
+      // Audience view with multi-broadcaster layout
+      return _buildAudienceMultiView();
     }
   }
 
-  Widget _remoteVideo() {
-    if (_remoteUid != null) {
-      return AgoraVideoView(
-        controller: VideoViewController.remote(
-          rtcEngine: _engine,
-          canvas: VideoCanvas(uid: _remoteUid),
-          connection: RtcConnection(channelId: roomId), // Use dynamic roomId
+  /// Build multi-broadcaster view for host
+  Widget _buildHostMultiView() {
+    // Get all video broadcasters (video callers)
+    List<int> allVideoBroadcasters = [
+      if (_localUserJoined) 0, // Host's own video (UID 0)
+      ..._videoCallerUids, // Video callers
+    ];
+
+    if (allVideoBroadcasters.isEmpty || !_localUserJoined) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Colors.white),
+              SizedBox(height: 20),
+              Text(
+                '📡 Connecting to stream...',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         ),
       );
-    } else {
+    }
+
+    return _buildMultiVideoLayout(allVideoBroadcasters, isHostView: true);
+  }
+
+  /// Build multi-broadcaster view for audience
+  Widget _buildAudienceMultiView() {
+    // Get all video broadcasters
+    List<int> allVideoBroadcasters = [
+      if (_remoteUid != null) _remoteUid!, // Host video
+      ..._videoCallerUids, // Video callers
+      if (_isAudioCaller && isCameraEnabled)
+        0, // Own video if audio caller with camera on
+    ];
+
+    if (allVideoBroadcasters.isEmpty) {
       return Container(
         color: Colors.black,
         child: const Center(
@@ -1534,6 +1558,182 @@ class _GoliveScreenState extends State<GoliveScreen> {
         ),
       );
     }
+
+    return _buildMultiVideoLayout(allVideoBroadcasters, isHostView: false);
+  }
+
+  /// Build dynamic multi-video layout based on number of broadcasters
+  Widget _buildMultiVideoLayout(
+    List<int> broadcasterUids, {
+    required bool isHostView,
+  }) {
+    int broadcasterCount = broadcasterUids.length;
+
+    debugPrint(
+      "Building layout for $broadcasterCount broadcasters: $broadcasterUids",
+    );
+
+    if (broadcasterCount == 1) {
+      // Single broadcaster - full screen
+      return _buildSingleVideoView(broadcasterUids[0], isHostView: isHostView);
+    } else if (broadcasterCount == 2) {
+      // Two broadcasters - split screen
+      return _buildTwoBroadcasterLayout(
+        broadcasterUids,
+        isHostView: isHostView,
+      );
+    } else if (broadcasterCount == 3) {
+      // Three broadcasters - main + 2 small
+      return _buildThreeBroadcasterLayout(
+        broadcasterUids,
+        isHostView: isHostView,
+      );
+    } else if (broadcasterCount >= 4) {
+      // Four or more broadcasters - grid layout
+      return _buildFourBroadcasterLayout(
+        broadcasterUids,
+        isHostView: isHostView,
+      );
+    }
+
+    return Container(color: Colors.black); // Fallback
+  }
+
+  /// Single broadcaster view
+  Widget _buildSingleVideoView(int uid, {required bool isHostView}) {
+    if (uid == 0) {
+      // Local video (host or audio caller with camera)
+      return AgoraVideoView(
+        controller: VideoViewController(
+          rtcEngine: _engine,
+          canvas: const VideoCanvas(uid: 0),
+        ),
+      );
+    } else {
+      // Remote video
+      return AgoraVideoView(
+        controller: VideoViewController.remote(
+          rtcEngine: _engine,
+          canvas: VideoCanvas(uid: uid),
+          connection: RtcConnection(channelId: roomId),
+        ),
+      );
+    }
+  }
+
+  /// Two broadcaster layout - split screen
+  Widget _buildTwoBroadcasterLayout(
+    List<int> uids, {
+    required bool isHostView,
+  }) {
+    return Column(
+      children: [
+        Expanded(child: _buildSingleVideoView(uids[0], isHostView: isHostView)),
+        Container(height: 2, color: Colors.white24), // Separator
+        Expanded(child: _buildSingleVideoView(uids[1], isHostView: isHostView)),
+      ],
+    );
+  }
+
+  /// Three broadcaster layout - main view + 2 small views
+  Widget _buildThreeBroadcasterLayout(
+    List<int> uids, {
+    required bool isHostView,
+  }) {
+    return Stack(
+      children: [
+        // Main video (first broadcaster - usually host)
+        _buildSingleVideoView(uids[0], isHostView: isHostView),
+
+        // Small video views on the right
+        Positioned(
+          top: 100,
+          right: 10,
+          child: Column(
+            children: [
+              Container(
+                width: 120,
+                height: 160,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white, width: 2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: _buildSingleVideoView(uids[1], isHostView: isHostView),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                width: 120,
+                height: 160,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white, width: 2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: _buildSingleVideoView(uids[2], isHostView: isHostView),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Four+ broadcaster layout - 2x2 grid
+  Widget _buildFourBroadcasterLayout(
+    List<int> uids, {
+    required bool isHostView,
+  }) {
+    // Take first 4 broadcasters for grid layout
+    List<int> gridUids = uids.take(4).toList();
+
+    return Column(
+      children: [
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: _buildSingleVideoView(
+                  gridUids[0],
+                  isHostView: isHostView,
+                ),
+              ),
+              Container(width: 2, color: Colors.white24), // Vertical separator
+              Expanded(
+                child: _buildSingleVideoView(
+                  gridUids[1],
+                  isHostView: isHostView,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(height: 2, color: Colors.white24), // Horizontal separator
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: _buildSingleVideoView(
+                  gridUids[2],
+                  isHostView: isHostView,
+                ),
+              ),
+              Container(width: 2, color: Colors.white24), // Vertical separator
+              Expanded(
+                child: _buildSingleVideoView(
+                  gridUids.length > 3 ? gridUids[3] : gridUids[0],
+                  isHostView: isHostView,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   @override
