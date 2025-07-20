@@ -398,6 +398,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   final List<int> _audioCallerUids = [];
   final int _maxAudioCallers = 3;
   bool _isJoiningAsAudioCaller = false;
+  bool isCameraEnabled = false;
 
   Future<void> _applyCameraPreference() async {
     try {
@@ -797,17 +798,42 @@ class _GoliveScreenState extends State<GoliveScreen> {
     return 'Audio Call (${_audioCallerUids.length}/$_maxAudioCallers)';
   }
 
+  /// Switch Camera
+  Future<void> _turnOnOffCamera() async {
+    try {
+      if (_isInitializingCamera) {
+        debugPrint('Camera is still initializing, please wait...');
+        return;
+      }
+
+      // Toggle camera state
+      await _engine.enableLocalVideo(!isCameraEnabled);
+
+      if (isCameraEnabled) {
+        debugPrint('📷 Camera turned off');
+        _showSnackBar('📷 Camera turned off', Colors.orange);
+      } else {
+        debugPrint('📷 Camera turned on');
+        _showSnackBar('📷 Camera turned on', Colors.green);
+      }
+    } catch (e) {
+      debugPrint('❌ Error toggling camera: $e');
+      _showSnackBar('❌ Failed to toggle camera', Colors.red);
+    }
+  }
+
   /// Optimized role switching without channel interruption
   Future<void> _switchToAudioCaller() async {
     try {
+      isCameraEnabled = false; // Disable camera for audio caller
       // Set role to broadcaster to enable audio publishing
       await _engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
 
       // Configure media settings for audio caller
       await _engine.enableLocalAudio(true); // Enable audio publishing
       await _engine.enableLocalVideo(false); // Disable video publishing
-      await _engine.muteLocalAudioStream(false); // Unmute microphone
       await _engine.muteLocalVideoStream(true); // Ensure video is muted
+      await _engine.muteLocalAudioStream(false); // Unmute microphone
 
       debugPrint(
         "✅ Switched to audio caller role without channel interruption",
@@ -1251,6 +1277,35 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               ),
                             ),
 
+                          // Camera toggle button
+                          if (_isAudioCaller)
+                            GestureDetector(
+                              onTap: () {
+                                _turnOnOffCamera();
+                                debugPrint("Camera toggled");
+                              },
+                              child: Container(
+                                height: 40.h,
+                                width: 40.w,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(8.r),
+                                  ),
+                                  color: isCameraEnabled
+                                      ? Colors.orange
+                                      : Colors.grey,
+                                ),
+                                child: Icon(
+                                  isCameraEnabled
+                                      ? Icons.videocam
+                                      : Icons.videocam_off,
+                                  color: Colors.white,
+                                  size: 24.sp,
+                                ),
+                              ),
+                            ),
+                          SizedBox(height: 10.h),
                           // Main call button
                           GestureDetector(
                             onTap: () {
