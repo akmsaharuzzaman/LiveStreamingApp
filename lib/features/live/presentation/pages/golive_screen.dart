@@ -396,6 +396,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   // Audio caller feature variables
   bool _isAudioCaller = false;
   final List<int> _audioCallerUids = [];
+  final List<int> _videoCallerUids = []; // Track callers with video enabled
   final int _maxAudioCallers = 3;
   bool _isJoiningAsAudioCaller = false;
   bool isCameraEnabled = false;
@@ -542,21 +543,31 @@ class _GoliveScreenState extends State<GoliveScreen> {
                 "Remote video state changed for UID $remoteUid: $state",
               );
 
-              // If remote video is disabled, this might be an audio caller
-              if (state == RemoteVideoState.remoteVideoStateStopped ||
-                  state == RemoteVideoState.remoteVideoStateStarting) {
-                setState(() {
-                  // Add to audio callers if not already present and not the host
+              setState(() {
+                if (state == RemoteVideoState.remoteVideoStateStarting ||
+                    state == RemoteVideoState.remoteVideoStateDecoding) {
+                  // User enabled video
+                  if (!_videoCallerUids.contains(remoteUid) && 
+                      remoteUid != _remoteUid) {
+                    _videoCallerUids.add(remoteUid);
+                    debugPrint("Added video caller: $remoteUid");
+                  }
+                } else if (state == RemoteVideoState.remoteVideoStateStopped) {
+                  // User disabled video
+                  _videoCallerUids.remove(remoteUid);
+                  debugPrint("Removed video caller: $remoteUid");
+                  
+                  // Add to audio callers if they're still broadcasting audio
                   if (!_audioCallerUids.contains(remoteUid) &&
                       remoteUid != _remoteUid &&
                       _audioCallerUids.length < _maxAudioCallers) {
                     _audioCallerUids.add(remoteUid);
                     debugPrint(
-                      "Added audio caller: $remoteUid, total: ${_audioCallerUids.length}",
+                      "Added to audio callers after video disabled: $remoteUid",
                     );
                   }
-                });
-              }
+                }
+              });
             },
         onRemoteAudioStateChanged:
             (
@@ -599,8 +610,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
             ) {
               debugPrint("remote user $remoteUid left channel");
               setState(() {
-                // Remove from audio callers if they were audio caller
+                // Remove from both audio and video callers if they were callers
                 _audioCallerUids.remove(remoteUid);
+                _videoCallerUids.remove(remoteUid);
 
                 // Only set _remoteUid to null if it was the host who left
                 if (_remoteUid == remoteUid) {
@@ -806,34 +818,52 @@ class _GoliveScreenState extends State<GoliveScreen> {
         return;
       }
 
+      if (!_isAudioCaller) {
+        _showSnackBar('🎤 Only audio callers can control camera', Colors.orange);
+        return;
+      }
+
       // Toggle camera state
-      await _engine.enableLocalVideo(!isCameraEnabled);
+      setState(() {
+        isCameraEnabled = !isCameraEnabled;
+      });
+
+      await _engine.enableLocalVideo(isCameraEnabled);
+      await _engine.muteLocalVideoStream(!isCameraEnabled);
 
       if (isCameraEnabled) {
-        debugPrint('📷 Camera turned off');
-        _showSnackBar('📷 Camera turned off', Colors.orange);
-      } else {
         debugPrint('📷 Camera turned on');
-        _showSnackBar('📷 Camera turned on', Colors.green);
+        _showSnackBar('📷 Camera turned on - You are now visible!', Colors.green);
+      } else {
+        debugPrint('📷 Camera turned off');
+        _showSnackBar('📷 Camera turned off - Audio only mode', Colors.orange);
       }
     } catch (e) {
       debugPrint('❌ Error toggling camera: $e');
       _showSnackBar('❌ Failed to toggle camera', Colors.red);
+      // Revert state on error
+      setState(() {
+        isCameraEnabled = !isCameraEnabled;
+      });
     }
   }
 
   /// Optimized role switching without channel interruption
   Future<void> _switchToAudioCaller() async {
     try {
-      isCameraEnabled = false; // Disable camera for audio caller
       // Set role to broadcaster to enable audio publishing
       await _engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
 
       // Configure media settings for audio caller
       await _engine.enableLocalAudio(true); // Enable audio publishing
-      await _engine.enableLocalVideo(false); // Disable video publishing
-      await _engine.muteLocalVideoStream(true); // Ensure video is muted
+      await _engine.enableLocalVideo(false); // Start with video disabled
+      await _engine.muteLocalVideoStream(true); // Ensure video is muted initially
       await _engine.muteLocalAudioStream(false); // Unmute microphone
+
+      // Reset camera state to false for audio callers
+      setState(() {
+        isCameraEnabled = false;
+      });
 
       debugPrint(
         "✅ Switched to audio caller role without channel interruption",
