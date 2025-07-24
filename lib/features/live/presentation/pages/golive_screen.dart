@@ -167,61 +167,21 @@ class _GoliveScreenState extends State<GoliveScreen> {
           }
         });
 
-    // Room events
-    _roomCreatedSubscription = _socketService.roomCreatedStream.listen((
-      roomId,
-    ) {
-      if (mounted) {
-        // _showSnackBar('🏠 Room created: $roomId', Colors.blue);
-        debugPrint("🏠 Room created: $roomId");
-        setState(() {
-          _currentRoomId = roomId;
-        });
-      }
-    });
-
-    _roomDeletedSubscription = _socketService.roomDeletedStream.listen((
-      roomId,
-    ) {
-      if (mounted) {
-        // _showSnackBar('🗑️ Room deleted: $roomId', Colors.orange);
-        debugPrint("🗑️ Room deleted: $roomId");
-        if (_currentRoomId == roomId) {
-          setState(() {
-            _currentRoomId = null;
-          });
-        }
-      }
-    });
-
     // User events
     _socketService.userJoinedStream.listen((data) {
       if (mounted) {
-        final userName = data['userName'] ?? 'Unknown';
-        debugPrint("User joined: $userName , console from UI");
-        // _showSnackBar('👋 $userName joined the stream', Colors.green);
-        debugPrint("👋 $userName joined the stream");
+
       }
     });
 
     _socketService.userLeftStream.listen((data) {
       if (mounted) {
-        final userName = data['userName'] ?? 'Unknown';
-        // _showSnackBar('👋 $userName left the stream', Colors.orange);
-        debugPrint("👋 $userName left the stream");
+
       }
     }); // Room list updates
     _socketService.roomListStream.listen((rooms) {
       if (mounted) {
-        debugPrint("Available rooms: ${rooms.roomIds} from Frontend");
-      }
-    });
 
-    // Error handling
-    _errorSubscription = _socketService.errorStream.listen((error) {
-      if (mounted) {
-        // _showSnackBar('❌ Error: $error', Colors.red);
-        debugPrint("Error from socket: $error");
       }
     });
 
@@ -258,7 +218,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     final dynamicRoomId = userId!;
     debugPrint('🏠 Creating room with dynamic name: $dynamicRoomId');
 
-    final success = await _socketService.createRoom(dynamicRoomId);
+    final success = await _socketService.createRoom(dynamicRoomId , "Demo Title", RoomType.live);
 
     if (success) {
       setState(() {

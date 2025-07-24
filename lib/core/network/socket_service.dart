@@ -1,7 +1,9 @@
 import 'dart:async';
-import 'package:dlstarlive/features/live/data/models/room_models.dart';
+import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+
+enum RoomType { live, pk, audio, party }
 
 /// Comprehensive Socket Service for Live Streaming
 /// Handles all socket operations including room management and real-time events
@@ -11,26 +13,37 @@ class SocketService {
   bool _isConnected = false;
   String? _currentUserId;
   String? _currentRoomId;
-  // Stream controllers for different events
-  final StreamController<RoomListResponse> _roomListController =
-      StreamController<RoomListResponse>.broadcast();
-  final StreamController<String> _roomCreatedController =
-      StreamController<String>.broadcast();
-  final StreamController<String> _roomDeletedController =
-      StreamController<String>.broadcast();
-  final StreamController<Map<String, dynamic>> _userJoinedController =
+
+  // Stream controllers for the 11 new events
+  final StreamController<Map<String, dynamic>> _errorMessageController =
       StreamController<Map<String, dynamic>>.broadcast();
-  final StreamController<Map<String, dynamic>> _userLeftController =
-      StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<List<String>> _roomClosedController =
+      StreamController<List<String>>.broadcast();
+  final StreamController<List<String>> _userJoinedController =
+      StreamController<List<String>>.broadcast();
+  final StreamController<List<String>> _userLeftController =
+      StreamController<List<String>>.broadcast();
+  final StreamController<List<String>> _joinCallRequestController =
+      StreamController<List<String>>.broadcast();
+  final StreamController<List<String>> _joinCallRequestListController =
+      StreamController<List<String>>.broadcast();
+  final StreamController<List<String>> _acceptCallRequestController =
+      StreamController<List<String>>.broadcast();
+  final StreamController<List<String>> _removeBroadcasterController =
+      StreamController<List<String>>.broadcast();
+  final StreamController<List<String>> _broadcasterListController =
+      StreamController<List<String>>.broadcast();
+  final StreamController<List<String>> _roomListController =
+      StreamController<List<String>>.broadcast();
+  final StreamController<List<GetRoomModel>> _getRoomsController =
+      StreamController<List<GetRoomModel>>.broadcast();
   final StreamController<bool> _connectionStatusController =
       StreamController<bool>.broadcast();
-  final StreamController<String> _errorController =
-      StreamController<String>.broadcast();
 
   // Constants
   static const String _baseUrl = 'http://dlstarlive.com:8000';
 
-  // Event names
+  // Event names - Updated to match your new event structure
   static const String _createRoomEvent = 'create-room';
   static const String _deleteRoomEvent = 'delete-room';
   static const String _joinRoomEvent = 'join-room';
@@ -45,15 +58,25 @@ class SocketService {
 
   SocketService._internal();
 
-  /// Stream getters for listening to events
-  Stream<RoomListResponse> get roomListStream => _roomListController.stream;
-  Stream<String> get roomCreatedStream => _roomCreatedController.stream;
-  Stream<String> get roomDeletedStream => _roomDeletedController.stream;
-  Stream<Map<String, dynamic>> get userJoinedStream =>
-      _userJoinedController.stream;
-  Stream<Map<String, dynamic>> get userLeftStream => _userLeftController.stream;
+  /// Stream getters for listening to the 11 events
+  Stream<Map<String, dynamic>> get errorMessageStream =>
+      _errorMessageController.stream;
+  Stream<List<String>> get roomClosedStream => _roomClosedController.stream;
+  Stream<List<String>> get userJoinedStream => _userJoinedController.stream;
+  Stream<List<String>> get userLeftStream => _userLeftController.stream;
+  Stream<List<String>> get joinCallRequestStream =>
+      _joinCallRequestController.stream;
+  Stream<List<String>> get joinCallRequestListStream =>
+      _joinCallRequestListController.stream;
+  Stream<List<String>> get acceptCallRequestStream =>
+      _acceptCallRequestController.stream;
+  Stream<List<String>> get removeBroadcasterStream =>
+      _removeBroadcasterController.stream;
+  Stream<List<String>> get broadcasterListStream =>
+      _broadcasterListController.stream;
+  Stream<List<String>> get roomListStream => _roomListController.stream;
+  Stream<List<GetRoomModel>> get getRoomsStream => _getRoomsController.stream;
   Stream<bool> get connectionStatusStream => _connectionStatusController.stream;
-  Stream<String> get errorStream => _errorController.stream;
 
   /// Getters
   bool get isConnected => _isConnected;
@@ -114,7 +137,10 @@ class SocketService {
         if (kDebugMode) {
           print('❌ Socket connection error: $error');
         }
-        _errorController.add('Connection failed: $error');
+        _errorMessageController.add({
+          'status': 'error',
+          'message': 'Connection failed: $error',
+        });
         if (!completer.isCompleted) {
           completer.complete(false);
         }
@@ -129,7 +155,10 @@ class SocketService {
           if (kDebugMode) {
             print('⏰ Socket connection timeout');
           }
-          _errorController.add('Connection timeout');
+          _errorMessageController.add({
+            'status': 'error',
+            'message': 'Connection timeout',
+          });
           return false;
         },
       );
@@ -137,14 +166,17 @@ class SocketService {
       if (kDebugMode) {
         print('💥 Socket connection exception: $e');
       }
-      _errorController.add('Connection exception: $e');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Connection exception: $e',
+      });
       return false;
     }
   }
 
   /// Setup socket event listeners
   void _setupSocketListeners() {
-    print('🔧 Setting up socket listeners');
+    debugPrint('🔧 Setting up socket listeners');
     if (_socket == null) return;
 
     // Connection events
@@ -168,25 +200,28 @@ class SocketService {
       if (kDebugMode) {
         print('❌ Socket reconnection error: $error');
       }
-      _errorController.add('Reconnection failed: $error');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Reconnection failed: $error',
+      });
     });
 
-    // Room events
-    _socket!.on('room-created', (data) {
+    // The 11 new events
+    _socket!.on('error-message', (data) {
       if (kDebugMode) {
-        print('🏠 Room created: $data');
+        print('❌ Error message: $data');
       }
-      if (data is String) {
-        _roomCreatedController.add(data);
+      if (data is Map<String, dynamic>) {
+        _errorMessageController.add(data);
       }
     });
 
-    _socket!.on('room-deleted', (data) {
+    _socket!.on('room-closed', (data) {
       if (kDebugMode) {
-        print('🗑️ Room deleted: $data');
+        print('� Room closed: $data');
       }
-      if (data is String) {
-        _roomDeletedController.add(data);
+      if (data is List) {
+        _roomClosedController.add(List<String>.from(data));
       }
     });
 
@@ -194,8 +229,8 @@ class SocketService {
       if (kDebugMode) {
         print('👋 User joined: $data');
       }
-      if (data is Map<String, dynamic>) {
-        _userJoinedController.add(data);
+      if (data is List) {
+        _userJoinedController.add(List<String>.from(data));
       }
     });
 
@@ -203,36 +238,71 @@ class SocketService {
       if (kDebugMode) {
         print('👋 User left: $data');
       }
-      if (data is Map<String, dynamic>) {
-        _userLeftController.add(data);
+      if (data is List) {
+        _userLeftController.add(List<String>.from(data));
       }
     });
+
+    _socket!.on('join-call-request', (data) {
+      if (kDebugMode) {
+        print('� Join call request: $data');
+      }
+      if (data is List) {
+        _joinCallRequestController.add(List<String>.from(data));
+      }
+    });
+
+    _socket!.on('join-call-request-list', (data) {
+      if (kDebugMode) {
+        print('📞 Join call request list: $data');
+      }
+      if (data is List) {
+        _joinCallRequestListController.add(List<String>.from(data));
+      }
+    });
+
+    _socket!.on('accept-call-request', (data) {
+      if (kDebugMode) {
+        print('✅ Accept call request: $data');
+      }
+      if (data is List) {
+        _acceptCallRequestController.add(List<String>.from(data));
+      }
+    });
+
+    _socket!.on('remove-broadcaster', (data) {
+      if (kDebugMode) {
+        print('🚫 Remove broadcaster: $data');
+      }
+      if (data is List) {
+        _removeBroadcasterController.add(List<String>.from(data));
+      }
+    });
+
+    _socket!.on('broadcaster-list', (data) {
+      if (kDebugMode) {
+        print('📺 Broadcaster list: $data');
+      }
+      if (data is List) {
+        _broadcasterListController.add(List<String>.from(data));
+      }
+    });
+
     _socket!.on('room-list', (data) {
       if (kDebugMode) {
-        print('📋 Rooms list received: $data');
+        print('📋 Room list: $data');
       }
+      if (data is List) {
+        _roomListController.add(List<String>.from(data));
+      }
+    });
 
-      try {
-        if (data is Map<String, dynamic>) {
-          // Parse the new room list format
-          final roomListResponse = RoomListResponse.fromJson(data);
-          _roomListController.add(roomListResponse);
-        } else {
-          // Handle legacy format (fallback)
-          if (kDebugMode) {
-            print('⚠️ Received legacy room list format');
-          }
-          final emptyResponse = RoomListResponse(rooms: {});
-          _roomListController.add(emptyResponse);
-        }
-      } catch (e) {
-        if (kDebugMode) {
-          print('❌ Error parsing room list: $e');
-        }
-        _errorController.add('Failed to parse room list: $e');
-        // Send empty response on error
-        final emptyResponse = RoomListResponse(rooms: {});
-        _roomListController.add(emptyResponse);
+    _socket!.on('get-rooms', (data) {
+      if (kDebugMode) {
+        print('� Get rooms response: $data');
+      }
+      if (data is List) {
+        _getRoomsController.add(GetRoomModel.listFromJson(data));
       }
     });
 
@@ -241,20 +311,10 @@ class SocketService {
       if (kDebugMode) {
         print('❌ Socket error: $error');
       }
-      _errorController.add('Socket error: $error');
-    });
-
-    // Custom events for live streaming
-    _socket!.on('stream-started', (data) {
-      if (kDebugMode) {
-        print('🎥 Stream started: $data');
-      }
-    });
-
-    _socket!.on('stream-ended', (data) {
-      if (kDebugMode) {
-        print('🛑 Stream ended: $data');
-      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket error: $error',
+      });
     });
 
     _socket!.on('viewer-count-updated', (data) {
@@ -264,10 +324,15 @@ class SocketService {
     });
   }
 
+  
+
   /// Create a new room
-  Future<bool> createRoom(String roomId) async {
+  Future<bool> createRoom(String roomId, String title,RoomType roomType) async {
     if (!_isConnected || _socket == null) {
-      _errorController.add('Socket not connected');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
       return false;
     }
 
@@ -276,14 +341,21 @@ class SocketService {
         print('🏠 Creating room: $roomId');
       }
 
-      _socket!.emit(_createRoomEvent, roomId);
+      _socket!.emit(_createRoomEvent, {
+        'roomId': roomId,
+        'title': title,
+        'roomType': roomType.toString().split('.').last, // Convert enum to string
+      });
       _currentRoomId = roomId;
       return true;
     } catch (e) {
       if (kDebugMode) {
         print('❌ Error creating room: $e');
       }
-      _errorController.add('Failed to create room: $e');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to create room: $e',
+      });
       return false;
     }
   }
@@ -291,7 +363,10 @@ class SocketService {
   /// Delete a room (only host can delete)
   Future<bool> deleteRoom(String roomId) async {
     if (!_isConnected || _socket == null) {
-      _errorController.add('Socket not connected');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
       return false;
     }
 
@@ -311,7 +386,10 @@ class SocketService {
       if (kDebugMode) {
         print('❌ Error deleting room: $e');
       }
-      _errorController.add('Failed to delete room: $e');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to delete room: $e',
+      });
       return false;
     }
   }
@@ -319,7 +397,10 @@ class SocketService {
   /// Join a room
   Future<bool> joinRoom(String roomId) async {
     if (!_isConnected || _socket == null) {
-      _errorController.add('Socket not connected');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
       return false;
     }
 
@@ -328,14 +409,19 @@ class SocketService {
         print('🚪 Joining room: $roomId');
       }
 
-      _socket!.emit(_joinRoomEvent, roomId);
+      _socket!.emit(_joinRoomEvent, {
+        'roomId': roomId,
+      });
       _currentRoomId = roomId;
       return true;
     } catch (e) {
       if (kDebugMode) {
         print('❌ Error joining room: $e');
       }
-      _errorController.add('Failed to join room: $e');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to join room: $e',
+      });
       return false;
     }
   }
@@ -343,7 +429,10 @@ class SocketService {
   /// Leave a room
   Future<bool> leaveRoom(String roomId) async {
     if (!_isConnected || _socket == null) {
-      _errorController.add('Socket not connected');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
       return false;
     }
 
@@ -363,7 +452,10 @@ class SocketService {
       if (kDebugMode) {
         print('❌ Error leaving room: $e');
       }
-      _errorController.add('Failed to leave room: $e');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to leave room: $e',
+      });
       return false;
     }
   }
@@ -371,7 +463,10 @@ class SocketService {
   /// Get list of all rooms
   Future<bool> getRooms() async {
     if (!_isConnected || _socket == null) {
-      _errorController.add('Socket not connected');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
       return false;
     }
 
@@ -386,7 +481,10 @@ class SocketService {
       if (kDebugMode) {
         print('❌ Error getting rooms: $e');
       }
-      _errorController.add('Failed to get rooms: $e');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to get rooms: $e',
+      });
       return false;
     }
   }
@@ -394,7 +492,10 @@ class SocketService {
   /// Send custom event
   void emit(String event, [dynamic data]) {
     if (!_isConnected || _socket == null) {
-      _errorController.add('Socket not connected');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
       return;
     }
 
@@ -412,14 +513,20 @@ class SocketService {
       if (kDebugMode) {
         print('❌ Error emitting event: $e');
       }
-      _errorController.add('Failed to emit event: $e');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to emit event: $e',
+      });
     }
   }
 
   /// Listen to custom events
   void on(String event, Function(dynamic) callback) {
     if (_socket == null) {
-      _errorController.add('Socket not initialized');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not initialized',
+      });
       return;
     }
 
@@ -469,14 +576,19 @@ class SocketService {
   void dispose() {
     disconnect();
 
-    // Close all stream controllers
-    _roomListController.close();
-    _roomCreatedController.close();
-    _roomDeletedController.close();
+    // Close all stream controllers for the 11 new events
+    _errorMessageController.close();
+    _roomClosedController.close();
     _userJoinedController.close();
     _userLeftController.close();
+    _joinCallRequestController.close();
+    _joinCallRequestListController.close();
+    _acceptCallRequestController.close();
+    _removeBroadcasterController.close();
+    _broadcasterListController.close();
+    _roomListController.close();
+    _getRoomsController.close();
     _connectionStatusController.close();
-    _errorController.close();
 
     _instance = null;
   }
@@ -489,7 +601,10 @@ class SocketService {
   /// Reconnect if disconnected
   Future<bool> reconnect() async {
     if (_currentUserId == null) {
-      _errorController.add('No user ID available for reconnection');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'No user ID available for reconnection',
+      });
       return false;
     }
 
@@ -504,21 +619,30 @@ class SocketService {
     return [];
   }
 
-  /// Helper method to get room data by ID from the latest room list response
-  RoomData? getRoomData(String roomId) {
-    // This would need to be implemented based on how you store the latest room list
-    // For now, returning null
-    return null;
+  /// New methods for the updated socket events
+
+  /// Send join call request
+  void sendJoinCallRequest(String roomId, String userId) {
+    emit('join-call-request', {'roomId': roomId, 'userId': userId});
   }
 
-  /// Helper method to check if user can join a specific room
-  bool canUserJoinRoom(String roomId, String userId) {
-    final roomData = getRoomData(roomId);
-    if (roomData == null) return false;
+  /// Send accept call request
+  void sendAcceptCallRequest(String roomId, String userId) {
+    emit('accept-call-request', {'roomId': roomId, 'userId': userId});
+  }
 
-    // User cannot join if they are banned
-    if (roomData.isUserBanned(userId)) return false;
+  /// Send remove broadcaster request
+  void sendRemoveBroadcasterRequest(String roomId, String userId) {
+    emit('remove-broadcaster', {'roomId': roomId, 'userId': userId});
+  }
 
-    return true;
+  /// Request broadcaster list for a room
+  void requestBroadcasterList(String roomId) {
+    emit('broadcaster-list', {'roomId': roomId});
+  }
+
+  /// Request join call request list for a room
+  void requestJoinCallRequestList(String roomId) {
+    emit('join-call-request-list', {'roomId': roomId});
   }
 }

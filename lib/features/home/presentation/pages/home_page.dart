@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
+import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:dlstarlive/core/network/socket_service.dart';
-import 'package:dlstarlive/features/live/data/models/room_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -27,11 +27,11 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   final SocketService _socketService = SocketService.instance;
-  RoomListResponse? _availableRooms;
+  List<GetRoomModel>? _availableRooms;
 
   // Stream subscriptions for proper cleanup
   StreamSubscription? _connectionStatusSubscription;
-  StreamSubscription? _roomListSubscription;
+  StreamSubscription? _getRoomListSubscription;
   StreamSubscription? _errorSubscription;
 
   // Tab controller for horizontal sliding tabs
@@ -97,18 +97,14 @@ class _HomePageState extends State<HomePage>
             }
           }
         }); // Room list updates
-    _roomListSubscription = _socketService.roomListStream.listen((rooms) {
+    _getRoomListSubscription = _socketService.getRoomsStream.listen((rooms) {
       if (mounted) {
         setState(() {
           _availableRooms = rooms;
-          debugPrint("Available rooms: ${rooms.roomIds} from Frontend");
+          debugPrint(
+            "Available rooms: ${rooms.map((room) => room.roomId)} from Frontend",
+          );
         });
-      }
-    }); // Error handling
-    _errorSubscription = _socketService.errorStream.listen((error) {
-      if (mounted) {
-        // _showSnackBar('❌ Error: $error', Colors.red);
-        debugPrint("Socket error: $error");
       }
     });
   }
@@ -127,7 +123,7 @@ class _HomePageState extends State<HomePage>
   void dispose() {
     // Cancel all stream subscriptions to prevent setState calls after disposal
     _connectionStatusSubscription?.cancel();
-    _roomListSubscription?.cancel();
+    _getRoomListSubscription?.cancel();
     _errorSubscription?.cancel();
 
     // Dispose tab controller
@@ -321,9 +317,7 @@ class _HomePageState extends State<HomePage>
         //   ),
         // ),
         SizedBox(height: 18.sp),
-        ListLiveStream(
-          availableRooms: _availableRooms ?? RoomListResponse(rooms: {}),
-        ),
+        ListLiveStream(availableRooms: _availableRooms ?? []),
       ],
     );
   }
@@ -356,7 +350,7 @@ class _HomePageState extends State<HomePage>
 }
 
 class ListLiveStream extends StatelessWidget {
-  final RoomListResponse availableRooms;
+  final List<GetRoomModel> availableRooms;
   const ListLiveStream({super.key, required this.availableRooms});
 
   @override
@@ -374,33 +368,24 @@ class ListLiveStream extends StatelessWidget {
           childAspectRatio: 0.70,
         ),
         // itemCount: listLiveStreamFake.length,
-        itemCount: availableRooms.roomIds.length,
+        itemCount: availableRooms.length,
         itemBuilder: (context, index) {
           return LiveStreamCard(
-            liveStreamModel: availableRooms.roomDataList[index],
+            liveStreamModel: availableRooms[index],
             onTap: () {
-              debugPrint(
-                "Live joining Room ID: ${availableRooms.roomIds[index]}",
-              );
+              debugPrint("Live joining Room ID: ${availableRooms[index]}");
               // Navigate to the live stream screen with the room ID using the named route
               context.pushNamed(
                 'onGoingLive',
                 queryParameters: {
-                  'roomId': availableRooms.roomIds[index],
-                  'hostName': availableRooms
-                      .getRoomById(availableRooms.roomIds[index])!
-                      .hostDetails
-                      .name,
-                  'hostUserId': availableRooms
-                      .getRoomById(availableRooms.roomIds[index])!
-                      .hostDetails
-                      .uid,
+                  'roomId': availableRooms[index].roomId,
+                  'hostName':
+                      availableRooms[index].hostDetails?.name ?? 'Unknown Host',
+                  'hostUserId':
+                      availableRooms[index].hostDetails?.uid ?? 'Unknown User',
                   'hostAvatar':
-                      availableRooms
-                          .getRoomById(availableRooms.roomIds[index])!
-                          .hostDetails
-                          .avatar ??
-                      '',
+                      availableRooms[index].hostDetails?.avatar ??
+                      'Unknown Avatar',
                 },
               );
             },
@@ -577,7 +562,7 @@ class UserWidget extends StatelessWidget {
 }
 
 class LiveStreamCard extends StatelessWidget {
-  final RoomData liveStreamModel;
+  final GetRoomModel liveStreamModel;
   final Function() onTap;
   const LiveStreamCard({
     super.key,
@@ -593,7 +578,7 @@ class LiveStreamCard extends StatelessWidget {
         children: [
           CustomNetworkImage(
             urlToImage:
-                liveStreamModel.hostDetails.avatar ??
+                liveStreamModel.hostDetails?.avatar ??
                 'https://cdn.dribbble.com/users/3245638/screenshots/15628559/media/21f20574f74b6d6f8e74f92bde7de2fd.png?compress=1&resize=400x300&vertical=top',
             height: 180.sp,
             shape: BoxShape.rectangle,
@@ -680,7 +665,7 @@ class LiveStreamCard extends StatelessWidget {
                       ],
                     ),
                     Text(
-                      '${liveStreamModel.hostDetails.name} is live now',
+                      '${liveStreamModel.hostDetails?.name ?? 'Unknown Host'} is live now',
                       style: TextStyle(color: Colors.white, fontSize: 11.sp),
                     ),
                   ],
@@ -692,7 +677,7 @@ class LiveStreamCard extends StatelessWidget {
                 children: [
                   CustomNetworkImage(
                     urlToImage:
-                        liveStreamModel.hostDetails.avatar ??
+                        liveStreamModel.hostDetails?.avatar ??
                         'https://cdn.dribbble.com/users/3245638/screenshots/15628559/media/21f20574f74b6d6f8e74f92bde7de2fd.png?compress=1&resize=400x300&vertical=top',
                     height: 30.sp,
                     width: 30.sp,
@@ -704,7 +689,7 @@ class LiveStreamCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          liveStreamModel.hostDetails.name,
+                          liveStreamModel.hostDetails?.name ?? 'Unknown Host',
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.black,
@@ -713,7 +698,7 @@ class LiveStreamCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'ID: ${liveStreamModel.hostDetails.uid.substring(0, 6)}',
+                          'ID: ${liveStreamModel.hostDetails?.uid.substring(0, 6) ?? 'Unknown ID'}',
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.black,
