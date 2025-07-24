@@ -14,6 +14,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/network/models/joined_user_model.dart';
 import '../component/active_viwers.dart';
 import '../component/custom_live_button.dart';
 import '../component/diamond_star_status.dart';
@@ -49,6 +50,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   String? userId;
   bool isHost = true;
   String roomId = "default_channel";
+  List<JoinedUserModel> activeViewers = [];
 
   // Live stream timing
   DateTime? _streamStartTime;
@@ -170,12 +172,15 @@ class _GoliveScreenState extends State<GoliveScreen> {
     // User events
     _socketService.userJoinedStream.listen((data) {
       if (mounted) {
-
+        activeViewers.add(data);
+        debugPrint("User joined: ${data.name} - ${data.uid}");
       }
     });
 
     _socketService.userLeftStream.listen((data) {
       if (mounted) {
+        activeViewers.removeWhere((user) => user.id == data);
+        debugPrint("User left: $data");
 
       }
     }); // Room list updates
@@ -580,7 +585,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
                 }
                 _remoteUsers.remove(remoteUid);
                 _viewerCount = _remoteUsers.length;
-                generateActiveViewers(_viewerCount);
               });
 
               // Update viewer count in Firestore
@@ -1718,17 +1722,5 @@ class _GoliveScreenState extends State<GoliveScreen> {
   Future<void> _dispose() async {
     await _engine.leaveChannel();
     await _engine.release();
-  }
-}
-
-const List<Map<String, String>> activeViewers = [];
-
-void generateActiveViewers(int count) {
-  activeViewers.clear();
-  for (int i = 0; i < count; i++) {
-    activeViewers.add({
-      'dp': 'https://thispersondoesnotexist.com/',
-      'follower': '${(i + 1) * 100}K',
-    });
   }
 }

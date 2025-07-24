@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
+import 'package:dlstarlive/core/network/models/joined_user_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
@@ -19,10 +20,10 @@ class SocketService {
       StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<List<String>> _roomClosedController =
       StreamController<List<String>>.broadcast();
-  final StreamController<List<String>> _userJoinedController =
-      StreamController<List<String>>.broadcast();
-  final StreamController<List<String>> _userLeftController =
-      StreamController<List<String>>.broadcast();
+  final StreamController<JoinedUserModel> _userJoinedController =
+      StreamController<JoinedUserModel>.broadcast();
+  final StreamController<String> _userLeftController =
+      StreamController<String>.broadcast();
   final StreamController<List<String>> _joinCallRequestController =
       StreamController<List<String>>.broadcast();
   final StreamController<List<String>> _joinCallRequestListController =
@@ -62,8 +63,8 @@ class SocketService {
   Stream<Map<String, dynamic>> get errorMessageStream =>
       _errorMessageController.stream;
   Stream<List<String>> get roomClosedStream => _roomClosedController.stream;
-  Stream<List<String>> get userJoinedStream => _userJoinedController.stream;
-  Stream<List<String>> get userLeftStream => _userLeftController.stream;
+  Stream<JoinedUserModel> get userJoinedStream => _userJoinedController.stream;
+  Stream<String> get userLeftStream => _userLeftController.stream;
   Stream<List<String>> get joinCallRequestStream =>
       _joinCallRequestController.stream;
   Stream<List<String>> get joinCallRequestListStream =>
@@ -229,8 +230,8 @@ class SocketService {
       if (kDebugMode) {
         print('👋 User joined: $data');
       }
-      if (data is List) {
-        _userJoinedController.add(List<String>.from(data));
+      if (data is Map<String, dynamic>) {
+        _userJoinedController.add(JoinedUserModel.fromJson(data));
       }
     });
 
@@ -238,8 +239,8 @@ class SocketService {
       if (kDebugMode) {
         print('👋 User left: $data');
       }
-      if (data is List) {
-        _userLeftController.add(List<String>.from(data));
+      if (data is String) {
+        _userLeftController.add(data);
       }
     });
 
@@ -316,18 +317,14 @@ class SocketService {
         'message': 'Socket error: $error',
       });
     });
-
-    _socket!.on('viewer-count-updated', (data) {
-      if (kDebugMode) {
-        print('👥 Viewer count updated: $data');
-      }
-    });
   }
 
-  
-
   /// Create a new room
-  Future<bool> createRoom(String roomId, String title,RoomType roomType) async {
+  Future<bool> createRoom(
+    String roomId,
+    String title,
+    RoomType roomType,
+  ) async {
     if (!_isConnected || _socket == null) {
       _errorMessageController.add({
         'status': 'error',
@@ -344,7 +341,10 @@ class SocketService {
       _socket!.emit(_createRoomEvent, {
         'roomId': roomId,
         'title': title,
-        'roomType': roomType.toString().split('.').last, // Convert enum to string
+        'roomType': roomType
+            .toString()
+            .split('.')
+            .last, // Convert enum to string
       });
       _currentRoomId = roomId;
       return true;
@@ -409,9 +409,7 @@ class SocketService {
         print('🚪 Joining room: $roomId');
       }
 
-      _socket!.emit(_joinRoomEvent, {
-        'roomId': roomId,
-      });
+      _socket!.emit(_joinRoomEvent, {'roomId': roomId});
       _currentRoomId = roomId;
       return true;
     } catch (e) {

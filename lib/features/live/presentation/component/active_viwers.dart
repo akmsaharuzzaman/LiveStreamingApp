@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/network/models/joined_user_model.dart';
+
 class ActiveViewers extends StatelessWidget {
   const ActiveViewers({super.key, required this.activeUserList});
-  final List<Map<String, String>> activeUserList;
+  final List<JoinedUserModel> activeUserList;
 
   @override
   Widget build(BuildContext context) {
@@ -25,9 +27,7 @@ class ActiveViewers extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 18,
-                      child: Image.network(
-                        "https://thispersondoesnotexist.com/",
-                      ),
+                      child: Image.network(user.avatar, fit: BoxFit.cover),
                     ),
                     // to show the follower count
                     Positioned(
@@ -41,7 +41,7 @@ class ActiveViewers extends StatelessWidget {
                         ),
                         child: Center(
                           child: Text(
-                            user["follower"],
+                            "2K",
                             style: TextStyle(fontSize: 10, color: Colors.white),
                           ),
                         ),
