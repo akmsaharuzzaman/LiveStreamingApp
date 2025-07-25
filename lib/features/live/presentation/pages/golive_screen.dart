@@ -172,7 +172,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
     // User events
     _socketService.userJoinedStream.listen((data) {
       if (mounted) {
-        activeViewers.add(data);
+        if (!activeViewers.any((user) => user.id == data.id)) {
+          activeViewers.add(data);
+        }
         debugPrint("User joined: ${data.name} - ${data.uid}");
       }
     });
