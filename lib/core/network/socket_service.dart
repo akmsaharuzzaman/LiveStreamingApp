@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:dlstarlive/core/network/models/joined_user_model.dart';
+import 'package:dlstarlive/core/network/models/left_user_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
@@ -22,8 +23,8 @@ class SocketService {
       StreamController<List<String>>.broadcast();
   final StreamController<JoinedUserModel> _userJoinedController =
       StreamController<JoinedUserModel>.broadcast();
-  final StreamController<String> _userLeftController =
-      StreamController<String>.broadcast();
+  final StreamController<LeftUserModel> _userLeftController =
+      StreamController<LeftUserModel>.broadcast();
   final StreamController<List<String>> _joinCallRequestController =
       StreamController<List<String>>.broadcast();
   final StreamController<List<String>> _joinCallRequestListController =
@@ -50,6 +51,12 @@ class SocketService {
   static const String _joinRoomEvent = 'join-room';
   static const String _leaveRoomEvent = 'leave-room';
   static const String _getRoomsEvent = 'get-rooms';
+  static const String _joinCallRequestEvent = 'join-call-request';
+  static const String _joinCallRequestListEvent = 'join-call-request-list';
+  static const String _acceptCallRequestEvent = 'accept-call-request';
+  static const String _rejectCallRequestEvent = 'reject-call-request';
+  static const String _removeBroadcasterEvent = 'remove-broadcaster';
+  static const String _broadcasterListEvent = 'broadcaster-list';
 
   /// Singleton instance
   static SocketService get instance {
@@ -64,7 +71,7 @@ class SocketService {
       _errorMessageController.stream;
   Stream<List<String>> get roomClosedStream => _roomClosedController.stream;
   Stream<JoinedUserModel> get userJoinedStream => _userJoinedController.stream;
-  Stream<String> get userLeftStream => _userLeftController.stream;
+  Stream<LeftUserModel> get userLeftStream => _userLeftController.stream;
   Stream<List<String>> get joinCallRequestStream =>
       _joinCallRequestController.stream;
   Stream<List<String>> get joinCallRequestListStream =>
@@ -239,8 +246,8 @@ class SocketService {
       if (kDebugMode) {
         print('👋 User left: $data');
       }
-      if (data is String) {
-        _userLeftController.add(data);
+      if (data is Map<String, dynamic>) {
+        _userLeftController.add(LeftUserModel.fromJson(data));
       }
     });
 
@@ -375,7 +382,7 @@ class SocketService {
         print('🗑️ Deleting room: $roomId');
       }
 
-      _socket!.emit(_deleteRoomEvent, roomId);
+      _socket!.emit(_deleteRoomEvent, {'roomId': roomId});
 
       if (_currentRoomId == roomId) {
         _currentRoomId = null;
@@ -439,7 +446,7 @@ class SocketService {
         print('🚪 Leaving room: $roomId');
       }
 
-      _socket!.emit(_leaveRoomEvent, roomId);
+      _socket!.emit(_leaveRoomEvent, {'roomId': roomId});
 
       if (_currentRoomId == roomId) {
         _currentRoomId = null;
@@ -473,7 +480,7 @@ class SocketService {
         print('📋 Getting rooms list');
       }
 
-      _socket!.emit(_getRoomsEvent);
+      _socket!.emit(_getRoomsEvent, {});
       return true;
     } catch (e) {
       if (kDebugMode) {
@@ -482,6 +489,162 @@ class SocketService {
       _errorMessageController.add({
         'status': 'error',
         'message': 'Failed to get rooms: $e',
+      });
+      return false;
+    }
+  }
+
+  /// Join call request
+  Future<bool> joinCallRequest() async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('📋 Getting rooms list');
+      }
+
+      _socket!.emit(_joinCallRequestEvent, {
+        'roomId': _currentRoomId,
+      });
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error getting rooms: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to get rooms: $e',
+      });
+      return false;
+    }
+  }
+
+  /// Get join call request list
+  Future<bool> getJoinCallRequestList() async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('📋 Getting join call request list');
+      }
+
+      _socket!.emit(_joinCallRequestListEvent, {
+        'roomId': _currentRoomId,
+      });
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error getting join call request list: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to get join call request list: $e',
+      });
+      return false;
+    }
+  }
+  /// Accept call request
+  Future<bool> acceptCallRequest(String userId) async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('✅ Accepting call request from user: $userId');
+      }
+
+      _socket!.emit(_acceptCallRequestEvent, {
+        'roomId': _currentRoomId,
+        'targetId': userId,
+      });
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error accepting call request: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to accept call request: $e',
+      });
+      return false;
+    }
+  }
+
+  /// Reject call request
+  Future<bool> rejectCallRequest(String userId) async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('❌ Rejecting call request from user: $userId');
+      }
+
+      _socket!.emit(_rejectCallRequestEvent, {
+        'roomId': _currentRoomId,
+        'targetId': userId,
+      });
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error rejecting call request: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to reject call request: $e',
+      });
+      return false;
+    }
+  }
+  /// Remove broadcaster
+  Future<bool> removeBroadcaster(String userId) async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('🚫 Removing broadcaster: $userId');
+      }
+
+      _socket!.emit(_removeBroadcasterEvent, {
+        'roomId': _currentRoomId,
+        'targetId': userId,
+      });
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error removing broadcaster: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to remove broadcaster: $e',
       });
       return false;
     }
@@ -608,39 +771,5 @@ class SocketService {
 
     await disconnect();
     return await connect(_currentUserId!);
-  }
-
-  /// Helper method to get room IDs from the latest room list response
-  List<String> getAvailableRoomIds() {
-    // This would need to be implemented based on how you store the latest room list
-    // For now, returning empty list
-    return [];
-  }
-
-  /// New methods for the updated socket events
-
-  /// Send join call request
-  void sendJoinCallRequest(String roomId, String userId) {
-    emit('join-call-request', {'roomId': roomId, 'userId': userId});
-  }
-
-  /// Send accept call request
-  void sendAcceptCallRequest(String roomId, String userId) {
-    emit('accept-call-request', {'roomId': roomId, 'userId': userId});
-  }
-
-  /// Send remove broadcaster request
-  void sendRemoveBroadcasterRequest(String roomId, String userId) {
-    emit('remove-broadcaster', {'roomId': roomId, 'userId': userId});
-  }
-
-  /// Request broadcaster list for a room
-  void requestBroadcasterList(String roomId) {
-    emit('broadcaster-list', {'roomId': roomId});
-  }
-
-  /// Request join call request list for a room
-  void requestJoinCallRequestList(String roomId) {
-    emit('join-call-request-list', {'roomId': roomId});
   }
 }

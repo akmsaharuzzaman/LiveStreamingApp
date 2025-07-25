@@ -179,17 +179,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
     _socketService.userLeftStream.listen((data) {
       if (mounted) {
-        activeViewers.removeWhere((user) => user.id == data);
-        debugPrint("User left: $data");
-
+        activeViewers.removeWhere((user) => user.id == data.id);
+        debugPrint("User left: ${data.name} - ${data.uid}");
       }
     }); // Room list updates
-    _socketService.roomListStream.listen((rooms) {
-      if (mounted) {
-
-      }
-    });
-
     // Custom live streaming events
     _socketService.on('stream-started', (data) {
       if (mounted) {
@@ -203,11 +196,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
         // _showSnackBar('🛑 Stream ended', Colors.red);
         debugPrint("🛑 Stream ended");
       }
-    });
-
-    _socketService.on('viewer-count-updated', (data) {
-      final count = data['count'] ?? 0;
-      debugPrint('👥 Viewers: $count');
     });
   }
 
@@ -223,7 +211,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
     final dynamicRoomId = userId!;
     debugPrint('🏠 Creating room with dynamic name: $dynamicRoomId');
 
-    final success = await _socketService.createRoom(dynamicRoomId , "Demo Title", RoomType.live);
+    final success = await _socketService.createRoom(
+      dynamicRoomId,
+      "Demo Title",
+      RoomType.live,
+    );
 
     if (success) {
       setState(() {
@@ -355,7 +347,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
   bool _localUserJoined = false;
   final List<int> _remoteUsers = [];
   bool _muted = false;
-  int _viewerCount = 0;
   bool _isInitializingCamera = false;
 
   // Audio caller feature variables
@@ -482,9 +473,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
               _remoteUid = remoteUid;
               debugPrint("Set host video UID: $_remoteUid");
             }
-
             _remoteUsers.add(remoteUid);
-            _viewerCount = _remoteUsers.length;
           });
 
           debugPrint(
@@ -584,7 +573,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
                   _remoteUid = null;
                 }
                 _remoteUsers.remove(remoteUid);
-                _viewerCount = _remoteUsers.length;
               });
 
               // Update viewer count in Firestore
