@@ -201,7 +201,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
       if (mounted) {
         broadcasterList = Set<String>.from(data).toList();
         if (isHost && broadcasterList.contains(userId)) {
-          broadcasterList.remove(widget.hostUserId);
+          broadcasterList.remove(userId);
         }
         debugPrint("Broadcaster(caller) list updated: $broadcasterList");
         if (!isHost && broadcasterList.contains(userId)) {
