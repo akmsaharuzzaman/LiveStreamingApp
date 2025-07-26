@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dlstarlive/core/network/models/call_request_list.dart';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:dlstarlive/core/network/models/joined_user_model.dart';
 import 'package:dlstarlive/core/network/models/left_user_model.dart';
@@ -25,8 +26,8 @@ class SocketService {
       StreamController<JoinedUserModel>.broadcast();
   final StreamController<LeftUserModel> _userLeftController =
       StreamController<LeftUserModel>.broadcast();
-  final StreamController<List<String>> _joinCallRequestController =
-      StreamController<List<String>>.broadcast();
+  final StreamController<CallRequestList> _joinCallRequestController =
+      StreamController<CallRequestList>.broadcast();
   final StreamController<List<String>> _joinCallRequestListController =
       StreamController<List<String>>.broadcast();
   final StreamController<List<String>> _acceptCallRequestController =
@@ -72,7 +73,7 @@ class SocketService {
   Stream<List<String>> get roomClosedStream => _roomClosedController.stream;
   Stream<JoinedUserModel> get userJoinedStream => _userJoinedController.stream;
   Stream<LeftUserModel> get userLeftStream => _userLeftController.stream;
-  Stream<List<String>> get joinCallRequestStream =>
+  Stream<CallRequestList> get joinCallRequestStream =>
       _joinCallRequestController.stream;
   Stream<List<String>> get joinCallRequestListStream =>
       _joinCallRequestListController.stream;
@@ -255,8 +256,8 @@ class SocketService {
       if (kDebugMode) {
         print('� Join call request: $data');
       }
-      if (data is List) {
-        _joinCallRequestController.add(List<String>.from(data));
+      if (data is Map<String, dynamic>) {
+        _joinCallRequestController.add(CallRequestList.fromJson(data));
       }
     });
 
@@ -495,7 +496,7 @@ class SocketService {
   }
 
   /// Join call request
-  Future<bool> joinCallRequest() async {
+  Future<bool> joinCallRequest(String roomId) async {
     if (!_isConnected || _socket == null) {
       _errorMessageController.add({
         'status': 'error',
@@ -509,9 +510,7 @@ class SocketService {
         print('📋 Getting rooms list');
       }
 
-      _socket!.emit(_joinCallRequestEvent, {
-        'roomId': _currentRoomId,
-      });
+      _socket!.emit(_joinCallRequestEvent, {'roomId': roomId});
       return true;
     } catch (e) {
       if (kDebugMode) {
@@ -540,9 +539,7 @@ class SocketService {
         print('📋 Getting join call request list');
       }
 
-      _socket!.emit(_joinCallRequestListEvent, {
-        'roomId': _currentRoomId,
-      });
+      _socket!.emit(_joinCallRequestListEvent, {'roomId': _currentRoomId});
       return true;
     } catch (e) {
       if (kDebugMode) {
@@ -555,6 +552,7 @@ class SocketService {
       return false;
     }
   }
+
   /// Accept call request
   Future<bool> acceptCallRequest(String userId) async {
     if (!_isConnected || _socket == null) {
@@ -618,6 +616,7 @@ class SocketService {
       return false;
     }
   }
+
   /// Remove broadcaster
   Future<bool> removeBroadcaster(String userId) async {
     if (!_isConnected || _socket == null) {

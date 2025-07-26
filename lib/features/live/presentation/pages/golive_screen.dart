@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
+import 'package:dlstarlive/core/network/models/call_request_list.dart';
 import 'package:dlstarlive/core/network/socket_service.dart';
 import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:dlstarlive/features/live/presentation/component/agora_token_service.dart';
@@ -21,6 +22,7 @@ import '../component/diamond_star_status.dart';
 import '../component/end_stream_overlay.dart';
 import '../component/game_bottomsheet.dart';
 import '../component/host_info.dart';
+import '../widgets/call_manage_bottom_sheet.dart';
 import '../widgets/live_chat_widget.dart';
 
 enum LiveScreenLeaveOptions { disconnect, muteCall, viewProfile }
@@ -51,6 +53,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
   bool isHost = true;
   String roomId = "default_channel";
   List<JoinedUserModel> activeViewers = [];
+  List<CallRequestList> callRequests = [];
+  List<String> callRequestsList = [];
+  List<String> broadcasterList = [];
 
   // Live stream timing
   DateTime? _streamStartTime;
@@ -176,6 +181,37 @@ class _GoliveScreenState extends State<GoliveScreen> {
           activeViewers.add(data);
         }
         debugPrint("User joined: ${data.name} - ${data.uid}");
+      }
+    });
+
+    //Joined Call Requests List
+    _socketService.joinCallRequestStream.listen((data) {
+      if (mounted) {
+        if (!callRequests.any((user) => user.userId == data.userId)) {
+          callRequests.add(data);
+        }
+        debugPrint(
+          "User request to join call: ${data.userDetails.name} - ${data.userDetails.uid}",
+        );
+      }
+    });
+
+    // Broadcaster List - in call
+    _socketService.broadcasterListStream.listen((data) {
+      if (mounted) {
+        broadcasterList = Set<String>.from(data).toList();
+        if (isHost && broadcasterList.contains(userId)) {
+          broadcasterList.remove(widget.hostUserId);
+        }
+        debugPrint("Broadcaster(caller) list updated: $broadcasterList");
+        if (!isHost && broadcasterList.contains(userId)) {
+          // Notify user that they are now a broadcaster
+          _showSnackBar('🎤 You are now in Call', Colors.green);
+          _promoteToAudioCaller();
+        } else if (!isHost && !broadcasterList.contains(userId)) {
+          debugPrint("User is not a broadcaster");
+          _leaveAudioCaller();
+        }
       }
     });
 
@@ -1108,7 +1144,42 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                         Colors.blue,
                                       );
                                     }
-                                    // Future: showCallManagementBottomSheet(context);
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      backgroundColor: Colors.transparent,
+                                      builder: (context) => CallManageBottomSheet(
+                                        onAcceptCall: (userId) {
+                                          debugPrint(
+                                            "Accepting call request from $userId",
+                                          );
+                                          _socketService.acceptCallRequest(
+                                            userId,
+                                          );
+                                          callRequests.removeWhere(
+                                            (call) => call.userId == userId,
+                                          );
+                                        },
+                                        onRejectCall: (userId) {
+                                          debugPrint(
+                                            "Rejecting call request from $userId",
+                                          );
+                                          _socketService.rejectCallRequest(
+                                            userId,
+                                          );
+                                        },
+                                        onKickUser: (userId) {
+                                          _socketService.removeBroadcaster(
+                                            userId,
+                                          );
+                                          debugPrint(
+                                            "Kicking user $userId from call",
+                                          );
+                                        },
+                                        callers: callRequests,
+                                        inCallList: broadcasterList,
+                                      ),
+                                    );
                                   },
                                 ),
                                 CustomLiveButton(
@@ -1317,11 +1388,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               }
 
                               if (_isAudioCaller) {
-                                _leaveAudioCaller();
+                                _socketService.removeBroadcaster(userId ?? '');
                                 debugPrint("Leaving audio caller");
                               } else {
-                                _promoteToAudioCaller();
-                                debugPrint("Promoting to audio caller");
+                                _socketService.joinCallRequest(
+                                  _currentRoomId ?? roomId,
+                                );
+                                _showSnackBar(
+                                  '🎤 Please wait for accept call...',
+                                  Colors.orange,
+                                );
+                                debugPrint("Join call request sent");
                               }
                             },
                             child: Container(
