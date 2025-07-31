@@ -105,155 +105,192 @@ class _ProfileContentState extends State<_ProfileContent> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      child: Column(
+      child: Stack(
         children: [
-          //Cover Photo and Top Icons
-          Stack(
+          Column(
             children: [
-              Container(
-                width: double.infinity,
-                height: 200.h,
-                decoration: const BoxDecoration(color: Colors.white),
-                child: Image.network(
-                  'https://timelinecovers.pro/facebook-cover/download/cute-kid-girl-looking-facebook-cover.jpg',
-                  fit: BoxFit.cover,
-                ),
+              // Cover Photo and Top Icons
+              Stack(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    height: 200.h,
+                    decoration: const BoxDecoration(color: Colors.white),
+                    child: Image.asset(
+                      'assets/images/general/cover_pic.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  Positioned.fill(
+                    // top: 10.h,
+                    left: 20.w,
+                    bottom: 100.h,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          InkWell(
+                            onTap: () {
+                              context.push(AppRoutes.settings);
+                            },
+                            child: Image.asset(
+                              'assets/images/general/settings_icon.png',
+                              width: 24,
+                              height: 24,
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () {
+                              context.push(AppRoutes.profileUpdate);
+                            },
+                            child: Image.asset(
+                              'assets/images/general/edit_icon.png',
+                              width: 24,
+                              height: 24,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Positioned.fill(
+                    top: 125.h,
+                    left: MediaQuery.of(context).size.width - 160.w,
+                    // bottom: 100.h,
+                    child: Image.asset(
+                      "assets/images/general/super_admin_frame.png",
+                      height: 26.h,
+                    ),
+                  ),
+                ],
               ),
-              Positioned.fill(
-                top: 10.h,
-                left: 20.w,
+
+              // Content section with padding for overlapping profile picture
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.centerLeft,
+                    colors: [Color(0xFFD7CAFE), Color(0xFFFFFFFF)],
+                  ),
+                ),
                 child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  padding: const EdgeInsets.only(top: 20, left: 20, right: 20),
+                  child: Column(
                     children: [
-                      InkWell(
-                        onTap: () {
-                          context.push(AppRoutes.settings);
-                        },
-                        child: Image.asset(
-                          'assets/images/general/settings_icon.png',
-                          width: 24,
-                          height: 24,
+                      // Space for overlapping profile picture
+                      SizedBox(height: 20.h),
+
+                      // User Name
+                      Text(
+                        widget.user.name,
+                        style: const TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF2D3142),
                         ),
                       ),
-                      InkWell(
-                        onTap: () {
-                          context.push(AppRoutes.profileUpdate);
-                        },
-                        child: Image.asset(
-                          'assets/images/general/edit_icon.png',
-                          width: 24,
-                          height: 24,
-                        ),
+
+                      const SizedBox(height: 8),
+
+                      // User ID and Location
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'ID:${widget.user.id.substring(0, 6)}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Color(0xFF202020),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            width: 4,
+                            height: 4,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF4CAF50),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const Text(
+                            'Super Admin',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Color(0xFF4CAF50),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
+
+                      SizedBox(height: 16.h),
+
+                      // Level Badges (First Row)
+                      _buildLevelBadges(),
+
+                      const SizedBox(height: 8),
+
+                      // Level Badges (Second Row)
+                      _buildSecondRowBadges(),
+
+                      const SizedBox(height: 20),
+
+                      // Friends/Followers/Following
+                      _buildSocialStats(),
+
+                      SizedBox(height: 20.h),
+
+                      // Stats Row (Gold and Diamonds)
+                      _buildStatsRow(),
+
+                      SizedBox(height: 10.h),
+
+                      // Profile Card Section
+                      _buildProfileCard(),
+                      SizedBox(height: 20.h),
+
+                      // Feature Icons Grid
+                      _buildFeatureGrid(context),
+
+                      SizedBox(height: 20.h),
+
+                      // Reels and Posts Section
+                      _buildReelsAndPostsSection(context),
                     ],
                   ),
                 ),
               ),
             ],
           ),
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.centerLeft,
-                colors: [Color(0xFFD7CAFE), Color(0xFFFFFFFF)],
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  const SizedBox(height: 42),
 
-                  // Top Icons (Edit and Settings)
-                  const SizedBox(height: 20),
-
-                  // Profile Picture with Frame
-                  _buildProfileHeader(),
-
-                  const SizedBox(height: 16),
-
-                  // User Name
-                  Text(
-                    widget.user.name,
-                    style: const TextStyle(
-                      fontSize: 25,
-                      fontWeight: FontWeight.w400,
-                      color: Color(0xFF2D3142),
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // User ID and Location
-                  Text(
-                    'ID:${widget.user.id.substring(0, 6)} | Bangladesh', // Truncated ID
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF202020),
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-
-                  SizedBox(height: 5.h),
-
-                  // Status Message
-                  const Text(
-                    'Hey! WhatsApp',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Color(0xFF808080),
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-
-                  SizedBox(height: 10.h),
-
-                  // Level Badges
-                  _buildLevelBadges(),
-
-                  const SizedBox(height: 20),
-
-                  // Divider
-                  SizedBox(height: 20.h),
-
-                  // Friends/Followers/Following
-                  _buildSocialStats(),
-
-                  SizedBox(height: 20.h),
-                  // Stats Row (Gold and Diamonds)
-                  _buildStatsRow(),
-
-                  SizedBox(height: 10.h),
-
-                  // Profile Card Section
-                  _buildProfileCard(),
-                  SizedBox(height: 20.h),
-
-                  // Feature Icons Grid
-                  _buildFeatureGrid(context),
-
-                  SizedBox(height: 20.h), // Space for bottom navigation
-                  //Reels and Posts Section
-                  _buildReelsAndPostsSection(context),
-                ],
-              ),
-            ),
+          // Overlapping Profile Picture
+          Positioned(
+            top: 150.h, // Position to overlap cover photo and content
+            left: 25, // Left position for centering
+            child: _buildOverlappingProfilePicture(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProfileHeader() {
+  Widget _buildOverlappingProfilePicture() {
     return Container(
-      width: 100.h,
+      width: 100.w,
       height: 100.h,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        // border: Border.all(color: Colors.white, width: 2),
+        border: Border.all(color: Colors.white, width: 4),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: ClipOval(
         child:
@@ -261,8 +298,8 @@ class _ProfileContentState extends State<_ProfileContent> {
                 widget.user.profilePictureUrl != null)
             ? Image.network(
                 widget.user.avatar ?? widget.user.profilePictureUrl!,
-                width: 80,
-                height: 80,
+                width: 100.w,
+                height: 100.h,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) =>
                     _buildDefaultAvatar(),
@@ -288,64 +325,140 @@ class _ProfileContentState extends State<_ProfileContent> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Level 1 Badge
+        // Level Badge (Green)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFF6B9D), Color(0xFFFF8BA0)],
-            ),
-            borderRadius: BorderRadius.circular(12),
+            color: const Color(0xFF4CAF50),
+            borderRadius: BorderRadius.circular(15),
           ),
           child: const Text(
-            'Lv 1',
+            '25',
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w600,
-              fontSize: 16,
+              fontSize: 14,
             ),
           ),
         ),
 
         const SizedBox(width: 8),
 
-        // Yellow Badge (0)
+        // Level Badge (Orange)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFF5722),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: const Text(
+            '10',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ),
+
+        const SizedBox(width: 8),
+
+        // VIP Badge
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: const Color(0xFFFFD700),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(15),
           ),
-          child: Row(
-            children: [
-              const Text(
-                '🤍',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-              ),
-              const Text(
-                '0',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-              ),
-            ],
+          child: const Text(
+            'VIP',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
           ),
         ),
 
         const SizedBox(width: 8),
 
-        // Settings Icon Badge
-        Image.asset(
-          'assets/images/general/frame.png',
-          width: 28,
-          height: 28,
-          color: const Color(0xFF2D3142),
+        // SVIP Badge
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF9C27B0),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: const Text(
+            'SVIP',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSecondRowBadges() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Host Badge
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2196F3),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: const Text(
+            'Host',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ),
+
+        const SizedBox(width: 8),
+
+        // Agent Badge
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF4CAF50),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: const Text(
+            'Agent',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ),
+
+        const SizedBox(width: 8),
+
+        // Re Seller Badge
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFF9800),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: const Text(
+            'Re Seller',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
         ),
       ],
     );
@@ -537,76 +650,104 @@ class _ProfileContentState extends State<_ProfileContent> {
     return Column(
       spacing: 8,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _buildFeatureIcon(
-              "assets/images/general/vip_icon.png",
-              'VIP',
-              context,
-            ),
-            _buildFeatureIcon(
-              "assets/images/general/fan_club_icon.png",
-              'Fan Club',
-              context,
-            ),
-            _buildFeatureIcon(
-              "assets/images/general/my_level_icon.png",
-              'My Level',
-              context,
-            ),
-            _buildFeatureIcon(
-              "assets/images/general/my_agency_icon.png",
-              'My Agency',
-              context,
-            ),
-          ],
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(vertical: 8.h),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                spreadRadius: 2,
+                blurRadius: 8,
+                offset: const Offset(0, 3), // changes position of shadow
+              ),
+            ],
+          ),
+          child: Wrap(
+            spacing: 10,
+            children: [
+              _buildFeatureIcon(
+                "assets/images/general/vip_icon.png",
+                'VIP',
+                context,
+              ),
+              _buildFeatureIcon(
+                "assets/images/general/fan_club_icon.png",
+                'Fan Club',
+                context,
+              ),
+              _buildFeatureIcon(
+                "assets/images/general/my_level_icon.png",
+                'My Level',
+                context,
+              ),
+              _buildFeatureIcon(
+                "assets/images/general/my_agency_icon.png",
+                'My Agency',
+                context,
+              ),
+              _buildFeatureIcon(
+                "assets/images/general/my_bag_icon.png",
+                'My Bag',
+                context,
+              ),
+              _buildFeatureIcon(
+                "assets/images/general/live_tv_icon.png",
+                'Live',
+                context,
+              ),
+              _buildFeatureIcon(
+                "assets/images/general/helping_icon.png",
+                'Helping',
+                context,
+              ),
+              _buildFeatureIcon(
+                "assets/images/general/top_up_icon.png",
+                'Top Up',
+                context,
+              ),
+            ],
+          ),
         ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _buildFeatureIcon(
-              "assets/images/general/my_bag_icon.png",
-              'My Bag',
-              context,
-            ),
-            _buildFeatureIcon(
-              "assets/images/general/live_tv_icon.png",
-              'Live',
-              context,
-            ),
-            _buildFeatureIcon(
-              "assets/images/general/helping_icon.png",
-              'Helping',
-              context,
-            ),
-            _buildFeatureIcon(
-              "assets/images/general/top_up_icon.png",
-              'Top Up',
-              context,
-            ),
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _buildFeatureIcon(
-              "assets/images/general/store_icon.png",
-              'Store',
-              context,
-            ),
-            _buildFeatureIcon(
-              "assets/images/general/room_management_icon.png",
-              'Room Management',
-              context,
-            ),
-            SizedBox(
-              width: MediaQuery.of(context).size.width / 4 - 20,
-            ), // Empty space for alignment
-            SizedBox(
-              width: MediaQuery.of(context).size.width / 4 - 20,
-            ), // Empty space for alignment
-          ],
+        SizedBox(height: 10.h),
+        Image.asset("assets/images/general/svip_banner.png"),
+        SizedBox(height: 10.h),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(vertical: 8.h),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                spreadRadius: 2,
+                blurRadius: 8,
+                offset: const Offset(0, 3), // changes position of shadow
+              ),
+            ],
+          ),
+          child: Wrap(
+            spacing: 10,
+            children: [
+              _buildFeatureIcon(
+                "assets/images/general/store_icon.png",
+                'Store',
+                context,
+              ),
+              _buildFeatureIcon(
+                "assets/images/general/room_management_icon.png",
+                'Room Management',
+                context,
+              ),
+              SizedBox(
+                width: MediaQuery.of(context).size.width / 4 - 20,
+              ), // Empty space for alignment
+              SizedBox(width: MediaQuery.of(context).size.width / 4 - 20),
+            ],
+          ),
         ),
       ],
     );
