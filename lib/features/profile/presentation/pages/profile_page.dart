@@ -104,119 +104,145 @@ class _ProfileContentState extends State<_ProfileContent> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.centerLeft,
-          colors: [Color(0xFFD7CAFE), Color(0xFFFFFFFF)],
-        ),
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Column(
-          children: [
-            const SizedBox(height: 42),
-            // Top Icons (Edit and Settings)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                InkWell(
-                  onTap: () {
-                    context.push(AppRoutes.profileUpdate);
-                  },
-                  child: Image.asset(
-                    'assets/images/general/edit_icon.png',
-                    width: 24,
-                    height: 24,
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          //Cover Photo and Top Icons
+          Stack(
+            children: [
+              Container(
+                width: double.infinity,
+                height: 200.h,
+                decoration: const BoxDecoration(color: Colors.white),
+                child: Image.network(
+                  'https://timelinecovers.pro/facebook-cover/download/cute-kid-girl-looking-facebook-cover.jpg',
+                  fit: BoxFit.cover,
+                ),
+              ),
+              Positioned.fill(
+                top: 10.h,
+                left: 20.w,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          context.push(AppRoutes.settings);
+                        },
+                        child: Image.asset(
+                          'assets/images/general/settings_icon.png',
+                          width: 24,
+                          height: 24,
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () {
+                          context.push(AppRoutes.profileUpdate);
+                        },
+                        child: Image.asset(
+                          'assets/images/general/edit_icon.png',
+                          width: 24,
+                          height: 24,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                InkWell(
-                  onTap: () {
-                    context.push(AppRoutes.settings);
-                  },
-                  child: Image.asset(
-                    'assets/images/general/settings_icon.png',
-                    width: 24,
-                    height: 24,
+              ),
+            ],
+          ),
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.centerLeft,
+                colors: [Color(0xFFD7CAFE), Color(0xFFFFFFFF)],
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  const SizedBox(height: 42),
+
+                  // Top Icons (Edit and Settings)
+                  const SizedBox(height: 20),
+
+                  // Profile Picture with Frame
+                  _buildProfileHeader(),
+
+                  const SizedBox(height: 16),
+
+                  // User Name
+                  Text(
+                    widget.user.name,
+                    style: const TextStyle(
+                      fontSize: 25,
+                      fontWeight: FontWeight.w400,
+                      color: Color(0xFF2D3142),
+                    ),
                   ),
-                ),
-              ],
-            ),
 
-            const SizedBox(height: 20),
+                  const SizedBox(height: 8),
 
-            // Profile Picture with Frame
-            _buildProfileHeader(),
+                  // User ID and Location
+                  Text(
+                    'ID:${widget.user.id.substring(0, 6)} | Bangladesh', // Truncated ID
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFF202020),
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
 
-            const SizedBox(height: 16),
+                  SizedBox(height: 5.h),
 
-            // User Name
-            Text(
-              widget.user.name,
-              style: const TextStyle(
-                fontSize: 25,
-                fontWeight: FontWeight.w400,
-                color: Color(0xFF2D3142),
+                  // Status Message
+                  const Text(
+                    'Hey! WhatsApp',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Color(0xFF808080),
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+
+                  SizedBox(height: 10.h),
+
+                  // Level Badges
+                  _buildLevelBadges(),
+
+                  const SizedBox(height: 20),
+
+                  // Divider
+                  SizedBox(height: 20.h),
+
+                  // Friends/Followers/Following
+                  _buildSocialStats(),
+
+                  SizedBox(height: 20.h),
+                  // Stats Row (Gold and Diamonds)
+                  _buildStatsRow(),
+
+                  SizedBox(height: 10.h),
+
+                  // Profile Card Section
+                  _buildProfileCard(),
+                  SizedBox(height: 20.h),
+
+                  // Feature Icons Grid
+                  _buildFeatureGrid(context),
+
+                  SizedBox(height: 20.h), // Space for bottom navigation
+                  //Reels and Posts Section
+                  _buildReelsAndPostsSection(context),
+                ],
               ),
             ),
-
-            const SizedBox(height: 8),
-
-            // User ID and Location
-            Text(
-              'ID:${widget.user.id.substring(0, 6)} | Bangladesh', // Truncated ID
-              style: const TextStyle(
-                fontSize: 16,
-                color: Color(0xFF202020),
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-
-            SizedBox(height: 5.h),
-
-            // Status Message
-            const Text(
-              'Hey! WhatsApp',
-              style: TextStyle(
-                fontSize: 18,
-                color: Color(0xFF808080),
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-
-            SizedBox(height: 10.h),
-
-            // Level Badges
-            _buildLevelBadges(),
-
-            const SizedBox(height: 20),
-
-            // Stats Row (Gold and Diamonds)
-            _buildStatsRow(),
-
-            SizedBox(height: 10.h),
-            // Divider
-            Divider(color: const Color(0xFFCCCCCC), thickness: 1, height: 1),
-            SizedBox(height: 20.h),
-
-            // Friends/Followers/Following
-            _buildSocialStats(),
-
-            SizedBox(height: 20.h),
-
-            // Profile Card Section
-            _buildProfileCard(),
-            SizedBox(height: 20.h),
-
-            // Feature Icons Grid
-            _buildFeatureGrid(context),
-
-            SizedBox(height: 20.h), // Space for bottom navigation
-            //Reels and Posts Section
-            _buildReelsAndPostsSection(context),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -332,47 +358,43 @@ class _ProfileContentState extends State<_ProfileContent> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         // Gold/Stars
-        Row(
+        Stack(
           children: [
-            SizedBox(width: 25.w),
-            Image.asset(
-              'assets/images/general/coin_icon.png',
-              width: 25.w,
-              height: 25.h,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              stats?.coins.toString() ?? '100',
-              style: const TextStyle(
-                fontSize: 25,
-                fontWeight: FontWeight.w400,
-                color: Color(0xFF202020),
+            Image.asset('assets/images/general/coins_banner.png', height: 62.h),
+            Positioned(
+              left: 50.w,
+              top: 5.h,
+              child: Text(
+                stats?.coins.toString() ?? '100',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w400,
+                  color: Color(0xFF202020),
+                ),
               ),
             ),
           ],
         ),
 
-        //Devider
-        Container(width: 1, height: 30, color: const Color(0xFFCCCCCC)),
-
         // Diamonds
-        Row(
+        Stack(
           children: [
             Image.asset(
-              'assets/images/general/diamond_icon.png',
-              width: 25.w,
-              height: 25.h,
+              'assets/images/general/withdraw_banner.png',
+              height: 62.h,
             ),
-            const SizedBox(width: 8),
-            Text(
-              stats?.diamonds.toString() ?? '100',
-              style: const TextStyle(
-                fontSize: 25,
-                fontWeight: FontWeight.w400,
-                color: Color(0xFF202020),
+            Positioned(
+              left: 50.w,
+              top: 5.h,
+              child: Text(
+                stats?.diamonds.toString() ?? '100',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w400,
+                  color: Color(0xFF202020),
+                ),
               ),
             ),
-            SizedBox(width: 25.w),
           ],
         ),
       ],
@@ -380,33 +402,48 @@ class _ProfileContentState extends State<_ProfileContent> {
   }
 
   Widget _buildSocialStats() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildSocialStatItem(
-          isLoadingCounts ? '...' : '${followerCounts?.friendshipCount ?? 0}',
-          'Friends',
-          () {
-            context.push('/friends-list/${widget.user.id}?title=Friends');
-          },
-        ),
-        Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
-        _buildSocialStatItem(
-          isLoadingCounts ? '...' : '${followerCounts?.followerCount ?? 0}',
-          'Followers',
-          () {
-            context.push('/friends-list/${widget.user.id}?title=Followers');
-          },
-        ),
-        Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
-        _buildSocialStatItem(
-          isLoadingCounts ? '...' : '${followerCounts?.followingCount ?? 0}',
-          'Following',
-          () {
-            context.push('/friends-list/${widget.user.id}?title=Following');
-          },
-        ),
-      ],
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 20.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 2,
+            blurRadius: 8,
+            offset: const Offset(0, 3), // changes position of shadow
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildSocialStatItem(
+            isLoadingCounts ? '...' : '${followerCounts?.friendshipCount ?? 0}',
+            'Friends',
+            () {
+              context.push('/friends-list/${widget.user.id}?title=Friends');
+            },
+          ),
+          Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
+          _buildSocialStatItem(
+            isLoadingCounts ? '...' : '${followerCounts?.followerCount ?? 0}',
+            'Followers',
+            () {
+              context.push('/friends-list/${widget.user.id}?title=Followers');
+            },
+          ),
+          Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
+          _buildSocialStatItem(
+            isLoadingCounts ? '...' : '${followerCounts?.followingCount ?? 0}',
+            'Following',
+            () {
+              context.push('/friends-list/${widget.user.id}?title=Following');
+            },
+          ),
+        ],
+      ),
     );
   }
 
