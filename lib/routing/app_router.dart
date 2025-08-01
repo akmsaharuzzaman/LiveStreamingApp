@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/home/presentation/pages/main_navigation_page.dart';
 import '../features/newsfeed/presentation/pages/newsfeed.dart';
+import '../features/profile/presentation/pages/store_page.dart';
 import '../features/reels/presentation/pages/video_editor_screen.dart';
 import '../features/settings/presentation/pages/settings_page.dart';
 import '../features/auth/presentation/pages/splash_screen.dart';
@@ -38,6 +39,7 @@ class AppRoutes {
   static const String friendsList = '/friends-list';
   static const String chatSettings = '/chat-settings';
   static const String newsfeed = '/newsfeed';
+  static const String store = '/store';
 }
 
 final GoRouter appRouter = GoRouter(
@@ -164,6 +166,11 @@ final GoRouter appRouter = GoRouter(
         final title = state.uri.queryParameters['title'] ?? 'Friends';
         return FriendsListPage(userId: userId, title: title);
       },
+    ),
+    GoRoute(
+      path: AppRoutes.store,
+      name: 'store',
+      builder: (context, state) => const StorePage(),
     ),
   ],
   errorBuilder: (context, state) => Scaffold(

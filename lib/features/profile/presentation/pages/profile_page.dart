@@ -604,6 +604,9 @@ class _ProfileContentState extends State<_ProfileContent> {
                 "assets/images/general/store_icon.png",
                 'Store',
                 context,
+                onTap: () {
+                  context.push(AppRoutes.store);
+                },
               ),
               _buildFeatureIcon(
                 "assets/images/general/vip_icon.png",
@@ -695,24 +698,28 @@ class _ProfileContentState extends State<_ProfileContent> {
   Widget _buildFeatureIcon(
     String iconPath,
     String label,
-    BuildContext context,
-  ) {
-    return SizedBox(
-      width: MediaQuery.of(context).size.width / 4 - 20,
-      child: Column(
-        children: [
-          Image.asset(iconPath, width: 50.h, height: 50.h),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Color(0xFF202020),
-              fontWeight: FontWeight.w400,
+    BuildContext context, {
+    Function()? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: MediaQuery.of(context).size.width / 4 - 20,
+        child: Column(
+          children: [
+            Image.asset(iconPath, width: 50.h, height: 50.h),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF202020),
+                fontWeight: FontWeight.w400,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
