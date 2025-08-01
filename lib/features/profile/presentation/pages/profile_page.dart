@@ -1,4 +1,6 @@
+import 'package:dlstarlive/core/utils/app_utils.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -179,62 +181,20 @@ class _ProfileContentState extends State<_ProfileContent> {
                   padding: const EdgeInsets.only(top: 20, left: 20, right: 20),
                   child: Column(
                     children: [
-                      // Space for overlapping profile picture
-                      SizedBox(height: 20.h),
+                      // Space and layout for profile picture with user info
+                      SizedBox(height: 36.h),
 
-                      // User Name
-                      Text(
-                        widget.user.name,
-                        style: const TextStyle(
-                          fontSize: 25,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF2D3142),
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // User ID and Location
+                      // Profile info section - positioned next to profile picture
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'ID:${widget.user.id.substring(0, 6)}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Color(0xFF202020),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 8),
-                            width: 4,
-                            height: 4,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF4CAF50),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const Text(
-                            'Super Admin',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Color(0xFF4CAF50),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                          // Space for the overlapping profile picture
+                          // SizedBox(width: 110.w),
+
+                          // User information positioned to the right of profile
+                          Expanded(child: _buildTagsWidgetRow()),
                         ],
                       ),
-
-                      SizedBox(height: 16.h),
-
-                      // Level Badges (First Row)
-                      _buildLevelBadges(),
-
-                      const SizedBox(height: 8),
-
-                      // Level Badges (Second Row)
-                      _buildSecondRowBadges(),
 
                       const SizedBox(height: 20),
 
@@ -269,11 +229,89 @@ class _ProfileContentState extends State<_ProfileContent> {
           // Overlapping Profile Picture
           Positioned(
             top: 150.h, // Position to overlap cover photo and content
-            left: 25, // Left position for centering
+            left: 25.w, // Left position closer to left edge
             child: _buildOverlappingProfilePicture(),
+          ),
+          //Build Overlaping UserInformation
+          Positioned(
+            top: 160.h, // Position to overlap cover photo and content
+            left: 140.w, // Left position closer to left edge
+            child: _buildOverlapingUserInformation(),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildOverlapingUserInformation() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 12.h),
+        // User Name
+        Text(
+          widget.user.name,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
+          ),
+        ),
+
+        SizedBox(height: 12.h),
+
+        // User ID and Super Admin
+        Row(
+          children: [
+            Row(
+              children: [
+                Text(
+                  'ID:${widget.user.id.substring(0, 6)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF202020),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: widget.user.id));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('User ID copied to clipboard'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                  child: const Icon(
+                    Icons.copy,
+                    size: 18,
+                    color: Color(0xFF202020),
+                  ),
+                ),
+              ],
+            ),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              width: 4,
+              height: 4,
+              decoration: const BoxDecoration(
+                color: Color(0xFF4CAF50),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const Text(
+              'Super Admin',
+              style: TextStyle(
+                fontSize: 16,
+                color: Color(0xFF1B706A),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -283,7 +321,7 @@ class _ProfileContentState extends State<_ProfileContent> {
       height: 100.h,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 4),
+        // border: Border.all(color: Colors.white, width: 4),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.2),
@@ -321,146 +359,39 @@ class _ProfileContentState extends State<_ProfileContent> {
     );
   }
 
-  Widget _buildLevelBadges() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Level Badge (Green)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFF4CAF50),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: const Text(
-            '25',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-        ),
+  Widget _buildTagsWidgetRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40.0),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 2,
+        runSpacing: 8,
+        children: [
+          //Age Badge
+          Image.asset('assets/images/general/age_tag.png'),
+          const SizedBox(width: 8),
+          Image.asset('assets/images/general/coin_tag.png'),
 
-        const SizedBox(width: 8),
+          const SizedBox(width: 8),
+          // Host Badge
+          Image.asset('assets/images/general/vip_tag.png'),
 
-        // Level Badge (Orange)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFF5722),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: const Text(
-            '10',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-        ),
+          const SizedBox(width: 8),
+          Image.asset('assets/images/general/svip_tag.png'),
 
-        const SizedBox(width: 8),
+          const SizedBox(width: 8),
+          Image.asset('assets/images/general/host_tag.png'),
 
-        // VIP Badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFD700),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: const Text(
-            'VIP',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-        ),
+          const SizedBox(width: 8),
 
-        const SizedBox(width: 8),
+          // Agent Badge
+          Image.asset('assets/images/general/agent_tag.png'),
 
-        // SVIP Badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFF9C27B0),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: const Text(
-            'SVIP',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSecondRowBadges() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Host Badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2196F3),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: const Text(
-            'Host',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-        ),
-
-        const SizedBox(width: 8),
-
-        // Agent Badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFF4CAF50),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: const Text(
-            'Agent',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-        ),
-
-        const SizedBox(width: 8),
-
-        // Re Seller Badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFF9800),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: const Text(
-            'Re Seller',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-        ),
-      ],
+          const SizedBox(width: 8),
+          // Re Seller Badge
+          Image.asset('assets/images/general/re_seller_tag.png'),
+        ],
+      ),
     );
   }
 
@@ -478,7 +409,7 @@ class _ProfileContentState extends State<_ProfileContent> {
               left: 50.w,
               top: 5.h,
               child: Text(
-                stats?.coins.toString() ?? '100',
+                AppUtils.formatNumber(stats?.coins ?? 0),
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w400,
@@ -500,7 +431,7 @@ class _ProfileContentState extends State<_ProfileContent> {
               left: 50.w,
               top: 5.h,
               child: Text(
-                stats?.diamonds.toString() ?? '100',
+                AppUtils.formatNumber(stats?.diamonds ?? 0),
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w400,
