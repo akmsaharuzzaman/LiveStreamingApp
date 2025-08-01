@@ -57,25 +57,25 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
             });
           },
           unselectedLabelStyle: const TextStyle(
-            color: Color(0xffFE82A7),
+            color: Color(0xff825CB3),
             fontWeight: FontWeight.w600,
           ),
           selectedLabelStyle: const TextStyle(
-            color: Color(0xffFE82A7),
+            color: Color(0xff825CB3),
             fontWeight: FontWeight.w600,
           ),
           backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xffFE82A7),
-          unselectedItemColor: const Color(0xffFE82A7),
+          selectedItemColor: const Color(0xff825CB3),
+          unselectedItemColor: const Color(0xff825CB3),
 
           items: [
             BottomNavigationBarItem(
-              icon: SvgPicture.asset(
+              icon: Image.asset(
                 UIConstants.homeIcon,
                 width: 24,
                 height: 24,
               ),
-              activeIcon: SvgPicture.asset(
+              activeIcon: Image.asset(
                 UIConstants.homeIcon,
                 width: 24,
                 height: 24,
@@ -83,12 +83,12 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: SvgPicture.asset(
+              icon: Image.asset(
                 UIConstants.newsfeedIcon,
                 width: 24,
                 height: 24,
               ),
-              activeIcon: SvgPicture.asset(
+              activeIcon: Image.asset(
                 UIConstants.newsfeedIcon,
                 width: 24,
                 height: 24,
@@ -96,12 +96,12 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               label: 'Newsfeed',
             ),
             BottomNavigationBarItem(
-              icon: SvgPicture.asset(
+              icon: Image.asset(
                 UIConstants.liveStreamIcon,
                 width: 64,
                 height: 64,
               ),
-              activeIcon: SvgPicture.asset(
+              activeIcon: Image.asset(
                 UIConstants.liveStreamIcon,
                 width: 64,
                 height: 64,
@@ -109,12 +109,12 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               label: "",
             ),
             BottomNavigationBarItem(
-              icon: SvgPicture.asset(
+              icon: Image.asset(
                 UIConstants.chatIcon,
                 width: 24,
                 height: 24,
               ),
-              activeIcon: SvgPicture.asset(
+              activeIcon: Image.asset(
                 UIConstants.chatIcon,
                 width: 24,
                 height: 24,
@@ -122,12 +122,12 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               label: 'Chat',
             ),
             BottomNavigationBarItem(
-              icon: SvgPicture.asset(
+              icon: Image.asset(
                 UIConstants.profileIcon,
                 width: 24,
                 height: 24,
               ),
-              activeIcon: SvgPicture.asset(
+              activeIcon: Image.asset(
                 UIConstants.profileIcon,
                 width: 24,
                 height: 24,

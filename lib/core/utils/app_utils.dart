@@ -87,11 +87,12 @@ class AppUtils {
 
   static String formatNumber(num number) {
     String formatted;
-    
+
     if (number >= 1000000) {
       formatted = '${(number / 1000000).toStringAsFixed(2)}M';
     } else if (number >= 1000) {
-      formatted = '${(number / 1000).toStringAsFixed(number % 1000 >= 100 ? 2 : 0)}K';
+      formatted =
+          '${(number / 1000).toStringAsFixed(number % 1000 >= 100 ? 2 : 0)}K';
     } else {
       formatted = number.toStringAsFixed(0);
     }
@@ -101,6 +102,6 @@ class AppUtils {
       formatted = formatted.replaceAll('.00', '');
     }
 
-    return  formatted;
+    return formatted;
   }
 }

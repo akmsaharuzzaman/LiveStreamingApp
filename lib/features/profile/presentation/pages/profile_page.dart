@@ -598,15 +598,16 @@ class _ProfileContentState extends State<_ProfileContent> {
           ),
           child: Wrap(
             spacing: 10,
+            runSpacing: 10,
             children: [
               _buildFeatureIcon(
-                "assets/images/general/vip_icon.png",
-                'VIP',
+                "assets/images/general/store_icon.png",
+                'Store',
                 context,
               ),
               _buildFeatureIcon(
-                "assets/images/general/fan_club_icon.png",
-                'Fan Club',
+                "assets/images/general/vip_icon.png",
+                'VIP',
                 context,
               ),
               _buildFeatureIcon(
@@ -625,18 +626,18 @@ class _ProfileContentState extends State<_ProfileContent> {
                 context,
               ),
               _buildFeatureIcon(
-                "assets/images/general/live_tv_icon.png",
-                'Live',
-                context,
-              ),
-              _buildFeatureIcon(
                 "assets/images/general/helping_icon.png",
                 'Helping',
                 context,
               ),
               _buildFeatureIcon(
-                "assets/images/general/top_up_icon.png",
-                'Top Up',
+                "assets/images/general/fan_club_icon.png",
+                'Fan Club',
+                context,
+              ),
+              _buildFeatureIcon(
+                "assets/images/general/live_record_icon.png",
+                'Live Record',
                 context,
               ),
             ],
@@ -662,21 +663,28 @@ class _ProfileContentState extends State<_ProfileContent> {
           ),
           child: Wrap(
             spacing: 10,
+            runSpacing: 10,
             children: [
-              _buildFeatureIcon(
-                "assets/images/general/store_icon.png",
-                'Store',
-                context,
-              ),
               _buildFeatureIcon(
                 "assets/images/general/room_management_icon.png",
                 'Room Management',
                 context,
               ),
-              SizedBox(
-                width: MediaQuery.of(context).size.width / 4 - 20,
-              ), // Empty space for alignment
-              SizedBox(width: MediaQuery.of(context).size.width / 4 - 20),
+              _buildFeatureIcon(
+                "assets/images/general/about_us_icon.png",
+                'About Us',
+                context,
+              ),
+              _buildFeatureIcon(
+                "assets/images/general/my_invite_icon.png",
+                'My Invite',
+                context,
+              ),
+              _buildFeatureIcon(
+                "assets/images/general/settings_icon.png",
+                'Settings',
+                context,
+              ),
             ],
           ),
         ),

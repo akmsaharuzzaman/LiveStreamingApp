@@ -243,6 +243,7 @@ class UIConstants {
   static const String iconsPath = 'assets/icons/';
   static const String imagesPath = 'assets/images/';
   static const String logoImage = '${imagesPath}logo.png';
+  static const String generalPath = '${imagesPath}general/';
 
   // Image Icons and Logos
   //Placeholder images
@@ -252,9 +253,9 @@ class UIConstants {
   static const String appLogo = '${logoImage}google_logo.svg';
 
   //Icons
-  static const String homeIcon = '${iconsPath}home_icon.svg';
-  static const String profileIcon = '${iconsPath}profile_icon.svg';
-  static const String chatIcon = '${iconsPath}chat_icon.svg';
-  static const String liveStreamIcon = '${iconsPath}live_stream_icon.svg';
-  static const String newsfeedIcon = '${iconsPath}newsfeed_icon.svg';
+  static const String homeIcon = '${generalPath}home_icon.png';
+  static const String profileIcon = '${generalPath}profile_icon.png';
+  static const String chatIcon = '${generalPath}message_icon.png';
+  static const String liveStreamIcon = '${generalPath}live_stream_icon.png';
+  static const String newsfeedIcon = '${generalPath}newsfeed_icon.png';
 }
