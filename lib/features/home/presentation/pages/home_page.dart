@@ -38,13 +38,8 @@ class _HomePageState extends State<HomePage>
   late TabController _tabController;
 
   List<String> imageUrls = [
-    // "assets/images/new_images/banner.png",
-    'assets/images/general/banners/banners1.jpg',
-    'assets/images/general/banners/banners1.jpg',
-    "assets/images/general/banners/banners2.jpg",
-    "assets/images/general/banners/banners3.jpg",
-    "assets/images/general/banners/banners4.jpg",
-    "assets/images/general/banners/banners5.jpg",
+    'assets/images/general/banners/banner_1.jpg',
+    'assets/images/general/banners/banner_2.jpg',
   ];
 
   /// Initialize socket connection when entering live streaming page
@@ -168,11 +163,11 @@ class _HomePageState extends State<HomePage>
                   labelColor: Colors.black,
                   unselectedLabelColor: Colors.black54,
                   labelStyle: TextStyle(
-                    fontSize: 12.sp,
+                    fontSize: 15.sp,
                     fontWeight: FontWeight.w600,
                   ),
                   unselectedLabelStyle: TextStyle(
-                    fontSize: 12.sp,
+                    fontSize: 15.sp,
                     fontWeight: FontWeight.w500,
                   ),
                   indicator: const UnderlineTabIndicator(

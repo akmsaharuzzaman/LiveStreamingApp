@@ -254,8 +254,12 @@ class UIConstants {
 
   //Icons
   static const String homeIcon = '${generalPath}home_icon.png';
+  static const String homeIconFill = '${generalPath}home_icon_fill.png';
   static const String profileIcon = '${generalPath}profile_icon.png';
+  static const String profileIconFill = '${generalPath}profile_icon_fill.png';
   static const String chatIcon = '${generalPath}message_icon.png';
+  static const String chatIconFill = '${generalPath}message_icon_fill.png';
   static const String liveStreamIcon = '${generalPath}live_stream_icon.png';
   static const String newsfeedIcon = '${generalPath}newsfeed_icon.png';
+  static const String newsfeedIconFill = '${generalPath}newsfeed_icon_fill.png';
 }

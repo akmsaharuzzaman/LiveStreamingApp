@@ -70,13 +70,9 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
 
           items: [
             BottomNavigationBarItem(
-              icon: Image.asset(
-                UIConstants.homeIcon,
-                width: 24,
-                height: 24,
-              ),
+              icon: Image.asset(UIConstants.homeIcon, width: 24, height: 24),
               activeIcon: Image.asset(
-                UIConstants.homeIcon,
+                UIConstants.homeIconFill,
                 width: 24,
                 height: 24,
               ),
@@ -89,7 +85,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                 height: 24,
               ),
               activeIcon: Image.asset(
-                UIConstants.newsfeedIcon,
+                UIConstants.newsfeedIconFill,
                 width: 24,
                 height: 24,
               ),
@@ -109,26 +105,18 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               label: "",
             ),
             BottomNavigationBarItem(
-              icon: Image.asset(
-                UIConstants.chatIcon,
-                width: 24,
-                height: 24,
-              ),
+              icon: Image.asset(UIConstants.chatIcon, width: 24, height: 24),
               activeIcon: Image.asset(
-                UIConstants.chatIcon,
+                UIConstants.chatIconFill,
                 width: 24,
                 height: 24,
               ),
               label: 'Chat',
             ),
             BottomNavigationBarItem(
-              icon: Image.asset(
-                UIConstants.profileIcon,
-                width: 24,
-                height: 24,
-              ),
+              icon: Image.asset(UIConstants.profileIcon, width: 24, height: 24),
               activeIcon: Image.asset(
-                UIConstants.profileIcon,
+                UIConstants.profileIconFill,
                 width: 24,
                 height: 24,
               ),
