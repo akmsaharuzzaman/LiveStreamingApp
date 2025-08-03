@@ -18,7 +18,7 @@ class DiamondStarStatus extends StatelessWidget {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           decoration: BoxDecoration(
-            color: Color(0xff888686),
+            color: Color(0xff111111).withValues(alpha: 0.7),
             borderRadius: BorderRadius.circular(100),
           ),
           child: Row(
