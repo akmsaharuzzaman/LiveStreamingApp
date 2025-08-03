@@ -163,11 +163,11 @@ class _HomePageState extends State<HomePage>
                   labelColor: Colors.black,
                   unselectedLabelColor: Colors.black54,
                   labelStyle: TextStyle(
-                    fontSize: 15.sp,
+                    fontSize: 17.sp,
                     fontWeight: FontWeight.w600,
                   ),
                   unselectedLabelStyle: TextStyle(
-                    fontSize: 15.sp,
+                    fontSize: 16.sp,
                     fontWeight: FontWeight.w500,
                   ),
                   indicator: const UnderlineTabIndicator(
@@ -179,7 +179,7 @@ class _HomePageState extends State<HomePage>
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
                   dividerColor: Colors.transparent,
-                  labelPadding: EdgeInsets.symmetric(horizontal: 4.w),
+                  labelPadding: EdgeInsets.symmetric(horizontal: 0.w),
                   tabs: const [
                     Tab(text: 'Popular'),
                     Tab(text: 'Live'),
