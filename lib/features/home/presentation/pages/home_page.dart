@@ -425,21 +425,18 @@ class ListUserFollow extends StatelessWidget {
           },
           child: Column(
             children: [
-              Container(
+              Padding(
                 padding: EdgeInsets.only(
                   bottom: 8.sp,
                   top: 8.sp,
                   left: 8.sp,
                   right: 8.sp,
                 ),
-                decoration: BoxDecoration(
-                  color: Colors.grey,
-                  borderRadius: BorderRadius.circular(50.sp),
-                ),
-                child: Icon(
-                  Icons.leaderboard,
-                  size: 30.sp,
-                  color: Colors.black,
+
+                child: Image.asset(
+                  'assets/images/general/rank_icon.png',
+                  height: 40.sp,
+                  width: 40.sp,
                 ),
               ),
               SizedBox(height: 24.sp),
