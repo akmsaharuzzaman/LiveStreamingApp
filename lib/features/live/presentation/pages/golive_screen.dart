@@ -397,18 +397,39 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   Future<void> _applyCameraPreference() async {
     try {
+      // Small delay to ensure channel is fully joined
+      await Future.delayed(const Duration(milliseconds: 500));
+
       final prefs = await SharedPreferences.getInstance();
+
+      // Debug: List all keys to verify SharedPreferences is working
+      Set<String> keys = prefs.getKeys();
+      debugPrint('🔍 All SharedPreferences keys: $keys');
+
       bool isFrontCamera = prefs.getBool('is_front_camera') ?? true;
+
+      debugPrint(
+        '🔍 Reading camera preference from SharedPreferences (AFTER channel join):',
+      );
+      debugPrint('📱 Stored value: $isFrontCamera');
+      debugPrint(
+        '🔄 Applying camera preference: ${isFrontCamera ? 'Front' : 'Rear'} camera',
+      );
 
       // If the saved preference is for rear camera, switch to it
       if (!isFrontCamera) {
+        debugPrint('🔄 Switching to rear camera AFTER channel join...');
         await _engine.switchCamera();
-        debugPrint('Applied camera preference: Rear camera');
+        debugPrint(
+          '✅ Applied camera preference: Rear camera (AFTER channel join)',
+        );
       } else {
-        debugPrint('Applied camera preference: Front camera');
+        debugPrint(
+          '✅ Applied camera preference: Front camera (default - AFTER channel join)',
+        );
       }
     } catch (e) {
-      debugPrint('Error applying camera preference: $e');
+      debugPrint('❌ Error applying camera preference AFTER channel join: $e');
     }
   }
 
@@ -466,7 +487,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
       });
 
       // Load camera preference and apply it
-      await _applyCameraPreference();
+      // Moved this to after video initialization
+      // await _applyCameraPreference();
     } catch (e) {
       debugPrint('❌ Error in initAgora: $e');
       _showSnackBar('❌ Failed to initialize live streaming', Colors.red);
@@ -486,6 +508,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
             _localUserJoined = true;
             // Don't set _remoteUid here - it should only be set when a remote user joins
           });
+
+          // Apply camera preference AFTER successfully joining the channel
+          debugPrint('🔍 onJoinChannelSuccess - isHost: $isHost');
+          if (isHost) {
+            debugPrint(
+              '🔍 Calling _applyCameraPreference() from onJoinChannelSuccess',
+            );
+            _applyCameraPreference();
+          } else {
+            debugPrint('🔍 Not applying camera preference - user is not host');
+          }
 
           // Start timing the stream when successfully joined
           _startStreamTimer();
@@ -637,7 +670,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
     // Only start preview for broadcasters
     if (isHost) {
+      // Apply saved camera preference immediately for preview
+      await _applyCameraPreference();
       await _engine.startPreview();
+
+      // Camera preference will be applied AFTER joining channel successfully
+      // await _applyCameraPreference();
     }
 
     // For viewers, join channel immediately

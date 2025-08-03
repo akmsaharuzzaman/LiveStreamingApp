@@ -42,7 +42,10 @@ class _LivePageState extends State<LivePage> {
 
       // Load camera preference from SharedPreferences
       final prefs = await SharedPreferences.getInstance();
-      _isFrontCamera = await prefs.setBool('is_front_camera', true);
+      _isFrontCamera = prefs.getBool('is_front_camera') ?? true;
+      debugPrint(
+        '🔍 Loaded camera preference: ${_isFrontCamera ? 'Front' : 'Rear'} camera',
+      );
 
       // Check permissions
       bool hasPermissions = await PermissionHelper.hasLiveStreamPermissions();
@@ -64,6 +67,13 @@ class _LivePageState extends State<LivePage> {
           channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
         ),
       );
+      // Apply the saved camera preference after preview starts
+      if (!_isFrontCamera) {
+        await _engine.switchCamera();
+        debugPrint('🔄 Applied saved camera preference: Rear camera');
+      } else {
+        debugPrint('🔄 Applied saved camera preference: Front camera');
+      }
 
       await _engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
       await _engine.enableVideo();
@@ -74,8 +84,8 @@ class _LivePageState extends State<LivePage> {
         _isInitializingCamera = false;
       });
 
-      // Save camera preference
-      await _saveCameraPreference(_isFrontCamera);
+      // Don't save preference here since we're just applying the loaded one
+      // await _saveCameraPreference(_isFrontCamera);
     } catch (e) {
       debugPrint('Error initializing camera: $e');
       setState(() {
@@ -102,8 +112,25 @@ class _LivePageState extends State<LivePage> {
   }
 
   Future<void> _saveCameraPreference(bool isFrontCamera) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('is_front_camera', isFrontCamera);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_front_camera', isFrontCamera);
+
+      // Verify the save was successful
+      bool saved = prefs.getBool('is_front_camera') ?? true;
+      debugPrint(
+        '💾 Saved camera preference: ${isFrontCamera ? 'Front' : 'Rear'} camera',
+      );
+      debugPrint(
+        '✅ Verification - Stored value: ${saved ? 'Front' : 'Rear'} camera',
+      );
+
+      if (saved != isFrontCamera) {
+        debugPrint('⚠️ Warning: Camera preference save verification failed!');
+      }
+    } catch (e) {
+      debugPrint('❌ Error saving camera preference: $e');
+    }
   }
 
   Widget _buildCameraPreview() {
@@ -507,11 +534,23 @@ class _LivePageState extends State<LivePage> {
                     width: double.infinity,
                     height: 56.h,
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         print(
                           "Going live with title: ${_isFrontCamera ? 'Front Camera' : 'Back Camera'}",
                         );
-                        context.push(AppRoutes.onGoingLive);
+
+                        // Ensure camera preference is saved before navigation
+                        await _saveCameraPreference(_isFrontCamera);
+                        debugPrint(
+                          '🚀 Navigating to go live with camera: ${_isFrontCamera ? 'Front' : 'Rear'}',
+                        );
+
+                        // Small delay to ensure SharedPreferences write completes
+                        await Future.delayed(const Duration(milliseconds: 100));
+
+                        if (mounted) {
+                          context.push(AppRoutes.onGoingLive);
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFF85A3),
