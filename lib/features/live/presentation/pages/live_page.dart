@@ -329,7 +329,7 @@ class _LivePageState extends State<LivePage> {
                             borderRadius: BorderRadius.circular(8.r),
                           ),
                           child: Image.asset(
-                            'assets/images/image_placeholder.png',
+                            'assets/images/image_holder.png',
                             width: 75.w,
                             height: 75.h,
                           ),
