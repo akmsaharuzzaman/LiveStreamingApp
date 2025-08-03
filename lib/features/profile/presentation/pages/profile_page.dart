@@ -404,7 +404,10 @@ class _ProfileContentState extends State<_ProfileContent> {
         // Gold/Stars
         Stack(
           children: [
-            Image.asset('assets/images/general/coins_banner.png', height: 62.h),
+            Image.asset(
+              'assets/images/general/coins_banner.png',
+              width: MediaQuery.of(context).size.width * 0.5 - 25.w,
+            ),
             Positioned(
               left: 50.w,
               top: 5.h,
@@ -425,7 +428,7 @@ class _ProfileContentState extends State<_ProfileContent> {
           children: [
             Image.asset(
               'assets/images/general/withdraw_banner.png',
-              height: 62.h,
+              width: MediaQuery.of(context).size.width * 0.5 - 25.w,
             ),
             Positioned(
               left: 50.w,
@@ -707,7 +710,7 @@ class _ProfileContentState extends State<_ProfileContent> {
         width: MediaQuery.of(context).size.width / 4 - 20,
         child: Column(
           children: [
-            Image.asset(iconPath, width: 65.h, height: 65.h),
+            Image.asset(iconPath, width: 68.h, height: 68.h),
             const SizedBox(height: 8),
             Text(
               label,
