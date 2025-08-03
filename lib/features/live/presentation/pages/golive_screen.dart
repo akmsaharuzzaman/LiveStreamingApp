@@ -397,11 +397,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   Future<void> _applyCameraPreference() async {
     try {
-      // Small delay to ensure channel is fully joined
-      await Future.delayed(const Duration(milliseconds: 500));
-
       final prefs = await SharedPreferences.getInstance();
-
       // Debug: List all keys to verify SharedPreferences is working
       Set<String> keys = prefs.getKeys();
       debugPrint('🔍 All SharedPreferences keys: $keys');
