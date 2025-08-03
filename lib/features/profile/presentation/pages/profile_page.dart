@@ -670,7 +670,7 @@ class _ProfileContentState extends State<_ProfileContent> {
             children: [
               _buildFeatureIcon(
                 "assets/images/general/room_management_icon.png",
-                'Room Management',
+                'Manage Rooms',
                 context,
               ),
               _buildFeatureIcon(
@@ -707,7 +707,7 @@ class _ProfileContentState extends State<_ProfileContent> {
         width: MediaQuery.of(context).size.width / 4 - 20,
         child: Column(
           children: [
-            Image.asset(iconPath, width: 50.h, height: 50.h),
+            Image.asset(iconPath, width: 65.h, height: 65.h),
             const SizedBox(height: 8),
             Text(
               label,
