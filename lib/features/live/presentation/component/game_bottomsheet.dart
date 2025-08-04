@@ -74,7 +74,12 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                 ? MediaQuery.of(context).size.height * .55
                 : MediaQuery.of(context).size.height * modalHight,
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1A2E),
+              // color: const Color(0xFF1A1A2E),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFEDE5FE), Color(0xFFFFFFFF)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(20.r),
                 topRight: Radius.circular(20.r),
@@ -102,7 +107,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                   ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF2A2A3E),
-                    borderRadius: BorderRadius.circular(20.r),
+                    borderRadius: BorderRadius.all(Radius.circular(10.r)),
                   ),
                   child: Column(
                     children: [
@@ -173,14 +178,14 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
 
                 SizedBox(height: 12.h),
 
-                // Control Options Gridw
+                // Control Options Grid
                 if (widget.isHost)
                   Expanded(
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 20.w),
                       child: GridView.count(
                         crossAxisCount: 4,
-                        crossAxisSpacing: 16.w,
+                        crossAxisSpacing: 16.w, 
                         mainAxisSpacing: 16.h,
                         childAspectRatio: 0.8,
                         children: [
@@ -200,14 +205,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                               // Handle coin bag
                             },
                           ),
-                          _buildControlOption(
-                            iconPath: "assets/icons/sticker_grid_icon.png",
-                            label: 'Sticker',
-                            onTap: () {
-                              Navigator.pop(context);
-                              // Handle sticker
-                            },
-                          ),
+                         
                           _buildControlOption(
                             iconPath: "assets/icons/camera_flip_grid_icon.png",
                             label: 'Flip Camera',
@@ -216,36 +214,29 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                               // Handle flip camera
                             },
                           ),
-                          _buildControlOption(
-                            iconPath: "assets/icons/effect_grid_icon.png",
-                            label: 'Effect',
-                            onTap: () {
-                              Navigator.pop(context);
-                              // Handle effect
-                            },
-                          ),
-                          _buildControlOption(
-                            iconPath: "assets/icons/inbox_grid_icon.png",
-                            label: 'Inbox',
-                            onTap: () {
-                              Navigator.pop(context);
-                              // Handle inbox
-                            },
-                          ),
-                          _buildControlOption(
-                            iconPath: "assets/icons/flash_grid_icon.png",
-                            label: 'Flash on',
-                            onTap: () {
-                              Navigator.pop(context);
-                              // Handle flash
-                            },
-                          ),
+                         
                           _buildControlOption(
                             iconPath: "assets/icons/beauty_cam_grid_icon.png",
                             label: 'Beauty Camera',
                             onTap: () {
                               Navigator.pop(context);
                               // Handle beauty camera
+                            },
+                          ),
+                           _buildControlOption(
+                            iconPath: "assets/icons/music_grid_icon.png",
+                            label: 'Music',
+                            onTap: () {
+                              Navigator.pop(context);
+                              // Handle music
+                            },
+                          ),
+                           _buildControlOption(
+                            iconPath: "assets/icons/chat_clear_grid_icon.png",
+                            label: 'Chat Clear',
+                            onTap: () {
+                              Navigator.pop(context);
+                              // Handle chat clear
                             },
                           ),
                         ],
@@ -383,7 +374,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
             Text(
               label,
               style: TextStyle(
-                color: Colors.white,
+                color: Color(0xFF202020),
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w400,
               ),
@@ -417,7 +408,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
           Text(
             label,
             style: TextStyle(
-              color: Colors.white,
+              color: Color(0xFF202020),
               fontSize: 16.sp,
               fontWeight: FontWeight.w400,
             ),

@@ -1154,14 +1154,70 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/chat_icon.png",
+                                InkWell(
                                   onTap: () {
-                                    _generateDummyMessage();
-                                    // _showSnackBar(
-                                    //   '💬 Message added to chat!',
-                                    //   Colors.green,
-                                    // );
+                                    _showSnackBar(
+                                      '💬 Not implemented yet',
+                                      Colors.green,
+                                    );
+                                    // showChatBottomSheet(context);
+                                  },
+                                  child: Stack(
+                                    children: [
+                                      Image.asset(
+                                        "assets/icons/message_icon.png",
+                                        height: 40,
+                                      ),
+                                      Positioned(
+                                        left: 10,
+                                        top: 0,
+                                        bottom: 0,
+                                        child: Row(
+                                          children: [
+                                            Image.asset(
+                                              "assets/icons/message_user_icon.png",
+                                              height: 20,
+                                            ),
+                                            SizedBox(width: 5),
+                                            Text(
+                                              'Say Hello!',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 18.sp,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                CustomLiveButton(
+                                  iconPath: "assets/icons/gift_user_icon.png",
+                                  onTap: () {
+                                    _showSnackBar(
+                                      '🎁 Not implemented yet',
+                                      Colors.green,
+                                    );
+                                    // showGiftBottomSheet(context);
+                                  },
+                                ),
+                                CustomLiveButton(
+                                  iconPath: "assets/icons/pk_icon.png",
+                                  onTap: () {
+                                    _showSnackBar(
+                                      '🎶 Not implemented yet',
+                                      Colors.green,
+                                    );
+                                    // showMusicBottomSheet(context);
+                                  },
+                                ),
+                                CustomLiveButton(
+                                  iconPath: _muted
+                                      ? "assets/icons/mute_icon.png"
+                                      : "assets/icons/mute_icon.png",
+                                  onTap: () {
+                                    _toggleMute();
                                   },
                                 ),
                                 CustomLiveButton(
@@ -1216,46 +1272,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                     );
                                   },
                                 ),
+
                                 CustomLiveButton(
-                                  iconPath: _muted
-                                      ? "assets/icons/mute_icon.png"
-                                      : "assets/icons/mute_icon.png",
-                                  onTap: () {
-                                    _toggleMute();
-                                  },
-                                ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/gift_icon.png",
-                                  onTap: () {
-                                    _showSnackBar(
-                                      '🎁 Not implemented yet',
-                                      Colors.green,
-                                    );
-                                    // showGiftBottomSheet(context);
-                                  },
-                                ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/pk_icon.png",
-                                  onTap: () {
-                                    _showSnackBar(
-                                      '🎶 Not implemented yet',
-                                      Colors.green,
-                                    );
-                                    // showMusicBottomSheet(context);
-                                  },
-                                ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/music_icon.png",
-                                  onTap: () {
-                                    _showSnackBar(
-                                      '🎶 Not implemented yet',
-                                      Colors.green,
-                                    );
-                                    // showMusicBottomSheet(context);
-                                  },
-                                ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/threedot_icon.png",
+                                  iconPath: "assets/icons/menu_icon.png",
                                   onTap: () {
                                     showGameBottomSheet(
                                       context,
@@ -1283,7 +1302,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                       Image.asset(
                                         "assets/icons/message_icon.png",
                                         height: 40,
-                                        width: 170,
                                       ),
                                       Positioned(
                                         left: 10,
@@ -1293,12 +1311,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                           children: [
                                             Image.asset(
                                               "assets/icons/message_user_icon.png",
-                                              height: 25,
-                                              width: 25,
+                                              height: 20,
                                             ),
                                             SizedBox(width: 5),
                                             Text(
-                                              'Say Hi..',
+                                              'Say Hello!',
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 18.sp,
