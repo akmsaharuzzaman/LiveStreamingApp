@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:reels_viewer/reels_viewer.dart' as reels_viewer;
-
+import 'package:dlstarlive/features/reels/custom_package/reels_viewer.dart' as reels_viewer;
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../../core/network/api_clients.dart';

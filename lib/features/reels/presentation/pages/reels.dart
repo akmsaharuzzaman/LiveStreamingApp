@@ -1,14 +1,14 @@
 import 'dart:developer';
 
 import 'package:dlstarlive/core/network/api_service.dart';
+import 'package:dlstarlive/features/reels/custom_package/src/models/reel_model.dart';
+import 'package:dlstarlive/features/reels/custom_package/src/reels_viewer.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:preload_page_view/preload_page_view.dart';
-import 'package:reels_viewer/reels_viewer.dart';
-
 import '../../data/services/reels_api_service.dart';
 import '../../domain/entities/reel_entity.dart';
 import '../../injection_container.dart';

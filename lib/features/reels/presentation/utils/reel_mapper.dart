@@ -1,4 +1,4 @@
-import 'package:reels_viewer/reels_viewer.dart';
+import 'package:dlstarlive/features/reels/custom_package/src/models/reel_model.dart';
 import '../../domain/entities/reel_entity.dart';
 import '../../data/models/reel_api_response_model.dart';
 
