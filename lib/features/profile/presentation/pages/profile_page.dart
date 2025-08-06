@@ -690,6 +690,9 @@ class _ProfileContentState extends State<_ProfileContent> {
                 "assets/images/general/settings_icon.png",
                 'Settings',
                 context,
+                onTap: () {
+                  context.push(AppRoutes.settings);
+                },
               ),
             ],
           ),

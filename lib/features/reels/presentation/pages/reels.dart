@@ -197,25 +197,41 @@ class _ReelsScreenState extends State<ReelsScreen> {
                 },
                 onComment: (comment) {
                   log('Comment on reel ==> $comment');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('This feature is not implemented yet.'),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
+
                   // Find current reel and open comments page
-                  // if (currentIndex < reelsList.length) {
-                  //   final reelEntity = _getCurrentReelEntity();
-                  //   if (reelEntity != null) {
-                  //     if (comment.isNotEmpty) {
-                  //       // If there's actual comment text, add it
-                  //       _reelsBloc.add(AddComment(reelEntity.id, comment));
-                  //     } else {
-                  //       // If just clicking comment icon, open comments page
-                  //       _openCommentsPage(reelEntity.id);
-                  //     }
-                  //   }
-                  // }
+                  final reelEntity = _getCurrentReelEntity();
+                  if (reelEntity != null) {
+                    if (comment.isNotEmpty) {
+                      // If there's actual comment text, add it
+                      _reelsBloc.add(AddComment(reelEntity.id, comment));
+                    } else {
+                      // If just clicking comment icon, open comments page
+                      _openCommentsPage(reelEntity.id);
+                    }
+                  } else {
+                    // Fallback: try to get reel info from current item in reelsList
+                    if (currentIndex >= 0 && currentIndex < reelsList.length) {
+                      final currentReel = reelsList[currentIndex];
+                      // Extract reel ID from URL or use a default approach
+                      final reelId =
+                          _extractReelIdFromUrl(currentReel.url) ??
+                          DateTime.now().millisecondsSinceEpoch.toString();
+                      log(
+                        'Using fallback reel ID: $reelId for URL: ${currentReel.url}',
+                      );
+                      _openCommentsPage(reelId);
+                    } else {
+                      log(
+                        'Cannot open comments: currentIndex=$currentIndex, reelsList.length=${reelsList.length}',
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Unable to open comments at this time'),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                    }
+                  }
                 },
                 onClickMoreBtn: () {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -294,6 +310,22 @@ class _ReelsScreenState extends State<ReelsScreen> {
     return null;
   }
 
+  // Helper method to extract reel ID from URL
+  String? _extractReelIdFromUrl(String url) {
+    try {
+      // If the URL contains a reel identifier, extract it
+      // This is a basic implementation - adjust based on your URL structure
+      if (url.contains('/')) {
+        final parts = url.split('/');
+        return parts.last.split('.').first; // Get filename without extension
+      }
+      return url; // Return the URL itself as ID if no path separators
+    } catch (e) {
+      log('Error extracting reel ID from URL: $e');
+      return null;
+    }
+  }
+
   // Helper method to react to a reel
   Future<void> _reactToReel(String reelId, String reactionType) async {
     try {
@@ -315,12 +347,23 @@ class _ReelsScreenState extends State<ReelsScreen> {
 
   // Helper method to open comments page for a reel
   void _openCommentsPage(String reelId) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            ReelCommentsPage(reelId: reelId, reelTitle: 'Reel Comments'),
-      ),
-    );
+    log('Opening comments page for reel ID: $reelId');
+    try {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              ReelCommentsPage(reelId: reelId, reelTitle: 'Reel Comments'),
+        ),
+      );
+    } catch (e) {
+      log('Error opening comments page: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error opening comments: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }
