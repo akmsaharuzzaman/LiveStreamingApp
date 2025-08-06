@@ -60,18 +60,21 @@ class _ShowMessageBottomsheetState extends State<ShowMessageBottomsheet> {
             children: [
               // Handle for dragging (optional)
               Container(
-                width: 40,
-                height: 4,
-                margin: EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
+              width: 40,
+              height: 4,
+              margin: EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
               ),
-              TextField(
-                controller: _textController,
-                autofocus: true,
-                decoration: InputDecoration(
+              ),
+              Row(
+              children: [
+                Expanded(
+                child: TextField(
+                  controller: _textController,
+                  autofocus: true,
+                  decoration: InputDecoration(
                   hintText: 'Type your message here...',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(25),
@@ -80,37 +83,38 @@ class _ShowMessageBottomsheetState extends State<ShowMessageBottomsheet> {
                     horizontal: 16,
                     vertical: 12,
                   ),
-                ),
-                onSubmitted: (value) {
+                  ),
+                  onSubmitted: (value) {
                   if (value.trim().isNotEmpty) {
                     widget.onSendMessage();
                     Navigator.pop(context);
                   }
+                  },
+                ),
+                ),
+                SizedBox(width: 8),
+                ElevatedButton(
+                onPressed: () {
+                  if (_textController.text.trim().isNotEmpty) {
+                  widget.onSendMessage();
+                  Navigator.pop(context);
+                  }
                 },
-              ),
-              SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (_textController.text.trim().isNotEmpty) {
-                          widget.onSendMessage();
-                          Navigator.pop(context);
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: Text('Send'),
-                    ),
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
                   ),
-                ],
+                  padding: EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 20,
+                  ),
+                ),
+                child: Text('Send'),
+                ),
+              ],
               ),
-            ],
+            ]
+            
           ),
         ),
       ),
