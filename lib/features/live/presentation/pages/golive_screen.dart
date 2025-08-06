@@ -7,6 +7,8 @@ import 'package:dlstarlive/core/network/models/call_request_list.dart';
 import 'package:dlstarlive/core/network/socket_service.dart';
 import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:dlstarlive/features/live/presentation/component/agora_token_service.dart';
+import 'package:dlstarlive/features/live/presentation/component/gift_bottom_sheet.dart';
+import 'package:dlstarlive/features/live/presentation/component/send_message_buttonsheet.dart';
 import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -1156,11 +1158,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               children: [
                                 InkWell(
                                   onTap: () {
-                                    _showSnackBar(
-                                      '💬 Not implemented yet',
-                                      Colors.green,
-                                    );
-                                    // showChatBottomSheet(context);
+                                    // _showSnackBar(
+                                    //   '💬 Not implemented yet',
+                                    //   Colors.green,
+                                    // );
+                                    showSendMessageBottomSheet(context);
                                   },
                                   child: Stack(
                                     children: [
@@ -1195,11 +1197,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 CustomLiveButton(
                                   iconPath: "assets/icons/gift_user_icon.png",
                                   onTap: () {
-                                    _showSnackBar(
-                                      '🎁 Not implemented yet',
-                                      Colors.green,
-                                    );
-                                    // showGiftBottomSheet(context);
+                                    // _showSnackBar(
+                                    //   '🎁 Not implemented yet',
+                                    //   Colors.green,
+                                    // );
+                                    showGiftBottomSheet(context);
                                   },
                                 ),
                                 CustomLiveButton(
