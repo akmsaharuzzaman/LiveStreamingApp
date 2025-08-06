@@ -332,7 +332,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   }
 
   /// Generate dummy chat message
-  void _generateDummyMessage() {
+  void _generateDummyMessage(String message) {
     final random = Random();
     final dummyUsers = [
       'Habib',
@@ -344,21 +344,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
       'Omar',
       'Aisha',
     ];
-    final dummyMessages = [
-      'how are you',
-      'fine and you',
-      'Joined the room',
-      'Hello everyone!',
-      'Great stream!',
-      'Love this content',
-      'Amazing performance',
-      'Keep it up!',
-      'Nice work',
-      'Awesome!',
-    ];
 
     final userName = dummyUsers[random.nextInt(dummyUsers.length)];
-    final message = dummyMessages[random.nextInt(dummyMessages.length)];
     final level = random.nextInt(25) + 1; // Level 1-25
     final isVip =
         random.nextBool() && level > 10; // VIP more likely for higher levels
@@ -1162,7 +1149,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                     //   '💬 Not implemented yet',
                                     //   Colors.green,
                                     // );
-                                    showSendMessageBottomSheet(context);
+                                    showSendMessageBottomSheet(
+                                      context,
+                                      onSendMessage: (message) {
+                                        print("Send message pressed");
+                                        _generateDummyMessage(message);
+                                      },
+                                    );
                                   },
                                   child: Stack(
                                     children: [

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 void showSendMessageBottomSheet(
   BuildContext context, {
-  VoidCallback? onSendMessage,
+  Function(String)? onSendMessage,
 }) {
   //show a button sheet with a text field and keyboard for chat input
   showModalBottomSheet(
@@ -13,7 +13,7 @@ void showSendMessageBottomSheet(
       return ShowMessageBottomsheet(
         onSendMessage:
             onSendMessage ??
-            () {
+            (String message) {
               // Default action if no callback is provided
               ScaffoldMessenger.of(
                 context,
@@ -26,7 +26,7 @@ void showSendMessageBottomSheet(
 
 class ShowMessageBottomsheet extends StatefulWidget {
   const ShowMessageBottomsheet({super.key, required this.onSendMessage});
-  final VoidCallback onSendMessage;
+  final Function(String)? onSendMessage;
 
   @override
   State<ShowMessageBottomsheet> createState() => _ShowMessageBottomsheetState();
@@ -86,7 +86,7 @@ class _ShowMessageBottomsheetState extends State<ShowMessageBottomsheet> {
                   ),
                   onSubmitted: (value) {
                   if (value.trim().isNotEmpty) {
-                    widget.onSendMessage();
+                    widget.onSendMessage?.call(value.trim());
                     Navigator.pop(context);
                   }
                   },
@@ -96,7 +96,7 @@ class _ShowMessageBottomsheetState extends State<ShowMessageBottomsheet> {
                 ElevatedButton(
                 onPressed: () {
                   if (_textController.text.trim().isNotEmpty) {
-                  widget.onSendMessage();
+                  widget.onSendMessage?.call(_textController.text.trim());
                   Navigator.pop(context);
                   }
                 },
