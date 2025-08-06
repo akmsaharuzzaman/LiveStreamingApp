@@ -194,7 +194,7 @@ class ReelReaction {
       id: json['_id'] ?? '',
       reactedBy: json['reactedBy'] ?? '',
       reactedTo: json['reactedTo'] ?? '',
-      reactionType: json['reaction_type'] ?? '',
+      reactionType: json['reactionType'] ?? json['reaction_type'] ?? '',
       createdAt: json['createdAt'] ?? '',
       userInfo: json['userInfo'] != null
           ? ReelUserInfo.fromJson(json['userInfo'])
