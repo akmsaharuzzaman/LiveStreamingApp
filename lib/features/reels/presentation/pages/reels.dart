@@ -365,15 +365,9 @@ class _ReelsScreenState extends State<ReelsScreen> {
   // Helper method to react to a reel
   Future<void> _reactToReel(String reelId, String reactionType) async {
     try {
-      final repository = ReelsDependencyContainer.createRepository();
-      final success = await repository.reactToReel(reelId, reactionType);
-
-      if (success) {
-        log('Successfully reacted to reel: $reelId with $reactionType');
-        // Optionally refresh the current reel to show updated reaction count
-      } else {
-        log('Failed to react to reel: $reelId');
-      }
+      // Use the BLoC instead of repository directly to update UI automatically
+      _reelsBloc.add(ReactToReel(reelId, reactionType));
+      log('Sent reaction event: $reelId with $reactionType');
     } catch (e) {
       log('Error reacting to reel: $e');
     }
