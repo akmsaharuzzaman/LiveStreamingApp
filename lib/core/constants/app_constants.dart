@@ -206,8 +206,6 @@ class ApiConstants {
       '/api/reels/?page=$page&limit=$limit';
   static String getUserReels(String userId, int page, int limit) =>
       '/api/reels/user/$userId?page=$page&limit=$limit';
-  //! TODO: Update this endpoint to match your API
-  // '/api/reels/';
   static const String reactToReel = '/api/reels/react/';
   static const String commentOnReel = '/api/reels/comment/';
   static String shareReel(String reelId) => '/api/reels/$reelId/share';

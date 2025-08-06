@@ -35,6 +35,16 @@ class LikeReelUseCase {
   }
 }
 
+class ReactToReelUseCase {
+  final ReelsRepository repository;
+
+  ReactToReelUseCase(this.repository);
+
+  Future<bool> call(String reelId, String reactionType) async {
+    return await repository.reactToReel(reelId, reactionType);
+  }
+}
+
 class ShareReelUseCase {
   final ReelsRepository repository;
 

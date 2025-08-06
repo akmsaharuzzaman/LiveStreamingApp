@@ -366,9 +366,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
   Future<void> _reactToReel(String reelId, String reactionType) async {
     try {
       final repository = ReelsDependencyContainer.createRepository();
-      final success = await repository.likeReel(
-        reelId,
-      ); // This will be updated to handle different reaction types
+      final success = await repository.reactToReel(reelId, reactionType);
 
       if (success) {
         log('Successfully reacted to reel: $reelId with $reactionType');

@@ -65,6 +65,19 @@ class ReelsRepositoryImpl implements ReelsRepository {
   }
 
   @override
+  Future<bool> reactToReel(String reelId, String reactionType) async {
+    try {
+      return await apiService.reactToReel(
+        reelId: reelId,
+        reactionType: reactionType,
+      );
+    } catch (e) {
+      log('Error reacting to reel: $e');
+      return false;
+    }
+  }
+
+  @override
   Future<bool> shareReel(String reelId) async {
     try {
       return await apiService.shareReel(reelId: reelId);

@@ -8,6 +8,7 @@ abstract class ReelsRepository {
     int limit = 5,
   });
   Future<bool> likeReel(String reelId);
+  Future<bool> reactToReel(String reelId, String reactionType);
   Future<bool> shareReel(String reelId);
   Future<bool> addComment(String reelId, String comment);
   Future<bool> uploadReel(

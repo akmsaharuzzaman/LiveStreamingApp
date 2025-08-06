@@ -7,6 +7,7 @@ import 'reels_state.dart';
 class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
   final GetReelsUseCase getReelsUseCase;
   final LikeReelUseCase likeReelUseCase;
+  final ReactToReelUseCase reactToReelUseCase;
   final ShareReelUseCase shareReelUseCase;
   final AddCommentUseCase addCommentUseCase;
   final GetReelCommentsUseCase getReelCommentsUseCase;
@@ -20,6 +21,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
   ReelsBloc({
     required this.getReelsUseCase,
     required this.likeReelUseCase,
+    required this.reactToReelUseCase,
     required this.shareReelUseCase,
     required this.addCommentUseCase,
     required this.getReelCommentsUseCase,
@@ -32,6 +34,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     on<LoadMoreReels>(_onLoadMoreReels);
     on<RefreshReels>(_onRefreshReels);
     on<LikeReel>(_onLikeReel);
+    on<ReactToReel>(_onReactToReel);
     on<ShareReel>(_onShareReel);
     on<AddComment>(_onAddComment);
     on<GetReelComments>(_onGetReelComments);
@@ -110,6 +113,26 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
       }
     } catch (e) {
       log('Error liking reel: $e');
+    }
+  }
+
+  Future<void> _onReactToReel(
+    ReactToReel event,
+    Emitter<ReelsState> emit,
+  ) async {
+    try {
+      final success = await reactToReelUseCase(
+        event.reelId,
+        event.reactionType,
+      );
+      if (success) {
+        log(
+          'Reel reacted successfully: ${event.reelId} with ${event.reactionType}',
+        );
+        // Optionally update the local state here
+      }
+    } catch (e) {
+      log('Error reacting to reel: $e');
     }
   }
 
