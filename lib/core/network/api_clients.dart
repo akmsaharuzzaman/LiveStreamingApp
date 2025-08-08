@@ -325,14 +325,15 @@ class UserApiClient {
 
   /// Delete user account
   Future<ApiResponse<bool>> deleteAccount() async {
-    final response = await _apiService.delete<bool>(
+    final response = await _apiService.delete<Map<String, dynamic>>(
       ApiConstants.userProfileEndpoint,
     );
 
-    return response.fold(
-      (data) => ApiResponse.success(data: data),
-      (error) => ApiResponse.failure(message: error),
-    );
+    return response.fold((data) {
+      // Check if the response indicates success
+      final success = data['success'] as bool? ?? false;
+      return ApiResponse.success(data: success);
+    }, (error) => ApiResponse.failure(message: error));
   }
 
   /// Follow a user
