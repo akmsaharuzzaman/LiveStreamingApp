@@ -1,4 +1,22 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+
+class ChatBadge {
+  final String type; // 'level', 'vip', 'crown', 'fire', etc.
+  final String text;
+  final Color? backgroundColor;
+  final Color? textColor;
+  final IconData? icon;
+
+  ChatBadge({
+    required this.type,
+    required this.text,
+    this.backgroundColor,
+    this.textColor,
+    this.icon,
+  });
+}
 
 class ChatMessage {
   final String id;
@@ -6,8 +24,7 @@ class ChatMessage {
   final String message;
   final DateTime timestamp;
   final String? userAvatar;
-  final int level;
-  final bool isVip;
+  final List<ChatBadge> badges;
 
   ChatMessage({
     required this.id,
@@ -15,9 +32,11 @@ class ChatMessage {
     required this.message,
     required this.timestamp,
     this.userAvatar,
-    this.level = 1,
-    this.isVip = false,
+    this.badges = const [],
   });
+
+  // Check if user is premium based on having badges
+  bool get isPremium => badges.isNotEmpty;
 }
 
 class LiveChatWidget extends StatefulWidget {
@@ -32,6 +51,7 @@ class LiveChatWidget extends StatefulWidget {
 
 class _LiveChatWidgetState extends State<LiveChatWidget> {
   final ScrollController _scrollController = ScrollController();
+  final Map<String, Color> _userColorCache = {};
 
   @override
   void didUpdateWidget(LiveChatWidget oldWidget) {
@@ -74,152 +94,257 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
     );
   }
 
+  // Generate consistent random color for each user
+  Color _getRandomColorForUser(String userName) {
+    if (_userColorCache.containsKey(userName)) {
+      return _userColorCache[userName]!;
+    }
+
+    // Use username hash for consistent color generation
+    final hash = userName.hashCode;
+    final random = Random(hash);
+
+    // Premium color palettes
+    final colorPalettes = [
+      [const Color(0xFF1B1E48), const Color(0xFF825CB3)], // Purple gradient
+      [const Color(0xFF2D1B69), const Color(0xFF11998E)], // Teal gradient
+      [const Color(0xFF834D9B), const Color(0xFFD04ED6)], // Pink gradient
+      [
+        const Color(0xFF667EEA),
+        const Color(0xFF764BA2),
+      ], // Blue-purple gradient
+      [const Color(0xFFE44D26), const Color(0xFFF16529)], // Orange gradient
+      [const Color(0xFF11998E), const Color(0xFF38EF7D)], // Green gradient
+      [
+        const Color(0xFF3A1C71),
+        const Color(0xFFD76D77),
+      ], // Purple-pink gradient
+      [const Color(0xFF1E3C72), const Color(0xFF2A5298)], // Dark blue gradient
+      [const Color(0xFFFF512F), const Color(0xFFDD2476)], // Red-pink gradient
+      [const Color(0xFF6A3093), const Color(0xFFA044FF)], // Purple gradient
+    ];
+
+    final selectedPalette = colorPalettes[random.nextInt(colorPalettes.length)];
+    _userColorCache[userName] =
+        selectedPalette[0]; // Store first color as reference
+
+    return selectedPalette[0];
+  }
+
+  List<Color> _getGradientColorsForUser(String userName) {
+    // Use username hash for consistent color generation
+    final hash = userName.hashCode;
+    final random = Random(hash);
+
+    // Premium color palettes
+    final colorPalettes = [
+      [const Color(0xFF1B1E48), const Color(0xFF825CB3)], // Purple gradient
+      [const Color(0xFF2D1B69), const Color(0xFF11998E)], // Teal gradient
+      [const Color(0xFF834D9B), const Color(0xFFD04ED6)], // Pink gradient
+      [
+        const Color(0xFF667EEA),
+        const Color(0xFF764BA2),
+      ], // Blue-purple gradient
+      [const Color(0xFFE44D26), const Color(0xFFF16529)], // Orange gradient
+      [const Color(0xFF11998E), const Color(0xFF38EF7D)], // Green gradient
+      [
+        const Color(0xFF3A1C71),
+        const Color(0xFFD76D77),
+      ], // Purple-pink gradient
+      [const Color(0xFF1E3C72), const Color(0xFF2A5298)], // Dark blue gradient
+      [const Color(0xFFFF512F), const Color(0xFFDD2476)], // Red-pink gradient
+      [const Color(0xFF6A3093), const Color(0xFFA044FF)], // Purple gradient
+    ];
+
+    return colorPalettes[random.nextInt(colorPalettes.length)];
+  }
+
   Widget _buildChatMessage(ChatMessage message) {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Container(
-        height: 60,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          // Linear gradient matching Figma properties
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1B1E48), // #1B1E48
-              Color(0xFF825CB3), // #825CB3
-            ],
-          ),
-          // Background blur effect (Figma shows blur: 5)
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(20),
+          gradient: message.isPremium
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: _getGradientColorsForUser(message.userName),
+                )
+              : null,
+          color: message.isPremium ? null : Colors.transparent,
+          boxShadow: message.isPremium
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // User Avatar
-              CircleAvatar(
-                radius: 12,
-                backgroundImage: message.userAvatar != null
-                    ? NetworkImage(message.userAvatar!)
-                    : null,
-                backgroundColor: Colors.grey[600],
-                child: message.userAvatar == null
-                    ? Text(
-                        message.userName.substring(0, 1).toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Badges (Level, VIP, etc.)
+            ...message.badges.map((badge) => _buildBadge(badge)),
+            if (message.badges.isNotEmpty) const SizedBox(width: 8),
 
-              // Message content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            // User Avatar
+            CircleAvatar(
+              radius: 14,
+              backgroundImage: message.userAvatar != null
+                  ? NetworkImage(message.userAvatar!)
+                  : null,
+              backgroundColor: message.isPremium
+                  ? Colors.white.withOpacity(0.3)
+                  : Colors.grey[600],
+              child: message.userAvatar == null
+                  ? Text(
+                      message.userName.substring(0, 1).toUpperCase(),
+                      style: TextStyle(
+                        color: message.isPremium ? Colors.white : Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 10),
+
+            // Message content
+            Expanded(
+              child: RichText(
+                text: TextSpan(
                   children: [
-                    // User name with level and VIP indicators
-                    Row(
-                      children: [
-                        // Level indicator
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 1,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getLevelColor(message.level),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'Lv${message.level}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 8,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-
-                        // VIP indicator
-                        if (message.isVip)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 1,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              'SVIP',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        const SizedBox(width: 4),
-
-                        // User name
-                        Flexible(
-                          child: Text(
-                            "${message.userName}:",
-                            style: TextStyle(
-                              color: message.isVip
-                                  ? const Color(0xFFFFD700)
-                                  : Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        // Message text
-                        Text(
-                          message.message,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+                    TextSpan(
+                      text: "${message.userName}: ",
+                      style: TextStyle(
+                        color: message.isPremium
+                            ? Colors.white
+                            : Colors.grey[300],
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    const SizedBox(height: 2),
+                    TextSpan(
+                      text: message.message,
+                      style: TextStyle(
+                        color: message.isPremium
+                            ? Colors.white.withOpacity(0.95)
+                            : Colors.grey[400],
+                        fontSize: 14,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
                   ],
                 ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Color _getLevelColor(int level) {
-    if (level >= 20) return const Color(0xFFFF6B6B); // Red for high levels
-    if (level >= 15) return const Color(0xFFFF8E53); // Orange
-    if (level >= 10) return const Color(0xFF4ECDC4); // Teal
-    if (level >= 5) return const Color(0xFF45B7D1); // Blue
-    return const Color(0xFF96CEB4); // Green for low levels
+  Widget _buildBadge(ChatBadge badge) {
+    Widget badgeContent;
+
+    switch (badge.type) {
+      case 'level':
+        badgeContent = Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: badge.backgroundColor ?? const Color(0xFF4CAF50),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.white, width: 1),
+          ),
+          child: Text(
+            badge.text,
+            style: TextStyle(
+              color: badge.textColor ?? Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        );
+        break;
+
+      case 'vip':
+        badgeContent = Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+            ),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.white, width: 1),
+          ),
+          child: Text(
+            badge.text,
+            style: TextStyle(
+              color: badge.textColor ?? Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        );
+        break;
+
+      case 'crown':
+        badgeContent = Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: badge.backgroundColor ?? const Color(0xFFFFD700),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white, width: 1),
+          ),
+          child: Icon(
+            Icons.star,
+            color: badge.textColor ?? Colors.white,
+            size: 16,
+          ),
+        );
+        break;
+
+      case 'fire':
+        badgeContent = Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: badge.backgroundColor ?? const Color(0xFFFF6B6B),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white, width: 1),
+          ),
+          child: Icon(
+            Icons.local_fire_department,
+            color: badge.textColor ?? Colors.white,
+            size: 16,
+          ),
+        );
+        break;
+
+      default:
+        badgeContent = Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: badge.backgroundColor ?? Colors.grey[600],
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.white, width: 1),
+          ),
+          child: Text(
+            badge.text,
+            style: TextStyle(
+              color: badge.textColor ?? Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        );
+    }
+
+    return badgeContent;
   }
 }

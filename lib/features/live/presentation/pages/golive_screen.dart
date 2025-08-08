@@ -346,17 +346,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
     ];
 
     final userName = dummyUsers[random.nextInt(dummyUsers.length)];
-    final level = random.nextInt(25) + 1; // Level 1-25
-    final isVip =
-        random.nextBool() && level > 10; // VIP more likely for higher levels
-
     final newMessage = ChatMessage(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       userName: userName,
       message: message,
-      timestamp: DateTime.now(),
-      level: level,
-      isVip: isVip,
+       timestamp: DateTime.now(),
+        badges: [
+          ChatBadge(type: 'level', text: '30', backgroundColor: const Color(0xFF9C27B0)),
+        ],
     );
 
     setState(() {
