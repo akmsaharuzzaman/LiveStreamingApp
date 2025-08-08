@@ -19,6 +19,12 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
   final List<String> _genderOptions = ['Male', 'Female', 'Other'];
 
+  // Local theme tokens to align with app face/design
+  static const Color _primaryPink = Color(0xFFFF6B9D);
+  static const Color _primaryBlue = Color(0xFF9BC7FB);
+  static const Color _bgSoft = Color(0xFFF5F7FB);
+  static const BorderRadius _cardRadius = BorderRadius.all(Radius.circular(16));
+
   @override
   void dispose() {
     _countryController.dispose();
@@ -76,116 +82,227 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Complete Your Profile'),
-          automaticallyImplyLeading: false, // Prevent going back
-        ),
-        body: BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            return SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(UIConstants.spacingM),
-                child: Form(
-                  key: _formKey,
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.centerLeft,
+              colors: [Color(0xFFD7CAFE), Color(0xFFFFFFFF)],
+            ),
+          ),
+          child: BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              final inputBorder = OutlineInputBorder(
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
+                borderSide: BorderSide(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                ),
+              );
+
+              final focusedBorder = const OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+                borderSide: BorderSide(color: _primaryPink, width: 1.5),
+              );
+
+              return SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: UIConstants.spacingM,
+                    vertical: UIConstants.spacingM,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
+                    
                     children: [
-                      const SizedBox(height: UIConstants.spacingL),
-                      const Icon(
-                        Icons.person_add,
-                        size: 80,
-                        color: Colors.blue,
-                      ),
-                      const SizedBox(height: UIConstants.spacingL),
-                      const Text(
-                        'Complete Your Profile',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: UIConstants.spacingS),
-                      const Text(
-                        'Please provide some additional information to complete your registration.',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: UIConstants.spacingXL),
-
-                      // Country Field
-                      TextFormField(
-                        controller: _countryController,
-                        decoration: const InputDecoration(
-                          labelText: 'Country',
-                          hintText: 'Enter your country',
-                          prefixIcon: Icon(Icons.public),
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Country is required';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: UIConstants.spacingM),
-
-                      // Gender Dropdown
-                      DropdownButtonFormField<String>(
-                        value: _selectedGender,
-                        decoration: const InputDecoration(
-                          labelText: 'Gender',
-                          prefixIcon: Icon(Icons.person),
-                          border: OutlineInputBorder(),
-                        ),
-                        items: _genderOptions.map((gender) {
-                          return DropdownMenuItem(
-                            value: gender,
-                            child: Text(gender),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedGender = value;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null) {
-                            return 'Gender is required';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: UIConstants.spacingM),
-
-                      // Birthday Field
-                      InkWell(
-                        onTap: _selectBirthday,
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'Birthday',
-                            prefixIcon: Icon(Icons.cake),
-                            border: OutlineInputBorder(),
+                      // Themed header with gradient and icon
+                      //Complete Profile
+                      Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                          'Complete Profile',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueGrey,
                           ),
-                          child: Text(
-                            _selectedBirthday != null
-                                ? '${_selectedBirthday!.day}/${_selectedBirthday!.month}/${_selectedBirthday!.year}'
-                                : 'Select your birthday',
-                            style: TextStyle(
-                              color: _selectedBirthday != null
-                                  ? Theme.of(context).textTheme.bodyLarge?.color
-                                  : Theme.of(context).hintColor,
+                        ),
+                      ),
+
+                      //Space and Divider
+                      SizedBox(height: UIConstants.spacingM),
+                      Divider(color: Colors.white.withOpacity(0.5)),
+                      SizedBox(height: UIConstants.spacingM),
+
+                      // Contents
+                      Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [_primaryPink, _primaryBlue, _primaryPink],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: _cardRadius,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 24,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            CircleAvatar(
+                              radius: 36,
+                              backgroundColor: Colors.white,
+                              child: Icon(
+                                Icons.person_add,
+                                size: 40,
+                                color: _primaryPink,
+                              ),
                             ),
+                            SizedBox(height: UIConstants.spacingM),
+                            Text(
+                              'Complete Your Profile',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: UIConstants.spacingS),
+                            Text(
+                              'Provide a few details to finish setting up your account.',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: UIConstants.spacingM),
+
+                      // Card-like form container
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: _cardRadius,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(UIConstants.spacingM),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Country Field
+                              TextFormField(
+                                controller: _countryController,
+                                decoration: InputDecoration(
+                                  labelText: 'Country',
+                                  hintText: 'Enter your country',
+                                  prefixIcon: const Icon(Icons.public),
+                                  filled: true,
+                                  fillColor: const Color(0xFFF9FAFB),
+                                  border: inputBorder,
+                                  enabledBorder: inputBorder,
+                                  focusedBorder: focusedBorder,
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Country is required';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: UIConstants.spacingM),
+
+                              // Gender Dropdown
+                              DropdownButtonFormField<String>(
+                                value: _selectedGender,
+                                decoration: InputDecoration(
+                                  labelText: 'Gender',
+                                  prefixIcon: const Icon(Icons.person),
+                                  filled: true,
+                                  fillColor: const Color(0xFFF9FAFB),
+                                  border: inputBorder,
+                                  enabledBorder: inputBorder,
+                                  focusedBorder: focusedBorder,
+                                ),
+                                items: _genderOptions.map((gender) {
+                                  return DropdownMenuItem(
+                                    value: gender,
+                                    child: Text(gender),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedGender = value;
+                                  });
+                                },
+                                validator: (value) {
+                                  if (value == null) {
+                                    return 'Gender is required';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: UIConstants.spacingM),
+
+                              // Birthday Field
+                              InkWell(
+                                onTap: _selectBirthday,
+                                child: InputDecorator(
+                                  decoration: InputDecoration(
+                                    labelText: 'Birthday',
+                                    prefixIcon: const Icon(Icons.cake),
+                                    filled: true,
+                                    fillColor: const Color(0xFFF9FAFB),
+                                    border: inputBorder,
+                                    enabledBorder: inputBorder,
+                                    focusedBorder: focusedBorder,
+                                  ),
+                                  child: Text(
+                                    _selectedBirthday != null
+                                        ? '${_selectedBirthday!.day}/${_selectedBirthday!.month}/${_selectedBirthday!.year}'
+                                        : 'Select your birthday',
+                                    style: TextStyle(
+                                      color: _selectedBirthday != null
+                                          ? Theme.of(
+                                              context,
+                                            ).textTheme.bodyLarge?.color
+                                          : Theme.of(context).hintColor,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                      const SizedBox(height: UIConstants.spacingXL),
 
-                      // Submit Button
+                      const SizedBox(height: UIConstants.spacingL),
+
+                      // Submit Button (themed)
                       SizedBox(
                         height: 50,
                         child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _primaryPink,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
+                          ),
                           onPressed: state is AuthLoading
                               ? null
                               : _submitProfile,
@@ -195,20 +312,26 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                                   width: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
                                   ),
                                 )
                               : const Text(
                                   'Complete Profile',
-                                  style: TextStyle(fontSize: 16),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
