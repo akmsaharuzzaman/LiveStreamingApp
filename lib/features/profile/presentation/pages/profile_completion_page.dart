@@ -22,7 +22,6 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   // Local theme tokens to align with app face/design
   static const Color _primaryPink = Color(0xFFFF6B9D);
   static const Color _primaryBlue = Color(0xFF9BC7FB);
-  static const Color _bgSoft = Color(0xFFF5F7FB);
   static const BorderRadius _cardRadius = BorderRadius.all(Radius.circular(16));
 
   @override
@@ -130,7 +129,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
                       //Space and Divider
                       SizedBox(height: UIConstants.spacingM),
-                      Divider(color: Colors.white.withOpacity(0.5)),
+                      Divider(color: Colors.white.withValues(alpha: 0.5)),
                       SizedBox(height: UIConstants.spacingM),
 
                       // Contents
