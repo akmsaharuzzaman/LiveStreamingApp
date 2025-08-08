@@ -10,8 +10,6 @@ import 'package:flutter_carousel_widget/flutter_carousel_widget.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:iconsax/iconsax.dart';
-
 import '../../data/models/category_model.dart';
 import '../../data/models/user_model.dart';
 import '../widgets/custom_networkimage.dart';
@@ -197,7 +195,7 @@ class _HomePageState extends State<HomePage>
               width: 22.sp,
             ),
             SizedBox(width: 12.sp),
-            Icon(Iconsax.notification, size: 22.sp, color: Colors.black),
+            Icon(Icons.notification_important, size: 22.sp, color: Colors.black),
           ],
         ),
       ),
@@ -617,7 +615,7 @@ class LiveStreamCard extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    Iconsax.voice_cricle,
+                                    Icons.voice_chat,
                                     size: 17.sp,
                                     color: Colors.white,
                                   ),

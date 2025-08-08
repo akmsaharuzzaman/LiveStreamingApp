@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:iconsax/iconsax.dart';
 
 class MyTabBar extends StatefulWidget {
   const MyTabBar({super.key, required this.tabController});
@@ -48,7 +47,7 @@ class _MyTabBarState extends State<MyTabBar> {
                             : const SizedBox();
                       },
                     ),
-                    Icon(Iconsax.message, size: 18.sp),
+                    Icon(Icons.message, size: 18.sp),
                   ],
                 ),
                 const SizedBox(height: 2),
@@ -80,7 +79,7 @@ class _MyTabBarState extends State<MyTabBar> {
                             : const SizedBox();
                       },
                     ),
-                    Icon(Iconsax.status, size: 18.sp),
+                    Icon(Icons.time_to_leave, size: 18.sp),
                   ],
                 ),
                 const SizedBox(height: 2),
@@ -112,7 +111,7 @@ class _MyTabBarState extends State<MyTabBar> {
                             : const SizedBox();
                       },
                     ),
-                    Icon(Iconsax.call, size: 18.sp),
+                    Icon(Icons.call, size: 18.sp),
                   ],
                 ),
                 const SizedBox(height: 2),

@@ -13,7 +13,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_svg: ^2.2.0
   google_fonts: ^6.3.0
-  iconsax: ^0.0.8
+  # iconsax: ^0.0.8
   flutter_screenutil: ^5.9.3
   flutter_carousel_widget: ^3.1.0
 
@@ -28,7 +28,7 @@ dependencies:
   go_router: ^16.1.0
 
   # Networking
-  dio: ^5.8.0+1
+  dio: ^5.9.0
   socket_io_client: ^3.1.2
 
   # Data Classes & JSON Serialization
@@ -40,10 +40,11 @@ dependencies:
 
   # Utility Libraries
   dartz: ^0.10.1
+  device_info_plus: ^11.5.0
   intl: any
 
   # File & Media Pickers
-  file_picker: ^10.2.1
+  file_picker: ^10.2.2
   image_picker: ^1.1.2
   image_cropper: ^9.1.0
   cached_network_image: ^3.4.1
@@ -77,7 +78,7 @@ dependencies:
 
   # UX Enhancements
   preload_page_view: ^0.2.0
-  device_info_plus: ^11.5.0
+
 
 dev_dependencies:
   flutter_test:
