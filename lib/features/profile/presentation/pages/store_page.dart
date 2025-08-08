@@ -19,29 +19,31 @@ class _StorePageState extends State<StorePage> {
   // If you later introduce Lottie/Rive, add nullable fields and render accordingly in _buildStoreAssetWidget.
   static const _fallbackAsset = 'assets/images/general/showcase_frame.png';
   static const _altAsset = 'assets/images/general/profile_frame.png';
+  static const _carEntryGif = 'assets/images/general/car_entry.gif';
+  static const _carEntryGif2 = 'assets/images/general/car_entry2.gif';
 
   List<_StoreItem> get _frameItems => [
     _StoreItem(name: 'Noble Blaze', price: 1000, asset: _altAsset),
-    _StoreItem(name: 'Magnificent D.', price: 1300, asset: _fallbackAsset),
-    _StoreItem(name: 'Grand regal H.', price: 1300, asset: _fallbackAsset),
-    _StoreItem(name: 'Noble Blaze', price: 1000, asset: _altAsset),
-    _StoreItem(name: 'Magnificent D.', price: 1300, asset: _fallbackAsset),
-    _StoreItem(name: 'Grand regal H.', price: 1300, asset: _fallbackAsset),
+    _StoreItem(name: 'Magnificent D.', price: 1300, asset: _carEntryGif),
+    _StoreItem(name: 'Grand regal H.', price: 1300, asset: _carEntryGif),
+    _StoreItem(name: 'Noble Blaze', price: 1000, asset: _carEntryGif2),
+    _StoreItem(name: 'Magnificent D.', price: 1300, asset: _carEntryGif),
+    _StoreItem(name: 'Grand regal H.', price: 1300, asset: _carEntryGif),
     _StoreItem(name: 'Elite Frame', price: 1500, asset: _altAsset),
-    _StoreItem(name: 'Royal Frame', price: 1800, asset: _fallbackAsset),
-    _StoreItem(name: 'Diamond Frame', price: 2000, asset: _fallbackAsset),
+    _StoreItem(name: 'Royal Frame', price: 1800, asset: _carEntryGif2),
+    _StoreItem(name: 'Diamond Frame', price: 2000, asset: _carEntryGif),
   ];
 
   List<_StoreItem> get _roomEntryItems => [
     _StoreItem(name: 'Golden Car', price: 1000, asset: _altAsset),
-    _StoreItem(name: 'Geen Car', price: 1300, asset: _fallbackAsset),
-    _StoreItem(name: 'Ferari Car', price: 1300, asset: _fallbackAsset),
-    _StoreItem(name: 'Gaming Car', price: 1000, asset: _altAsset),
-    _StoreItem(name: 'Entry Car', price: 1300, asset: _fallbackAsset),
-    _StoreItem(name: 'Flower', price: 1300, asset: _fallbackAsset),
+    _StoreItem(name: 'Geen Car', price: 1300, asset: _carEntryGif),
+    _StoreItem(name: 'Ferari Car', price: 1300, asset: _carEntryGif),
+    _StoreItem(name: 'Gaming Car', price: 1000, asset: _carEntryGif2),
+    _StoreItem(name: 'Entry Car', price: 1300, asset: _carEntryGif),
+    _StoreItem(name: 'Flower', price: 1300, asset: _carEntryGif),
     _StoreItem(name: 'Temple', price: 1200, asset: _altAsset),
-    _StoreItem(name: 'Princess', price: 1500, asset: _fallbackAsset),
-    _StoreItem(name: 'Regal Entry', price: 1700, asset: _fallbackAsset),
+    _StoreItem(name: 'Princess', price: 1500, asset: _carEntryGif),
+    _StoreItem(name: 'Regal Entry', price: 1700, asset: _carEntryGif2),
   ];
 
   // Party themes use icons primarily; asset is optional and can be a GIF if added later
