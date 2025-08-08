@@ -195,7 +195,7 @@ class _HomePageState extends State<HomePage>
               width: 22.sp,
             ),
             SizedBox(width: 12.sp),
-            Icon(Icons.notification_important, size: 22.sp, color: Colors.black),
+            Icon(Icons.notifications_active_rounded, size: 22.sp, color: Colors.black),
           ],
         ),
       ),
