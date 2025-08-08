@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/auth/auth_bloc.dart';
@@ -28,151 +29,168 @@ class SettingsPage extends StatelessWidget {
             icon: const Icon(Icons.arrow_back),
             onPressed: () => context.pop(),
           ),
+          centerTitle: true,
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(UIConstants.spacingM),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'App Settings',
-                style: Theme.of(context).textTheme.headlineSmall,
+        // Match other pages by using a subtle grey background
+        backgroundColor: Theme.of(
+          context,
+        ).colorScheme.surface.withOpacity(0.02),
+        body: Container(
+          color: Theme.of(context).colorScheme.surface,
+          height: MediaQuery.of(context).size.height,
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: UIConstants.spacingM,
+                vertical: UIConstants.spacingM,
               ),
-              const SizedBox(height: UIConstants.spacingL),
-              Card(
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.palette),
-                      title: const Text('Theme'),
-                      subtitle: const Text('Light/Dark mode'),
-                      trailing: Switch(
-                        value: Theme.of(context).brightness == Brightness.dark,
-                        onChanged: (value) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Theme switching coming soon!'),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: const Icon(Icons.notifications),
-                      title: const Text('Notifications'),
-                      subtitle: const Text('Push notifications'),
-                      trailing: Switch(
-                        value: true,
-                        onChanged: (value) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Notification settings coming soon!',
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: const Icon(Icons.info),
-                      title: const Text('About'),
-                      subtitle: const Text('App version and info'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        showAboutDialog(
-                          context: context,
-                          applicationName: AppConstants.appName,
-                          applicationVersion: AppConstants.appVersion,
-                          applicationIcon: const Icon(
-                            Icons.music_note,
-                            size: 48,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Section: App Settings
+                  Text(
+                    'App Settings',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  SizedBox(height: UIConstants.spacingM),
+                  _SectionContainer(
+                    child: Column(
+                      children: [
+                        _SettingsTile(
+                          icon: Icons.palette,
+                          title: 'Theme',
+                          subtitle: 'Light/Dark mode',
+                          trailing: Switch(
+                            value:
+                                Theme.of(context).brightness == Brightness.dark,
+                            onChanged: (value) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Theme switching coming soon!'),
+                                ),
+                              );
+                            },
                           ),
-                          children: [
-                            const Text(
-                              'A Flutter application built with Clean Architecture, '
-                              'BLoC pattern, and modern development practices.',
+                        ),
+                        const _SectionDivider(),
+                        _SettingsTile(
+                          icon: Icons.notifications,
+                          title: 'Notifications',
+                          subtitle: 'Push notifications',
+                          trailing: Switch(
+                            value: true,
+                            onChanged: (value) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Notification settings coming soon!',
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const _SectionDivider(),
+                        _SettingsTile(
+                          icon: Icons.info,
+                          title: 'About',
+                          subtitle: 'App version and info',
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            showAboutDialog(
+                              context: context,
+                              applicationName: AppConstants.appName,
+                              applicationVersion: AppConstants.appVersion,
+                              applicationIcon: const Icon(
+                                Icons.music_note,
+                                size: 48,
+                              ),
+                              children: const [
+                                Text(
+                                  'A Flutter application built with Clean Architecture, BLoC pattern, and modern development practices.',
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+            
+                  SizedBox(height: UIConstants.spacingL),
+            
+                  // Section: Account
+                  Text(
+                    'Account',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  SizedBox(height: UIConstants.spacingM),
+                  _SectionContainer(
+                    child: _SettingsTile(
+                      icon: Icons.logout,
+                      title: 'Sign Out',
+                      subtitle: 'Sign out of your account',
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Sign Out'),
+                            content: const Text(
+                              'Are you sure you want to sign out?',
                             ),
-                          ],
+                            actions: [
+                              TextButton(
+                                onPressed: () => context.pop(),
+                                child: const Text('Cancel'),
+                              ),
+                              FilledButton(
+                                onPressed: () {
+                                  context.pop();
+                                  context.read<AuthBloc>().add(
+                                    const AuthLogoutEvent(),
+                                  );
+                                  context.go('/login');
+                                },
+                                child: const Text('Sign Out'),
+                              ),
+                            ],
+                          ),
                         );
                       },
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: UIConstants.spacingL),
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.logout),
-                  title: const Text('Sign Out'),
-                  subtitle: const Text('Sign out of your account'),
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Sign Out'),
-                        content: const Text(
-                          'Are you sure you want to sign out?',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => context.pop(),
-                            child: const Text('Cancel'),
-                          ),
-                          FilledButton(
-                            onPressed: () {
-                              // Close the dialog first
-                              context.pop();
-
-                              // Trigger logout event
-                              context.read<AuthBloc>().add(
-                                const AuthLogoutEvent(),
-                              );
-
-                              // Navigate to login page
-                              context.go('/login');
-                            },
-                            child: const Text('Sign Out'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: UIConstants.spacingL),
-
-              // Account Delete Section (Danger Zone)
-              Text(
-                'Danger Zone',
-                style: Theme.of(
-                  context,
-                ).textTheme.headlineSmall?.copyWith(color: Colors.red[700]),
-              ),
-              const SizedBox(height: UIConstants.spacingM),
-              Card(
-                color: Colors.red[50],
-                child: ListTile(
-                  leading: Icon(Icons.delete_forever, color: Colors.red[700]),
-                  title: Text(
-                    'Delete Account',
-                    style: TextStyle(
+                  ),
+            
+                  SizedBox(height: UIConstants.spacingL),
+            
+                  // Section: Danger Zone
+                  Text(
+                    'Danger Zone',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: Colors.red[700],
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  subtitle: Text(
-                    'Permanently delete your account and all data',
-                    style: TextStyle(color: Colors.red[600]),
+                  SizedBox(height: UIConstants.spacingM),
+                  _SectionContainer(
+                    backgroundColor: Colors.red[50],
+                    borderColor: Colors.red[200],
+                    child: _SettingsTile(
+                      icon: Icons.delete_forever,
+                      iconColor: Colors.red[700],
+                      title: 'Delete Account',
+                      titleColor: Colors.red[700],
+                      subtitle: 'Permanently delete your account and all data',
+                      subtitleColor: Colors.red[600],
+                      onTap: () => _showDeleteAccountDialog(context),
+                    ),
                   ),
-                  onTap: () {
-                    _showDeleteAccountDialog(context);
-                  },
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -350,5 +368,99 @@ class SettingsPage extends StatelessWidget {
     // - Cancel subscriptions
     // - Send confirmation email
     // - Sign out the user
+  }
+}
+
+/// Styled container that matches the Profile page boxes
+class _SectionContainer extends StatelessWidget {
+  final Widget child;
+  final Color? backgroundColor;
+  final Color? borderColor;
+
+  const _SectionContainer({
+    required this.child,
+    this.backgroundColor,
+    this.borderColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(vertical: 8.h),
+      decoration: BoxDecoration(
+        color: backgroundColor ?? Colors.white,
+        borderRadius: BorderRadius.circular(8.r),
+        border: borderColor != null ? Border.all(color: borderColor!) : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 2,
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _SectionDivider extends StatelessWidget {
+  const _SectionDivider();
+  @override
+  Widget build(BuildContext context) {
+    return Divider(height: 1, color: Colors.grey.withOpacity(0.15));
+  }
+}
+
+class _SettingsTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+  final Color? iconColor;
+  final Color? titleColor;
+  final Color? subtitleColor;
+
+  const _SettingsTile({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    this.onTap,
+    this.iconColor,
+    this.titleColor,
+    this.subtitleColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: CircleAvatar(
+        radius: 18.r,
+        backgroundColor: (iconColor ?? Theme.of(context).colorScheme.primary)
+            .withOpacity(0.08),
+        child: Icon(icon, color: iconColor ?? Colors.black87, size: 20.r),
+      ),
+      title: Text(
+        title,
+        style: Theme.of(
+          context,
+        ).textTheme.bodyLarge?.copyWith(color: titleColor),
+      ),
+      subtitle: subtitle != null
+          ? Text(
+              subtitle!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: subtitleColor ?? Colors.black54,
+              ),
+            )
+          : null,
+      trailing: trailing,
+      onTap: onTap,
+      contentPadding: EdgeInsets.symmetric(horizontal: 12.w),
+    );
   }
 }
