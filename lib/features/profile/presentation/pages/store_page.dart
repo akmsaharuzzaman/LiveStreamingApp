@@ -17,7 +17,6 @@ class _StorePageState extends State<StorePage> {
   // Lightweight item model for the store
   // asset supports static images and animated GIFs (Image.asset renders GIFs natively)
   // If you later introduce Lottie/Rive, add nullable fields and render accordingly in _buildStoreAssetWidget.
-  static const _fallbackAsset = 'assets/images/general/showcase_frame.png';
   static const _altAsset = 'assets/images/general/profile_frame.png';
   static const _carEntryGif = 'assets/images/general/car_entry.gif';
   static const _carEntryGif2 = 'assets/images/general/car_entry2.gif';
