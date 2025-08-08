@@ -44,13 +44,43 @@ class _SettingsPageState extends State<SettingsPage> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthUnauthenticated) {
-          // Show success message when logout is completed
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Successfully signed out'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          // Check if this is from account deletion (loading dialog would be showing)
+          if (Navigator.of(context).canPop()) {
+            // Close loading dialog if it's showing
+            Navigator.of(context).popUntil((route) => route.isFirst);
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Account deleted successfully'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 3),
+              ),
+            );
+            
+            // Navigate to login screen
+            context.go('/login');
+          } else {
+            // Regular logout
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Successfully signed out'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else if (state is AuthError) {
+          // Check if loading dialog is showing (would indicate delete account error)
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop(); // Close loading dialog
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to delete account: ${state.message}'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          }
         }
       },
       child: Scaffold(
@@ -456,29 +486,8 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
 
-    // TODO: Implement actual account deletion API call
-    // For now, show a placeholder implementation
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.of(context).popUntil((route) => route.isFirst);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account deletion feature coming soon!'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 3),
-        ),
-      );
-    });
-
-    // TODO: Add this to your AuthBloc events:
-    // context.read<AuthBloc>().add(const AuthDeleteAccountEvent());
-    //
-    // And handle the deletion in your backend API:
-    // - Delete user data from database
-    // - Remove uploaded files (posts, reels, avatar)
-    // - Cancel subscriptions
-    // - Send confirmation email
-    // - Sign out the user
+    // Trigger the delete account event
+    context.read<AuthBloc>().add(const AuthDeleteAccountEvent());
   }
 }
 
