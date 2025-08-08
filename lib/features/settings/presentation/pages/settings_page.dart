@@ -1,12 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/auth/auth_bloc.dart';
+import '../../../../core/utils/device_service.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  String _deviceId = 'Loading...';
+  bool _deviceIdLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDeviceId();
+  }
+
+  Future<void> _loadDeviceId() async {
+    try {
+      final deviceId = await DeviceService.instance.getDeviceId();
+      setState(() {
+        _deviceId = deviceId;
+        _deviceIdLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _deviceId = 'Error: $e';
+        _deviceIdLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,9 +81,9 @@ class SettingsPage extends StatelessWidget {
                   // Section: App Settings
                   Text(
                     'App Settings',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   SizedBox(height: UIConstants.spacingM),
                   _SectionContainer(
@@ -99,34 +130,21 @@ class SettingsPage extends StatelessWidget {
                           subtitle: 'App version and info',
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () {
-                            showAboutDialog(
-                              context: context,
-                              applicationName: AppConstants.appName,
-                              applicationVersion: AppConstants.appVersion,
-                              applicationIcon: const Icon(
-                                Icons.music_note,
-                                size: 48,
-                              ),
-                              children: const [
-                                Text(
-                                  'A Flutter application built with Clean Architecture, BLoC pattern, and modern development practices.',
-                                ),
-                              ],
-                            );
+                            _showAboutDialog(context);
                           },
                         ),
                       ],
                     ),
                   ),
-            
+
                   SizedBox(height: UIConstants.spacingL),
-            
+
                   // Section: Account
                   Text(
                     'Account',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   SizedBox(height: UIConstants.spacingM),
                   _SectionContainer(
@@ -163,9 +181,9 @@ class SettingsPage extends StatelessWidget {
                       },
                     ),
                   ),
-            
+
                   SizedBox(height: UIConstants.spacingL),
-            
+
                   // Section: Danger Zone
                   Text(
                     'Danger Zone',
@@ -193,6 +211,99 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showAboutDialog(BuildContext context) {
+    final shortDeviceId = DeviceService.instance.getShortDeviceId(_deviceId);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.music_note, size: 32),
+            const SizedBox(width: 8),
+            Text(AppConstants.appName),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Version: ${AppConstants.appVersion}',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text(
+                  'Device ID: ',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                Expanded(
+                  child: _deviceIdLoading
+                      ? const SizedBox(
+                          height: 12,
+                          width: 12,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : GestureDetector(
+                          onTap: () {
+                            Clipboard.setData(ClipboardData(text: _deviceId));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Device ID copied to clipboard'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.grey[300]!),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    shortDeviceId,
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(fontFamily: 'monospace'),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.copy,
+                                  size: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'A Flutter application built with Clean Architecture, BLoC pattern, and modern development practices.',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => context.pop(),
+            child: const Text('Close'),
+          ),
+        ],
       ),
     );
   }
