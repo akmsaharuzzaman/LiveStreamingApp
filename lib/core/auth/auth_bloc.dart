@@ -639,7 +639,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       if (response.isSuccess) {
         // Account deletion successful, clean up local state
-        
+
         // Sign out from Google if user is signed in
         if (_googleAuthService.isSignedIn) {
           await _googleAuthService.signOut();

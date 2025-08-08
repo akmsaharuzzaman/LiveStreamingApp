@@ -48,7 +48,7 @@ class _SettingsPageState extends State<SettingsPage> {
           if (Navigator.of(context).canPop()) {
             // Close loading dialog if it's showing
             Navigator.of(context).popUntil((route) => route.isFirst);
-            
+
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Account deleted successfully'),
@@ -56,7 +56,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 duration: Duration(seconds: 3),
               ),
             );
-            
+
             // Navigate to login screen
             context.go('/login');
           } else {
@@ -72,7 +72,7 @@ class _SettingsPageState extends State<SettingsPage> {
           // Check if loading dialog is showing (would indicate delete account error)
           if (Navigator.of(context).canPop()) {
             Navigator.of(context).pop(); // Close loading dialog
-            
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Failed to delete account: ${state.message}'),
