@@ -11,7 +11,84 @@ class StorePage extends StatefulWidget {
 
 class _StorePageState extends State<StorePage> {
   int selectedTabIndex = 0;
+  int selectedItemIndex = 0;
   final List<String> tabNames = ['Frame', 'Room Entry', 'Party Theme'];
+
+  // Lightweight item model for the store
+  // asset supports static images and animated GIFs (Image.asset renders GIFs natively)
+  // If you later introduce Lottie/Rive, add nullable fields and render accordingly in _buildStoreAssetWidget.
+  static const _fallbackAsset = 'assets/images/general/showcase_frame.png';
+  static const _altAsset = 'assets/images/general/profile_frame.png';
+
+  List<_StoreItem> get _frameItems => [
+    _StoreItem(name: 'Noble Blaze', price: 1000, asset: _altAsset),
+    _StoreItem(name: 'Magnificent D.', price: 1300, asset: _fallbackAsset),
+    _StoreItem(name: 'Grand regal H.', price: 1300, asset: _fallbackAsset),
+    _StoreItem(name: 'Noble Blaze', price: 1000, asset: _altAsset),
+    _StoreItem(name: 'Magnificent D.', price: 1300, asset: _fallbackAsset),
+    _StoreItem(name: 'Grand regal H.', price: 1300, asset: _fallbackAsset),
+    _StoreItem(name: 'Elite Frame', price: 1500, asset: _altAsset),
+    _StoreItem(name: 'Royal Frame', price: 1800, asset: _fallbackAsset),
+    _StoreItem(name: 'Diamond Frame', price: 2000, asset: _fallbackAsset),
+  ];
+
+  List<_StoreItem> get _roomEntryItems => [
+    _StoreItem(name: 'Golden Car', price: 1000, asset: _altAsset),
+    _StoreItem(name: 'Geen Car', price: 1300, asset: _fallbackAsset),
+    _StoreItem(name: 'Ferari Car', price: 1300, asset: _fallbackAsset),
+    _StoreItem(name: 'Gaming Car', price: 1000, asset: _altAsset),
+    _StoreItem(name: 'Entry Car', price: 1300, asset: _fallbackAsset),
+    _StoreItem(name: 'Flower', price: 1300, asset: _fallbackAsset),
+    _StoreItem(name: 'Temple', price: 1200, asset: _altAsset),
+    _StoreItem(name: 'Princess', price: 1500, asset: _fallbackAsset),
+    _StoreItem(name: 'Regal Entry', price: 1700, asset: _fallbackAsset),
+  ];
+
+  // Party themes use icons primarily; asset is optional and can be a GIF if added later
+  final List<IconData> _partyThemeIcons = const [
+    Icons.celebration,
+    Icons.cake,
+    Icons.star,
+    Icons.favorite,
+    Icons.music_note,
+    Icons.local_fire_department,
+    Icons.diamond,
+    Icons.flash_on,
+    Icons.auto_awesome,
+  ];
+
+  List<_StoreItem> get _partyThemeItems => List.generate(
+    9,
+    (i) => _StoreItem(
+      name: [
+        'Celebrate',
+        'Birthday',
+        'Starry',
+        'Romance',
+        'Music',
+        'Blaze',
+        'Diamond',
+        'Flash',
+        'Awesome',
+      ][i],
+      price: 1000 + (i % 3) * 300,
+      icon: _partyThemeIcons[i],
+    ),
+  );
+
+  List<_StoreItem> get _itemsForCurrentTab {
+    switch (selectedTabIndex) {
+      case 0:
+        return _frameItems;
+      case 1:
+        return _roomEntryItems;
+      case 2:
+      default:
+        return _partyThemeItems;
+    }
+  }
+
+  _StoreItem get _selectedItem => _itemsForCurrentTab[selectedItemIndex];
 
   @override
   Widget build(BuildContext context) {
@@ -48,9 +125,23 @@ class _StorePageState extends State<StorePage> {
           ),
           child: Stack(
             children: [
-              Image.asset('assets/images/general/showcase_frame.png'),
+              // Pedestal / base showcase
+              Image.asset(
+                'assets/images/general/showcase_frame.png',
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+              ),
+              // Selected item preview layered on top of the pedestal
               Center(
-                child: Image.asset('assets/images/general/profile_frame.png'),
+                child: SizedBox(
+                  width: 220.w,
+                  height: 180.h,
+                  child: _buildStoreAssetWidget(
+                    _selectedItem,
+                    isShowcase: true,
+                  ),
+                ),
               ),
             ],
           ),
@@ -69,6 +160,7 @@ class _StorePageState extends State<StorePage> {
   }
 
   Widget _buildPurchaseSection() {
+    final item = _selectedItem;
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 20.w),
       child: Row(
@@ -77,17 +169,17 @@ class _StorePageState extends State<StorePage> {
           Column(
             children: [
               // Title
-              const Text(
-                'Noble Blaze',
-                style: TextStyle(
+              Text(
+                item.name,
+                style: const TextStyle(
                   color: Colors.black, // Black text on white background
                   fontSize: 24,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-          
+
               SizedBox(height: 8.h),
-          
+
               // Subtitle
               Text(
                 'Purchase with coin',
@@ -95,30 +187,33 @@ class _StorePageState extends State<StorePage> {
                   color: Colors.grey[600], // Grey text
                   fontSize: 16,
                 ),
-              )
+              ),
             ],
           ),
-           // Buy Button
-              Container(
-                width: 120.w,
-                height: 40.h,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFF6B9D), Color(0xFFFF8BA0)],
-                  ),
-                  borderRadius: BorderRadius.circular(20.r),
+          // Buy Button
+          GestureDetector(
+            onTap: () => _showPurchaseDialog(item.name, item.price),
+            child: Container(
+              width: 120.w,
+              height: 40.h,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFF6B9D), Color(0xFFFF8BA0)],
                 ),
-                child: const Center(
-                  child: Text(
-                    'Buy',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                borderRadius: BorderRadius.circular(20.r),
+              ),
+              child: const Center(
+                child: Text(
+                  'Buy',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
+            ),
+          ),
         ],
       ),
     );
@@ -134,6 +229,7 @@ class _StorePageState extends State<StorePage> {
             onTap: () {
               setState(() {
                 selectedTabIndex = index;
+                selectedItemIndex = 0; // reset selection to first item
               });
             },
             child: Container(
@@ -179,90 +275,31 @@ class _StorePageState extends State<StorePage> {
           crossAxisSpacing: 16.w,
           childAspectRatio: 0.8,
         ),
-        itemCount: 9, // Show 9 items for demo
+        itemCount: _itemsForCurrentTab.length,
         itemBuilder: (context, index) {
-          return _buildStoreItem(index);
+          return _buildStoreItem(index, _itemsForCurrentTab[index]);
         },
       ),
     );
   }
 
-  Widget _buildStoreItem(int index) {
-    // Sample data for different items
-    final List<Map<String, dynamic>> frameItems = [
-      {
-        'name': 'Noble Blaze',
-        'price': 1000,
-        'asset': 'assets/images/general/showcase_frame.png',
-      },
-      {
-        'name': 'Magnificent D.',
-        'price': 1300,
-        'asset': 'assets/images/general/showcase_frame.png',
-      },
-      {
-        'name': 'Grand regal H.',
-        'price': 1300,
-        'asset': 'assets/images/general/showcase_frame.png',
-      },
-      {
-        'name': 'Noble Blaze',
-        'price': 1000,
-        'asset': 'assets/images/general/showcase_frame.png',
-      },
-      {
-        'name': 'Magnificent D.',
-        'price': 1300,
-        'asset': 'assets/images/general/showcase_frame.png',
-      },
-      {
-        'name': 'Grand regal H.',
-        'price': 1300,
-        'asset': 'assets/images/general/showcase_frame.png',
-      },
-      {
-        'name': 'Elite Frame',
-        'price': 1500,
-        'asset': 'assets/images/general/showcase_frame.png',
-      },
-      {
-        'name': 'Royal Frame',
-        'price': 1800,
-        'asset': 'assets/images/general/showcase_frame.png',
-      },
-      {
-        'name': 'Diamond Frame',
-        'price': 2000,
-        'asset': 'assets/images/general/showcase_frame.png',
-      },
-    ];
-
-    final List<IconData> partyThemeIcons = [
-      Icons.celebration,
-      Icons.cake,
-      Icons.star,
-      Icons.favorite,
-      Icons.music_note,
-      Icons.local_fire_department,
-      Icons.diamond,
-      Icons.flash_on,
-      Icons.auto_awesome,
-    ];
-
-    final item = frameItems[index % frameItems.length];
+  Widget _buildStoreItem(int index, _StoreItem item) {
+    final isSelected = index == selectedItemIndex;
     final isPartyTheme = selectedTabIndex == 2;
 
     return GestureDetector(
       onTap: () {
-        _showPurchaseDialog(item['name'], item['price']);
+        setState(() {
+          selectedItemIndex = index; // select & preview on showcase
+        });
       },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white, // Changed from dark grey to white
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: Colors.grey[300]!,
-            width: 1,
+            color: isSelected ? const Color(0xFFFF6B9D) : Colors.grey[300]!,
+            width: isSelected ? 2 : 1,
           ), // Light grey border
           boxShadow: [
             BoxShadow(
@@ -284,23 +321,32 @@ class _StorePageState extends State<StorePage> {
                   color:
                       Colors.grey[100], // Light grey background instead of dark
                 ),
-                child: Center(
-                  child: isPartyTheme
-                      ? Icon(
-                          partyThemeIcons[index % partyThemeIcons.length],
-                          size: 40.sp,
-                          color: const Color(0xFFFF6B9D),
-                        )
-                      : Container(
-                          width: 60.w,
-                          height: 60.h,
-                          decoration: BoxDecoration(
-                            image: DecorationImage(
-                              image: AssetImage(item['asset']),
-                              fit: BoxFit.contain,
+                child: Stack(
+                  children: [
+                    Center(
+                      child: isPartyTheme
+                          ? Icon(
+                              item.icon ?? Icons.celebration,
+                              size: 40.sp,
+                              color: const Color(0xFFFF6B9D),
+                            )
+                          : SizedBox(
+                              width: 60.w,
+                              height: 60.h,
+                              child: _buildStoreAssetWidget(item),
                             ),
-                          ),
+                    ),
+                    if (item.isAnimated)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Icon(
+                          Icons.play_circle_fill,
+                          size: 18.sp,
+                          color: const Color(0x99000000),
                         ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -314,7 +360,7 @@ class _StorePageState extends State<StorePage> {
                   children: [
                     // Item Name
                     Text(
-                      item['name'],
+                      item.name,
                       style: TextStyle(
                         color: Colors.black, // Black text instead of white
                         fontSize: 12.sp,
@@ -338,7 +384,7 @@ class _StorePageState extends State<StorePage> {
                         ),
                         SizedBox(width: 4.w),
                         Text(
-                          '${item['price']}',
+                          '${item.price}',
                           style: TextStyle(
                             color: const Color(0xFFFFD700),
                             fontSize: 12.sp,
@@ -432,4 +478,44 @@ class _StorePageState extends State<StorePage> {
       ),
     );
   }
+}
+
+// Simple value type for store catalog entries
+class _StoreItem {
+  final String name;
+  final int price;
+  final String? asset; // supports png/jpg/gif
+  final IconData? icon; // used for party theme placeholder
+
+  const _StoreItem({
+    required this.name,
+    required this.price,
+    this.asset,
+    this.icon,
+  });
+
+  bool get isAnimated =>
+      (asset != null && asset!.toLowerCase().endsWith('.gif'));
+}
+
+// Renders a store asset robustly with fallback and GIF support
+Widget _buildStoreAssetWidget(_StoreItem item, {bool isShowcase = false}) {
+  if (item.asset == null || item.asset!.isEmpty) {
+    return Icon(
+      item.icon ?? Icons.emoji_objects,
+      size: isShowcase ? 120.sp : 40.sp,
+      color: const Color(0xFFFF6B9D),
+    );
+  }
+
+  return Image.asset(
+    item.asset!,
+    fit: BoxFit.contain,
+    // Image.asset plays GIFs automatically; errorBuilder provides a graceful fallback
+    errorBuilder: (context, error, stackTrace) => Icon(
+      item.icon ?? Icons.broken_image,
+      size: isShowcase ? 120.sp : 40.sp,
+      color: Colors.grey[400],
+    ),
+  );
 }
