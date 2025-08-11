@@ -128,7 +128,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                     left: 20.w,
                     bottom: 100.h,
                     child: Padding(
-                      padding: const EdgeInsets.all(20.0),
+                      padding: EdgeInsets.all(20.w),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -138,8 +138,8 @@ class _ProfileContentState extends State<_ProfileContent> {
                             },
                             child: Image.asset(
                               'assets/images/general/settings_icon.png',
-                              width: 24,
-                              height: 24,
+                              width: 24.w,
+                              height: 24.h,
                             ),
                           ),
                           InkWell(
@@ -148,8 +148,8 @@ class _ProfileContentState extends State<_ProfileContent> {
                             },
                             child: Image.asset(
                               'assets/images/general/edit_icon.png',
-                              width: 24,
-                              height: 24,
+                              width: 24.w,
+                              height: 24.h,
                             ),
                           ),
                         ],
@@ -178,7 +178,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                   ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.only(top: 20, left: 20, right: 20),
+                  padding: EdgeInsets.only(top: 20.h, left: 20.w, right: 20.w),
                   child: Column(
                     children: [
                       // Space and layout for profile picture with user info
@@ -196,7 +196,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                         ],
                       ),
 
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20.h),
 
                       // Friends/Followers/Following
                       _buildSocialStats(),
@@ -251,8 +251,8 @@ class _ProfileContentState extends State<_ProfileContent> {
         // User Name
         Text(
           widget.user.name,
-          style: const TextStyle(
-            fontSize: 20,
+          style: TextStyle(
+            fontSize: 20.sp,
             fontWeight: FontWeight.w500,
             color: Colors.white,
           ),
@@ -267,13 +267,13 @@ class _ProfileContentState extends State<_ProfileContent> {
               children: [
                 Text(
                   'ID:${widget.user.id.substring(0, 6)}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF202020),
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    color: const Color(0xFF202020),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(width: 6),
+                SizedBox(width: 6.w),
                 GestureDetector(
                   onTap: () {
                     Clipboard.setData(ClipboardData(text: widget.user.id));
@@ -284,28 +284,28 @@ class _ProfileContentState extends State<_ProfileContent> {
                       ),
                     );
                   },
-                  child: const Icon(
+                  child: Icon(
                     Icons.copy,
-                    size: 18,
-                    color: Color(0xFF202020),
+                    size: 18.sp,
+                    color: const Color(0xFF202020),
                   ),
                 ),
               ],
             ),
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              width: 4,
-              height: 4,
+              margin: EdgeInsets.symmetric(horizontal: 8.w),
+              width: 4.w,
+              height: 4.h,
               decoration: const BoxDecoration(
                 color: Color(0xFF4CAF50),
                 shape: BoxShape.circle,
               ),
             ),
-            const Text(
+            Text(
               'Super Admin',
               style: TextStyle(
-                fontSize: 16,
-                color: Color(0xFF1B706A),
+                fontSize: 16.sp,
+                color: const Color(0xFF1B706A),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -349,45 +349,45 @@ class _ProfileContentState extends State<_ProfileContent> {
 
   Widget _buildDefaultAvatar() {
     return Container(
-      width: 100.h,
+      width: 100.w,
       height: 100.h,
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
         color: Color(0xFFF0F0F0),
       ),
-      child: Icon(Icons.person, size: 40, color: Colors.grey[600]),
+      child: Icon(Icons.person, size: 40.sp, color: Colors.grey[600]),
     );
   }
 
   Widget _buildTagsWidgetRow() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40.0),
+      padding: EdgeInsets.symmetric(horizontal: 40.w),
       child: Wrap(
         alignment: WrapAlignment.center,
-        spacing: 2,
-        runSpacing: 8,
+        spacing: 2.w,
+        runSpacing: 8.h,
         children: [
           //Age Badge
           Image.asset('assets/images/general/age_tag.png'),
-          const SizedBox(width: 8),
+          SizedBox(width: 8.w),
           Image.asset('assets/images/general/coin_tag.png'),
 
-          const SizedBox(width: 8),
+          SizedBox(width: 8.w),
           // Host Badge
           Image.asset('assets/images/general/vip_tag.png'),
 
-          const SizedBox(width: 8),
+          SizedBox(width: 8.w),
           Image.asset('assets/images/general/svip_tag.png'),
 
-          const SizedBox(width: 8),
+          SizedBox(width: 8.w),
           Image.asset('assets/images/general/host_tag.png'),
 
-          const SizedBox(width: 8),
+          SizedBox(width: 8.w),
 
           // Agent Badge
           Image.asset('assets/images/general/agent_tag.png'),
 
-          const SizedBox(width: 8),
+          SizedBox(width: 8.w),
           // Re Seller Badge
           Image.asset('assets/images/general/re_seller_tag.png'),
         ],
@@ -413,10 +413,10 @@ class _ProfileContentState extends State<_ProfileContent> {
               top: 5.h,
               child: Text(
                 AppUtils.formatNumber(stats?.coins ?? 0),
-                style: const TextStyle(
-                  fontSize: 20,
+                style: TextStyle(
+                  fontSize: 20.sp,
                   fontWeight: FontWeight.w400,
-                  color: Color(0xFF202020),
+                  color: const Color(0xFF202020),
                 ),
               ),
             ),
@@ -435,10 +435,10 @@ class _ProfileContentState extends State<_ProfileContent> {
               top: 5.h,
               child: Text(
                 AppUtils.formatNumber(stats?.diamonds ?? 0),
-                style: const TextStyle(
-                  fontSize: 20,
+                style: TextStyle(
+                  fontSize: 20.sp,
                   fontWeight: FontWeight.w400,
-                  color: Color(0xFF202020),
+                  color: const Color(0xFF202020),
                 ),
               ),
             ),
@@ -457,8 +457,8 @@ class _ProfileContentState extends State<_ProfileContent> {
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 2,
-            blurRadius: 8,
+            spreadRadius: 2.r,
+            blurRadius: 8.r,
             offset: const Offset(0, 3), // changes position of shadow
           ),
         ],
@@ -473,7 +473,7 @@ class _ProfileContentState extends State<_ProfileContent> {
               context.push('/friends-list/${widget.user.id}?title=Friends');
             },
           ),
-          Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
+          Container(width: 1.w, height: 30.h, color: const Color(0xFFF1F1F1)),
           _buildSocialStatItem(
             isLoadingCounts ? '...' : '${followerCounts?.followerCount ?? 0}',
             'Followers',
@@ -481,7 +481,7 @@ class _ProfileContentState extends State<_ProfileContent> {
               context.push('/friends-list/${widget.user.id}?title=Followers');
             },
           ),
-          Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
+          Container(width: 1.w, height: 30.h, color: const Color(0xFFF1F1F1)),
           _buildSocialStatItem(
             isLoadingCounts ? '...' : '${followerCounts?.followingCount ?? 0}',
             'Following',
@@ -501,19 +501,19 @@ class _ProfileContentState extends State<_ProfileContent> {
         children: [
           Text(
             count,
-            style: const TextStyle(
-              fontSize: 18,
+            style: TextStyle(
+              fontSize: 18.sp,
               fontWeight: FontWeight.w400,
-              color: Color(0xFF000000),
+              color: const Color(0xFF000000),
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4.h),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 18,
+            style: TextStyle(
+              fontSize: 18.sp,
               fontWeight: FontWeight.w400,
-              color: Color(0xFF000000),
+              color: const Color(0xFF000000),
             ),
           ),
         ],
@@ -546,7 +546,7 @@ class _ProfileContentState extends State<_ProfileContent> {
           //       ? const Icon(Icons.person, color: Colors.white)
           //       : null,
           // ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12.w),
 
           // Name and level
           Expanded(
@@ -555,10 +555,10 @@ class _ProfileContentState extends State<_ProfileContent> {
               children: [
                 Text(
                   '*${widget.user.name.split(' ').first.toUpperCase()}*',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w500,
-                    fontSize: 20,
+                    fontSize: 20.sp,
                   ),
                 ),
               ],
@@ -572,7 +572,7 @@ class _ProfileContentState extends State<_ProfileContent> {
               SizedBox(width: 8.w),
               Image.asset('assets/images/general/total_badges_icon.png'),
               SizedBox(width: 8.w),
-              Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+              Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16.sp),
             ],
           ),
         ],
@@ -582,26 +582,26 @@ class _ProfileContentState extends State<_ProfileContent> {
 
   Widget _buildFeatureGrid(BuildContext context) {
     return Column(
-      spacing: 8,
+      spacing: 8.h,
       children: [
         Container(
           width: double.infinity,
           padding: EdgeInsets.symmetric(vertical: 8.h),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(8.r),
             boxShadow: [
               BoxShadow(
                 color: Colors.grey.withOpacity(0.1),
-                spreadRadius: 2,
-                blurRadius: 8,
+                spreadRadius: 2.r,
+                blurRadius: 8.r,
                 offset: const Offset(0, 3), // changes position of shadow
               ),
             ],
           ),
           child: Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 10.w,
+            runSpacing: 10.h,
             children: [
               _buildFeatureIcon(
                 "assets/images/general/store_icon.png",
@@ -657,19 +657,19 @@ class _ProfileContentState extends State<_ProfileContent> {
           padding: EdgeInsets.symmetric(vertical: 8.h),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(8.r),
             boxShadow: [
               BoxShadow(
                 color: Colors.grey.withOpacity(0.1),
-                spreadRadius: 2,
-                blurRadius: 8,
+                spreadRadius: 2.r,
+                blurRadius: 8.r,
                 offset: const Offset(0, 3), // changes position of shadow
               ),
             ],
           ),
           child: Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 10.w,
+            runSpacing: 10.h,
             children: [
               _buildFeatureIcon(
                 "assets/images/general/room_management_icon.png",
@@ -710,16 +710,16 @@ class _ProfileContentState extends State<_ProfileContent> {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: MediaQuery.of(context).size.width / 4 - 20,
+        width: MediaQuery.of(context).size.width / 4 - 20.w,
         child: Column(
           children: [
-            Image.asset(iconPath, width: 68.h, height: 68.h),
-            const SizedBox(height: 8),
+            Image.asset(iconPath, width: 68.w, height: 68.h),
+            SizedBox(height: 8.h),
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 15,
-                color: Color(0xFF202020),
+              style: TextStyle(
+                fontSize: 15.sp,
+                color: const Color(0xFF202020),
                 fontWeight: FontWeight.w400,
               ),
               textAlign: TextAlign.center,
@@ -862,7 +862,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                 style: TextStyle(color: Colors.red, fontSize: 14.sp),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
               ElevatedButton(
                 onPressed: _loadUserReels,
                 child: const Text('Retry'),
@@ -876,15 +876,15 @@ class _ProfileContentState extends State<_ProfileContent> {
     if (userReels.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: EdgeInsets.all(20.w),
           child: Column(
             children: [
               Icon(
                 Icons.movie_creation_outlined,
-                size: 48,
+                size: 48.sp,
                 color: Colors.grey[400],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
               Text(
                 'No reels yet',
                 style: TextStyle(color: Colors.grey[600], fontSize: 16.sp),
@@ -915,7 +915,7 @@ class _ProfileContentState extends State<_ProfileContent> {
           child: Container(
             decoration: BoxDecoration(
               color: Colors.black,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(8.r),
               boxShadow: [BoxShadow(offset: const Offset(0, 2))],
             ),
             child: Stack(
@@ -924,13 +924,13 @@ class _ProfileContentState extends State<_ProfileContent> {
                 Container(),
                 // Reel info overlay
                 Positioned(
-                  bottom: 8,
-                  left: 8,
-                  right: 8,
+                  bottom: 8.h,
+                  left: 8.w,
+                  right: 8.w,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.play_arrow, color: Colors.white, size: 24),
+                      Icon(Icons.play_arrow, color: Colors.white, size: 24.sp),
                       Text(
                         '${reel.reactions}',
                         style: TextStyle(
@@ -976,17 +976,17 @@ class _ProfileContentState extends State<_ProfileContent> {
     if (postsErrorMessage != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: EdgeInsets.all(20.w),
           child: Column(
             children: [
-              Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
+              Icon(Icons.error_outline, size: 48.sp, color: Colors.red),
+              SizedBox(height: 16.h),
               Text(
                 'Error loading posts: $postsErrorMessage',
                 style: TextStyle(color: Colors.red, fontSize: 14.sp),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
               ElevatedButton(
                 onPressed: _loadUserPosts,
                 child: const Text('Retry'),
@@ -1000,11 +1000,11 @@ class _ProfileContentState extends State<_ProfileContent> {
     if (userPosts.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: EdgeInsets.all(20.w),
           child: Column(
             children: [
-              Icon(Icons.post_add, size: 48, color: Colors.grey[400]),
-              const SizedBox(height: 16),
+              Icon(Icons.post_add, size: 48.sp, color: Colors.grey[400]),
+              SizedBox(height: 16.h),
               Text(
                 'No posts yet',
                 style: TextStyle(color: Colors.grey[600], fontSize: 16.sp),
