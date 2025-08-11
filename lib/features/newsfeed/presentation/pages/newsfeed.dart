@@ -102,6 +102,7 @@ class _NewsfeedPageState extends State<NewsfeedPage> {
                   floating: true,
                   actions: [
                     GestureDetector(
+                      behavior: HitTestBehavior.translucent,
                       onTap: () {
                         // Use try-catch for better error handling
                         try {
@@ -114,7 +115,7 @@ class _NewsfeedPageState extends State<NewsfeedPage> {
                       },
                       child: Row(
                         children: [
-                          SvgPicture.asset('assets/icons/instagram.svg'),
+                          SvgPicture.asset('assets/icons/instagram.svg', width: 24.sp, height: 24.sp),
                           SizedBox(width: 5.sp),
                           Text(
                             'Reels',

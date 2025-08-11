@@ -146,10 +146,10 @@ class _LivePageState extends State<LivePage> {
     if (!_isCameraInitialized) {
       return Container(
         color: Colors.black,
-        child: const Center(
+        child: Center(
           child: Text(
             'Camera not available',
-            style: TextStyle(color: Colors.white, fontSize: 16),
+            style: TextStyle(color: Colors.white, fontSize: 16.sp),
           ),
         ),
       );
@@ -313,7 +313,7 @@ class _LivePageState extends State<LivePage> {
                     padding: EdgeInsets.all(10.w),
                     decoration: BoxDecoration(
                       border: Border.all(
-                        width: 2,
+                        width: 2.w,
                         color: Colors.white.withValues(alpha: 0.3),
                       ),
                       borderRadius: BorderRadius.circular(12.r),
@@ -446,6 +446,7 @@ class _LivePageState extends State<LivePage> {
                             padding: EdgeInsets.symmetric(horizontal: 16.w),
                             decoration: BoxDecoration(
                               border: Border.all(
+                                width: 1.w,
                                 color: Colors.white.withOpacity(0.3),
                               ),
                               borderRadius: BorderRadius.circular(8.r),
@@ -592,7 +593,7 @@ class _LivePageState extends State<LivePage> {
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.transparent,
           border: Border.all(
-            width: 2,
+            width: 2.w,
             color: isSelected
                 ? Colors.white
                 : Colors.white.withValues(alpha: 0.3),
@@ -623,7 +624,7 @@ class _LivePageState extends State<LivePage> {
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.transparent,
           border: Border.all(
-            width: 2,
+            width: 2.w,
             color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
           ),
           borderRadius: BorderRadius.circular(20.r),
