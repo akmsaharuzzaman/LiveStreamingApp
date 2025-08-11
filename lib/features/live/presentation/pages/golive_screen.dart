@@ -1052,11 +1052,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
                   SafeArea(
                     child: Container(
                       margin: EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 30,
+                        horizontal: 20.w,
+                        vertical: 30.h,
                       ),
                       child: Column(
-                        spacing: 15,
+                        spacing: 15.h,
                         children: [
                           // this is the top row
                           Row(
@@ -1101,8 +1101,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                       },
                                       child: Image.asset(
                                         "assets/icons/live_exit_icon.png",
-                                        height: 40,
-                                        width: 40,
+                                        height: 40.h,
+                                        width: 40.w,
                                       ),
                                     )
                                   : InkWell(
@@ -1112,8 +1112,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                       },
                                       child: Image.asset(
                                         "assets/icons/live_exit_icon.png",
-                                        height: 40,
-                                        width: 40,
+                                        height: 40.h,
+                                        width: 40.w,
                                       ),
                                     ),
                             ],
@@ -1133,7 +1133,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             child: LiveChatWidget(messages: _chatMessages),
                           ),
 
-                          const SizedBox(height: 10),
+                          SizedBox(height: 10.h),
 
                           // the bottom buttons
                           if (isHost)
