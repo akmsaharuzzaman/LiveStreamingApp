@@ -18,7 +18,7 @@ void main() async {
   await dotenv.load(fileName: ".env");
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  
+
   // Enable wakelock to prevent screen from sleeping
   await WakelockService().enable();
 
