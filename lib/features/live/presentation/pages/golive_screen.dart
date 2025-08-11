@@ -350,10 +350,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       userName: userName,
       message: message,
-       timestamp: DateTime.now(),
-        badges: [
-          ChatBadge(type: 'level', text: '30', backgroundColor: const Color(0xFF9C27B0)),
-        ],
+      timestamp: DateTime.now(),
+      badges: [
+        ChatBadge(
+          type: 'level',
+          text: '30',
+          backgroundColor: const Color(0xFF9C27B0),
+        ),
+      ],
     );
 
     setState(() {
@@ -1158,7 +1162,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                     children: [
                                       Image.asset(
                                         "assets/icons/message_icon.png",
-                                        height: 40,
+                                        height: 40.h,
                                       ),
                                       Positioned(
                                         left: 10,
@@ -1168,9 +1172,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                           children: [
                                             Image.asset(
                                               "assets/icons/message_user_icon.png",
-                                              height: 20,
+                                              height: 20.h,
                                             ),
-                                            SizedBox(width: 5),
+                                            SizedBox(width: 5.w),
                                             Text(
                                               'Say Hello!',
                                               style: TextStyle(
@@ -1293,7 +1297,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                     children: [
                                       Image.asset(
                                         "assets/icons/message_icon.png",
-                                        height: 40,
+                                        height: 40.h,
                                       ),
                                       Positioned(
                                         left: 10,
@@ -1303,9 +1307,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                           children: [
                                             Image.asset(
                                               "assets/icons/message_user_icon.png",
-                                              height: 20,
+                                              height: 20.h,
                                             ),
-                                            SizedBox(width: 5),
+                                            SizedBox(width: 5.w),
                                             Text(
                                               'Say Hello!',
                                               style: TextStyle(
@@ -1371,14 +1375,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
                           // Audio caller status indicator
                           if (_audioCallerUids.isNotEmpty)
                             Container(
-                              margin: EdgeInsets.only(bottom: 10),
+                              margin: EdgeInsets.only(bottom: 10.h),
                               padding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
+                                horizontal: 12.w,
+                                vertical: 6.h,
                               ),
                               decoration: BoxDecoration(
                                 color: Colors.black54,
-                                borderRadius: BorderRadius.circular(15),
+                                borderRadius: BorderRadius.circular(15.r),
                               ),
                               child: Text(
                                 '🎤 ${_audioCallerUids.length}/$_maxAudioCallers',
@@ -1466,8 +1470,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 children: [
                                   _isJoiningAsAudioCaller
                                       ? SizedBox(
-                                          width: 40,
-                                          height: 40,
+                                          width: 40.w,
+                                          height: 40.h,
                                           child: CircularProgressIndicator(
                                             color: Colors.white,
                                             strokeWidth: 3,
@@ -1525,21 +1529,21 @@ class _GoliveScreenState extends State<GoliveScreen> {
     if (_isInitializingCamera) {
       return Container(
         color: Colors.black,
-        child: const Center(
+        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-              SizedBox(height: 20),
+              SizedBox(height: 20.h),
               Text(
                 '🎥 Initializing camera...',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: 18.sp,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              SizedBox(height: 10),
+              SizedBox(height: 10.h),
               Text(
                 'Please wait while we set up your stream',
                 style: TextStyle(color: Colors.grey, fontSize: 14),
@@ -1570,17 +1574,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
     if (allVideoBroadcasters.isEmpty || !_localUserJoined) {
       return Container(
         color: Colors.black,
-        child: const Center(
+        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(color: Colors.white),
-              SizedBox(height: 20),
+              SizedBox(height: 20.h),
               Text(
                 '📡 Connecting to stream...',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: 18.sp,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1606,22 +1610,22 @@ class _GoliveScreenState extends State<GoliveScreen> {
     if (allVideoBroadcasters.isEmpty) {
       return Container(
         color: Colors.black,
-        child: const Center(
+        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-              SizedBox(height: 20),
+              SizedBox(height: 20.h),
               Text(
                 '📡 Waiting for broadcaster...',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: 18.sp,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              SizedBox(height: 10),
+              SizedBox(height: 10.h),
               Text(
                 'The stream will start soon',
                 textAlign: TextAlign.center,
@@ -1703,7 +1707,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     return Column(
       children: [
         Expanded(child: _buildSingleVideoView(uids[0], isHostView: isHostView)),
-        Container(height: 2, color: Colors.white24), // Separator
+        Container(height: 2.h, color: Colors.white24), // Separator
         Expanded(child: _buildSingleVideoView(uids[1], isHostView: isHostView)),
       ],
     );
@@ -1721,32 +1725,32 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
         // Small video views on the right
         Positioned(
-          top: 100,
-          right: 10,
+          top: 100.h,
+          right: 10.w,
           child: Column(
             children: [
               Container(
-                width: 120,
-                height: 160,
+                width: 120.w,
+                height: 160.h,
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white, width: 2),
-                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white, width: 2.w),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(6.r),
                   child: _buildSingleVideoView(uids[1], isHostView: isHostView),
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10.h),
               Container(
-                width: 120,
-                height: 160,
+                width: 120.w,
+                height: 160.h,
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white, width: 2),
-                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white, width: 2.w),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(6.r),
                   child: _buildSingleVideoView(uids[2], isHostView: isHostView),
                 ),
               ),
@@ -1776,7 +1780,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
                   isHostView: isHostView,
                 ),
               ),
-              Container(width: 2, color: Colors.white24), // Vertical separator
+              Container(
+                width: 2.w,
+                color: Colors.white24,
+              ), // Vertical separator
               Expanded(
                 child: _buildSingleVideoView(
                   gridUids[1],
@@ -1786,7 +1793,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
             ],
           ),
         ),
-        Container(height: 2, color: Colors.white24), // Horizontal separator
+        Container(height: 2.h, color: Colors.white24), // Horizontal separator
         Expanded(
           child: Row(
             children: [
@@ -1796,7 +1803,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
                   isHostView: isHostView,
                 ),
               ),
-              Container(width: 2, color: Colors.white24), // Vertical separator
+              Container(
+                width: 2.w,
+                color: Colors.white24,
+              ), // Vertical separator
               Expanded(
                 child: _buildSingleVideoView(
                   gridUids.length > 3 ? gridUids[3] : gridUids[0],
