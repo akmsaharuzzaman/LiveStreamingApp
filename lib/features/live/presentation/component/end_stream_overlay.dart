@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class EndStreamOverlay extends StatelessWidget {
   final VoidCallback onKeepStream;
@@ -33,7 +34,7 @@ class EndStreamOverlay extends StatelessWidget {
     return Dialog(
       backgroundColor: Colors.transparent,
       child: SizedBox(
-        width: MediaQuery.of(context).size.width * 0.8,
+        width: 0.8.sw,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -45,9 +46,9 @@ class EndStreamOverlay extends StatelessWidget {
                 onKeepStream();
               },
               child: Container(
-                width: 80,
-                height: 80,
-                margin: const EdgeInsets.only(bottom: 30),
+                width: 80.w,
+                height: 80.w,
+                margin: EdgeInsets.only(bottom: 30.h),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
@@ -58,28 +59,28 @@ class EndStreamOverlay extends StatelessWidget {
                   boxShadow: [
                     BoxShadow(
                       color: const Color(0xFFFF69B4).withOpacity(0.3),
-                      spreadRadius: 2,
-                      blurRadius: 8,
+                      spreadRadius: 2.r,
+                      blurRadius: 8.r,
                       offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.keyboard_arrow_up,
                   color: Colors.white,
-                  size: 40,
+                  size: 40.sp,
                 ),
               ),
             ),
-            const Text(
+            Text(
               'Keep',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 18,
+                fontSize: 18.sp,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 40),
+            SizedBox(height: 40.h),
             // Exit button
             GestureDetector(
               onTap: () {
@@ -87,9 +88,9 @@ class EndStreamOverlay extends StatelessWidget {
                 onEndStream();
               },
               child: Container(
-                width: 80,
-                height: 80,
-                margin: const EdgeInsets.only(bottom: 30),
+                width: 80.w,
+                height: 80.w,
+                margin: EdgeInsets.only(bottom: 30.h),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
@@ -100,24 +101,24 @@ class EndStreamOverlay extends StatelessWidget {
                   boxShadow: [
                     BoxShadow(
                       color: const Color(0xFFFF69B4).withOpacity(0.3),
-                      spreadRadius: 2,
-                      blurRadius: 8,
+                      spreadRadius: 2.r,
+                      blurRadius: 8.r,
                       offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.power_settings_new,
                   color: Colors.white,
-                  size: 40,
+                  size: 40.sp,
                 ),
               ),
             ),
-            const Text(
+            Text(
               'Exit',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 18,
+                fontSize: 18.sp,
                 fontWeight: FontWeight.w600,
               ),
             ),

@@ -309,7 +309,7 @@ class _LivePageState extends State<LivePage> {
 
                   // Title Input Section
                   Container(
-                    height: 80.h,
+                    height: 85.h,
                     padding: EdgeInsets.all(10.w),
                     decoration: BoxDecoration(
                       border: Border.all(
@@ -322,23 +322,17 @@ class _LivePageState extends State<LivePage> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 75.w,
-                          height: 75.h,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                          child: Image.asset(
+                        Image.asset(
                             'assets/images/image_holder.png',
                             width: 75.w,
                             height: 75.h,
                           ),
-                        ),
                         SizedBox(width: 16.w),
                         Expanded(
                           child: Column(
                             children: [
                               TextField(
+                                
                                 controller: _titleController,
                                 style: TextStyle(
                                   color: Colors.white,

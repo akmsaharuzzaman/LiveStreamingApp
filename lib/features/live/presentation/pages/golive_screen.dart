@@ -198,6 +198,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
       }
     });
 
+    // Sent Messages
+    _socketService.sentMessageStream.listen((data) {
+      if (mounted) {
+        debugPrint("User sent a message: ${data.text}");
+      }
+    });
+
     // Broadcaster List - in call
     _socketService.broadcasterListStream.listen((data) {
       if (mounted) {
@@ -1105,8 +1112,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                       },
                                       child: Image.asset(
                                         "assets/icons/live_exit_icon.png",
-                                        height: 40.h,
-                                        width: 40.w,
+                                        height: 50.h,
+                                        // width: 40.w,
                                       ),
                                     )
                                   : InkWell(
@@ -1165,7 +1172,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                         height: 40.h,
                                       ),
                                       Positioned(
-                                        left: 10,
+                                        left: 10.w,
                                         top: 0,
                                         bottom: 0,
                                         child: Row(

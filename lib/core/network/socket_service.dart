@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:dlstarlive/core/network/models/call_request_list.dart';
+import 'package:dlstarlive/core/network/models/chat_model.dart';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:dlstarlive/core/network/models/joined_user_model.dart';
 import 'package:dlstarlive/core/network/models/left_user_model.dart';
@@ -40,6 +41,8 @@ class SocketService {
       StreamController<List<String>>.broadcast();
   final StreamController<List<GetRoomModel>> _getRoomsController =
       StreamController<List<GetRoomModel>>.broadcast();
+  final StreamController<ChatModel> _sentMessageController =
+      StreamController<ChatModel>.broadcast();
   final StreamController<bool> _connectionStatusController =
       StreamController<bool>.broadcast();
 
@@ -54,6 +57,7 @@ class SocketService {
   static const String _getRoomsEvent = 'get-rooms';
   static const String _joinCallRequestEvent = 'join-call-request';
   static const String _joinCallRequestListEvent = 'join-call-request-list';
+  static const String _sendMessageEvent = 'sent-message';
   static const String _acceptCallRequestEvent = 'accept-call-request';
   static const String _rejectCallRequestEvent = 'reject-call-request';
   static const String _removeBroadcasterEvent = 'remove-broadcaster';
@@ -86,6 +90,7 @@ class SocketService {
   Stream<List<String>> get roomListStream => _roomListController.stream;
   Stream<List<GetRoomModel>> get getRoomsStream => _getRoomsController.stream;
   Stream<bool> get connectionStatusStream => _connectionStatusController.stream;
+  Stream<ChatModel> get sentMessageStream => _sentMessageController.stream;
 
   /// Getters
   bool get isConnected => _isConnected;
@@ -315,15 +320,30 @@ class SocketService {
       }
     });
 
-    // Error events
-    _socket!.on('error', (error) {
+    _socket!.on('sent-message', (data) {
       if (kDebugMode) {
-        print('❌ Socket error: $error');
+        print('💬 Sent message response: $data');
       }
-      _errorMessageController.add({
-        'status': 'error',
-        'message': 'Socket error: $error',
-      });
+      if (data is Map<String, dynamic>) {
+        _sentMessageController.add(ChatModel.fromJson(data));
+      }
+    });
+
+     _socket!.on('sent-message', (data) {
+      if (kDebugMode) {
+        print('💬 Sent message response: $data');
+      }
+      if (data is Map<String, dynamic>) {
+        _sentMessageController.add(ChatModel.fromJson(data));
+      }
+    });
+
+    // Sent Gift events
+    _socket!.on('sent-gift', (data) {
+      if (kDebugMode) {
+        print('🎁 Sent gift response: $data');
+      }
+      //TODO: Implement gift sending
     });
   }
 
@@ -523,6 +543,39 @@ class SocketService {
       return false;
     }
   }
+
+  /// Send Message 
+  Future<bool> sendMessage(String roomId, String message) async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('💬 Sending message to room: $roomId');
+      }
+
+      _socket!.emit(_sendMessageEvent, {
+        'roomId': roomId,
+        'messageText': message,
+      });
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error sending message: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to send message: $e',
+      });
+      return false;
+    }
+  }
+
 
   /// Get join call request list
   Future<bool> getJoinCallRequestList() async {

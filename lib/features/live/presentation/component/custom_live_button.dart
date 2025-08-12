@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CustomLiveButton extends StatelessWidget {
   const CustomLiveButton({
@@ -18,7 +19,7 @@ class CustomLiveButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Image.asset(iconPath, width: width, height: height),
+      child: Image.asset(iconPath, width: width.w, height: height.h),
     );
   }
 }

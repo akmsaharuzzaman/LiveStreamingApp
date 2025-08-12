@@ -17,44 +17,45 @@ class HostInfo extends StatelessWidget {
     return Stack(
       children: [
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          height: 50.h,
+          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
           decoration: BoxDecoration(
-            color: Color(0xFF888686),
-            borderRadius: BorderRadius.circular(100),
-            gradient: LinearGradient(
-              colors: [Color(0xFF000000), Color(0xFFD5FBFB)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            color: Color(0xFF111111).withValues(alpha: .85),
+            borderRadius: BorderRadius.circular(100.r),
+            // gradient: LinearGradient(
+            //   colors: [Color(0xFF000000), Color(0xFFD5FBFB)],
+            //   begin: Alignment.topLeft,
+            //   end: Alignment.bottomRight,
+            // ),
           ),
           child: Row(
-            spacing: 5,
+            // Use SizedBox for spacing, since Row doesn't have spacing property
             children: [
               // holds the image of the user
               imageUrl.isEmpty
                   ? CircleAvatar(
-                      radius: 18,
+                      radius: 18.r,
                       backgroundColor: Colors.grey[400],
-                      child: Icon(Icons.person, color: Colors.white, size: 24),
+                      child: Icon(Icons.person, color: Colors.white, size: 24.sp),
                     )
                   : CircleAvatar(
-                      radius: 18,
+                      radius: 18.r,
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(100),
+                        borderRadius: BorderRadius.circular(100.r),
                         child: Image.network(imageUrl),
                       ),
                     ),
+              SizedBox(width: 5.w),
               Column(
-                spacing: 2,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     name,
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                    style: TextStyle(fontSize: 16.sp, color: Colors.white),
                   ),
                   Text(
                     "ID: $id",
-                    style: TextStyle(fontSize: 12, color: Colors.white),
+                    style: TextStyle(fontSize: 12.sp, color: Colors.white),
                   ),
                 ],
               ),
@@ -65,8 +66,8 @@ class HostInfo extends StatelessWidget {
         Positioned(
           top: 0,
           bottom: 0,
-          right: 6,
-          child:Image.asset(
+          right: 6.w,
+          child: Image.asset(
             'assets/images/general/add_icon.png',
             width: 26.w,
             height: 26.h,
