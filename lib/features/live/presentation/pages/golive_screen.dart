@@ -10,6 +10,7 @@ import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:dlstarlive/features/live/presentation/component/agora_token_service.dart';
 import 'package:dlstarlive/features/live/presentation/component/gift_bottom_sheet.dart';
 import 'package:dlstarlive/features/live/presentation/component/send_message_buttonsheet.dart';
+import 'package:dlstarlive/features/live/presentation/widgets/call_overlay_widget.dart';
 import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -191,6 +192,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
       if (mounted) {
         if (!callRequests.any((user) => user.userId == data.userId)) {
           callRequests.add(data);
+          _showSnackBar(
+            '📞 ${data.userDetails.name} wants to join the call',
+            Colors.blue,
+          );
         }
         debugPrint(
           "User request to join call: ${data.userDetails.name} - ${data.userDetails.uid}",
@@ -1316,11 +1321,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                     onTap: () {
                                       _toggleMute();
                                     },
+                                    height: 40.h,
                                   ),
                                 ] else ...[
                                   CustomLiveButton(
                                     iconPath: "assets/icons/gift_user_icon.png",
                                     onTap: () {},
+                                    height: 40.h,
                                   ),
                                 ],
 
@@ -1332,14 +1339,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                       userId: userId,
                                     );
                                   },
+                                  height: 40.h,
                                 ),
                                 CustomLiveButton(
                                   iconPath: "assets/icons/share_user_icon.png",
                                   onTap: () {},
+                                  height: 40.h,
                                 ),
                                 CustomLiveButton(
                                   iconPath: "assets/icons/menu_icon.png",
                                   onTap: () {},
+                                  height: 40.h,
                                 ),
                               ],
                             ),
@@ -1355,8 +1365,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                           // Caller Widget
+                          ...broadcasterList.map((broadcaster) {
+                            return CallOverlayWidget();
+                          }),
+                          SizedBox(height: 80.h),
                           // Audio caller status indicator
-                          if (_audioCallerUids.isNotEmpty)
+                          if (broadcasterList.isNotEmpty)
                             Container(
                               margin: EdgeInsets.only(bottom: 10.h),
                               padding: EdgeInsets.symmetric(
@@ -1368,7 +1383,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 borderRadius: BorderRadius.circular(15.r),
                               ),
                               child: Text(
-                                '🎤 ${_audioCallerUids.length}/$_maxAudioCallers',
+                                '🎤 ${broadcasterList.length - 1}/$_maxAudioCallers',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 12.sp,
@@ -1378,34 +1393,34 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             ),
 
                           // Camera toggle button
-                          if (_isAudioCaller)
-                            GestureDetector(
-                              onTap: () {
-                                _turnOnOffCamera();
-                                debugPrint("Camera toggled");
-                              },
-                              child: Container(
-                                height: 40.h,
-                                width: 40.w,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.all(
-                                    Radius.circular(8.r),
-                                  ),
-                                  color: isCameraEnabled
-                                      ? Colors.orange
-                                      : Colors.grey,
-                                ),
-                                child: Icon(
-                                  isCameraEnabled
-                                      ? Icons.videocam
-                                      : Icons.videocam_off,
-                                  color: Colors.white,
-                                  size: 24.sp,
-                                ),
-                              ),
-                            ),
-                          SizedBox(height: 10.h),
+                          // if (_isAudioCaller)
+                          //   GestureDetector(
+                          //     onTap: () {
+                          //       _turnOnOffCamera();
+                          //       debugPrint("Camera toggled");
+                          //     },
+                          //     child: Container(
+                          //       height: 40.h,
+                          //       width: 40.w,
+                          //       alignment: Alignment.center,
+                          //       decoration: BoxDecoration(
+                          //         borderRadius: BorderRadius.all(
+                          //           Radius.circular(8.r),
+                          //         ),
+                          //         color: isCameraEnabled
+                          //             ? Colors.orange
+                          //             : Colors.grey,
+                          //       ),
+                          //       child: Icon(
+                          //         isCameraEnabled
+                          //             ? Icons.videocam
+                          //             : Icons.videocam_off,
+                          //         color: Colors.white,
+                          //         size: 24.sp,
+                          //       ),
+                          //     ),
+                          //   ),
+                          // SizedBox(height: 10.h),
                           // Main call button
                           GestureDetector(
                             onTap: () {
@@ -1490,6 +1505,21 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               ),
                             ),
                           ),
+                        ],
+                      ),
+                    )
+                  else
+                    Positioned(
+                      bottom: 140.h,
+                      right: 30.w,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Caller Widget
+                          ...broadcasterList.map((broadcaster) {
+                            return CallOverlayWidget();
+                          }),
+                          SizedBox(height: 180.h),
                         ],
                       ),
                     ),
