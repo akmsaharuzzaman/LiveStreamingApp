@@ -200,6 +200,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
         debugPrint(
           "User request to join call: ${data.userDetails.name} - ${data.userDetails.uid}",
         );
+        // Update bottom sheet if it's open
+        _updateCallManageBottomSheet();
       }
     });
 
@@ -243,6 +245,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
             _leaveAudioCaller();
           }
         }
+
+        // Update bottom sheet if it's open
+        _updateCallManageBottomSheet();
       }
     });
 
@@ -266,6 +271,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
         debugPrint("🛑 Stream ended");
       }
     });
+  }
+
+  /// Update the CallManageBottomSheet with current data
+  void _updateCallManageBottomSheet() {
+    callManageBottomSheetKey.currentState?.updateData(
+      newCallers: callRequests,
+      newInCallList: broadcasterList,
+    );
   }
 
   /// Create a new room (for hosts)
@@ -1228,6 +1241,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                       isScrollControlled: true,
                                       backgroundColor: Colors.transparent,
                                       builder: (context) => CallManageBottomSheet(
+                                        key: callManageBottomSheetKey,
                                         onAcceptCall: (userId) {
                                           debugPrint(
                                             "Accepting call request from $userId",
@@ -1238,6 +1252,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                           callRequests.removeWhere(
                                             (call) => call.userId == userId,
                                           );
+                                          // Update the bottom sheet with new data
+                                          _updateCallManageBottomSheet();
                                         },
                                         onRejectCall: (userId) {
                                           debugPrint(
@@ -1246,6 +1262,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                           _socketService.rejectCallRequest(
                                             userId,
                                           );
+                                          // Update the bottom sheet with new data
+                                          _updateCallManageBottomSheet();
                                         },
                                         onKickUser: (userId) {
                                           _socketService.removeBroadcaster(
@@ -1254,6 +1272,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                           debugPrint(
                                             "Kicking user $userId from call",
                                           );
+                                          // Update the bottom sheet with new data
+                                          _updateCallManageBottomSheet();
                                         },
                                         callers: callRequests,
                                         inCallList: broadcasterList,

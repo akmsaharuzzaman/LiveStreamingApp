@@ -21,14 +21,38 @@ class CallManageBottomSheet extends StatefulWidget {
   State<CallManageBottomSheet> createState() => _CallManageBottomSheetState();
 }
 
+// Global key to access the bottom sheet state from parent
+final GlobalKey<_CallManageBottomSheetState> callManageBottomSheetKey = GlobalKey<_CallManageBottomSheetState>();
+
 class _CallManageBottomSheetState extends State<CallManageBottomSheet>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late List<CallRequestList> _currentCallers;
+  late List<String> _currentInCallList;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _currentCallers = List.from(widget.callers);
+    _currentInCallList = List.from(widget.inCallList);
+  }
+
+  // Method to update the data from parent widget
+  void updateData({
+    List<CallRequestList>? newCallers,
+    List<String>? newInCallList,
+  }) {
+    if (mounted) {
+      setState(() {
+        if (newCallers != null) {
+          _currentCallers = List.from(newCallers);
+        }
+        if (newInCallList != null) {
+          _currentInCallList = List.from(newInCallList);
+        }
+      });
+    }
   }
 
   @override
@@ -145,24 +169,32 @@ class _CallManageBottomSheetState extends State<CallManageBottomSheet>
         children: [
           SizedBox(height: 20.h),
           // User requesting call
-          ListView.builder(
-            shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            itemCount: widget.inCallList.length,
-            itemBuilder: (context, index) {
-              final caller = widget.inCallList[index];
-              return _buildUserItem(
-                userId: caller,
-                name: caller,
-                profileImage: 'assets/images/image_placeholder.png',
-                showKickButton: true,
-              );
-            },
-          ),
+          if (_currentInCallList.isEmpty)
+            Center(
+              child: Text(
+                'No users in call',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: const Color(0xFF8B8B8B),
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _currentInCallList.length,
+              itemBuilder: (context, index) {
+                final caller = _currentInCallList[index];
+                return _buildUserItem(
+                  userId: caller,
+                  name: caller,
+                  profileImage: 'assets/images/image_placeholder.png',
+                  showKickButton: true,
+                );
+              },
+            ),
           SizedBox(height: 16.h),
-
-          // Add more users as needed
-          // You can add more _buildUserItem widgets here for other users in call
         ],
       ),
     );
@@ -174,29 +206,35 @@ class _CallManageBottomSheetState extends State<CallManageBottomSheet>
       child: Column(
         children: [
           SizedBox(height: 20.h),
-
           // User requesting call
-          ListView.builder(
-            shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            itemCount: widget.callers.length,
-            itemBuilder: (context, index) {
-              final caller = widget.callers[index];
-              return _buildUserItem(
-                userId: caller.userDetails.id,
-                name: caller.userDetails.name,
-                profileImage:
-                    caller.userDetails.avatar ??
-                    'assets/images/image_placeholder.png',
-                showCallActions: true,
-              );
-            },
-          ),
-
+          if (_currentCallers.isEmpty)
+            Center(
+              child: Text(
+                'No call requests',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: const Color(0xFF8B8B8B),
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _currentCallers.length,
+              itemBuilder: (context, index) {
+                final caller = _currentCallers[index];
+                return _buildUserItem(
+                  userId: caller.userDetails.id,
+                  name: caller.userDetails.name,
+                  profileImage: caller.userDetails.avatar.isNotEmpty
+                      ? caller.userDetails.avatar
+                      : 'assets/images/image_placeholder.png',
+                  showCallActions: true,
+                );
+              },
+            ),
           SizedBox(height: 16.h),
-
-          // Add more users as needed
-          // You can add more _buildUserItem widgets here for other call requests
         ],
       ),
     );
