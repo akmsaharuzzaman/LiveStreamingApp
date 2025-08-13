@@ -1365,7 +1365,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                           // Caller Widget
+                          // Caller Widget
                           ...broadcasterList.map((broadcaster) {
                             return CallOverlayWidget();
                           }),
@@ -1547,20 +1547,20 @@ class _GoliveScreenState extends State<GoliveScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-              SizedBox(height: 20.h),
-              Text(
-                '🎥 Initializing camera...',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(height: 10.h),
-              Text(
-                'Please wait while we set up your stream',
-                style: TextStyle(color: Colors.grey, fontSize: 14),
-              ),
+              // SizedBox(height: 20.h),
+              // Text(
+              //   '🎥 Initializing camera...',
+              //   style: TextStyle(
+              //     color: Colors.white,
+              //     fontSize: 18.sp,
+              //     fontWeight: FontWeight.w500,
+              //   ),
+              // ),
+              // SizedBox(height: 10.h),
+              // Text(
+              //   'Please wait while we set up your stream',
+              //   style: TextStyle(color: Colors.grey, fontSize: 14),
+              // ),
             ],
           ),
         ),
@@ -1592,15 +1592,15 @@ class _GoliveScreenState extends State<GoliveScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(color: Colors.white),
-              SizedBox(height: 20.h),
-              Text(
-                '📡 Connecting to stream...',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              // SizedBox(height: 20.h),
+              // Text(
+              //   '📡 Connecting to stream...',
+              //   style: TextStyle(
+              //     color: Colors.white,
+              //     fontSize: 18.sp,
+              //     fontWeight: FontWeight.w500,
+              //   ),
+              // ),
             ],
           ),
         ),
@@ -1630,7 +1630,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
               CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
               SizedBox(height: 20.h),
               Text(
-                '📡 Waiting for broadcaster...',
+                'Host is disconnected',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
@@ -1640,7 +1640,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
               ),
               SizedBox(height: 10.h),
               Text(
-                'The stream will start soon',
+                'Please wait...',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey, fontSize: 14),
               ),
