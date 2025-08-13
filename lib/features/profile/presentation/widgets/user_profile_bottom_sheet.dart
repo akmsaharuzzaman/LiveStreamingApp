@@ -172,15 +172,15 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
       height:
           MediaQuery.of(context).size.height *
           0.64.h, // Reduced height to match image
-      decoration: const BoxDecoration(
+      decoration:  BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
+          top: Radius.circular(24.r),
         ), // Increased radius
         boxShadow: [
           BoxShadow(
             color: Color(0x1A000000),
-            blurRadius: 16,
+            blurRadius: 16.r,
             offset: Offset(0, -4),
           ),
         ],
@@ -195,7 +195,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
                     ? Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(24),
+                            top: Radius.circular(24.r),
                           ),
                         ),
                         child: const Center(child: CircularProgressIndicator()),
@@ -207,7 +207,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
                     : Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(24),
+                            top: Radius.circular(24.r),
                           ),
                         ),
                         child: const Center(
@@ -219,14 +219,14 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
           ),
 
           Positioned(
-            top: 16,
-            right: 16,
+            top: 16.h,
+            right: 16.w,
             child: GestureDetector(
               onTap: () => Navigator.of(context).pop(),
               child: Image.asset(
                 'assets/images/general/cross_icon.png',
-                width: 25,
-                height: 25,
+                width: 25.w,
+                height: 25.h,
                 color: const Color(0xFF2D3142),
               ),
             ),
@@ -245,7 +245,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
   Widget _buildErrorWidget() {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(UIConstants.spacingM),
@@ -254,22 +254,22 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: UIConstants.spacingM),
+               Icon(Icons.error_outline, size: 64.h, color: Colors.red),
+               SizedBox(height: UIConstants.spacingM.h),
               Text(
                 'Error Loading Profile',
-                style: const TextStyle(
-                  fontSize: 18,
+                style:  TextStyle(
+                  fontSize: 18.sp,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: UIConstants.spacingS),
+              SizedBox(height: UIConstants.spacingS.h),
               Text(
                 errorMessage!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey),
+                style: TextStyle(color: Colors.grey),
               ),
-              const SizedBox(height: UIConstants.spacingM),
+              SizedBox(height: UIConstants.spacingM.h),
               ElevatedButton(
                 onPressed: _loadUserProfile,
                 child: const Text('Retry'),
@@ -286,19 +286,19 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
       children: [
         // Profile Header with background
         _buildProfileHeader(),
-        const SizedBox(height: 10),
+         SizedBox(height: 10.h),
 
         // User Achievements
         _buildAchievements(),
-        const SizedBox(height: 10),
+        SizedBox(height: 10.h),
         _buildStats(),
-        const SizedBox(height: 25),
+        SizedBox(height: 25.h),
         _buildFanBadges(),
-        const SizedBox(height: 25),
+        SizedBox(height: 25.h),
 
         // Action Buttons
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
           child: _buildActionButtons(),
         ),
 
@@ -330,17 +330,17 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
           children: [
             Text(
               "1.5K",
-              style: const TextStyle(
+              style:  TextStyle(
                 fontWeight: FontWeight.w600,
-                fontSize: 18,
+                fontSize: 18.sp,
                 color: Color(0xFF2D3142),
               ),
             ),
             Text(
               "Fans",
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w400,
-                fontSize: 16,
+                fontSize: 16.sp,
                 color: Color(0xFF2D3142),
               ),
             ),
@@ -353,18 +353,18 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
           children: [
             Text(
               "2.3K",
-              style: const TextStyle(
+              style:  TextStyle(
                 fontWeight: FontWeight.w600,
-                fontSize: 18,
+                fontSize: 18.sp,
                 color: Color(0xFF2D3142),
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4.h),
             Text(
               "Likes",
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w400,
-                fontSize: 16,
+                fontSize: 16.sp,
                 color: Color(0xFF2D3142),
               ),
             ),
@@ -378,11 +378,11 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
             Image.asset('assets/images/general/bd_flag.png', height: 25.h),
             Text(
               "Bangladesh",
-              style: const TextStyle(fontSize: 14, color: Color(0xFF2D3142)),
+              style: TextStyle(fontSize: 14.sp, color: Color(0xFF2D3142)),
             ),
           ],
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: 16.w),
       ],
     );
   }
@@ -426,7 +426,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
         ),
         child: Column(
           children: [
-            const SizedBox(height: 50),
+            SizedBox(height: 50.h),
 
             // Profile Picture with Frame
             Stack(
@@ -475,7 +475,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
               ],
             ),
 
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
 
             // User Name
             Row(
@@ -483,13 +483,13 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
               children: [
                 Text(
                   userProfile!.name,
-                  style: const TextStyle(
-                    fontSize: 20,
+                  style: TextStyle(
+                    fontSize: 20.sp,
                     fontWeight: FontWeight.w400,
                     color: Color(0xFF202020),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8.w),
                 Image.asset(
                   'assets/images/general/gender_male_icon.png',
                   width: 25.w,
@@ -505,13 +505,13 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
 
   Widget _buildDefaultAvatar() {
     return Container(
-      width: 80,
-      height: 80,
+      width: 80.w,
+      height: 80.h,
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
         color: Color(0xFFF0F0F0),
       ),
-      child: Icon(Icons.person, size: 40, color: Colors.grey[600]),
+      child: Icon(Icons.person, size: 40.sp, color: Colors.grey[600]),
     );
   }
 
@@ -524,7 +524,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
         // Follow Button - matches the pink button in image
         Expanded(
           child: Container(
-            height: 44,
+            height: 44.h,
             decoration: BoxDecoration(
               gradient: relationship?.myFollowing == true
                   ? const LinearGradient(
@@ -537,7 +537,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
                     ),
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(22.r),
             ),
             child: ElevatedButton.icon(
               onPressed: isFollowLoading ? null : _handleFollowToggle,
@@ -545,14 +545,14 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22),
+                  borderRadius: BorderRadius.circular(22.r),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
               ),
               icon: isFollowLoading
                   ? SizedBox(
-                      width: 16,
-                      height: 16,
+                      width: 16.w,
+                      height: 16.h,
                       child: CircularProgressIndicator(
                         color: Colors.white,
                         strokeWidth: 2,
@@ -562,8 +562,8 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
                       relationship?.myFollowing == true
                           ? 'assets/images/general/minus_icon.png'
                           : 'assets/images/general/plus_icon.png',
-                      width: 16,
-                      height: 16,
+                      width: 16.w,
+                      height: 16.h,
                       color: Colors.white,
                     ),
               label: Text(
@@ -572,26 +572,26 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
                     : (relationship?.myFollowing == true
                           ? 'Unfollow'
                           : 'Follow'),
-                style: const TextStyle(
+                style:  TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
-                  fontSize: 14,
+                  fontSize: 14.sp,
                 ),
               ),
             ),
           ),
         ),
 
-        const SizedBox(width: 12),
+         SizedBox(width: 12.w),
 
         // Gift Button - circular with gift icon
         Container(
-          width: 44,
-          height: 44,
+          width: 44.w,
+          height: 44.h,
           decoration: BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.grey[300]!, width: 2),
+            border: Border.all(color: Colors.grey[300]!, width: 2.w),
           ),
           child: IconButton(
             onPressed: () {
@@ -606,15 +606,15 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
           ),
         ),
 
-        const SizedBox(width: 12),
+        SizedBox(width: 12.w),
 
         // Message Button - circular with message icon
         Expanded(
           child: Container(
-            height: 44,
+            height: 44.h,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: Colors.grey[300]!, width: 2),
+              border: Border.all(color: Colors.grey[300]!, width: 2.w),
             ),
             child: ElevatedButton.icon(
               onPressed: _navigateToChat,
@@ -624,12 +624,12 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(22),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding:  EdgeInsets.symmetric(horizontal: 16.w),
               ),
               icon: Image.asset(
                 'assets/images/general/message_icon.png',
-                width: 16,
-                height: 16,
+                width: 16.w,
+                height: 16.h,
                 color: Colors.grey[600],
               ),
               label: Text(
@@ -637,7 +637,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
                 style: TextStyle(
                   color: Colors.grey[600],
                   fontWeight: FontWeight.w600,
-                  fontSize: 14,
+                  fontSize: 14.sp,
                 ),
               ),
             ),
