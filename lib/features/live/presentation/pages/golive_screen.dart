@@ -105,7 +105,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
       // _showSnackBar('📡 Connecting to server...', Colors.blue);
       debugPrint('📡 Connecting to server...');
       await _initializeSocket();
-      _setupSocketListeners();
       // _showSnackBar('✅ Live stream ready!', Colors.green);
       debugPrint('✅ Live stream ready!');
     } catch (e) {

@@ -188,10 +188,35 @@ class SocketService {
     }
   }
 
+  /// Clear existing socket listeners to prevent duplicates
+  void _clearSocketListeners() {
+    if (_socket == null) return;
+
+    debugPrint('🧹 Clearing existing socket listeners');
+
+    // Clear all event listeners
+    _socket!.off('error-message');
+    _socket!.off('room-closed');
+    _socket!.off('user-joined');
+    _socket!.off('user-left');
+    _socket!.off('join-call-request');
+    _socket!.off('join-call-request-list');
+    _socket!.off('accept-call-request');
+    _socket!.off('remove-broadcaster');
+    _socket!.off('broadcaster-list');
+    _socket!.off('room-list');
+    _socket!.off('get-rooms');
+    _socket!.off('sent-message');
+    _socket!.off('sent-gift');
+  }
+
   /// Setup socket event listeners
   void _setupSocketListeners() {
     debugPrint('🔧 Setting up socket listeners');
     if (_socket == null) return;
+
+    // Clear any existing listeners to prevent duplicates
+    _clearSocketListeners();
 
     // Connection events
     _socket!.onDisconnect((_) {
@@ -321,15 +346,6 @@ class SocketService {
     });
 
     _socket!.on('sent-message', (data) {
-      if (kDebugMode) {
-        print('💬 Sent message response: $data');
-      }
-      if (data is Map<String, dynamic>) {
-        _sentMessageController.add(ChatModel.fromJson(data));
-      }
-    });
-
-     _socket!.on('sent-message', (data) {
       if (kDebugMode) {
         print('💬 Sent message response: $data');
       }
@@ -544,7 +560,7 @@ class SocketService {
     }
   }
 
-  /// Send Message 
+  /// Send Message
   Future<bool> sendMessage(String roomId, String message) async {
     if (!_isConnected || _socket == null) {
       _errorMessageController.add({
@@ -575,7 +591,6 @@ class SocketService {
       return false;
     }
   }
-
 
   /// Get join call request list
   Future<bool> getJoinCallRequestList() async {

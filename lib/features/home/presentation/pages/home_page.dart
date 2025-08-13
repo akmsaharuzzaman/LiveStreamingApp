@@ -108,7 +108,7 @@ class _HomePageState extends State<HomePage>
     _tabController = TabController(length: 4, vsync: this);
 
     _initializeSocket();
-    _setupSocketListeners();
+    // Removed duplicate _setupSocketListeners() call - it's already called in _initializeSocket()
     super.initState();
   }
 
@@ -195,7 +195,11 @@ class _HomePageState extends State<HomePage>
               width: 22.sp,
             ),
             SizedBox(width: 12.sp),
-            Icon(Icons.notifications_active_rounded, size: 22.sp, color: Colors.black),
+            Icon(
+              Icons.notifications_active_rounded,
+              size: 22.sp,
+              color: Colors.black,
+            ),
           ],
         ),
       ),
