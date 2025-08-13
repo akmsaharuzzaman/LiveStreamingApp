@@ -1293,11 +1293,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               children: [
                                 InkWell(
                                   onTap: () {
-                                    _showSnackBar(
-                                      '💬 Not implemented yet',
-                                      Colors.green,
+                                    // _showSnackBar(
+                                    //   '💬 Not implemented yet',
+                                    //   Colors.green,
+                                    // );
+                                    showSendMessageBottomSheet(
+                                      context,
+                                      onSendMessage: (message) {
+                                        print("Send message pressed");
+                                        _generateDummyMessage(message);
+                                      },
                                     );
-                                    // showChatBottomSheet(context);
                                   },
                                   child: Stack(
                                     children: [
