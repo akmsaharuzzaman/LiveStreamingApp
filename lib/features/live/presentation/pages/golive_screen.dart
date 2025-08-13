@@ -220,17 +220,28 @@ class _GoliveScreenState extends State<GoliveScreen> {
     _socketService.broadcasterListStream.listen((data) {
       if (mounted) {
         broadcasterList = Set<String>.from(data).toList();
-        if (isHost && broadcasterList.contains(userId)) {
+
+        // Check if current user is in broadcaster list before removing (for non-host logic)
+        bool wasUserInBroadcasterList = broadcasterList.contains(userId);
+
+        // Remove current user from UI list for both host and non-host
+        // We don't want to show overlay widget for ourselves
+        if (broadcasterList.contains(userId)) {
           broadcasterList.remove(userId);
         }
+
         debugPrint("Broadcaster(caller) list updated: $broadcasterList");
-        if (!isHost && broadcasterList.contains(userId)) {
-          // Notify user that they are now a broadcaster
-          _showSnackBar('🎤 You are now in Call', Colors.green);
-          _promoteToAudioCaller();
-        } else if (!isHost && !broadcasterList.contains(userId)) {
-          debugPrint("User is not a broadcaster");
-          _leaveAudioCaller();
+
+        // Handle non-host broadcaster status changes
+        if (!isHost) {
+          if (wasUserInBroadcasterList) {
+            // Notify user that they are now a broadcaster
+            _showSnackBar('🎤 You are now in Call', Colors.green);
+            _promoteToAudioCaller();
+          } else {
+            debugPrint("User is not a broadcaster");
+            _leaveAudioCaller();
+          }
         }
       }
     });
@@ -1383,7 +1394,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 borderRadius: BorderRadius.circular(15.r),
                               ),
                               child: Text(
-                                '🎤 ${broadcasterList.length - 1}/$_maxAudioCallers',
+                                '🎤 ${broadcasterList.length}/$_maxAudioCallers',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 12.sp,
