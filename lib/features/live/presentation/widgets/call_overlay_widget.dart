@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class CallOverlayWidget extends StatelessWidget {
+class CallOverlayWidget extends StatefulWidget {
   final String? userImage;
   final String? userName;
   final String? userId;
@@ -20,247 +20,342 @@ class CallOverlayWidget extends StatelessWidget {
     this.onManage,
   });
 
-  void _showOptionsBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20.r),
-            topRight: Radius.circular(20.r),
+  @override
+  State<CallOverlayWidget> createState() => _CallOverlayWidgetState();
+}
+
+class _CallOverlayWidgetState extends State<CallOverlayWidget> {
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _optionsOverlay;
+
+  void _hideOptionsOverlay() {
+    _optionsOverlay?.remove();
+    _optionsOverlay = null;
+  }
+
+  void _showOptionsOverlay() {
+    if (_optionsOverlay != null) return; // prevent duplicates
+
+    final overlay = Overlay.of(context);
+
+    _optionsOverlay = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          // Transparent barrier to dismiss on outside tap
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _hideOptionsOverlay,
+              child: const SizedBox.expand(),
+            ),
           ),
-        ),
-        padding: EdgeInsets.symmetric(vertical: 20.h, horizontal: 16.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+
+          // Anchored popover next to the widget
+          CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            // Position the card to the left of the 100x100 widget with slight vertical alignment
+            offset: Offset(-240.w, -10.h),
+            child: Material(
+              color: Colors.transparent,
+              child: _buildOptionsCard(context),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    overlay.insert(_optionsOverlay!);
+  }
+
+  Widget _buildOptionsCard(BuildContext context) {
+    // Popover card matching screenshot with rounded corners and subtle shadow
+    return Container(
+      width: 230.w,
+      padding: EdgeInsets.symmetric(vertical: 12.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildOverlayAction(
+            context,
+            icon: Icons.call_end,
+            title: 'Disconnect Call',
+            color: const Color(0xFFFF5E8D), // pink like screenshot
+            isEmphasis: true,
+            onTap: () {
+              _hideOptionsOverlay();
+              widget.onDisconnect?.call();
+            },
+          ),
+          _buildOverlayAction(
+            context,
+            icon: Icons.mic_off,
+            title: 'Mute Call',
+            color: Colors.black87,
+            onTap: () {
+              _hideOptionsOverlay();
+              widget.onMute?.call();
+            },
+          ),
+          _buildOverlayAction(
+            context,
+            icon: Icons.settings,
+            title: 'Manage',
+            color: Colors.black87,
+            onTap: () {
+              _hideOptionsOverlay();
+              _showManageBottomSheet();
+              widget.onManage?.call();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverlayAction(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required Color color,
+    bool isEmphasis = false,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+        child: Row(
           children: [
-            // User Info Header
-            Container(
-              padding: EdgeInsets.all(16.r),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 25.r,
-                    backgroundImage: userImage != null
-                        ? NetworkImage(userImage!)
-                        : null,
-                    backgroundColor: Colors.grey[300],
-                    child: userImage == null
-                        ? Icon(
-                            Icons.person,
-                            size: 30.sp,
-                            color: Colors.grey[600],
-                          )
-                        : null,
-                  ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          userName ?? 'Unknown User',
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        Text(
-                          userId ?? '',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+            Icon(
+              icon,
+              color: isEmphasis ? const Color(0xFFFF5E8D) : Colors.black87,
+              size: 20.sp,
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: isEmphasis ? FontWeight.w600 : FontWeight.w500,
+                  color: isEmphasis ? const Color(0xFFFF5E8D) : Colors.black87,
+                ),
               ),
             ),
-
-            // Options List
-            _buildOptionTile(
-              icon: Icons.call_end,
-              title: 'Disconnect Call',
-              iconColor: Colors.red,
-              onTap: () {
-                Navigator.pop(context);
-                onDisconnect?.call();
-              },
-            ),
-            _buildOptionTile(
-              icon: Icons.mic_off,
-              title: 'Mute Call',
-              iconColor: Colors.orange,
-              onTap: () {
-                Navigator.pop(context);
-                onMute?.call();
-              },
-            ),
-            _buildOptionTile(
-              icon: Icons.settings,
-              title: 'Manage',
-              iconColor: Colors.blue,
-              onTap: () {
-                Navigator.pop(context);
-                onManage?.call();
-              },
-            ),
-
-            SizedBox(height: 20.h),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildOptionTile({
-    required IconData icon,
-    required String title,
-    required Color iconColor,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Container(
-        width: 40.w,
-        height: 40.h,
-        decoration: BoxDecoration(
-          color: iconColor.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(10.r),
-        ),
-        child: Icon(icon, color: iconColor, size: 20.sp),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 16.sp,
-          fontWeight: FontWeight.w500,
-          color: Colors.black87,
-        ),
-      ),
+  void _showManageBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: false,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFF5ECFF), Colors.white],
+            ),
+          ),
+          padding: EdgeInsets.only(
+            top: 16.h,
+            bottom: 24.h + MediaQuery.of(context).padding.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _manageTile(
+                Icons.admin_panel_settings,
+                'Set Admin',
+                onTap: () => Navigator.pop(context),
+              ),
+              _manageTile(
+                Icons.mic_off,
+                'Mute User',
+                onTap: () => Navigator.pop(context),
+              ),
+              _manageTile(
+                Icons.call_end,
+                'Kick Out',
+                onTap: () => Navigator.pop(context),
+              ),
+              _manageTile(
+                Icons.block,
+                'Add to blocklist',
+                onTap: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _manageTile(IconData icon, String title, {VoidCallback? onTap}) {
+    return InkWell(
       onTap: onTap,
-      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 14.h),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.black87, size: 22.sp),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(fontSize: 16.sp, color: Colors.black87),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   @override
+  void dispose() {
+    _hideOptionsOverlay();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showOptionsBottomSheet(context),
-      child: Container(
-        margin: EdgeInsets.only(bottom: 15.h),
-        height: 100.h,
-        width: 100.w,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15.r),
-          border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(15.r),
-          child: Stack(
-            children: [
-              // Background Image
-              Positioned.fill(
-                child: userImage != null
-                    ? Image.network(
-                        userImage!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: Colors.grey[800],
-                            child: Icon(
-                              Icons.person,
-                              color: Colors.white54,
-                              size: 40.sp,
-                            ),
-                          );
-                        },
-                      )
-                    : Container(
-                        color: Colors.grey[800],
-                        child: Icon(
-                          Icons.person,
-                          color: Colors.white54,
-                          size: 40.sp,
-                        ),
-                      ),
-              ),
-
-              // Blur Overlay
-              Positioned.fill(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-                  child: Container(color: Colors.black.withOpacity(0.3)),
-                ),
-              ),
-
-              // Center Profile Circle
-              Center(
-                child: Container(
-                  width: 60.w,
-                  height: 60.h,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.8),
-                      width: 2.w,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: ClipOval(
-                    child: userImage != null
-                        ? Image.network(
-                            userImage!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.grey[600],
-                                child: Icon(
-                                  Icons.person,
-                                  color: Colors.white,
-                                  size: 30.sp,
-                                ),
-                              );
-                            },
-                          )
-                        : Container(
-                            color: Colors.grey[600],
-                            child: Icon(
-                              Icons.person,
-                              color: Colors.white,
-                              size: 30.sp,
-                            ),
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: GestureDetector(
+        onTap: _showOptionsOverlay,
+        child: Container(
+          margin: EdgeInsets.only(bottom: 15.h),
+          height: 100.h,
+          width: 100.w,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15.r),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.3),
+              width: 1.5,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(15.r),
+            child: Stack(
+              children: [
+                // Background Image
+                Positioned.fill(
+                  child: widget.userImage != null
+                      ? Image.network(
+                          widget.userImage!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.grey[800],
+                              child: Icon(
+                                Icons.person,
+                                color: Colors.white54,
+                                size: 40.sp,
+                              ),
+                            );
+                          },
+                        )
+                      : Container(
+                          color: Colors.grey[800],
+                          child: Icon(
+                            Icons.person,
+                            color: Colors.white54,
+                            size: 40.sp,
                           ),
-                  ),
+                        ),
                 ),
-              ),
 
-              // Online Indicator (optional)
-              Positioned(
-                top: 8.h,
-                right: 8.w,
-                child: Container(
-                  width: 12.w,
-                  height: 12.h,
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 1.5.w),
+                // Blur Overlay
+                Positioned.fill(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                    child: Container(color: Colors.black.withOpacity(0.3)),
                   ),
                 ),
-              ),
-            ],
+
+                // Center Profile Circle
+                Center(
+                  child: Container(
+                    width: 60.w,
+                    height: 60.h,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.8),
+                        width: 2.w,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: widget.userImage != null
+                          ? Image.network(
+                              widget.userImage!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[600],
+                                  child: Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                    size: 30.sp,
+                                  ),
+                                );
+                              },
+                            )
+                          : Container(
+                              color: Colors.grey[600],
+                              child: Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 30.sp,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+
+                // Online Indicator (optional)
+                Positioned(
+                  top: 8.h,
+                  right: 8.w,
+                  child: Container(
+                    width: 12.w,
+                    height: 12.h,
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5.w),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
