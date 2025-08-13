@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ChatBadge {
   final String type; // 'level', 'vip', 'crown', 'fire', etc.
@@ -149,68 +150,47 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
     Color premiumBase = _getRandomColorForUser(message.userName);
     // Ensure it's not too dark; blend with a warm accent
     premiumBase = Color.alphaBlend(
-      const Color(0xFFCD985F).withValues(alpha: 0.55),
-      premiumBase.withValues(alpha: 0.85),
+      const Color(0xFFCD985F).withValues(alpha: 0.5),
+      premiumBase.withValues(alpha: 0.5),
     );
-    final Color premiumBackground = premiumBase.withValues(alpha: 0.85);
+    final Color premiumBackground = premiumBase.withValues(alpha: 0.5);
 
     Widget content = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
         // Badges (Level, VIP, etc.)
         ...message.badges.map((badge) => _buildBadge(badge)),
         if (message.badges.isNotEmpty) const SizedBox(width: 6),
 
-        // User Avatar
-        CircleAvatar(
-          radius: 14,
-          backgroundImage: message.userAvatar != null
-              ? NetworkImage(message.userAvatar!)
-              : null,
-          backgroundColor: isPremium
-              ? Colors.white.withValues(alpha:0.25)
-              : Colors.grey[600]?.withValues(alpha:0.5),
-          child: message.userAvatar == null
-              ? Text(
-                  message.userName.substring(0, 1).toUpperCase(),
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                )
-              : null,
-        ),
         const SizedBox(width: 8),
 
         // Message content
-        Expanded(
-          child: RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: "${message.userName}: ",
-                  style: TextStyle(
-                    color: isPremium ? Colors.white : Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700, // bolder like screenshot
-                  ),
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: "${message.userName}: ",
+                style: TextStyle(
+                  color: isPremium ? Colors.white : Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700, // bolder like screenshot
                 ),
-                TextSpan(
-                  text: message.message,
-                  style: TextStyle(
-                    color: isPremium
-                        ? Colors.white.withValues(alpha:0.95)
-                        : Colors.white.withValues(alpha:0.85),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                  ),
+              ),
+              TextSpan(
+                text: message.message,
+                style: TextStyle(
+                  color: isPremium
+                      ? Colors.white.withValues(alpha: 0.95)
+                      : Colors.white.withValues(alpha: 0.85),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
                 ),
-              ],
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
@@ -241,7 +221,7 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      child: content,
+      child: SizedBox(height: 40.h, child: content),
     );
   }
 
@@ -250,87 +230,30 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
 
     switch (badge.type) {
       case 'level':
-        badgeContent = Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          // Simplified radius to match chat bubble style
-          decoration: BoxDecoration(
-            color: badge.backgroundColor ?? const Color(0xFF4CAF50),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            badge.text,
-            style: TextStyle(
-              color: badge.textColor ?? Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+        badgeContent = Image.asset(
+          'assets/images/general/level_badge.png',
+          height: 22.h,
         );
         break;
 
       case 'vip':
-        badgeContent = Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFB84D),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            badge.text,
-            style: TextStyle(
-              color: badge.textColor ?? Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+        badgeContent = Image.asset(
+          'assets/images/general/vip_badge.png',
+          height: 22.h,
         );
         break;
 
-      case 'crown':
-        badgeContent = Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: badge.backgroundColor ?? const Color(0xFFFFD700),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Icon(
-            Icons.star,
-            color: badge.textColor ?? Colors.white,
-            size: 14,
-          ),
-        );
-        break;
-
-      case 'fire':
-        badgeContent = Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: badge.backgroundColor ?? const Color(0xFFFF6B6B),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Icon(
-            Icons.local_fire_department,
-            color: badge.textColor ?? Colors.white,
-            size: 14,
-          ),
+      case 'svip':
+        badgeContent = Image.asset(
+          'assets/images/general/svip_badge.png',
+          height: 22.h,
         );
         break;
 
       default:
-        badgeContent = Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: badge.backgroundColor ?? Colors.grey[600],
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            badge.text,
-            style: TextStyle(
-              color: badge.textColor ?? Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+        badgeContent = Image.asset(
+          'assets/images/general/vip_badge.png',
+          height: 22.h,
         );
     }
 
