@@ -149,10 +149,10 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
     Color premiumBase = _getRandomColorForUser(message.userName);
     // Ensure it's not too dark; blend with a warm accent
     premiumBase = Color.alphaBlend(
-      const Color(0xFFCD985F).withOpacity(0.55),
-      premiumBase.withOpacity(0.85),
+      const Color(0xFFCD985F).withValues(alpha: 0.55),
+      premiumBase.withValues(alpha: 0.85),
     );
-    final Color premiumBackground = premiumBase.withOpacity(0.85);
+    final Color premiumBackground = premiumBase.withValues(alpha: 0.85);
 
     Widget content = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -168,8 +168,8 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
               ? NetworkImage(message.userAvatar!)
               : null,
           backgroundColor: isPremium
-              ? Colors.white.withOpacity(0.25)
-              : Colors.grey[600]?.withOpacity(0.5),
+              ? Colors.white.withValues(alpha:0.25)
+              : Colors.grey[600]?.withValues(alpha:0.5),
           child: message.userAvatar == null
               ? Text(
                   message.userName.substring(0, 1).toUpperCase(),
@@ -200,8 +200,8 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
                   text: message.message,
                   style: TextStyle(
                     color: isPremium
-                        ? Colors.white.withOpacity(0.95)
-                        : Colors.white.withOpacity(0.85),
+                        ? Colors.white.withValues(alpha:0.95)
+                        : Colors.white.withValues(alpha:0.85),
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
                   ),
