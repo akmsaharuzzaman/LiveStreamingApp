@@ -1378,7 +1378,37 @@ class _GoliveScreenState extends State<GoliveScreen> {
                         children: [
                           // Caller Widget
                           ...broadcasterList.map((broadcaster) {
-                            return CallOverlayWidget();
+                            return CallOverlayWidget(
+                              userId: broadcaster,
+                              userName:
+                                  'Caller', // Default name, can be enhanced later
+                              userImage: "https://thispersondoesnotexist.com/",
+                              onDisconnect: () {
+                                // Handle disconnect for this broadcaster
+                                _socketService.removeBroadcaster(broadcaster);
+                                debugPrint(
+                                  "Disconnecting broadcaster: $broadcaster",
+                                );
+                              },
+                              onMute: () {
+                                // Handle mute for this broadcaster
+                                debugPrint("Muting broadcaster: $broadcaster");
+                                _showSnackBar(
+                                  '🔇 Mute feature coming soon',
+                                  Colors.orange,
+                                );
+                              },
+                              onManage: () {
+                                // Handle manage for this broadcaster
+                                debugPrint(
+                                  "Managing broadcaster: $broadcaster",
+                                );
+                                _showSnackBar(
+                                  '⚙️ Manage feature coming soon',
+                                  Colors.blue,
+                                );
+                              },
+                            );
                           }),
                           SizedBox(height: 80.h),
                           // Audio caller status indicator
@@ -1528,7 +1558,38 @@ class _GoliveScreenState extends State<GoliveScreen> {
                         children: [
                           // Caller Widget
                           ...broadcasterList.map((broadcaster) {
-                            return CallOverlayWidget();
+                            return CallOverlayWidget(
+                              userId: broadcaster,
+                              userName:
+                                  'Caller', // Default name, can be enhanced later
+                              userImage:
+                                  null, // Can be enhanced to fetch user avatar
+                              onDisconnect: () {
+                                // Handle disconnect for this broadcaster
+                                _socketService.removeBroadcaster(broadcaster);
+                                debugPrint(
+                                  "Disconnecting broadcaster: $broadcaster",
+                                );
+                              },
+                              onMute: () {
+                                // Handle mute for this broadcaster
+                                debugPrint("Muting broadcaster: $broadcaster");
+                                _showSnackBar(
+                                  '🔇 Mute feature coming soon',
+                                  Colors.orange,
+                                );
+                              },
+                              onManage: () {
+                                // Handle manage for this broadcaster
+                                debugPrint(
+                                  "Managing broadcaster: $broadcaster",
+                                );
+                                _showSnackBar(
+                                  '⚙️ Manage feature coming soon',
+                                  Colors.blue,
+                                );
+                              },
+                            );
                           }),
                           SizedBox(height: 180.h),
                         ],
