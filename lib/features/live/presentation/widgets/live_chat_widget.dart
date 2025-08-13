@@ -165,32 +165,34 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
 
         const SizedBox(width: 8),
 
-        // Message content
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: "${message.userName}: ",
-                style: TextStyle(
-                  color: isPremium ? Colors.white : Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700, // bolder like screenshot
+        // Message content with flexible width
+        Flexible(
+          child: RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: "${message.userName}: ",
+                  style: TextStyle(
+                    color: isPremium ? Colors.white : Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700, // bolder like screenshot
+                  ),
                 ),
-              ),
-              TextSpan(
-                text: message.message,
-                style: TextStyle(
-                  color: isPremium
-                      ? Colors.white.withValues(alpha: 0.95)
-                      : Colors.white.withValues(alpha: 0.85),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
+                TextSpan(
+                  text: message.message,
+                  style: TextStyle(
+                    color: isPremium
+                        ? Colors.white.withValues(alpha: 0.95)
+                        : Colors.white.withValues(alpha: 0.85),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
@@ -221,7 +223,19 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      child: SizedBox(height: 40.h, child: content),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: IntrinsicWidth(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth:
+                  MediaQuery.of(context).size.width * 0.8, // Max 80% width
+              minHeight: 40.h,
+            ),
+            child: content,
+          ),
+        ),
+      ),
     );
   }
 
