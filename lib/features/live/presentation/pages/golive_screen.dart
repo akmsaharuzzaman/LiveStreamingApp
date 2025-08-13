@@ -1123,8 +1123,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                       },
                                       child: Image.asset(
                                         "assets/icons/live_exit_icon.png",
-                                        height: 40.h,
-                                        width: 40.w,
+                                        height: 50.h,
                                       ),
                                     ),
                             ],
