@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/core/network/models/call_request_list.dart';
+import 'package:dlstarlive/core/network/models/chat_model.dart';
 import 'package:dlstarlive/core/network/socket_service.dart';
 import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:dlstarlive/features/live/presentation/component/agora_token_service.dart';
@@ -73,7 +74,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   StreamSubscription? _errorSubscription;
 
   // Chat messages
-  final List<ChatMessage> _chatMessages = [];
+  final List<ChatModel> _chatMessages = [];
 
   @override
   void initState() {
@@ -203,6 +204,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
       if (mounted) {
         debugPrint("User sent a message: ${data.text}");
       }
+      setState(() {
+        _chatMessages.add(data);
+      });
+      if (_chatMessages.length > 50) {
+        _chatMessages.removeAt(0);
+      }
     });
 
     // Broadcaster List - in call
@@ -304,6 +311,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
     }
   }
 
+  //Sent/Send Message
+  void _emitMessageToSocket(String message) {
+    if (message.isNotEmpty && _currentRoomId != null) {
+      _socketService.sendMessage(_currentRoomId!, message);
+    }
+  }
+
   /// Delete room (only host can delete)
   Future<void> _deleteRoom() async {
     if (_currentRoomId != null && userId != null) {
@@ -336,44 +350,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
         ),
       );
     }
-  }
-
-  /// Generate dummy chat message
-  void _generateDummyMessage(String message) {
-    final random = Random();
-    final dummyUsers = [
-      'Habib',
-      'Nasim Replay',
-      'Nahid',
-      'Sarah',
-      'Ahmed',
-      'Fatima',
-      'Omar',
-      'Aisha',
-    ];
-
-    final userName = dummyUsers[random.nextInt(dummyUsers.length)];
-    final newMessage = ChatMessage(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      userName: userName,
-      message: message,
-      timestamp: DateTime.now(),
-      badges: [
-        ChatBadge(
-          type: 'level',
-          text: '30',
-          backgroundColor: const Color(0xFF9C27B0),
-        ),
-      ],
-    );
-
-    setState(() {
-      _chatMessages.add(newMessage);
-      // Keep only last 50 messages to prevent memory issues
-      if (_chatMessages.length > 50) {
-        _chatMessages.removeAt(0);
-      }
-    });
   }
 
   //Agora SDK
@@ -1152,15 +1128,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               children: [
                                 InkWell(
                                   onTap: () {
-                                    // _showSnackBar(
-                                    //   '💬 Not implemented yet',
-                                    //   Colors.green,
-                                    // );
                                     showSendMessageBottomSheet(
                                       context,
                                       onSendMessage: (message) {
                                         print("Send message pressed");
-                                        _generateDummyMessage(message);
+                                        _emitMessageToSocket(message);
                                       },
                                     );
                                   },
@@ -1301,7 +1273,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                       context,
                                       onSendMessage: (message) {
                                         print("Send message pressed");
-                                        _generateDummyMessage(message);
+                                        _emitMessageToSocket(message);
                                       },
                                     );
                                   },

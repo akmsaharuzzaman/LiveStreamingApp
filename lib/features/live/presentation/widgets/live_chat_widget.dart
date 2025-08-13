@@ -1,48 +1,12 @@
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:dlstarlive/core/network/models/chat_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class ChatBadge {
-  final String type; // 'level', 'vip', 'crown', 'fire', etc.
-  final String text;
-  final Color? backgroundColor;
-  final Color? textColor;
-  final IconData? icon;
-
-  ChatBadge({
-    required this.type,
-    required this.text,
-    this.backgroundColor,
-    this.textColor,
-    this.icon,
-  });
-}
-
-class ChatMessage {
-  final String id;
-  final String userName;
-  final String message;
-  final DateTime timestamp;
-  final String? userAvatar;
-  final List<ChatBadge> badges;
-
-  ChatMessage({
-    required this.id,
-    required this.userName,
-    required this.message,
-    required this.timestamp,
-    this.userAvatar,
-    this.badges = const [],
-  });
-
-  // Check if user is premium based on having badges
-  bool get isPremium => badges.isNotEmpty;
-}
-
 class LiveChatWidget extends StatefulWidget {
-  final List<ChatMessage> messages;
+  final List<ChatModel> messages;
   final VoidCallback? onSendMessage;
 
   const LiveChatWidget({super.key, required this.messages, this.onSendMessage});
@@ -135,19 +99,20 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
 
   // _getGradientColorsForUser removed (no longer using gradients in new design)
 
-  Widget _buildChatMessage(ChatMessage message) {
+  Widget _buildChatMessage(ChatModel message) {
     // New design rules:
     // 1. Premium messages: solid (non-gradient) colored background + blur(5) + subtle radius (8)
     // 2. Normal messages: transparent (no background) just text (first line style in screenshot)
     // 3. If you later want a subtle glass background for normal, add a semi–transparent white here.
 
-    final bool isPremium = message.isPremium;
+    final bool isPremium =
+        message.avatar != null; //! TODO: Implement premium message logic
     final BorderRadius radius = BorderRadius.circular(
       8,
     ); // simplified radius like screenshot
 
     // Derive a deterministic color for premium user (slightly warm / badge based) with opacity
-    Color premiumBase = _getRandomColorForUser(message.userName);
+    Color premiumBase = _getRandomColorForUser(message.name);
     // Ensure it's not too dark; blend with a warm accent
     premiumBase = Color.alphaBlend(
       const Color(0xFFCD985F).withValues(alpha: 0.5),
@@ -160,8 +125,9 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
       mainAxisSize: MainAxisSize.min,
       children: [
         // Badges (Level, VIP, etc.)
-        ...message.badges.map((badge) => _buildBadge(badge)),
-        if (message.badges.isNotEmpty) const SizedBox(width: 6),
+        // ...message.id.map((badge) => _buildBadge(badge)),
+        _buildBadge("vip"),
+        if (message.avatar != null) const SizedBox(width: 6),
 
         const SizedBox(width: 8),
 
@@ -171,7 +137,7 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
             text: TextSpan(
               children: [
                 TextSpan(
-                  text: "${message.userName}: ",
+                  text: "${message.name}: ",
                   style: TextStyle(
                     color: isPremium ? Colors.white : Colors.white,
                     fontSize: 14,
@@ -179,7 +145,7 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
                   ),
                 ),
                 TextSpan(
-                  text: message.message,
+                  text: message.text,
                   style: TextStyle(
                     color: isPremium
                         ? Colors.white.withValues(alpha: 0.95)
@@ -239,10 +205,10 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
     );
   }
 
-  Widget _buildBadge(ChatBadge badge) {
+  Widget _buildBadge(String badge) {
     Widget badgeContent;
 
-    switch (badge.type) {
+    switch (badge) {
       case 'level':
         badgeContent = Image.asset(
           'assets/images/general/level_badge.png',
