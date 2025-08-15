@@ -38,8 +38,8 @@ class SocketService {
       StreamController<List<String>>.broadcast();
   final StreamController<List<String>> _removeBroadcasterController =
       StreamController<List<String>>.broadcast();
-  final StreamController<List<String>> _broadcasterListController =
-      StreamController<List<String>>.broadcast();
+  final StreamController<List<BroadcasterModel>> _broadcasterListController =
+      StreamController<List<BroadcasterModel>>.broadcast();
   final StreamController<List<BroadcasterModel>> _broadcasterDetailsController =
       StreamController<List<BroadcasterModel>>.broadcast();
   final StreamController<List<String>> _roomListController =
@@ -93,7 +93,7 @@ class SocketService {
       _acceptCallRequestController.stream;
   Stream<List<String>> get removeBroadcasterStream =>
       _removeBroadcasterController.stream;
-  Stream<List<String>> get broadcasterListStream =>
+  Stream<List<BroadcasterModel>> get broadcasterListStream =>
       _broadcasterListController.stream;
   Stream<List<String>> get roomListStream => _roomListController.stream;
   Stream<List<GetRoomModel>> get getRoomsStream => _getRoomsController.stream;
@@ -343,7 +343,7 @@ class SocketService {
         print('📺 Broadcaster list: $data');
       }
       if (data is List) {
-        _broadcasterListController.add(List<String>.from(data));
+        _broadcasterListController.add(BroadcasterModel.fromListJson(data));
       }
     });
 

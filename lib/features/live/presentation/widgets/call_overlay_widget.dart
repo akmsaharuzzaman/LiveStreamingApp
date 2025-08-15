@@ -55,7 +55,7 @@ class _CallOverlayWidgetState extends State<CallOverlayWidget> {
             link: _layerLink,
             showWhenUnlinked: false,
             // Position the card to the left of the 100x100 widget with slight vertical alignment
-            offset: Offset(-240.w, -10.h),
+            offset: Offset(-180.w, 30.h),
             child: Material(
               color: Colors.transparent,
               child: _buildOptionsCard(context),
@@ -182,6 +182,8 @@ class _CallOverlayWidgetState extends State<CallOverlayWidget> {
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _manageTile(
                 Icons.admin_panel_settings,
@@ -245,7 +247,7 @@ class _CallOverlayWidgetState extends State<CallOverlayWidget> {
         onTap: _showOptionsOverlay,
         child: Container(
           margin: EdgeInsets.only(bottom: 15.h),
-          height: 100.h,
+          height: 120.h,
           width: 100.w,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15.r),
@@ -336,21 +338,6 @@ class _CallOverlayWidgetState extends State<CallOverlayWidget> {
                                 size: 30.sp,
                               ),
                             ),
-                    ),
-                  ),
-                ),
-
-                // Online Indicator (optional)
-                Positioned(
-                  top: 8.h,
-                  right: 8.w,
-                  child: Container(
-                    width: 12.w,
-                    height: 12.h,
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 1.5.w),
                     ),
                   ),
                 ),

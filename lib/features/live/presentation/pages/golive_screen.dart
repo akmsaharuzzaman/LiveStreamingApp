@@ -219,15 +219,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
       }
     });
 
-    _socketService.broadcasterDetailsStream.listen((data) {
-      if (mounted) {
-        broadcasterDetails = data;
-        debugPrint("Broadcaster details updated: $broadcasterDetails");
-        // Update bottom sheet if it's open
-        _updateCallManageBottomSheet();
-      }
-    });
-
     // Sent Messages
     _socketService.sentMessageStream.listen((data) {
       if (mounted) {
@@ -244,7 +235,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
     // Broadcaster List - in call
     _socketService.broadcasterListStream.listen((data) {
       if (mounted) {
-        broadcasterList = Set<String>.from(data).toList();
+        // Now data is already List<BroadcasterModel> from socket
+        broadcasterModels = List.from(data);
+
+        // Extract IDs for backward compatibility with existing logic
+        broadcasterList = broadcasterModels.map((model) => model.id).toList();
 
         // Check if current user is in broadcaster list before removing (for non-host logic)
         bool wasUserInBroadcasterList = broadcasterList.contains(userId);
@@ -253,68 +248,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
         // We don't want to show overlay widget for ourselves
         if (broadcasterList.contains(userId)) {
           broadcasterList.remove(userId);
+          broadcasterModels.removeWhere((model) => model.id == userId);
         }
-
-        // Convert string IDs to BroadcasterModel objects
-        broadcasterModels = broadcasterList.map((id) {
-          // Try to find user details from activeViewers first
-          final viewer = activeViewers.firstWhere(
-            (viewer) => viewer.id == id,
-            orElse: () => JoinedUserModel(
-              id: id,
-              name: 'User $id', // Fallback name
-              uid: id,
-              avatar: '',
-            ),
-          );
-
-          return BroadcasterModel(
-            name: viewer.name,
-            avatar: viewer.avatar,
-            uid: viewer.uid,
-            id: viewer.id,
-          );
-        }).toList();
 
         debugPrint("Broadcaster(caller) list updated: $broadcasterList");
         debugPrint(
           "Broadcaster models updated: ${broadcasterModels.length} items",
         );
-
-        // Handle non-host broadcaster status changes
-        if (!isHost) {
-          if (wasUserInBroadcasterList) {
-            // Notify user that they are now a broadcaster
-            _showSnackBar('🎤 You are now in Call', Colors.green);
-            _promoteToAudioCaller();
-          } else {
-            debugPrint("User is not a broadcaster");
-            _leaveAudioCaller();
-          }
-        }
-
-        // Update bottom sheet if it's open
-        _updateCallManageBottomSheet();
-      }
-    }); // Broadcaster List - in call
-    _socketService.broadcasterDetailsStream.listen((data) {
-      if (mounted) {
-        broadcasterModels = BroadcasterModel.fromListJson(data);
-
-        // Check if current user is in broadcaster list before removing (for non-host logic)
-        bool wasUserInBroadcasterList = broadcasterModels.any(
-          (broadcaster) => broadcaster.id == userId,
-        );
-
-        // Remove current user from UI list for both host and non-host
-        // We don't want to show overlay widget for ourselves
-        if (broadcasterModels.any((broadcaster) => broadcaster.id == userId)) {
-          broadcasterModels.removeWhere(
-            (broadcaster) => broadcaster.id == userId,
-          );
-        }
-
-        debugPrint("Broadcaster(caller) list updated: $broadcasterModels");
 
         // Handle non-host broadcaster status changes
         if (!isHost) {
