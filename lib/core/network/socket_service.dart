@@ -31,7 +31,8 @@ class SocketService {
       StreamController<LeftUserModel>.broadcast();
   final StreamController<CallRequestModel> _joinCallRequestController =
       StreamController<CallRequestModel>.broadcast();
-  final StreamController<List<CallRequestListModel>> _joinCallRequestListController =
+  final StreamController<List<CallRequestListModel>>
+  _joinCallRequestListController =
       StreamController<List<CallRequestListModel>>.broadcast();
   final StreamController<List<String>> _acceptCallRequestController =
       StreamController<List<String>>.broadcast();
@@ -313,7 +314,9 @@ class SocketService {
         print('📞 Join call request list: $data');
       }
       if (data is List) {
-        _joinCallRequestListController.add(CallRequestListModel.fromListJson(data));
+        _joinCallRequestListController.add(
+          CallRequestListModel.fromListJson(data),
+        );
       }
     });
 
@@ -346,7 +349,7 @@ class SocketService {
 
     _socket!.on('broadcaster-details', (data) {
       if (kDebugMode) {
-        print('📺 Broadcaster list: $data');
+        print('📺 Broadcaster details List: $data');
       }
       if (data is List) {
         _broadcasterDetailsController.add(BroadcasterModel.fromListJson(data));
