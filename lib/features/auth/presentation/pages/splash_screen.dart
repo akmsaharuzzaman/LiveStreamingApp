@@ -148,13 +148,6 @@ class _SplashScreenState extends State<SplashScreen>
                                 ),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: UIConstants.spacingS),
-                          Text(
-                            'Clean Architecture with BLoC',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: Colors.white70),
-                            textAlign: TextAlign.center,
-                          ),
                         ],
                       ),
                     );
