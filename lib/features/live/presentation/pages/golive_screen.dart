@@ -255,7 +255,29 @@ class _GoliveScreenState extends State<GoliveScreen> {
           broadcasterList.remove(userId);
         }
 
+        // Convert string IDs to BroadcasterModel objects
+        broadcasterModels = broadcasterList.map((id) {
+          // Try to find user details from activeViewers first
+          final viewer = activeViewers.firstWhere(
+            (viewer) => viewer.id == id,
+            orElse: () => JoinedUserModel(
+              id: id,
+              name: 'User $id', // Fallback name
+              uid: id,
+              avatar: '',
+            ),
+          );
+          
+          return BroadcasterModel(
+            name: viewer.name,
+            avatar: viewer.avatar,
+            uid: viewer.uid,
+            id: viewer.id,
+          );
+        }).toList();
+
         debugPrint("Broadcaster(caller) list updated: $broadcasterList");
+        debugPrint("Broadcaster models updated: ${broadcasterModels.length} items");
 
         // Handle non-host broadcaster status changes
         if (!isHost) {
@@ -268,13 +290,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
             _leaveAudioCaller();
           }
         }
-
+        
         // Update bottom sheet if it's open
         _updateCallManageBottomSheet();
       }
-    });
-
-    // Broadcaster List - in call
+    });    // Broadcaster List - in call
     _socketService.broadcasterDetailsStream.listen((data) {
       if (mounted) {
         broadcasterModels = BroadcasterModel.fromListJson(data);
@@ -337,7 +357,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   void _updateCallManageBottomSheet() {
     callManageBottomSheetKey.currentState?.updateData(
       newCallers: callRequests,
-      newInCallList: broadcasterDetails,
+      newInCallList: broadcasterModels,
     );
   }
 
@@ -1336,7 +1356,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                           _updateCallManageBottomSheet();
                                         },
                                         callers: callRequests,
-                                        inCallList: broadcasterDetails,
+                                        inCallList: broadcasterModels,
                                       ),
                                     );
                                   },
@@ -1457,22 +1477,23 @@ class _GoliveScreenState extends State<GoliveScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           // Caller Widget
-                          ...broadcasterList.map((broadcaster) {
+                          ...broadcasterModels.map((broadcaster) {
                             return CallOverlayWidget(
-                              userId: broadcaster,
-                              userName:
-                                  'Caller', // Default name, can be enhanced later
-                              userImage: "https://thispersondoesnotexist.com/",
+                              userId: broadcaster.id,
+                              userName: broadcaster.name,
+                              userImage: broadcaster.avatar.isNotEmpty 
+                                  ? broadcaster.avatar 
+                                  : "https://thispersondoesnotexist.com/",
                               onDisconnect: () {
                                 // Handle disconnect for this broadcaster
-                                _socketService.removeBroadcaster(broadcaster);
+                                _socketService.removeBroadcaster(broadcaster.id);
                                 debugPrint(
-                                  "Disconnecting broadcaster: $broadcaster",
+                                  "Disconnecting broadcaster: ${broadcaster.id}",
                                 );
                               },
                               onMute: () {
                                 // Handle mute for this broadcaster
-                                debugPrint("Muting broadcaster: $broadcaster");
+                                debugPrint("Muting broadcaster: ${broadcaster.id}");
                                 _showSnackBar(
                                   '🔇 Mute feature coming soon',
                                   Colors.orange,
@@ -1637,23 +1658,23 @@ class _GoliveScreenState extends State<GoliveScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           // Caller Widget
-                          ...broadcasterList.map((broadcaster) {
+                          ...broadcasterModels.map((broadcaster) {
                             return CallOverlayWidget(
-                              userId: broadcaster,
-                              userName:
-                                  'Caller', // Default name, can be enhanced later
-                              userImage:
-                                  null, // Can be enhanced to fetch user avatar
+                              userId: broadcaster.id,
+                              userName: broadcaster.name,
+                              userImage: broadcaster.avatar.isNotEmpty 
+                                  ? broadcaster.avatar 
+                                  : null, // null will show placeholder
                               onDisconnect: () {
                                 // Handle disconnect for this broadcaster
-                                _socketService.removeBroadcaster(broadcaster);
+                                _socketService.removeBroadcaster(broadcaster.id);
                                 debugPrint(
-                                  "Disconnecting broadcaster: $broadcaster",
+                                  "Disconnecting broadcaster: ${broadcaster.id}",
                                 );
                               },
                               onMute: () {
                                 // Handle mute for this broadcaster
-                                debugPrint("Muting broadcaster: $broadcaster");
+                                debugPrint("Muting broadcaster: ${broadcaster.id}");
                                 _showSnackBar(
                                   '🔇 Mute feature coming soon',
                                   Colors.orange,
@@ -1662,7 +1683,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               onManage: () {
                                 // Handle manage for this broadcaster
                                 debugPrint(
-                                  "Managing broadcaster: $broadcaster",
+                                  "Managing broadcaster: ${broadcaster.id}",
                                 );
                                 _showSnackBar(
                                   '⚙️ Manage feature coming soon',
