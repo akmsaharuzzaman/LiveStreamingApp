@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:dlstarlive/core/network/models/broadcaster_model.dart';
+import 'package:dlstarlive/core/network/models/call_request_list_model.dart';
 import 'package:dlstarlive/core/network/models/call_request_model.dart';
 import 'package:dlstarlive/core/network/models/chat_model.dart';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
@@ -30,8 +31,8 @@ class SocketService {
       StreamController<LeftUserModel>.broadcast();
   final StreamController<CallRequestModel> _joinCallRequestController =
       StreamController<CallRequestModel>.broadcast();
-  final StreamController<List<String>> _joinCallRequestListController =
-      StreamController<List<String>>.broadcast();
+  final StreamController<List<CallRequestListModel>> _joinCallRequestListController =
+      StreamController<List<CallRequestListModel>>.broadcast();
   final StreamController<List<String>> _acceptCallRequestController =
       StreamController<List<String>>.broadcast();
   final StreamController<List<String>> _removeBroadcasterController =
@@ -85,7 +86,7 @@ class SocketService {
       _joinCallRequestController.stream;
   Stream<List<BroadcasterModel>> get broadcasterDetailsStream =>
       _broadcasterDetailsController.stream;
-  Stream<List<String>> get joinCallRequestListStream =>
+  Stream<List<CallRequestListModel>> get joinCallRequestListStream =>
       _joinCallRequestListController.stream;
   Stream<List<String>> get acceptCallRequestStream =>
       _acceptCallRequestController.stream;
@@ -298,12 +299,21 @@ class SocketService {
       }
     });
 
+    // _socket!.on('join-call-request-list', (data) {
+    //   if (kDebugMode) {
+    //     print('📞 Join call request list: $data');
+    //   }
+    //   if (data is List) {
+    //     _joinCallRequestListController.add(List<String>.from(data));
+    //   }
+    // });
+
     _socket!.on('join-call-request-list', (data) {
       if (kDebugMode) {
         print('📞 Join call request list: $data');
       }
       if (data is List) {
-        _joinCallRequestListController.add(List<String>.from(data));
+        _joinCallRequestListController.add(CallRequestListModel.fromListJson(data));
       }
     });
 

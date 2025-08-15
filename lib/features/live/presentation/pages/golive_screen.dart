@@ -3,6 +3,8 @@ import 'dart:math';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
+import 'package:dlstarlive/core/network/models/broadcaster_model.dart';
+import 'package:dlstarlive/core/network/models/call_request_list_model.dart';
 import 'package:dlstarlive/core/network/models/call_request_model.dart';
 import 'package:dlstarlive/core/network/models/chat_model.dart';
 import 'package:dlstarlive/core/network/socket_service.dart';
@@ -58,8 +60,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
   String roomId = "default_channel";
   List<JoinedUserModel> activeViewers = [];
   List<CallRequestModel> callRequests = [];
+  List<CallRequestListModel> callDetailRequest = [];
+  List<BroadcasterModel> broadcasterDetails = [];
   List<String> callRequestsList = [];
   List<String> broadcasterList = [];
+  List<BroadcasterModel> broadcasterModels = [];
 
   // Live stream timing
   DateTime? _streamStartTime;
@@ -205,6 +210,24 @@ class _GoliveScreenState extends State<GoliveScreen> {
       }
     });
 
+    _socketService.joinCallRequestListStream.listen((data) {
+      if (mounted) {
+        callDetailRequest = data;
+        debugPrint("Call request list updated: $callDetailRequest");
+        // Update bottom sheet if it's open
+        _updateCallManageBottomSheet();
+      }
+    });
+
+    _socketService.broadcasterDetailsStream.listen((data) {
+      if (mounted) {
+        broadcasterDetails = data;
+        debugPrint("Broadcaster details updated: $broadcasterDetails");
+        // Update bottom sheet if it's open
+        _updateCallManageBottomSheet();
+      }
+    });
+
     // Sent Messages
     _socketService.sentMessageStream.listen((data) {
       if (mounted) {
@@ -251,6 +274,43 @@ class _GoliveScreenState extends State<GoliveScreen> {
       }
     });
 
+    // Broadcaster List - in call
+    _socketService.broadcasterDetailsStream.listen((data) {
+      if (mounted) {
+        broadcasterModels = BroadcasterModel.fromListJson(data);
+
+        // Check if current user is in broadcaster list before removing (for non-host logic)
+        bool wasUserInBroadcasterList = broadcasterModels.any(
+          (broadcaster) => broadcaster.id == userId,
+        );
+
+        // Remove current user from UI list for both host and non-host
+        // We don't want to show overlay widget for ourselves
+        if (broadcasterModels.any((broadcaster) => broadcaster.id == userId)) {
+          broadcasterModels.removeWhere(
+            (broadcaster) => broadcaster.id == userId,
+          );
+        }
+
+        debugPrint("Broadcaster(caller) list updated: $broadcasterModels");
+
+        // Handle non-host broadcaster status changes
+        if (!isHost) {
+          if (wasUserInBroadcasterList) {
+            // Notify user that they are now a broadcaster
+            _showSnackBar('🎤 You are now in Call', Colors.green);
+            _promoteToAudioCaller();
+          } else {
+            debugPrint("User is not a broadcaster");
+            _leaveAudioCaller();
+          }
+        }
+
+        // Update bottom sheet if it's open
+        _updateCallManageBottomSheet();
+      }
+    });
+
     _socketService.userLeftStream.listen((data) {
       if (mounted) {
         activeViewers.removeWhere((user) => user.id == data.id);
@@ -277,7 +337,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   void _updateCallManageBottomSheet() {
     callManageBottomSheetKey.currentState?.updateData(
       newCallers: callRequests,
-      newInCallList: broadcasterList,
+      newInCallList: broadcasterDetails,
     );
   }
 
@@ -1276,7 +1336,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                           _updateCallManageBottomSheet();
                                         },
                                         callers: callRequests,
-                                        inCallList: broadcasterList,
+                                        inCallList: broadcasterDetails,
                                       ),
                                     );
                                   },

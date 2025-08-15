@@ -1,3 +1,4 @@
+import 'package:dlstarlive/core/network/models/broadcaster_model.dart';
 import 'package:dlstarlive/core/network/models/call_request_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -12,7 +13,7 @@ class CallManageBottomSheet extends StatefulWidget {
     required this.inCallList,
   });
   final List<CallRequestModel> callers;
-  final List<String> inCallList;
+  final List<BroadcasterModel> inCallList;
   final void Function(String userId) onKickUser;
   final void Function(String userId) onAcceptCall;
   final void Function(String userId) onRejectCall;
@@ -29,7 +30,7 @@ class _CallManageBottomSheetState extends State<CallManageBottomSheet>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late List<CallRequestModel> _currentCallers;
-  late List<String> _currentInCallList;
+  late List<BroadcasterModel> _currentInCallList;
 
   @override
   void initState() {
@@ -42,7 +43,7 @@ class _CallManageBottomSheetState extends State<CallManageBottomSheet>
   // Method to update the data from parent widget
   void updateData({
     List<CallRequestModel>? newCallers,
-    List<String>? newInCallList,
+    List<BroadcasterModel>? newInCallList,
   }) {
     if (mounted) {
       setState(() {
@@ -188,9 +189,11 @@ class _CallManageBottomSheetState extends State<CallManageBottomSheet>
               itemBuilder: (context, index) {
                 final caller = _currentInCallList[index];
                 return _buildUserItem(
-                  userId: caller,
-                  name: caller,
-                  profileImage: 'assets/images/image_placeholder.png',
+                  userId: caller.uid,
+                  name: caller.name,
+                  profileImage: caller.avatar.isNotEmpty
+                      ? caller.avatar
+                      : 'assets/images/image_placeholder.png',
                   showKickButton: true,
                 );
               },
