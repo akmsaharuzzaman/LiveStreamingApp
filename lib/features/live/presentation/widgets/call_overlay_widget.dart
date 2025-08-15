@@ -183,7 +183,8 @@ class _CallOverlayWidgetState extends State<CallOverlayWidget> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment:
+                CrossAxisAlignment.center, // Center items horizontally
             children: [
               _manageTile(
                 Icons.admin_panel_settings,
@@ -218,14 +219,13 @@ class _CallOverlayWidgetState extends State<CallOverlayWidget> {
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 14.h),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, color: Colors.black87, size: 22.sp),
             SizedBox(width: 12.w),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(fontSize: 16.sp, color: Colors.black87),
-              ),
+            Text(
+              title,
+              style: TextStyle(fontSize: 16.sp, color: Colors.black87),
             ),
           ],
         ),
