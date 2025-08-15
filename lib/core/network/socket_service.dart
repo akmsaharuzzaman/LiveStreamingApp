@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'package:dlstarlive/core/network/models/call_request_list.dart';
+import 'package:dlstarlive/core/network/models/broadcaster_model.dart';
+import 'package:dlstarlive/core/network/models/call_request_model.dart';
 import 'package:dlstarlive/core/network/models/chat_model.dart';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:dlstarlive/core/network/models/joined_user_model.dart';
@@ -27,8 +28,8 @@ class SocketService {
       StreamController<JoinedUserModel>.broadcast();
   final StreamController<LeftUserModel> _userLeftController =
       StreamController<LeftUserModel>.broadcast();
-  final StreamController<CallRequestList> _joinCallRequestController =
-      StreamController<CallRequestList>.broadcast();
+  final StreamController<CallRequestModel> _joinCallRequestController =
+      StreamController<CallRequestModel>.broadcast();
   final StreamController<List<String>> _joinCallRequestListController =
       StreamController<List<String>>.broadcast();
   final StreamController<List<String>> _acceptCallRequestController =
@@ -37,6 +38,8 @@ class SocketService {
       StreamController<List<String>>.broadcast();
   final StreamController<List<String>> _broadcasterListController =
       StreamController<List<String>>.broadcast();
+  final StreamController<List<BroadcasterModel>> _broadcasterDetailsController =
+      StreamController<List<BroadcasterModel>>.broadcast();
   final StreamController<List<String>> _roomListController =
       StreamController<List<String>>.broadcast();
   final StreamController<List<GetRoomModel>> _getRoomsController =
@@ -62,6 +65,7 @@ class SocketService {
   static const String _rejectCallRequestEvent = 'reject-call-request';
   static const String _removeBroadcasterEvent = 'remove-broadcaster';
   static const String _broadcasterListEvent = 'broadcaster-list';
+  static const String _broadcasterDetailsEvent = 'broadcaster-details';
 
   /// Singleton instance
   static SocketService get instance {
@@ -77,8 +81,10 @@ class SocketService {
   Stream<List<String>> get roomClosedStream => _roomClosedController.stream;
   Stream<JoinedUserModel> get userJoinedStream => _userJoinedController.stream;
   Stream<LeftUserModel> get userLeftStream => _userLeftController.stream;
-  Stream<CallRequestList> get joinCallRequestStream =>
+  Stream<CallRequestModel> get joinCallRequestStream =>
       _joinCallRequestController.stream;
+  Stream<List<BroadcasterModel>> get broadcasterDetailsStream =>
+      _broadcasterDetailsController.stream;
   Stream<List<String>> get joinCallRequestListStream =>
       _joinCallRequestListController.stream;
   Stream<List<String>> get acceptCallRequestStream =>
@@ -208,6 +214,7 @@ class SocketService {
     _socket!.off('get-rooms');
     _socket!.off('sent-message');
     _socket!.off('sent-gift');
+    _socket!.off('broadcaster-details');
   }
 
   /// Setup socket event listeners
@@ -287,7 +294,7 @@ class SocketService {
         print('� Join call request: $data');
       }
       if (data is Map<String, dynamic>) {
-        _joinCallRequestController.add(CallRequestList.fromJson(data));
+        _joinCallRequestController.add(CallRequestModel.fromJson(data));
       }
     });
 
@@ -324,6 +331,15 @@ class SocketService {
       }
       if (data is List) {
         _broadcasterListController.add(List<String>.from(data));
+      }
+    });
+
+    _socket!.on('broadcaster-details', (data) {
+      if (kDebugMode) {
+        print('📺 Broadcaster list: $data');
+      }
+      if (data is List) {
+        _broadcasterDetailsController.add(BroadcasterModel.fromListJson(data));
       }
     });
 

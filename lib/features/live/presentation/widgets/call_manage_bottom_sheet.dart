@@ -1,4 +1,4 @@
-import 'package:dlstarlive/core/network/models/call_request_list.dart';
+import 'package:dlstarlive/core/network/models/call_request_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -11,7 +11,7 @@ class CallManageBottomSheet extends StatefulWidget {
     required this.onRejectCall,
     required this.inCallList,
   });
-  final List<CallRequestList> callers;
+  final List<CallRequestModel> callers;
   final List<String> inCallList;
   final void Function(String userId) onKickUser;
   final void Function(String userId) onAcceptCall;
@@ -22,12 +22,13 @@ class CallManageBottomSheet extends StatefulWidget {
 }
 
 // Global key to access the bottom sheet state from parent
-final GlobalKey<_CallManageBottomSheetState> callManageBottomSheetKey = GlobalKey<_CallManageBottomSheetState>();
+final GlobalKey<_CallManageBottomSheetState> callManageBottomSheetKey =
+    GlobalKey<_CallManageBottomSheetState>();
 
 class _CallManageBottomSheetState extends State<CallManageBottomSheet>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late List<CallRequestList> _currentCallers;
+  late List<CallRequestModel> _currentCallers;
   late List<String> _currentInCallList;
 
   @override
@@ -40,7 +41,7 @@ class _CallManageBottomSheetState extends State<CallManageBottomSheet>
 
   // Method to update the data from parent widget
   void updateData({
-    List<CallRequestList>? newCallers,
+    List<CallRequestModel>? newCallers,
     List<String>? newInCallList,
   }) {
     if (mounted) {

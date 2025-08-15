@@ -3,7 +3,7 @@ import 'dart:math';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
-import 'package:dlstarlive/core/network/models/call_request_list.dart';
+import 'package:dlstarlive/core/network/models/call_request_model.dart';
 import 'package:dlstarlive/core/network/models/chat_model.dart';
 import 'package:dlstarlive/core/network/socket_service.dart';
 import 'package:dlstarlive/core/utils/permission_helper.dart';
@@ -57,7 +57,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   bool isHost = true;
   String roomId = "default_channel";
   List<JoinedUserModel> activeViewers = [];
-  List<CallRequestList> callRequests = [];
+  List<CallRequestModel> callRequests = [];
   List<String> callRequestsList = [];
   List<String> broadcasterList = [];
 

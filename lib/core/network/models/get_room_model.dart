@@ -24,20 +24,24 @@ class HostDetails {
 class GetRoomModel {
   final String hostId;
   final String roomId;
+  final String roomType;
   final HostDetails? hostDetails;
   final List<String> members;
   final List<String> bannedUsers;
   final List<String> brodcasters;
-  final List<String> callRequests;
+  final List<HostDetails> broadcastersDetails;
+  final List<HostDetails> callRequests;
   final String title;
 
   GetRoomModel({
     required this.hostId,
     required this.roomId,
+    required this.roomType,
     this.hostDetails,
     required this.members,
     required this.bannedUsers,
     required this.brodcasters,
+    required this.broadcastersDetails,
     required this.callRequests,
     required this.title,
   });
@@ -46,16 +50,23 @@ class GetRoomModel {
     return GetRoomModel(
       hostId: json['hostId'] as String,
       roomId: json['roomId'] as String,
+      roomType: json['roomType'] as String,
       hostDetails: json['hostDetails'] != null
           ? HostDetails.fromJson(json['hostDetails'])
           : null,
       members: List<String>.from(json['members'] ?? []),
       bannedUsers: List<String>.from(json['bannedUsers'] ?? []),
       brodcasters: List<String>.from(json['brodcasters'] ?? []),
-      callRequests: List<String>.from(json['callRequests'] ?? []),
+      broadcastersDetails: (json['broadcastersDetails'] as List<dynamic>? ?? [])
+          .map((e) => HostDetails.fromJson(e))
+          .toList(),
+      callRequests: (json['callRequests'] as List<dynamic>? ?? [])
+          .map((e) => HostDetails.fromJson(e))
+          .toList(),
       title: json['title'] as String,
     );
   }
+
   static List<GetRoomModel> listFromJson(List<dynamic> jsonList) {
     return jsonList.map((json) => GetRoomModel.fromJson(json)).toList();
   }

@@ -1,18 +1,20 @@
-class CallRequestList {
+class CallRequestModel {
   final String userId;
   final UserDetails userDetails;
   final String roomId;
 
-  CallRequestList({
+  CallRequestModel({
     required this.userId,
     required this.userDetails,
     required this.roomId,
   });
 
-  factory CallRequestList.fromJson(Map<String, dynamic> json) {
-    return CallRequestList(
+  factory CallRequestModel.fromJson(Map<String, dynamic> json) {
+    return CallRequestModel(
       userId: json['userId'] as String,
-      userDetails: UserDetails.fromJson(json['userDetails'] as Map<String, dynamic>),
+      userDetails: UserDetails.fromJson(
+        json['userDetails'] as Map<String, dynamic>,
+      ),
       roomId: json['roomId'] as String,
     );
   }
