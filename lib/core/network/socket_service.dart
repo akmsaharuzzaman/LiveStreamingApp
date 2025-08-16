@@ -4,6 +4,7 @@ import 'package:dlstarlive/core/network/models/call_request_list_model.dart';
 import 'package:dlstarlive/core/network/models/call_request_model.dart';
 import 'package:dlstarlive/core/network/models/chat_model.dart';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
+import 'package:dlstarlive/core/network/models/gift_model.dart';
 import 'package:dlstarlive/core/network/models/joined_user_model.dart';
 import 'package:dlstarlive/core/network/models/left_user_model.dart';
 import 'package:flutter/foundation.dart';
@@ -50,6 +51,8 @@ class SocketService {
       StreamController<ChatModel>.broadcast();
   final StreamController<bool> _connectionStatusController =
       StreamController<bool>.broadcast();
+  final StreamController<GiftModel> _sentGiftController =
+      StreamController<GiftModel>.broadcast();
 
   // Constants
   static const String _baseUrl = 'http://dlstarlive.com:8000';
@@ -68,6 +71,7 @@ class SocketService {
   static const String _removeBroadcasterEvent = 'remove-broadcaster';
   static const String _broadcasterListEvent = 'broadcaster-list';
   static const String _broadcasterDetailsEvent = 'broadcaster-details';
+  static const String _sentGiftEvent = 'sent-gift';
 
   /// Singleton instance
   static SocketService get instance {
@@ -99,6 +103,7 @@ class SocketService {
   Stream<List<GetRoomModel>> get getRoomsStream => _getRoomsController.stream;
   Stream<bool> get connectionStatusStream => _connectionStatusController.stream;
   Stream<ChatModel> get sentMessageStream => _sentMessageController.stream;
+  Stream<GiftModel> get sentGiftStream => _sentGiftController.stream;
 
   /// Getters
   bool get isConnected => _isConnected;
@@ -300,15 +305,6 @@ class SocketService {
       }
     });
 
-    // _socket!.on('join-call-request-list', (data) {
-    //   if (kDebugMode) {
-    //     print('📞 Join call request list: $data');
-    //   }
-    //   if (data is List) {
-    //     _joinCallRequestListController.add(List<String>.from(data));
-    //   }
-    // });
-
     _socket!.on('join-call-request-list', (data) {
       if (kDebugMode) {
         print('📞 Join call request list: $data');
@@ -388,7 +384,9 @@ class SocketService {
       if (kDebugMode) {
         print('🎁 Sent gift response: $data');
       }
-      //TODO: Implement gift sending
+      if (data is Map<String, dynamic>) {
+        _sentGiftController.add(GiftModel.fromJson(data));
+      }
     });
   }
 
