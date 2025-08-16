@@ -28,6 +28,7 @@ import '../component/diamond_star_status.dart';
 import '../component/end_stream_overlay.dart';
 import '../component/game_bottomsheet.dart';
 import '../component/host_info.dart';
+import '../widgets/animated_layer.dart';
 import '../widgets/call_manage_bottom_sheet.dart';
 import '../widgets/live_chat_widget.dart';
 
@@ -70,6 +71,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   DateTime? _streamStartTime;
   Timer? _durationTimer;
   Duration _streamDuration = Duration.zero;
+  bool _animationPlaying = false;
 
   // Stream subscriptions for proper cleanup
   StreamSubscription? _connectionStatusSubscription;
@@ -1002,6 +1004,20 @@ class _GoliveScreenState extends State<GoliveScreen> {
     return "$hours:$minutes:$seconds";
   }
 
+  // Play animation for two seconds
+  void _playAnimation() {
+    setState(() {
+      _animationPlaying = true;
+    });
+
+    // Stop the animation after 2 seconds
+    Future.delayed(const Duration(seconds: 2), () {
+      setState(() {
+        _animationPlaying = false;
+      });
+    });
+  }
+
   // End live stream
   void _endLiveStream() async {
     try {
@@ -1084,6 +1100,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
               body: Stack(
                 children: [
                   _buildVideoView(),
+
+                  if (_animationPlaying) AnimatedLayer(),
 
                   // * This contaimer holds the livestream options,
                   SafeArea(
@@ -1229,6 +1247,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 CustomLiveButton(
                                   iconPath: "assets/icons/pk_icon.png",
                                   onTap: () {
+                                    _playAnimation();
                                     _showSnackBar(
                                       '🎶 Not implemented yet',
                                       Colors.green,
