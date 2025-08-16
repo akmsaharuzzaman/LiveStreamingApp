@@ -1124,6 +1124,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                       "https://thispersondoesnotexist.com/",
                                   name: state.user.name,
                                   id: state.user.id.substring(0, 4),
+                                  hostUserId: state.user.id,
+                                  currentUserId: state.user.id,
                                 )
                               else
                                 HostInfo(
@@ -1134,6 +1136,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   id:
                                       widget.hostUserId?.substring(0, 4) ??
                                       "Host",
+                                  hostUserId: widget.hostUserId ?? "",
+                                  currentUserId: state.user.id,
                                 ),
 
                               // *show the viwers
