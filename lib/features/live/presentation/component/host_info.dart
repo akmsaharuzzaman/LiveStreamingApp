@@ -6,6 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class HostInfo extends StatefulWidget {
+  final String imageUrl;
+  final String name;
+  final String id;
+  final String hostUserId;
+  final String currentUserId;
+
   const HostInfo({
     super.key,
     required this.imageUrl,
@@ -14,11 +20,6 @@ class HostInfo extends StatefulWidget {
     required this.hostUserId,
     required this.currentUserId,
   });
-  final String imageUrl;
-  final String name;
-  final String id;
-  final String hostUserId;
-  final String currentUserId;
 
   @override
   State<HostInfo> createState() => _HostInfoState();
@@ -38,6 +39,10 @@ class _HostInfoState extends State<HostInfo> {
   Future<void> _checkFollowStatus() async {
     if (widget.hostUserId == widget.currentUserId) {
       // Don't show follow button for self
+      return;
+    }
+
+    if (widget.hostUserId.isEmpty) {
       return;
     }
 
@@ -66,7 +71,6 @@ class _HostInfoState extends State<HostInfo> {
       setState(() {
         isLoading = false;
       });
-      debugPrint('Error checking follow status: $e');
     }
   }
 
@@ -151,9 +155,22 @@ class _HostInfoState extends State<HostInfo> {
 
   @override
   Widget build(BuildContext context) {
-    print("Building HostInfo for ${widget.hostUserId}");
     return GestureDetector(
-      onTap: _showUserProfile,
+      onTap: () {
+        if (widget.hostUserId.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Host information not available'),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+          return;
+        }
+        _showUserProfile();
+      },
       child: Stack(
         children: [
           Container(

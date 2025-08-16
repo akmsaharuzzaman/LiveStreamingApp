@@ -370,7 +370,6 @@ class ListLiveStream extends StatelessWidget {
           return LiveStreamCard(
             liveStreamModel: availableRooms[index],
             onTap: () {
-              debugPrint("Live joining Room ID: ${availableRooms[index]}");
               // Navigate to the live stream screen with the room ID using the named route
               context.pushNamed(
                 'onGoingLive',
@@ -379,7 +378,7 @@ class ListLiveStream extends StatelessWidget {
                   'hostName':
                       availableRooms[index].hostDetails?.name ?? 'Unknown Host',
                   'hostUserId':
-                      availableRooms[index].hostDetails?.uid ?? 'Unknown User',
+                      availableRooms[index].hostDetails?.id ?? 'Unknown User',
                   'hostAvatar':
                       availableRooms[index].hostDetails?.avatar ??
                       'Unknown Avatar',
