@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/network/models/gift_model.dart';
+
 class AnimatedLayer extends StatefulWidget {
-  const AnimatedLayer({super.key});
+  const AnimatedLayer({super.key, required this.gifts});
+  final List<GiftModel> gifts;
 
   @override
   State<AnimatedLayer> createState() => _AnimatedLayerState();

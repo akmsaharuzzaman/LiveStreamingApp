@@ -7,6 +7,7 @@ import 'package:dlstarlive/core/network/models/broadcaster_model.dart';
 import 'package:dlstarlive/core/network/models/call_request_list_model.dart';
 import 'package:dlstarlive/core/network/models/call_request_model.dart';
 import 'package:dlstarlive/core/network/models/chat_model.dart';
+import 'package:dlstarlive/core/network/models/gift_model.dart';
 import 'package:dlstarlive/core/network/socket_service.dart';
 import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:dlstarlive/features/live/presentation/component/agora_token_service.dart';
@@ -66,6 +67,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   List<String> broadcasterList = [];
   List<BroadcasterModel> broadcasterModels = [];
   List<BroadcasterModel> broadcasterDetails = [];
+  List<GiftModel> sentGifts = [];
 
   // Live stream timing
   DateTime? _streamStartTime;
@@ -285,7 +287,19 @@ class _GoliveScreenState extends State<GoliveScreen> {
         activeViewers.removeWhere((user) => user.id == data.id);
         debugPrint("User left: ${data.name} - ${data.uid}");
       }
-    }); // Room list updates
+    });
+
+    //Sent Gifts
+    _socketService.sentGiftStream.listen((data) {
+      if (mounted) {
+        setState(() {
+          sentGifts.add(data);
+        });
+        debugPrint("User sent a gift: ${data.gift.name}");
+        sentGifts.isNotEmpty ? _playAnimation() : null;
+      }
+    });
+
     // Custom live streaming events
     _socketService.on('stream-started', (data) {
       if (mounted) {
@@ -858,7 +872,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   /// Get audio caller count text
   String _getAudioCallerText() {
-      return 'Join';
+    return 'Join';
   }
 
   /// Switch Camera
@@ -1103,7 +1117,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                 children: [
                   _buildVideoView(),
 
-                  if (_animationPlaying) AnimatedLayer(),
+                  if (_animationPlaying) AnimatedLayer(gifts: sentGifts),
 
                   // * This contaimer holds the livestream options,
                   SafeArea(
