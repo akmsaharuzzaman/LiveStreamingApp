@@ -1431,7 +1431,22 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 ] else ...[
                                   CustomLiveButton(
                                     iconPath: "assets/icons/gift_user_icon.png",
-                                    onTap: () {},
+                                    onTap: () {
+                                      showGiftBottomSheet(
+                                        context,
+                                        activeViewers: activeViewers,
+                                        roomId: _currentRoomId ?? roomId,
+                                        hostUserId: isHost
+                                            ? userId
+                                            : widget.hostUserId,
+                                        hostName: isHost
+                                            ? state.user.name
+                                            : widget.hostName,
+                                        hostAvatar: isHost
+                                            ? state.user.avatar
+                                            : widget.hostAvatar,
+                                      );
+                                    },
                                     height: 40.h,
                                   ),
                                 ],

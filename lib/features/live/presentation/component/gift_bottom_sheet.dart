@@ -699,11 +699,16 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
           String errorMessage = '';
 
           for (int i = 0; i < _giftQuantity; i++) {
+            print('Sending gift attempt ${i + 1}/$_giftQuantity');
+            print('Recipients: userId=$recipientId, roomId=${widget.roomId}, giftId=${selectedGift.id}');
+            
             final response = await _giftApiClient.sendGift(
               userId: recipientId,
               roomId: widget.roomId,
               giftId: selectedGift.id,
             );
+
+            print('Gift send response: success=${response.isSuccess}, message=${response.message}');
 
             if (!response.isSuccess) {
               allSuccessful = false;

@@ -479,14 +479,21 @@ class GiftApiClient {
     required String roomId,
     required String giftId,
   }) async {
+    print('Sending gift: userId=$userId, roomId=$roomId, giftId=$giftId');
     final response = await _apiService.put<Map<String, dynamic>>(
       '/api/auth/user/gift',
       data: {'userId': userId, 'roomId': roomId, 'giftId': giftId},
     );
 
     return response.fold(
-      (data) => ApiResponse.success(data: data),
-      (error) => ApiResponse.failure(message: error),
+      (data) {
+        print('Gift sent successfully: $data');
+        return ApiResponse.success(data: data);
+      },
+      (error) {
+        print('Gift send failed: $error');
+        return ApiResponse.failure(message: error);
+      },
     );
   }
 }
