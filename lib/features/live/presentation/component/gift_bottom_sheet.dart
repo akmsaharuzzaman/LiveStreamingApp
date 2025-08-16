@@ -71,6 +71,14 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        // Reset selection when tab changes
+        setState(() {
+          _selectedGiftIndex = -1;
+        });
+      }
+    });
     _loadGifts();
   }
 
@@ -545,11 +553,6 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
   }
 
   Widget _buildGiftGrid(List<Gift> gifts, [String? category]) {
-    // Update current category gifts when building grid
-    if (category != null) {
-      _currentCategoryGifts = gifts;
-    }
-
     return GridView.builder(
       padding: EdgeInsets.all(16.w),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -561,7 +564,8 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
       itemCount: gifts.length,
       itemBuilder: (context, index) {
         final gift = gifts[index];
-        final isSelected = _selectedGiftIndex == index;
+        final isSelected =
+            _selectedGiftIndex == index && _currentCategoryGifts == gifts;
 
         return GestureDetector(
           onTap: () {
@@ -582,59 +586,103 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                     : Colors.transparent,
                 width: 2,
               ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFFE91E63).withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : null,
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Stack(
               children: [
-                // Use network image for gift preview
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8.r),
-                  child: Image.network(
-                    gift.previewImage,
-                    width: 32.w,
-                    height: 32.h,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 32.w,
-                        height: 32.h,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[600],
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Icon(
-                          Icons.card_giftcard,
-                          color: Colors.white,
-                          size: 20.sp,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  gift.name,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 2.h),
-                Row(
+                Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.diamond, color: Colors.blue, size: 10.sp),
-                    SizedBox(width: 2.w),
+                    // Use network image for gift preview
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8.r),
+                      child: Image.network(
+                        gift.previewImage,
+                        width: 32.w,
+                        height: 32.h,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 32.w,
+                            height: 32.h,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[600],
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
+                            child: Icon(
+                              Icons.card_giftcard,
+                              color: Colors.white,
+                              size: 20.sp,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
                     Text(
-                      '${gift.coinPrice}',
-                      style: TextStyle(color: Colors.white70, fontSize: 10.sp),
+                      gift.name,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.white70,
+                        fontSize: 10.sp,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 2.h),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.diamond,
+                          color: isSelected ? Colors.blue[300] : Colors.blue,
+                          size: 10.sp,
+                        ),
+                        SizedBox(width: 2.w),
+                        Text(
+                          '${gift.coinPrice}',
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.white70,
+                            fontSize: 10.sp,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
+                // Selected indicator
+                if (isSelected)
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: Container(
+                      width: 16.w,
+                      height: 16.h,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE91E63),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.check,
+                        color: Colors.white,
+                        size: 10.sp,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -646,6 +694,13 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
   Future<void> _sendGift() async {
     if (_selectedGiftIndex >= 0 &&
         _selectedGiftIndex < _currentCategoryGifts.length) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sending gift...'),
+          backgroundColor: Colors.blue,
+          duration: Duration(seconds: 5),
+        ),
+      );
       setState(() {
         _isSending = true;
       });
@@ -699,19 +754,10 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
           String errorMessage = '';
 
           for (int i = 0; i < _giftQuantity; i++) {
-            print('Sending gift attempt ${i + 1}/$_giftQuantity');
-            print(
-              'Recipients: userId=$recipientId, roomId=${widget.roomId}, giftId=${selectedGift.id}',
-            );
-
             final response = await _giftApiClient.sendGift(
               userId: recipientId,
               roomId: widget.roomId,
               giftId: selectedGift.id,
-            );
-
-            print(
-              'Gift send response: success=${response.isSuccess}, message=${response.message}',
             );
 
             if (!response.isSuccess) {
@@ -782,6 +828,14 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
           ),
         );
       }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a gift first!'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
 }
