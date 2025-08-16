@@ -246,14 +246,19 @@ class _GoliveScreenState extends State<GoliveScreen> {
         // Check if current user is in broadcaster list before removing (for non-host logic)
         bool wasUserInBroadcasterList = broadcasterList.contains(userId);
 
-        // Remove current user from UI list for both host and non-host
-        // We don't want to show overlay widget for ourselves
-        if (broadcasterList.contains(userId)) {
-          broadcasterList.remove(userId);
-          broadcasterModels.removeWhere((model) => model.id == userId);
+        // Remove ONLY the host from UI list (not current user if they're a caller)
+        // Determine host ID: for hosts it's userId, for viewers it's widget.hostUserId
+        String? hostId = isHost ? userId : widget.hostUserId;
+
+        if (hostId != null && broadcasterList.contains(hostId)) {
+          broadcasterList.remove(hostId);
+          broadcasterModels.removeWhere((model) => model.id == hostId);
         }
 
         debugPrint("Broadcaster(caller) list updated: $broadcasterList");
+        debugPrint("Host ID filtered out: $hostId");
+        debugPrint("Current userId: $userId");
+        debugPrint("IsHost: $isHost");
         debugPrint(
           "Broadcaster models updated: ${broadcasterModels.length} items",
         );
@@ -853,10 +858,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   /// Get audio caller count text
   String _getAudioCallerText() {
-    if (_audioCallerUids.isEmpty) {
       return 'Join';
-    }
-    return 'Audio Call (${_audioCallerUids.length}/$_maxAudioCallers)';
   }
 
   /// Switch Camera
@@ -1448,7 +1450,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               userName: broadcaster.name,
                               userImage: broadcaster.avatar.isNotEmpty
                                   ? broadcaster.avatar
-                                  : "https://thispersondoesnotexist.com/",
+                                  : null, // null will show placeholder
                               onDisconnect: () {
                                 // Handle disconnect for this broadcaster
                                 _socketService.removeBroadcaster(
