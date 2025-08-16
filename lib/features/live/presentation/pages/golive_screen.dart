@@ -62,10 +62,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
   List<JoinedUserModel> activeViewers = [];
   List<CallRequestModel> callRequests = [];
   List<CallRequestListModel> callDetailRequest = [];
-  List<BroadcasterModel> broadcasterDetails = [];
   List<String> callRequestsList = [];
   List<String> broadcasterList = [];
   List<BroadcasterModel> broadcasterModels = [];
+  List<BroadcasterModel> broadcasterDetails = [];
 
   // Live stream timing
   DateTime? _streamStartTime;
