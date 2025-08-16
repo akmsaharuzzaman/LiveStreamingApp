@@ -1,12 +1,12 @@
 class GiftModel {
-  final String avatar;
+  final String? avatar;
   final String name;
   final String recieverId;
   final int diamonds;
   final Gift gift;
 
   GiftModel({
-    required this.avatar,
+    this.avatar,
     required this.name,
     required this.recieverId,
     required this.diamonds,
@@ -15,7 +15,7 @@ class GiftModel {
 
   factory GiftModel.fromJson(Map<String, dynamic> json) {
     return GiftModel(
-      avatar: json['avatar'] as String,
+      avatar: json['avatar'] as String?,
       name: json['name'] as String,
       recieverId: json['recieverId'] as String,
       diamonds: json['diamonds'] as int,
@@ -61,7 +61,7 @@ class Gift {
 
   factory Gift.fromJson(Map<String, dynamic> json) {
     return Gift(
-      id: json['id'] as String,
+      id: json['_id'] as String,
       name: json['name'] as String,
       category: json['category'] as String,
       diamonds: json['diamonds'] as int,
@@ -70,13 +70,13 @@ class Gift {
       svgaImage: json['svgaImage'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
-      v: json['_v'] as int,
+      v: json['__v'] as int,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      '_id': id,
       'name': name,
       'category': category,
       'diamonds': diamonds,
@@ -85,7 +85,7 @@ class Gift {
       'svgaImage': svgaImage,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
-      '_v': v,
+      '__v': v,
     };
   }
 }
