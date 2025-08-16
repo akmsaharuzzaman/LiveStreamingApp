@@ -4,6 +4,7 @@ import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
 import 'api_service.dart';
+import 'models/gift_model.dart';
 
 /// Authentication API client
 @lazySingleton
@@ -90,10 +91,8 @@ class AuthApiClient {
         receiveTimeout: const Duration(minutes: 2),
       ),
     );
-    print('Google Auth Response: $response');
 
     return response.fold((data) {
-      print('Google Auth Response: $data');
       // Handle success case - try both token formats for compatibility
       final token = data['access_token'] as String? ?? data['token'] as String?;
       if (token != null) {
@@ -451,6 +450,44 @@ class FileUploadApiClient {
     ];
 
     return allowedTypes.contains(extension);
+  }
+}
+
+/// Gift API client
+@lazySingleton
+class GiftApiClient {
+  final ApiService _apiService;
+
+  GiftApiClient(this._apiService);
+
+  /// Get all available gifts
+  Future<ApiResponse<List<Gift>>> getAllGifts() async {
+    final response = await _apiService.get<Map<String, dynamic>>(
+      '/api/admin/gift',
+    );
+
+    return response.fold((data) {
+      final result = data['result'] as List<dynamic>;
+      final gifts = result.map((json) => Gift.fromJson(json)).toList();
+      return ApiResponse.success(data: gifts);
+    }, (error) => ApiResponse.failure(message: error));
+  }
+
+  /// Send gift to a user
+  Future<ApiResponse<Map<String, dynamic>>> sendGift({
+    required String userId,
+    required String roomId,
+    required String giftId,
+  }) async {
+    final response = await _apiService.put<Map<String, dynamic>>(
+      '/api/auth/user/gift',
+      data: {'userId': userId, 'roomId': roomId, 'giftId': giftId},
+    );
+
+    return response.fold(
+      (data) => ApiResponse.success(data: data),
+      (error) => ApiResponse.failure(message: error),
+    );
   }
 }
 

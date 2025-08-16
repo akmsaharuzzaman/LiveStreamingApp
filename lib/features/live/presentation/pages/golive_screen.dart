@@ -1261,7 +1261,20 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                     //   '🎁 Not implemented yet',
                                     //   Colors.green,
                                     // );
-                                    showGiftBottomSheet(context);
+                                    showGiftBottomSheet(
+                                      context,
+                                      activeViewers: activeViewers,
+                                      roomId: _currentRoomId ?? roomId,
+                                      hostUserId: isHost
+                                          ? userId
+                                          : widget.hostUserId,
+                                      hostName: isHost
+                                          ? state.user.name
+                                          : widget.hostName,
+                                      hostAvatar: isHost
+                                          ? state.user.avatar
+                                          : widget.hostAvatar,
+                                    );
                                   },
                                 ),
                                 CustomLiveButton(

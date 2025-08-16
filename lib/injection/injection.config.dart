@@ -79,6 +79,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i622.FileUploadApiClient>(
       () => _i622.FileUploadApiClient(gh<_i10.ApiService>()),
     );
+    gh.lazySingleton<_i622.GiftApiClient>(
+      () => _i622.GiftApiClient(gh<_i10.ApiService>()),
+    );
     gh.lazySingleton<_i622.GenericApiClient>(
       () => _i622.GenericApiClient(gh<_i10.ApiService>()),
     );
