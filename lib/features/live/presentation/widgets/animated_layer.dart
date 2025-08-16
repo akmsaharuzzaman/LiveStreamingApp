@@ -42,25 +42,67 @@ class _AnimatedLayerState extends State<AnimatedLayer>
 
   @override
   Widget build(BuildContext context) {
+    // Only show the animation layer if there are gifts
+    if (widget.gifts.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Get the last gift sent
+    final lastGift = widget.gifts.last;
+
     return Positioned.fill(
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) => Opacity(
           opacity: _opacityAnimation.value,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeInOut,
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Center(
-              child: ScaleTransition(
-                scale: _scaleAnimation,
-                child: Image.asset(
-                  'assets/images/general/gift_animation.gif',
-                  fit: BoxFit.cover,
-                ),
+          child: Center(
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Gift animation
+                  Image.asset(
+                    'assets/images/general/gift_animation.gif',
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.cover,
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Gift details - simple text overlay
+                  Text(
+                    '${lastGift.name} sent ${lastGift.gift.name}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        Shadow(
+                          offset: Offset(1, 1),
+                          blurRadius: 3,
+                          color: Colors.black54,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${lastGift.diamonds} diamonds',
+                    style: const TextStyle(
+                      color: Colors.yellow,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      shadows: [
+                        Shadow(
+                          offset: Offset(1, 1),
+                          blurRadius: 3,
+                          color: Colors.black54,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
