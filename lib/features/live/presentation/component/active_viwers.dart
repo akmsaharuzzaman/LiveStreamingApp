@@ -34,11 +34,11 @@ class ActiveViewers extends StatelessWidget {
                   );
                 },
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(100.r),
+                  borderRadius: BorderRadius.circular(80.r),
                   child: Stack(
                     children: [
                       CircleAvatar(
-                        radius: 25.r,
+                        radius: 20.r,
                         child: Image.network(user.avatar, fit: BoxFit.cover),
                       ),
                       Positioned(
