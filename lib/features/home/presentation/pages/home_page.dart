@@ -383,6 +383,9 @@ class ListLiveStream extends StatelessWidget {
                       availableRooms[index].hostDetails?.avatar ??
                       'Unknown Avatar',
                 },
+                extra: {
+                  'existingViewers': availableRooms[index].membersDetails,
+                },
               );
             },
           );

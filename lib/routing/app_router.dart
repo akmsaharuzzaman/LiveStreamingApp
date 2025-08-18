@@ -7,6 +7,7 @@ import 'package:dlstarlive/features/live/presentation/pages/live_summary_screen.
 import 'package:dlstarlive/features/profile/presentation/pages/view_user_profile.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/friends_list_page.dart';
 import 'package:dlstarlive/features/reels/presentation/pages/reels.dart';
+import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/home/presentation/pages/main_navigation_page.dart';
@@ -126,11 +127,16 @@ final GoRouter appRouter = GoRouter(
         final hostName = state.uri.queryParameters['hostName'] ?? '';
         final hostUserId = state.uri.queryParameters['hostUserId'] ?? '';
         final hostAvatar = state.uri.queryParameters['hostAvatar'] ?? '';
+        final existingViewers =
+            (state.extra as Map<String, dynamic>?)?['existingViewers']
+                as List<HostDetails>? ??
+            [];
         return GoliveScreen(
           roomId: roomId,
           hostName: hostName,
           hostUserId: hostUserId,
           hostAvatar: hostAvatar,
+          existingViewers: existingViewers,
         );
       },
     ),

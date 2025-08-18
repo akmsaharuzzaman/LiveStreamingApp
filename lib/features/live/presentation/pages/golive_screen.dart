@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
@@ -8,6 +7,7 @@ import 'package:dlstarlive/core/network/models/call_request_list_model.dart';
 import 'package:dlstarlive/core/network/models/call_request_model.dart';
 import 'package:dlstarlive/core/network/models/chat_model.dart';
 import 'package:dlstarlive/core/network/models/gift_model.dart';
+import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:dlstarlive/core/network/socket_service.dart';
 import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:dlstarlive/features/live/presentation/component/agora_token_service.dart';
@@ -40,12 +40,14 @@ class GoliveScreen extends StatefulWidget {
   final String? hostName;
   final String? hostUserId;
   final String? hostAvatar;
+  final List<HostDetails> existingViewers;
   const GoliveScreen({
     super.key,
     this.roomId,
     this.hostName,
     this.hostUserId,
     this.hostAvatar,
+    this.existingViewers = const [],
   });
 
   @override
@@ -89,10 +91,26 @@ class _GoliveScreenState extends State<GoliveScreen> {
   @override
   void initState() {
     super.initState();
+    _initializeExistingViewers();
     extractRoomId();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUidAndDispatchEvent();
     });
+  }
+
+  /// Convert HostDetails to JoinedUserModel and initialize existing viewers
+  void _initializeExistingViewers() {
+    if (widget.existingViewers.isNotEmpty) {
+      activeViewers = widget.existingViewers.map((hostDetail) {
+        return JoinedUserModel(
+          id: hostDetail.id,
+          avatar: hostDetail.avatar,
+          name: hostDetail.name,
+          uid: hostDetail.uid,
+        );
+      }).toList();
+      debugPrint("Initialized ${activeViewers.length} existing viewers");
+    }
   }
 
   void extractRoomId() {
