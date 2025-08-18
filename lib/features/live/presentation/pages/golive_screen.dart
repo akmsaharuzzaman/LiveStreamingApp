@@ -1290,8 +1290,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 ),
                                 CustomLiveButton(
                                   iconPath: _muted
-                                    ? "assets/icons/mute_icon.png"
-                                    : "assets/icons/unmute_icon.png",
+                                      ? "assets/icons/mute_icon.png"
+                                      : "assets/icons/unmute_icon.png",
                                   onTap: () {
                                     _toggleMute();
                                   },
@@ -1363,6 +1363,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                       context,
                                       userId: userId,
                                       isHost: isHost,
+                                      streamDuration: _streamDuration,
                                     );
                                   },
                                 ),
@@ -1444,6 +1445,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                     showGameBottomSheet(
                                       context,
                                       userId: userId,
+                                      streamDuration: _streamDuration,
                                     );
                                   },
                                   height: 40.h,

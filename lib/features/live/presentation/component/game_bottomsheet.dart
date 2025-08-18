@@ -9,13 +9,18 @@ void showGameBottomSheet(
   BuildContext context, {
   String? userId,
   bool isHost = false,
+  Duration? streamDuration,
 }) {
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (context) {
-      return GameBottomSheet(userId: userId, isHost: isHost);
+      return GameBottomSheet(
+        userId: userId,
+        isHost: isHost,
+        streamDuration: streamDuration ?? Duration.zero,
+      );
     },
   );
 }
@@ -23,8 +28,14 @@ void showGameBottomSheet(
 class GameBottomSheet extends StatefulWidget {
   final String? userId;
   final bool isHost;
+  final Duration streamDuration;
 
-  const GameBottomSheet({super.key, this.userId, required this.isHost});
+  const GameBottomSheet({
+    super.key,
+    this.userId,
+    required this.isHost,
+    required this.streamDuration,
+  });
 
   @override
   State<GameBottomSheet> createState() => _GameBottomSheetState();
@@ -59,6 +70,14 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
         _isLoading = false;
       });
     }
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = twoDigits(duration.inHours);
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$hours:$minutes:$seconds';
   }
 
   @override
@@ -112,7 +131,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                   child: Column(
                     children: [
                       Text(
-                        'Stream Duration: 000:00:00',
+                        'Stream Duration: ${_formatDuration(widget.streamDuration)}',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16.sp,
@@ -185,7 +204,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                       padding: EdgeInsets.symmetric(horizontal: 20.w),
                       child: GridView.count(
                         crossAxisCount: 4,
-                        crossAxisSpacing: 16.w, 
+                        crossAxisSpacing: 16.w,
                         mainAxisSpacing: 16.h,
                         childAspectRatio: 0.8,
                         children: [
@@ -205,7 +224,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                               // Handle coin bag
                             },
                           ),
-                         
+
                           _buildControlOption(
                             iconPath: "assets/icons/camera_flip_grid_icon.png",
                             label: 'Flip Camera',
@@ -214,7 +233,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                               // Handle flip camera
                             },
                           ),
-                         
+
                           _buildControlOption(
                             iconPath: "assets/icons/beauty_cam_grid_icon.png",
                             label: 'Beauty Camera',
@@ -223,7 +242,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                               // Handle beauty camera
                             },
                           ),
-                           _buildControlOption(
+                          _buildControlOption(
                             iconPath: "assets/icons/music_grid_icon.png",
                             label: 'Music',
                             onTap: () {
@@ -231,7 +250,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                               // Handle music
                             },
                           ),
-                           _buildControlOption(
+                          _buildControlOption(
                             iconPath: "assets/icons/chat_clear_grid_icon.png",
                             label: 'Chat Clear',
                             onTap: () {
