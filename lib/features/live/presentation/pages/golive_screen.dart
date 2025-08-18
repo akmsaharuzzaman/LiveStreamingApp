@@ -1290,8 +1290,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 ),
                                 CustomLiveButton(
                                   iconPath: _muted
-                                      ? "assets/icons/mute_icon.png"
-                                      : "assets/icons/mute_icon.png",
+                                    ? "assets/icons/mute_icon.png"
+                                    : "assets/icons/unmute_icon.png",
                                   onTap: () {
                                     _toggleMute();
                                   },
@@ -1417,39 +1417,26 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   ),
                                 ),
 
-                                // Show microphone button only for audio callers
-                                if (_isAudioCaller) ...[
-                                  CustomLiveButton(
-                                    iconPath: _muted
-                                        ? "assets/icons/mute_icon.png"
-                                        : "assets/icons/mute_icon.png",
-                                    onTap: () {
-                                      _toggleMute();
-                                    },
-                                    height: 40.h,
-                                  ),
-                                ] else ...[
-                                  CustomLiveButton(
-                                    iconPath: "assets/icons/gift_user_icon.png",
-                                    onTap: () {
-                                      showGiftBottomSheet(
-                                        context,
-                                        activeViewers: activeViewers,
-                                        roomId: _currentRoomId ?? roomId,
-                                        hostUserId: isHost
-                                            ? userId
-                                            : widget.hostUserId,
-                                        hostName: isHost
-                                            ? state.user.name
-                                            : widget.hostName,
-                                        hostAvatar: isHost
-                                            ? state.user.avatar
-                                            : widget.hostAvatar,
-                                      );
-                                    },
-                                    height: 40.h,
-                                  ),
-                                ],
+                                CustomLiveButton(
+                                  iconPath: "assets/icons/gift_user_icon.png",
+                                  onTap: () {
+                                    showGiftBottomSheet(
+                                      context,
+                                      activeViewers: activeViewers,
+                                      roomId: _currentRoomId ?? roomId,
+                                      hostUserId: isHost
+                                          ? userId
+                                          : widget.hostUserId,
+                                      hostName: isHost
+                                          ? state.user.name
+                                          : widget.hostName,
+                                      hostAvatar: isHost
+                                          ? state.user.avatar
+                                          : widget.hostAvatar,
+                                    );
+                                  },
+                                  height: 40.h,
+                                ),
 
                                 CustomLiveButton(
                                   iconPath: "assets/icons/game_user_icon.png",
