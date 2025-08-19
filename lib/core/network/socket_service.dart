@@ -11,6 +11,9 @@ import 'package:dlstarlive/core/network/models/left_user_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
+import 'models/admin_details_model.dart';
+import 'models/mute_user_model.dart';
+
 enum RoomType { live, pk, audio, party }
 
 /// Comprehensive Socket Service for Live Streaming
@@ -56,6 +59,12 @@ class SocketService {
       StreamController<GiftModel>.broadcast();
   final StreamController<BanUserModel> _bannedUserController =
       StreamController<BanUserModel>.broadcast();
+  final StreamController<AdminDetailsModel> _adminDetailsController =
+      StreamController<AdminDetailsModel>.broadcast();
+  final StreamController<List<String>> _bannedListController =
+      StreamController<List<String>>.broadcast();
+  final StreamController<MuteUserModel> _muteUserController =
+      StreamController<MuteUserModel>.broadcast();
 
   // Constants
   static const String _baseUrl = 'http://dlstarlive.com:8000';
@@ -77,6 +86,8 @@ class SocketService {
   static const String _sentGiftEvent = 'sent-gift';
   static const String _banUserEvent = 'ban-user';
   static const String _makeAdminEvent = 'make-admin';
+  static const String _bannedListEvent = 'banned-list';
+  static const String _muteUserEvent = 'mute-user';
 
   /// Singleton instance
   static SocketService get instance {
@@ -110,7 +121,9 @@ class SocketService {
   Stream<ChatModel> get sentMessageStream => _sentMessageController.stream;
   Stream<GiftModel> get sentGiftStream => _sentGiftController.stream;
   Stream<BanUserModel> get bannedUserStream => _bannedUserController.stream;
-  
+  Stream<List<String>> get bannedListStream => _bannedListController.stream;
+  Stream<MuteUserModel> get muteUserStream => _muteUserController.stream;
+
   /// Getters
   bool get isConnected => _isConnected;
   String? get currentUserId => _currentUserId;
@@ -229,6 +242,8 @@ class SocketService {
     _socket!.off('sent-gift');
     _socket!.off('broadcaster-details');
     _socket!.off('ban-user');
+    _socket!.off('make-admin');
+    _socket!.off('banned-list');
   }
 
   /// Setup socket event listeners
@@ -403,6 +418,36 @@ class SocketService {
       }
       if (data is Map<String, dynamic>) {
         _bannedUserController.add(BanUserModel.fromJson(data));
+      }
+    });
+
+    //Make admin
+    _socket!.on('make-admin', (data) {
+      if (kDebugMode) {
+        print('👑 Make admin response: $data');
+      }
+      if (data is Map<String, dynamic>) {
+        _adminDetailsController.add(AdminDetailsModel.fromJson(data));
+      }
+    });
+
+    //Banned List
+    _socket!.on('banned-list', (data) {
+      if (kDebugMode) {
+        print('🚫 Banned list response: $data');
+      }
+      if (data is List) {
+        _bannedListController.add(List<String>.from(data));
+      }
+    });
+
+    //Mute User
+    _socket!.on('mute-user', (data) {
+      if (kDebugMode) {
+        print('🔇 Mute user response: $data');
+      }
+      if (data is Map<String, dynamic>) {
+        _muteUserController.add(MuteUserModel.fromJson(data));
       }
     });
   }
@@ -823,6 +868,40 @@ class SocketService {
       });
     }
   }
+
+  ///Make admin 
+  Future<bool> makeAdmin(String userId) async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('👑 Making user admin: $userId');
+      }
+
+      _socket!.emit(_makeAdminEvent, {
+        'roomId': _currentRoomId,
+        'targetId': userId,
+      });
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error making admin: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to make admin: $e',
+      });
+      return false;
+    }
+  }
+
+
 
   /// Listen to custom events
   void on(String event, Function(dynamic) callback) {
