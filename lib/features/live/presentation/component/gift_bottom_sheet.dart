@@ -52,15 +52,15 @@ class GiftBottomSheet extends StatefulWidget {
 class _GiftBottomSheetState extends State<GiftBottomSheet>
     with TickerProviderStateMixin {
   late TabController _tabController;
-  int _selectedGiftIndex = -1;
+  // --- CORRECTED STATE ---
+  // Store the ID of the selected gift instead of its index.
+  String? _selectedGiftId;
   int _giftQuantity = 1;
   int _currentBalance = 150000;
   String? _selectedUserId; // null means send to host
   bool _isLoading = true;
   bool _isSending = false;
   List<Gift> _allGifts = [];
-  List<Gift> _currentCategoryGifts =
-      []; // Track current category gifts for selection
 
   final GiftApiClient _giftApiClient = getIt<GiftApiClient>();
 
@@ -75,7 +75,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
       if (!_tabController.indexIsChanging) {
         // Reset selection when tab changes
         setState(() {
-          _selectedGiftIndex = -1;
+          _selectedGiftId = null;
         });
       }
     });
@@ -105,6 +105,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
   }
 
   void _showError(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -250,7 +251,6 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
             ),
           ),
 
-          // design cleanup: removed level progress bar and level up text
           SizedBox(height: 8.h),
 
           // Tabs
@@ -379,7 +379,8 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
 
                 // Send button
                 GestureDetector(
-                  onTap: (_selectedGiftIndex >= 0 && !_isSending)
+                  // --- CORRECTED CONDITION ---
+                  onTap: (_selectedGiftId != null && !_isSending)
                       ? _sendGift
                       : null,
                   child: Container(
@@ -388,7 +389,8 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                       vertical: 12.h,
                     ),
                     decoration: BoxDecoration(
-                      color: (_selectedGiftIndex >= 0 && !_isSending)
+                      // --- CORRECTED CONDITION ---
+                      color: (_selectedGiftId != null && !_isSending)
                           ? const Color(0xFFE91E63)
                           : Colors.grey[600],
                       borderRadius: BorderRadius.circular(20.r),
@@ -471,20 +473,22 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
       itemCount: gifts.length,
       itemBuilder: (context, index) {
         final gift = gifts[index];
-        final isSelected =
-            _selectedGiftIndex == index && _currentCategoryGifts == gifts;
+        // --- CORRECTED LOGIC ---
+        // Check for selection using the gift's unique ID.
+        final isSelected = _selectedGiftId == gift.id;
 
         return GestureDetector(
           onTap: () {
+            // --- CORRECTED LOGIC ---
+            // Store the gift's unique ID on tap.
             setState(() {
-              _selectedGiftIndex = index;
-              _currentCategoryGifts = gifts; // Update current category gifts
+              _selectedGiftId = gift.id;
             });
           },
           child: Container(
             decoration: BoxDecoration(
               color: isSelected
-                  ? const Color(0xFFE91E63).withValues(alpha: 0.2)
+                  ? const Color(0xFFE91E63).withOpacity(0.2)
                   : const Color(0xFF2A2A3E),
               borderRadius: BorderRadius.circular(12.r),
               border: Border.all(
@@ -496,7 +500,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: const Color(0xFFE91E63).withValues(alpha: 0.3),
+                        color: const Color(0xFFE91E63).withOpacity(0.3),
                         blurRadius: 8,
                         spreadRadius: 1,
                       ),
@@ -599,8 +603,14 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
   }
 
   Future<void> _sendGift() async {
-    if (_selectedGiftIndex >= 0 &&
-        _selectedGiftIndex < _currentCategoryGifts.length) {
+    // --- CORRECTED LOGIC ---
+    // Find the selected gift from the main list using its ID.
+    final selectedGift = _allGifts.firstWhere(
+      (g) => g.id == _selectedGiftId,
+      // orElse: () => null, // Return null if not found
+    );
+
+    if (selectedGift != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Sending gift...'),
@@ -612,7 +622,6 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
         _isSending = true;
       });
 
-      final selectedGift = _currentCategoryGifts[_selectedGiftIndex];
       try {
         // Determine recipients
         List<String> recipientIds = [];
@@ -710,9 +719,10 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
 
           // Reset selection
           setState(() {
-            _selectedGiftIndex = -1;
+            // --- CORRECTED RESET ---
+            _selectedGiftId = null;
             _giftQuantity = 1;
-            _selectedUserId = null;
+            _selectedUserId = null; // Default back to the host
             _isSending = false;
           });
 
