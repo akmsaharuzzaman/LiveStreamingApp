@@ -33,6 +33,7 @@ class GetRoomModel {
   final List<String> brodcasters;
   final List<HostDetails> broadcastersDetails;
   final List<HostDetails> callRequests;
+  final HostDetails? adminDetails;
   final String title;
 
   GetRoomModel({
@@ -42,6 +43,7 @@ class GetRoomModel {
     this.hostDetails,
     this.messages = const [],
     this.membersDetails = const [],
+  this.adminDetails,
     required this.members,
     required this.bannedUsers,
     required this.brodcasters,
@@ -68,9 +70,12 @@ class GetRoomModel {
       broadcastersDetails: (json['broadcastersDetails'] as List<dynamic>? ?? [])
           .map((e) => HostDetails.fromJson(e))
           .toList(),
-      callRequests: (json['callRequests'] as List<dynamic>? ?? [])
-          .map((e) => HostDetails.fromJson(e))
-          .toList(),
+    callRequests: (json['callRequests'] as List<dynamic>? ?? [])
+      .map((e) => HostDetails.fromJson(e))
+      .toList(),
+    adminDetails: json['adminDetails'] != null
+      ? HostDetails.fromJson(json['adminDetails'])
+      : null,
       title: json['title'] as String,
     );
   }

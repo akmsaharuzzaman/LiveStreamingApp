@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dlstarlive/core/network/models/ban_user_model.dart';
 import 'package:dlstarlive/core/network/models/broadcaster_model.dart';
 import 'package:dlstarlive/core/network/models/call_request_list_model.dart';
 import 'package:dlstarlive/core/network/models/call_request_model.dart';
@@ -53,6 +54,8 @@ class SocketService {
       StreamController<bool>.broadcast();
   final StreamController<GiftModel> _sentGiftController =
       StreamController<GiftModel>.broadcast();
+  final StreamController<BanUserModel> _bannedUserController =
+      StreamController<BanUserModel>.broadcast();
 
   // Constants
   static const String _baseUrl = 'http://dlstarlive.com:8000';
@@ -72,6 +75,8 @@ class SocketService {
   static const String _broadcasterListEvent = 'broadcaster-list';
   static const String _broadcasterDetailsEvent = 'broadcaster-details';
   static const String _sentGiftEvent = 'sent-gift';
+  static const String _banUserEvent = 'ban-user';
+  static const String _makeAdminEvent = 'make-admin';
 
   /// Singleton instance
   static SocketService get instance {
@@ -104,7 +109,8 @@ class SocketService {
   Stream<bool> get connectionStatusStream => _connectionStatusController.stream;
   Stream<ChatModel> get sentMessageStream => _sentMessageController.stream;
   Stream<GiftModel> get sentGiftStream => _sentGiftController.stream;
-
+  Stream<BanUserModel> get bannedUserStream => _bannedUserController.stream;
+  
   /// Getters
   bool get isConnected => _isConnected;
   String? get currentUserId => _currentUserId;
@@ -222,6 +228,7 @@ class SocketService {
     _socket!.off('sent-message');
     _socket!.off('sent-gift');
     _socket!.off('broadcaster-details');
+    _socket!.off('ban-user');
   }
 
   /// Setup socket event listeners
@@ -386,6 +393,16 @@ class SocketService {
       }
       if (data is Map<String, dynamic>) {
         _sentGiftController.add(GiftModel.fromJson(data));
+      }
+    });
+
+    //Ban User events
+    _socket!.on('ban-user', (data) {
+      if (kDebugMode) {
+        print('🚫 Ban user response: $data');
+      }
+      if (data is Map<String, dynamic>) {
+        _bannedUserController.add(BanUserModel.fromJson(data));
       }
     });
   }
@@ -739,6 +756,38 @@ class SocketService {
       _errorMessageController.add({
         'status': 'error',
         'message': 'Failed to remove broadcaster: $e',
+      });
+      return false;
+    }
+  }
+
+  ///Ban User
+  Future<bool> banUser(String userId) async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('🚫 Banning user: $userId');
+      }
+
+      _socket!.emit(_banUserEvent, {
+        'roomId': _currentRoomId,
+        'targetId': userId,
+      });
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error banning user: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to ban user: $e',
       });
       return false;
     }
