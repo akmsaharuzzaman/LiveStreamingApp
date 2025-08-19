@@ -458,6 +458,21 @@ class _GoliveScreenState extends State<GoliveScreen> {
     }
   }
 
+  // Make Admin
+  void _makeAdmin(String userId) {
+    _socketService.makeAdmin(userId);
+  }
+
+  /// Ban User
+  void _banUser(String userId) {
+    _socketService.banUser(userId);
+  }
+
+  /// Mute User
+  void _muteUser(String userId) {
+    _socketService.muteUser(userId);
+  }
+
   /// Delete room (only host can delete)
   Future<void> _deleteRoom() async {
     if (_currentRoomId != null && userId != null) {

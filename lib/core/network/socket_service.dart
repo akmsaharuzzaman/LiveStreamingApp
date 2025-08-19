@@ -840,6 +840,38 @@ class SocketService {
     }
   }
 
+  ///Mute User
+  Future<bool> muteUser(String userId) async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('🔇 Muting user: $userId');
+      }
+
+      _socket!.emit(_muteUserEvent, {
+        'roomId': _currentRoomId,
+        'targetId': userId,
+      });
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error muting user: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to mute user: $e',
+      });
+      return false;
+    }
+  }
+
   /// Send custom event
   void emit(String event, [dynamic data]) {
     if (!_isConnected || _socket == null) {
