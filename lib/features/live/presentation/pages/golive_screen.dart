@@ -506,6 +506,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
     }
   }
 
+  /// Check if current user is an admin
+  bool _isCurrentUserAdmin() {
+    if (userId == null) return false;
+
+    for (var adminModel in adminModels) {
+      if (adminModel.id == userId) {
+        return true;
+      }
+    }
+    return false;
+  }
   /// Delete room (only host can delete)
   Future<void> _deleteRoom() async {
     if (_currentRoomId != null && userId != null) {
