@@ -120,6 +120,8 @@ class SocketService {
   Stream<bool> get connectionStatusStream => _connectionStatusController.stream;
   Stream<ChatModel> get sentMessageStream => _sentMessageController.stream;
   Stream<GiftModel> get sentGiftStream => _sentGiftController.stream;
+  Stream<AdminDetailsModel> get adminDetailsStream =>
+      _adminDetailsController.stream;
   Stream<BanUserModel> get bannedUserStream => _bannedUserController.stream;
   Stream<List<String>> get bannedListStream => _bannedListController.stream;
   Stream<MuteUserModel> get muteUserStream => _muteUserController.stream;

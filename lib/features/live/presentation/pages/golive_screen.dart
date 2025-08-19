@@ -22,7 +22,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/network/models/admin_details_model.dart';
+import '../../../../core/network/models/ban_user_model.dart';
 import '../../../../core/network/models/joined_user_model.dart';
+import '../../../../core/network/models/mute_user_model.dart';
 import '../component/active_viwers.dart';
 import '../component/custom_live_button.dart';
 import '../component/diamond_star_status.dart';
@@ -70,6 +73,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
   List<BroadcasterModel> broadcasterModels = [];
   List<BroadcasterModel> broadcasterDetails = [];
   List<GiftModel> sentGifts = [];
+  // Banned users
+  List<String> bannedUsers = [];
+  // Banned user details
+  List<BanUserModel> bannedUserModels = [];
+  // Mute user details  
+  List<MuteUserModel> mutedUserModels = [];
+  //Admin Details
+  List<AdminDetailsModel> adminModels = [];
 
   // Live stream timing
   DateTime? _streamStartTime;
@@ -315,6 +326,46 @@ class _GoliveScreenState extends State<GoliveScreen> {
         });
         debugPrint("User sent a gift: ${data.gift.name}");
         sentGifts.isNotEmpty ? _playAnimation() : null;
+      }
+    });
+
+    //BannedUserList
+    _socketService.bannedListStream.listen((data) {
+      if (mounted) {
+        setState(() {
+          bannedUsers = List.from(data);
+        });
+        debugPrint("Banned user list updated: $bannedUsers");
+      }
+    });
+
+    //BannedUsers
+    _socketService.bannedUserStream.listen((data) {
+      if (mounted) {
+        setState(() {
+          bannedUserModels.add(data);
+        });
+        debugPrint("User banned: ${data.targetId}->${data.message}");
+      }
+    });
+
+    //Mute user
+    _socketService.muteUserStream.listen((data) {
+      if (mounted) {
+        setState(() {
+          mutedUserModels.add(data);
+        });
+        debugPrint("User muted: ${data.mutedUsers} - ${data.isMuted}");
+      }
+    });
+
+    //AdminList
+    _socketService.adminDetailsStream.listen((data) {
+      if (mounted) {
+        setState(() {
+          adminModels.add(data);
+        });
+        debugPrint("Admin list updated: ${adminModels.length} admins");
       }
     });
 
