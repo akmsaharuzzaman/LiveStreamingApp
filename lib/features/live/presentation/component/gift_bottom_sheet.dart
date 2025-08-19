@@ -163,22 +163,12 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                                 _selectedUserId = null; // null means host
                               });
                             },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: _selectedUserId == null
-                                      ? const Color(0xFFE91E63)
-                                      : Colors.transparent,
-                                  width: 2,
-                                ),
-                              ),
-                              child: _buildUserAvatar(
-                                widget.hostAvatar ??
-                                    'https://thispersondoesnotexist.com/',
-                                widget.hostName ?? 'Host',
-                                true, // isHost
-                              ),
+                            child: _buildUserAvatar(
+                              _selectedUserId == null,
+                              widget.hostAvatar ??
+                                  'https://thispersondoesnotexist.com/',
+                              widget.hostName ?? 'Host',
+                              true, // isHost
                             ),
                           ),
                           SizedBox(width: 8.w),
@@ -194,62 +184,51 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                                   _selectedUserId = viewer.id;
                                 });
                               },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: _selectedUserId == viewer.id
-                                        ? const Color(0xFFE91E63)
-                                        : Colors.transparent,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: _buildUserAvatar(
-                                  viewer.avatar.isNotEmpty
-                                      ? viewer.avatar
-                                      : 'https://thispersondoesnotexist.com/',
-                                  viewer.name,
-                                ),
+                              child: _buildUserAvatar(
+                                _selectedUserId == viewer.id,
+                                viewer.avatar.isNotEmpty
+                                    ? viewer.avatar
+                                    : 'https://thispersondoesnotexist.com/',
+                                viewer.name,
                               ),
                             ),
                           );
                         }),
-
-                        // "All" option
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedUserId = 'all';
-                            });
-                          },
-                          child: Container(
-                            width: 40.w,
-                            height: 40.h,
-                            decoration: BoxDecoration(
-                              color: _selectedUserId == 'all'
-                                  ? const Color(0xFFE91E63)
-                                  : const Color(0xFF2A2A3E),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: _selectedUserId == 'all'
-                                    ? const Color(0xFFE91E63)
-                                    : Colors.transparent,
-                                width: 2,
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'All',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
                       ],
+                    ),
+                  ),
+                ),
+                // "All" option
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedUserId = 'all';
+                    });
+                  },
+                  child: Container(
+                    width: 40.w,
+                    height: 40.h,
+                    decoration: BoxDecoration(
+                      color: _selectedUserId == 'all'
+                          ? const Color(0xFFE91E63)
+                          : const Color(0xFF2A2A3E),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: _selectedUserId == 'all'
+                            ? const Color(0xFFE91E63)
+                            : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'All',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -271,70 +250,8 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
             ),
           ),
 
-          // Level progress bar
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE91E63),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Text(
-                    'LV.1',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                SizedBox(width: 8.w),
-                Expanded(
-                  child: Container(
-                    height: 6.h,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(3.r),
-                    ),
-                    child: LinearProgressIndicator(
-                      value: 0.3,
-                      backgroundColor: Colors.grey[600],
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Color(0xFFE91E63),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 8.w),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE91E63),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Text(
-                    'LV.2',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Level up text
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.h),
-            child: Text(
-              'Send this gift to receive 50k level up',
-              style: TextStyle(color: Colors.white70, fontSize: 12.sp),
-            ),
-          ),
+          // design cleanup: removed level progress bar and level up text
+          SizedBox(height: 8.h),
 
           // Tabs
           Container(
@@ -380,7 +297,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                   ),
           ),
 
-          // Bottom section with quantity and send button
+          // Bottom section with quantity dropdown and send button
           Container(
             padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(
@@ -392,52 +309,39 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
             ),
             child: Row(
               children: [
-                // Quantity selector
+                // Quantity selector (Dropdown)
                 Container(
-                  width: 80.w,
+                  padding: EdgeInsets.symmetric(horizontal: 12.w),
                   height: 40.h,
                   decoration: BoxDecoration(
                     color: const Color(0xFF1A1A2E),
-                    borderRadius: BorderRadius.circular(20.r),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: Colors.white24),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          if (_giftQuantity > 1) {
-                            setState(() {
-                              _giftQuantity--;
-                            });
-                          }
-                        },
-                        child: Icon(
-                          Icons.remove,
-                          color: Colors.white,
-                          size: 16.sp,
-                        ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: _giftQuantity,
+                      icon: Icon(
+                        Icons.keyboard_arrow_down,
+                        color: Colors.white70,
+                        size: 18.sp,
                       ),
-                      Text(
-                        '$_giftQuantity',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _giftQuantity++;
-                          });
-                        },
-                        child: Icon(
-                          Icons.add,
-                          color: Colors.white,
-                          size: 16.sp,
-                        ),
-                      ),
-                    ],
+                      dropdownColor: const Color(0xFF2A2A3E),
+                      style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() => _giftQuantity = val);
+                        }
+                      },
+                      items: const [1, 5, 10, 20, 50, 100]
+                          .map(
+                            (q) => DropdownMenuItem<int>(
+                              value: q,
+                              child: Text('Qty: $q'),
+                            ),
+                          )
+                          .toList(),
+                    ),
                   ),
                 ),
 
@@ -517,6 +421,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
   }
 
   Widget _buildUserAvatar(
+    bool isSelected,
     String imageUrl, [
     String? name,
     bool isHost = false,
@@ -532,7 +437,9 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
               image: NetworkImage(imageUrl),
               fit: BoxFit.cover,
             ),
-            border: Border.all(color: Colors.white, width: 2),
+            border: isSelected
+                ? Border.all(color: Colors.white, width: 2)
+                : null,
           ),
         ),
         if (name != null) ...[
@@ -584,7 +491,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                 color: isSelected
                     ? const Color(0xFFE91E63)
                     : Colors.transparent,
-                width: 2,
+                width: isSelected ? 2 : 0,
               ),
               boxShadow: isSelected
                   ? [
@@ -706,127 +613,122 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
       });
 
       final selectedGift = _currentCategoryGifts[_selectedGiftIndex];
-      final totalCost = selectedGift.coinPrice * _giftQuantity;
+      try {
+        // Determine recipients
+        List<String> recipientIds = [];
+        String successRecipientLabel = '';
+        int recipientCount = 1;
 
-      if (totalCost <= _currentBalance) {
-        try {
-          // Determine recipient
-          String recipientId;
-          String recipientName;
-
-          if (_selectedUserId == null) {
-            // Send to host
-            if (widget.hostUserId == null) {
-              _showError('Host information not available');
-              setState(() {
-                _isSending = false;
-              });
-              return;
-            }
-            recipientId = widget.hostUserId!;
-            recipientName = widget.hostName ?? 'Host';
-          } else if (_selectedUserId == 'all') {
-            // TODO: Implement send to all functionality
-            _showError('Send to all functionality not implemented yet');
-            setState(() {
-              _isSending = false;
-            });
+        if (_selectedUserId == null) {
+          // Host only
+          if (widget.hostUserId == null) {
+            _showError('Host information not available');
+            setState(() => _isSending = false);
             return;
-          } else {
-            // Send to specific viewer
-            try {
-              final viewer = widget.activeViewers.firstWhere(
-                (v) => v.id == _selectedUserId,
-              );
-              recipientId = viewer.id;
-              recipientName = viewer.name;
-            } catch (e) {
-              _showError('Selected viewer not found');
-              setState(() {
-                _isSending = false;
-              });
-              return;
-            }
           }
+          recipientIds = [widget.hostUserId!];
+          successRecipientLabel = widget.hostName ?? 'Host';
+        } else if (_selectedUserId == 'all') {
+          // Host + all active viewers
+          final ids = <String>{};
+          if (widget.hostUserId != null) ids.add(widget.hostUserId!);
+          ids.addAll(widget.activeViewers.map((v) => v.id));
+          recipientIds = ids.toList();
+          recipientCount = recipientIds.length;
+          successRecipientLabel = 'All ($recipientCount)';
+        } else {
+          // Specific viewer
+          try {
+            final viewer = widget.activeViewers.firstWhere(
+              (v) => v.id == _selectedUserId,
+            );
+            recipientIds = [viewer.id];
+            successRecipientLabel = viewer.name;
+          } catch (e) {
+            _showError('Selected viewer not found');
+            setState(() => _isSending = false);
+            return;
+          }
+        }
 
-          // Send gift for each quantity
-          bool allSuccessful = true;
-          String errorMessage = '';
+        // Calculate total cost based on recipients
+        final totalCost =
+            selectedGift.coinPrice * _giftQuantity * recipientIds.length;
 
+        if (totalCost > _currentBalance) {
+          setState(() => _isSending = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Insufficient balance!',
+                style: TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          return;
+        }
+
+        // Send gift for each recipient and quantity
+        bool allSuccessful = true;
+        String errorMessage = '';
+
+        for (final recipientId in recipientIds) {
           for (int i = 0; i < _giftQuantity; i++) {
             final response = await _giftApiClient.sendGift(
               userId: recipientId,
               roomId: widget.roomId,
               giftId: selectedGift.id,
             );
-
             if (!response.isSuccess) {
               allSuccessful = false;
               errorMessage = response.message ?? 'Failed to send gift';
               break;
             }
           }
+          if (!allSuccessful) break;
+        }
 
-          if (allSuccessful) {
-            setState(() {
-              _currentBalance -= totalCost;
-            });
-
-            // Show success message
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Sent ${selectedGift.name} x$_giftQuantity to $recipientName!',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  backgroundColor: const Color(0xFFE91E63),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            }
-
-            // Reset selection
-            setState(() {
-              _selectedGiftIndex = -1;
-              _giftQuantity = 1;
-              _selectedUserId = null;
-              _isSending = false;
-            });
-
-            // Close bottom sheet after a delay
-            Future.delayed(const Duration(milliseconds: 1000), () {
-              if (mounted) {
-                Navigator.pop(context);
-              }
-            });
-          } else {
-            setState(() {
-              _isSending = false;
-            });
-            _showError('Failed to send gift: $errorMessage');
-          }
-        } catch (e) {
+        if (allSuccessful) {
           setState(() {
+            _currentBalance -= totalCost;
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Sent ${selectedGift.name} x$_giftQuantity to $successRecipientLabel!',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                backgroundColor: const Color(0xFFE91E63),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+
+          // Reset selection
+          setState(() {
+            _selectedGiftIndex = -1;
+            _giftQuantity = 1;
+            _selectedUserId = null;
             _isSending = false;
           });
-          _showError('Error sending gift: $e');
+
+          // Close bottom sheet after a delay
+          Future.delayed(const Duration(milliseconds: 1000), () {
+            if (mounted) {
+              Navigator.pop(context);
+            }
+          });
+        } else {
+          setState(() => _isSending = false);
+          _showError('Failed to send gift: $errorMessage');
         }
-      } else {
-        setState(() {
-          _isSending = false;
-        });
-        // Show insufficient balance message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Insufficient balance!',
-              style: TextStyle(color: Colors.white),
-            ),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
-          ),
-        );
+      } catch (e) {
+        setState(() => _isSending = false);
+        _showError('Error sending gift: $e');
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
