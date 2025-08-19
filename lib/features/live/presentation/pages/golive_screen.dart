@@ -517,6 +517,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
     }
     return false;
   }
+
+  /// Check if current user is the host
+  bool _isCurrentUserHost() {
+    return isHost;
+  }
+
   /// Delete room (only host can delete)
   Future<void> _deleteRoom() async {
     if (_currentRoomId != null && userId != null) {
@@ -1330,7 +1336,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             ],
                           ),
 
-                          //  this is the second row
+                          //  this is the second row TODO: implement diamond and star count display
                           DiamondStarStatus(
                             diamonCount: "100.0k",
                             starCount: "2",
@@ -1613,7 +1619,28 @@ class _GoliveScreenState extends State<GoliveScreen> {
                         children: [
                           // Caller Widget
                           ...broadcasterModels.map((broadcaster) {
+                            // Check if broadcaster is the current user
+                            WhoAmI checkRole(String broadcasterId) {
+                              // Get current user ID from AuthBloc for reliability
+                              final authState = context.read<AuthBloc>().state;
+                              final currentUserId =
+                                  authState is AuthAuthenticated
+                                  ? authState.user.id
+                                  : userId;
+
+                              if (broadcaster.id == currentUserId) {
+                                return WhoAmI.myself;
+                              } else if (_isCurrentUserAdmin()) {
+                                return WhoAmI.admin;
+                              } else if (_isCurrentUserHost()) {
+                                return WhoAmI.host;
+                              } else {
+                                return WhoAmI.user;
+                              }
+                            }
+
                             return CallOverlayWidget(
+                              whoAmI: checkRole(broadcaster.id),
                               userId: broadcaster.id,
                               userName: broadcaster.name,
                               userImage: broadcaster.avatar.isNotEmpty
@@ -1798,7 +1825,28 @@ class _GoliveScreenState extends State<GoliveScreen> {
                         children: [
                           // Caller Widget
                           ...broadcasterModels.map((broadcaster) {
+                            // Check if broadcaster is the current user (for host section)
+                            WhoAmI checkHostRole(String broadcasterId) {
+                              // Get current user ID from AuthBloc for reliability
+                              final authState = context.read<AuthBloc>().state;
+                              final currentUserId =
+                                  authState is AuthAuthenticated
+                                  ? authState.user.id
+                                  : userId;
+
+                              if (broadcaster.id == currentUserId) {
+                                return WhoAmI.myself;
+                              } else if (_isCurrentUserAdmin()) {
+                                return WhoAmI.admin;
+                              } else if (_isCurrentUserHost()) {
+                                return WhoAmI.host;
+                              } else {
+                                return WhoAmI.user;
+                              }
+                            }
+
                             return CallOverlayWidget(
+                              whoAmI: checkHostRole(broadcaster.id),
                               userId: broadcaster.id,
                               userName: broadcaster.name,
                               userImage: broadcaster.avatar.isNotEmpty
