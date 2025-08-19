@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
@@ -1648,22 +1649,39 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   : null, // null will show placeholder
                               onDisconnect: () {
                                 // Handle disconnect for this broadcaster
-                                _socketService.removeBroadcaster(
-                                  broadcaster.id,
-                                );
-                                debugPrint(
-                                  "Disconnecting broadcaster: ${broadcaster.id}",
-                                );
+                                if (checkRole(broadcaster.id) == WhoAmI.host ||
+                                    checkRole(broadcaster.id) ==
+                                        WhoAmI.myself ||
+                                    checkRole(broadcaster.id) == WhoAmI.admin) {
+                                  _socketService.removeBroadcaster(
+                                    broadcaster.id,
+                                  );
+                                  debugPrint(
+                                    "Disconnecting broadcaster: ${broadcaster.id}",
+                                  );
+                                } else {
+                                  _showSnackBar(
+                                    '🚫 You cannot disconnect this user',
+                                    Colors.red,
+                                  );
+                                }
                               },
                               onMute: () {
-                                // Handle mute for this broadcaster
-                                debugPrint(
-                                  "Muting broadcaster: ${broadcaster.id}",
-                                );
-                                _showSnackBar(
-                                  '🔇 Mute feature coming soon',
-                                  Colors.orange,
-                                );
+                                if (checkRole(broadcaster.id) ==
+                                        WhoAmI.myself &&
+                                    !_isCurrentUserMuted()) {
+                                  _toggleMute();
+                                } else if (checkRole(broadcaster.id) ==
+                                        WhoAmI.host ||
+                                    checkRole(broadcaster.id) == WhoAmI.admin) {
+                                  // Handle mute for this broadcaster
+                                  _muteUser(broadcaster.id);
+                                } else {
+                                  _showSnackBar(
+                                    '🚫 You cannot mute this user',
+                                    Colors.red,
+                                  );
+                                }
                               },
                               onManage: () {
                                 // Handle manage for this broadcaster
@@ -1854,22 +1872,42 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   : null, // null will show placeholder
                               onDisconnect: () {
                                 // Handle disconnect for this broadcaster
-                                _socketService.removeBroadcaster(
-                                  broadcaster.id,
-                                );
-                                debugPrint(
-                                  "Disconnecting broadcaster: ${broadcaster.id}",
-                                );
+                                if (checkHostRole(broadcaster.id) ==
+                                        WhoAmI.host ||
+                                    checkHostRole(broadcaster.id) ==
+                                        WhoAmI.myself ||
+                                    checkHostRole(broadcaster.id) ==
+                                        WhoAmI.admin) {
+                                  _socketService.removeBroadcaster(
+                                    broadcaster.id,
+                                  );
+                                  debugPrint(
+                                    "Disconnecting broadcaster: ${broadcaster.id}",
+                                  );
+                                } else {
+                                  _showSnackBar(
+                                    '🚫 You cannot disconnect this user',
+                                    Colors.red,
+                                  );
+                                }
                               },
                               onMute: () {
-                                // Handle mute for this broadcaster
-                                debugPrint(
-                                  "Muting broadcaster: ${broadcaster.id}",
-                                );
-                                _showSnackBar(
-                                  '🔇 Mute feature coming soon',
-                                  Colors.orange,
-                                );
+                                if (checkHostRole(broadcaster.id) ==
+                                        WhoAmI.myself &&
+                                    !_isCurrentUserMuted()) {
+                                  _toggleMute();
+                                } else if (checkHostRole(broadcaster.id) ==
+                                        WhoAmI.host ||
+                                    checkHostRole(broadcaster.id) ==
+                                        WhoAmI.admin) {
+                                  // Handle mute for this broadcaster
+                                  _muteUser(broadcaster.id);
+                                } else {
+                                  _showSnackBar(
+                                    '🚫 You cannot mute this user',
+                                    Colors.red,
+                                  );
+                                }
                               },
                               onManage: () {
                                 // Handle manage for this broadcaster
