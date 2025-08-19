@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+enum WhoAmI { user, admin, host, myself }
+
 class CallOverlayWidget extends StatefulWidget {
   final String? userImage;
   final String? userName;
@@ -9,6 +11,7 @@ class CallOverlayWidget extends StatefulWidget {
   final VoidCallback? onDisconnect;
   final VoidCallback? onMute;
   final VoidCallback? onManage;
+  final WhoAmI whoAmI;
 
   const CallOverlayWidget({
     super.key,
@@ -18,6 +21,7 @@ class CallOverlayWidget extends StatefulWidget {
     this.onDisconnect,
     this.onMute,
     this.onManage,
+    required this.whoAmI,
   });
 
   @override
