@@ -119,9 +119,17 @@ class _CallOverlayWidgetState extends State<CallOverlayWidget> {
             title: 'Manage',
             color: Colors.black87,
             onTap: () {
-              _hideOptionsOverlay();
-              _showManageBottomSheet();
-              widget.onManage?.call();
+              if(widget.whoAmI == WhoAmI.admin ||
+                 widget.whoAmI == WhoAmI.host ) {
+                _hideOptionsOverlay();
+                _showManageBottomSheet();
+                widget.onManage?.call();
+              } else {
+                // Show a message or do nothing if not allowed
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('You do not have permission to manage.')),
+                );
+              }
             },
           ),
         ],
