@@ -77,7 +77,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   List<String> bannedUsers = [];
   // Banned user details
   List<BanUserModel> bannedUserModels = [];
-  // Mute user details  
+  // Mute user details
   List<MuteUserModel> mutedUserModels = [];
   //Admin Details
   List<AdminDetailsModel> adminModels = [];
@@ -356,6 +356,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
           mutedUserModels.add(data);
         });
         debugPrint("User muted: ${data.mutedUsers} - ${data.isMuted}");
+
+        // Check if current user is muted and force mute them
+        if (_isCurrentUserMuted()) {
+          _forceMuteCurrentUser();
+        }
       }
     });
 
@@ -471,6 +476,34 @@ class _GoliveScreenState extends State<GoliveScreen> {
   /// Mute User
   void _muteUser(String userId) {
     _socketService.muteUser(userId);
+  }
+
+  /// Check if current user is in the muted users list
+  bool _isCurrentUserMuted() {
+    if (userId == null) return false;
+
+    for (var muteModel in mutedUserModels) {
+      if (muteModel.mutedUsers.contains(userId)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Force mute current user when they are administratively muted
+  void _forceMuteCurrentUser() async {
+    if ((isHost || _isAudioCaller) && !_muted) {
+      try {
+        await _engine.muteLocalAudioStream(true);
+        setState(() {
+          _muted = true;
+        });
+        _showSnackBar('🔇 You have been muted by an admin', Colors.red);
+        debugPrint("Current user force muted by admin");
+      } catch (e) {
+        debugPrint('❌ Error force muting user: $e');
+      }
+    }
   }
 
   /// Delete room (only host can delete)
@@ -1059,6 +1092,15 @@ class _GoliveScreenState extends State<GoliveScreen> {
   // Toggle microphone
   void _toggleMute() async {
     if (isHost || _isAudioCaller) {
+      // Check if user is trying to unmute but is administratively muted
+      if (_muted && _isCurrentUserMuted()) {
+        _showSnackBar(
+          '🔇 You cannot unmute yourself - you have been muted by an admin',
+          Colors.red,
+        );
+        return;
+      }
+
       await _engine.muteLocalAudioStream(!_muted);
       setState(() {
         _muted = !_muted;
