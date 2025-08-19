@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math';
+// import 'dart:math'; // removed unused import
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
@@ -1011,6 +1011,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   }
 
   /// Switch Camera
+  // ignore: unused_element
   Future<void> _turnOnOffCamera() async {
     try {
       if (_isInitializingCamera) {
@@ -1684,13 +1685,28 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 }
                               },
                               onManage: () {
-                                // Handle manage for this broadcaster
+                                // No-op here; bottom sheet handles actions
                                 debugPrint(
-                                  "Managing broadcaster: $broadcaster",
+                                  "Open manage for: ${broadcaster.id}",
                                 );
+                              },
+                              onSetAdmin: (id) {
+                                _makeAdmin(id);
+                                _showSnackBar('👑 Set as admin', Colors.green);
+                              },
+                              onMuteUser: (id) {
+                                _muteUser(id);
+                                _showSnackBar('🔇 User muted', Colors.orange);
+                              },
+                              onKickOut: (id) {
+                                _banUser(id);
+                                _showSnackBar('👢 User kicked out', Colors.red);
+                              },
+                              onBanUser: (id) {
+                                _banUser(id);
                                 _showSnackBar(
-                                  '⚙️ Manage feature coming soon',
-                                  Colors.blue,
+                                  '⛔ User added to blocklist',
+                                  Colors.red,
                                 );
                               },
                             );
@@ -1910,13 +1926,28 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 }
                               },
                               onManage: () {
-                                // Handle manage for this broadcaster
+                                // No-op; actions are fired from bottom sheet
                                 debugPrint(
-                                  "Managing broadcaster: ${broadcaster.id}",
+                                  "Open manage for: ${broadcaster.id}",
                                 );
+                              },
+                              onSetAdmin: (id) {
+                                _makeAdmin(id);
+                                _showSnackBar('👑 Set as admin', Colors.green);
+                              },
+                              onMuteUser: (id) {
+                                _muteUser(id);
+                                _showSnackBar('🔇 User muted', Colors.orange);
+                              },
+                              onKickOut: (id) {
+                                _banUser(id);
+                                _showSnackBar('👢 User kicked out', Colors.red);
+                              },
+                              onBanUser: (id) {
+                                _banUser(id);
                                 _showSnackBar(
-                                  '⚙️ Manage feature coming soon',
-                                  Colors.blue,
+                                  '⛔ User added to blocklist',
+                                  Colors.red,
                                 );
                               },
                             );

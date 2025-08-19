@@ -11,6 +11,11 @@ class CallOverlayWidget extends StatefulWidget {
   final VoidCallback? onDisconnect;
   final VoidCallback? onMute;
   final VoidCallback? onManage;
+  // Manage actions
+  final ValueChanged<String>? onSetAdmin; // userId
+  final ValueChanged<String>? onMuteUser; // userId
+  final ValueChanged<String>? onKickOut; // userId (alias of ban)
+  final ValueChanged<String>? onBanUser; // userId
   final WhoAmI whoAmI;
 
   const CallOverlayWidget({
@@ -21,6 +26,10 @@ class CallOverlayWidget extends StatefulWidget {
     this.onDisconnect,
     this.onMute,
     this.onManage,
+    this.onSetAdmin,
+    this.onMuteUser,
+    this.onKickOut,
+    this.onBanUser,
     required this.whoAmI,
   });
 
@@ -119,15 +128,17 @@ class _CallOverlayWidgetState extends State<CallOverlayWidget> {
             title: 'Manage',
             color: Colors.black87,
             onTap: () {
-              if(widget.whoAmI == WhoAmI.admin ||
-                 widget.whoAmI == WhoAmI.host ) {
+              if (widget.whoAmI == WhoAmI.admin ||
+                  widget.whoAmI == WhoAmI.host) {
                 _hideOptionsOverlay();
                 _showManageBottomSheet();
                 widget.onManage?.call();
               } else {
                 // Show a message or do nothing if not allowed
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('You do not have permission to manage.')),
+                  SnackBar(
+                    content: Text('You do not have permission to manage.'),
+                  ),
                 );
               }
             },
@@ -201,22 +212,57 @@ class _CallOverlayWidgetState extends State<CallOverlayWidget> {
               _manageTile(
                 Icons.admin_panel_settings,
                 'Set Admin',
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+                  Navigator.pop(context);
+                  final id = widget.userId;
+                  if (id != null) {
+                    widget.onSetAdmin?.call(id);
+                  }
+                },
               ),
               _manageTile(
                 Icons.mic_off,
                 'Mute User',
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+                  Navigator.pop(context);
+                  final id = widget.userId;
+                  if (id != null) {
+                    // Prefer explicit manage callback, fallback to quick action
+                    if (widget.onMuteUser != null) {
+                      widget.onMuteUser!.call(id);
+                    } else {
+                      widget.onMute?.call();
+                    }
+                  }
+                },
               ),
               _manageTile(
                 Icons.call_end,
                 'Kick Out',
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+                  Navigator.pop(context);
+                  final id = widget.userId;
+                  if (id != null) {
+                    // Kick out uses the same as ban per requirement
+                    if (widget.onKickOut != null) {
+                      widget.onKickOut!(id);
+                    } else {
+                      widget.onBanUser?.call(id);
+                    }
+                  }
+                },
               ),
               _manageTile(
                 Icons.block,
                 'Add to blocklist',
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+                  Navigator.pop(context);
+                  final id = widget.userId;
+                  if (id != null) {
+                    // Blocklist maps to ban function
+                    widget.onBanUser?.call(id);
+                  }
+                },
               ),
             ],
           ),
