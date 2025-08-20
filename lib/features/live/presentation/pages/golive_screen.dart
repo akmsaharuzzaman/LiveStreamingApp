@@ -27,6 +27,7 @@ import '../../../../core/network/models/admin_details_model.dart';
 import '../../../../core/network/models/ban_user_model.dart';
 import '../../../../core/network/models/joined_user_model.dart';
 import '../../../../core/network/models/mute_user_model.dart';
+import '../../../../core/utils/app_utils.dart';
 import '../component/active_viwers.dart';
 import '../component/custom_live_button.dart';
 import '../component/diamond_star_status.dart';
@@ -1339,10 +1340,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             ],
                           ),
 
-                          //  this is the second row TODO: implement diamond and star count display
+                          //  this is the second row TODO:  diamond and star count display
                           DiamondStarStatus(
-                            diamonCount: "100.0k",
-                            starCount: "2",
+                            diamonCount: AppUtils.formatNumber(
+                              GiftModel.totalDiamonds(sentGifts),
+                            ),
+                            starCount: AppUtils.formatNumber(0),
                           ),
 
                           Spacer(),

@@ -32,6 +32,9 @@ class GiftModel {
       'gift': gift.toJson(),
     };
   }
+  static int totalDiamonds(List<GiftModel> gifts) {
+    return gifts.fold(0, (sum, gift) => sum + gift.diamonds);
+  }
 }
 
 class Gift {
@@ -88,4 +91,6 @@ class Gift {
       '__v': v,
     };
   }
+
+  
 }

@@ -329,7 +329,7 @@ class _CallManageBottomSheetState extends State<CallManageBottomSheet>
               ),
             ),
 
-            SizedBox(width: 12.w),
+            SizedBox(width: 32.w),
 
             // Accept button
             GestureDetector(

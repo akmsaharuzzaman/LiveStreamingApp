@@ -172,11 +172,11 @@ class _MenuBottomSheetState extends State<MenuBottomSheet> {
                         ),
 
                         _buildControlOption(
-                          iconPath: "assets/icons/beauty_cam_grid_icon.png",
-                          label: 'Beauty Camera',
+                          iconPath: "assets/icons/sound_off_icon.png",
+                          label: 'Sound Off',
                           onTap: () {
                             Navigator.pop(context);
-                            // Handle beauty camera
+                            // Handle sound off
                           },
                         ),
                         _buildControlOption(
@@ -206,6 +206,7 @@ class _MenuBottomSheetState extends State<MenuBottomSheet> {
     return GestureDetector(
       onTap: onTap,
       child: Column(
+   
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
@@ -215,14 +216,14 @@ class _MenuBottomSheetState extends State<MenuBottomSheet> {
               // color: const Color(0xFF2A2A3E),
               borderRadius: BorderRadius.circular(12.r),
             ),
-            child: Image.asset(iconPath, width: 30.sp, height: 30.sp),
+            child: Image.asset(iconPath, width: 25.w, height: 25.h),
           ),
           SizedBox(height: 8.h),
           Text(
             label,
             style: TextStyle(
               color: Color(0xFF202020),
-              fontSize: 16.sp,
+              fontSize: 15.sp,
               fontWeight: FontWeight.w400,
             ),
             textAlign: TextAlign.center,
