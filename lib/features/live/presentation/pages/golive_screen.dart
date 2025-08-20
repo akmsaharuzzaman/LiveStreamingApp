@@ -653,6 +653,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
       _engine = createAgoraRtcEngine();
       await _engine.initialize(
         RtcEngineContext(
+          logConfig: LogConfig(
+            filePath: 'agora_rtc_engine.log',
+            level: LogLevel.logLevelNone
+          ),
           appId: dotenv.env['AGORA_APP_ID'] ?? '',
           channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
         ),
@@ -709,23 +713,16 @@ class _GoliveScreenState extends State<GoliveScreen> {
           }
         },
         onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
-          debugPrint(
-            "remote user $remoteUid joined channel: ${connection.channelId}",
-          );
-          debugPrint("Current isHost: $isHost, _remoteUid before: $_remoteUid");
+          // Reduced logging: only log important events
+          debugPrint("User $remoteUid joined channel");
 
           setState(() {
             // Only set _remoteUid for the first video user (host)
             if (_remoteUid == null && !isHost) {
               _remoteUid = remoteUid;
-              debugPrint("Set host video UID: $_remoteUid");
             }
             _remoteUsers.add(remoteUid);
           });
-
-          debugPrint(
-            "_remoteUid after: $_remoteUid, total users: ${_remoteUsers.length}",
-          );
 
           // Update viewer count in Firestore
           if (isHost) {
@@ -1920,9 +1917,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   // Main video view with multi-broadcaster support
   Widget _buildVideoView() {
-    debugPrint(
-      "Building video view - isHost: $isHost, _localUserJoined: $_localUserJoined, _remoteUid: $_remoteUid, video callers: ${_videoCallerUids.length}",
-    );
+    // Removed spammy debug print that was called on every rebuild
 
     // Show loading indicator during camera initialization
     if (_isInitializingCamera) {
@@ -2046,9 +2041,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   }) {
     int broadcasterCount = broadcasterUids.length;
 
-    debugPrint(
-      "Building layout for $broadcasterCount broadcasters: $broadcasterUids",
-    );
+    // Removed spammy debug print that was called on every rebuild
 
     if (broadcasterCount == 1) {
       // Single broadcaster - full screen
