@@ -1611,6 +1611,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                       context,
                                       userId: userId,
                                       isHost: isHost,
+                                      isMuted: _muted,
+                                      isAdminMuted: _isCurrentUserMuted(),
+                                      onToggleMute: _toggleMute,
                                     );
                                   },
                                   height: 40.h,

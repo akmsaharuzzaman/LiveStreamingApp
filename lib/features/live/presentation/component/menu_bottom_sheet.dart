@@ -5,13 +5,22 @@ void showMenuBottomSheet(
   BuildContext context, {
   String? userId,
   bool isHost = false,
+  bool? isMuted,
+  bool? isAdminMuted,
+  VoidCallback? onToggleMute,
 }) {
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (context) {
-      return MenuBottomSheet(userId: userId, isHost: isHost);
+      return MenuBottomSheet(
+        userId: userId,
+        isHost: isHost,
+        isMuted: isMuted,
+        isAdminMuted: isAdminMuted,
+        onToggleMute: onToggleMute,
+      );
     },
   );
 }
@@ -19,8 +28,18 @@ void showMenuBottomSheet(
 class MenuBottomSheet extends StatefulWidget {
   final String? userId;
   final bool isHost;
+  final bool? isMuted;
+  final bool? isAdminMuted;
+  final VoidCallback? onToggleMute;
 
-  const MenuBottomSheet({super.key, this.userId, required this.isHost});
+  const MenuBottomSheet({
+    super.key,
+    this.userId,
+    required this.isHost,
+    this.isMuted,
+    this.isAdminMuted,
+    this.onToggleMute,
+  });
 
   @override
   State<MenuBottomSheet> createState() => _MenuBottomSheetState();
@@ -34,6 +53,47 @@ class _MenuBottomSheetState extends State<MenuBottomSheet> {
   void initState() {
     super.initState();
     modalHight = widget.isHost ? 0.7 : 0.20;
+  }
+
+  /// Get the appropriate mute icon based on current state
+  String _getMuteIconPath() {
+    if (widget.isMuted == true) {
+      return "assets/icons/unmute_icon.png"; // Show unmute icon when muted
+    } else {
+      return "assets/icons/mute_icon.png"; // Show mute icon when not muted
+    }
+  }
+
+  /// Get the appropriate label based on current state
+  String _getMuteLabel() {
+    if (widget.isAdminMuted == true) {
+      return 'Muted by Admin'; // Show admin muted status
+    } else if (widget.isMuted == true) {
+      return 'Unmute'; // Show unmute option when muted
+    } else {
+      return 'Mute'; // Show mute option when not muted
+    }
+  }
+
+  /// Handle mute toggle with admin mute check
+  void _handleMuteToggle() {
+    if (widget.isAdminMuted == true && widget.isMuted == true) {
+      // Show snackbar if trying to unmute when admin muted
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            '🔇 You cannot unmute yourself - you have been muted by an admin',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    // Call the toggle mute callback if available
+    widget.onToggleMute?.call();
   }
 
   @override
@@ -146,12 +206,15 @@ class _MenuBottomSheetState extends State<MenuBottomSheet> {
                       childAspectRatio: 0.8,
                       children: [
                         _buildControlOption(
-                          iconPath: "assets/icons/mute_icon.png", // for unmute icon user this -> assets/icons/unmute_icon.png
-                          label: 'Mute',
+                          iconPath: _getMuteIconPath(),
+                          label: _getMuteLabel(),
                           onTap: () {
                             Navigator.pop(context);
-                            // Handle mute
+                            _handleMuteToggle();
                           },
+                          isDisabled:
+                              widget.isAdminMuted == true &&
+                              widget.isMuted == true,
                         ),
                         _buildControlOption(
                           iconPath: "assets/icons/coin_grid_icon.png",
@@ -202,11 +265,11 @@ class _MenuBottomSheetState extends State<MenuBottomSheet> {
     required String iconPath,
     required String label,
     required VoidCallback onTap,
+    bool isDisabled = false,
   }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: isDisabled ? null : onTap,
       child: Column(
-   
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
@@ -216,13 +279,18 @@ class _MenuBottomSheetState extends State<MenuBottomSheet> {
               // color: const Color(0xFF2A2A3E),
               borderRadius: BorderRadius.circular(12.r),
             ),
-            child: Image.asset(iconPath, width: 25.w, height: 25.h),
+            child: Opacity(
+              opacity: isDisabled ? 0.5 : 1.0,
+              child: Image.asset(iconPath, width: 25.w, height: 25.h),
+            ),
           ),
           SizedBox(height: 8.h),
           Text(
             label,
             style: TextStyle(
-              color: Color(0xFF202020),
+              color: isDisabled
+                  ? const Color(0xFF202020).withOpacity(0.5)
+                  : const Color(0xFF202020),
               fontSize: 15.sp,
               fontWeight: FontWeight.w400,
             ),
