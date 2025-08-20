@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svga/flutter_svga.dart';
 
 import '../../../../core/network/models/gift_model.dart';
 
@@ -62,10 +63,8 @@ class _AnimatedLayerState extends State<AnimatedLayer>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Gift animation
-                  Image.asset(
-                    'assets/images/general/gift_animation.gif',
-                    width: 120,
-                    height: 120,
+                  SVGAEasyPlayer(
+                    resUrl: lastGift.gift.svgaImage,
                     fit: BoxFit.cover,
                   ),
                   const SizedBox(height: 10),
