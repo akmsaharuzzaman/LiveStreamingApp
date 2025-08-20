@@ -106,7 +106,7 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
     // 3. If you later want a subtle glass background for normal, add a semi–transparent white here.
 
     final bool isPremium =
-        message.avatar != null; //! TODO: Implement premium message logic
+        message.id == "premium"; // Replace with actual premium check logic
     final BorderRadius radius = BorderRadius.circular(
       8,
     ); // simplified radius like screenshot
