@@ -1,5 +1,6 @@
 import 'dart:async';
 // import 'dart:math'; // removed unused import
+import 'package:flutter/foundation.dart';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
@@ -62,6 +63,14 @@ class GoliveScreen extends StatefulWidget {
 
 class _GoliveScreenState extends State<GoliveScreen> {
   final TextEditingController _titleController = TextEditingController();
+
+  // Debug helper method to control logging based on debug mode
+  void _debugLog(String message) {
+    if (kDebugMode) {
+      // Only log in debug mode, and only essential messages
+      debugPrint(message);
+    }
+  }
 
   final SocketService _socketService = SocketService.instance;
   String? _currentRoomId;
@@ -645,9 +654,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
       }
 
       // Only initialize Agora AFTER permissions are confirmed
-      debugPrint('✅ Permissions granted, initializing Agora engine...');
-      // _showSnackBar('🎥 Initializing camera...', Colors.blue);
-      debugPrint('🎥 Initializing camera...');
+      _debugLog('✅ Permissions granted, initializing Agora engine...');
+      _debugLog('🎥 Initializing camera...');
 
       //create the engine
       _engine = createAgoraRtcEngine();
@@ -705,16 +713,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
           // Show success message
           if (isHost) {
-            // _showSnackBar('🎥 Live stream started!', Colors.green);
-            debugPrint('🎥 Live stream started!');
+            _debugLog('🎥 Live stream started!');
           } else {
-            // _showSnackBar('📺 Connected to stream!', Colors.green);
-            debugPrint('📺 Connected to stream!');
+            _debugLog('📺 Connected to stream!');
           }
         },
         onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
           // Reduced logging: only log important events
-          debugPrint("User $remoteUid joined channel");
+          _debugLog("User $remoteUid joined channel");
 
           setState(() {
             // Only set _remoteUid for the first video user (host)
@@ -737,9 +743,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
               RemoteVideoStateReason reason,
               int elapsed,
             ) {
-              debugPrint(
-                "Remote video state changed for UID $remoteUid: $state",
-              );
+              // Reduced logging for video state changes
 
               setState(() {
                 if (state == RemoteVideoState.remoteVideoStateStarting ||
@@ -748,21 +752,16 @@ class _GoliveScreenState extends State<GoliveScreen> {
                   if (!_videoCallerUids.contains(remoteUid) &&
                       remoteUid != _remoteUid) {
                     _videoCallerUids.add(remoteUid);
-                    debugPrint("Added video caller: $remoteUid");
                   }
                 } else if (state == RemoteVideoState.remoteVideoStateStopped) {
                   // User disabled video
                   _videoCallerUids.remove(remoteUid);
-                  debugPrint("Removed video caller: $remoteUid");
 
                   // Add to audio callers if they're still broadcasting audio
                   if (!_audioCallerUids.contains(remoteUid) &&
                       remoteUid != _remoteUid &&
                       _audioCallerUids.length < _maxAudioCallers) {
                     _audioCallerUids.add(remoteUid);
-                    debugPrint(
-                      "Added to audio callers after video disabled: $remoteUid",
-                    );
                   }
                 }
               });
@@ -775,9 +774,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
               RemoteAudioStateReason reason,
               int elapsed,
             ) {
-              debugPrint(
-                "Remote audio state changed for UID $remoteUid: $state",
-              );
+              // Reduced logging for audio state changes
 
               // Track audio-only users (audio callers)
               if (state == RemoteAudioState.remoteAudioStateStarting ||
@@ -788,15 +785,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
                       remoteUid != _remoteUid &&
                       _audioCallerUids.length < _maxAudioCallers) {
                     _audioCallerUids.add(remoteUid);
-                    debugPrint(
-                      "Added audio caller via audio state: $remoteUid",
-                    );
                   }
                 });
               } else if (state == RemoteAudioState.remoteAudioStateStopped) {
                 setState(() {
                   _audioCallerUids.remove(remoteUid);
-                  debugPrint("Removed audio caller: $remoteUid");
                 });
               }
             },
@@ -806,7 +799,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
               int remoteUid,
               UserOfflineReasonType reason,
             ) {
-              debugPrint("remote user $remoteUid left channel");
+              _debugLog("User $remoteUid left channel");
               setState(() {
                 // Remove from both audio and video callers if they were callers
                 _audioCallerUids.remove(remoteUid);
