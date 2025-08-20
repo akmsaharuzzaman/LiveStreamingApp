@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svga/flutter_svga.dart';
 
 import '../../../../core/network/models/gift_model.dart';
@@ -22,7 +23,7 @@ class _AnimatedLayerState extends State<AnimatedLayer>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 7000),
     );
     _scaleAnimation = Tween<double>(
       begin: 0.8,
@@ -63,9 +64,13 @@ class _AnimatedLayerState extends State<AnimatedLayer>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Gift animation
-                  SVGAEasyPlayer(
-                    resUrl: lastGift.gift.svgaImage,
-                    fit: BoxFit.cover,
+                  SizedBox(
+                    height: 42.h,
+                    width: 42.w,
+                    child: SVGAEasyPlayer(
+                      resUrl: lastGift.gift.svgaImage,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                   const SizedBox(height: 10),
 

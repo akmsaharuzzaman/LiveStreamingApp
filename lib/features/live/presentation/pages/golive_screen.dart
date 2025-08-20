@@ -1168,7 +1168,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     });
 
     // Stop the animation after 2 seconds
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 7), () {
       setState(() {
         _animationPlaying = false;
       });
