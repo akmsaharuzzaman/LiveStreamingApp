@@ -519,6 +519,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   /// Check if current user is an admin
   bool _isCurrentUserAdmin() {
+    print("Checking if user is admin");
     if (userId == null) return false;
 
     for (var adminModel in adminModels) {
@@ -1632,12 +1633,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   ? authState.user.id
                                   : userId;
 
-                              if (broadcaster.id == currentUserId) {
-                                return WhoAmI.myself;
-                              } else if (_isCurrentUserAdmin()) {
+                              if (_isCurrentUserAdmin()) {
                                 return WhoAmI.admin;
                               } else if (_isCurrentUserHost()) {
                                 return WhoAmI.host;
+                              } else if (broadcaster.id == currentUserId) {
+                                return WhoAmI.myself;
                               } else {
                                 return WhoAmI.user;
                               }
@@ -1842,12 +1843,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   ? authState.user.id
                                   : userId;
 
-                              if (broadcaster.id == currentUserId) {
-                                return WhoAmI.myself;
-                              } else if (_isCurrentUserAdmin()) {
+                              if (_isCurrentUserAdmin()) {
                                 return WhoAmI.admin;
                               } else if (_isCurrentUserHost()) {
                                 return WhoAmI.host;
+                              } else if (broadcaster.id == currentUserId) {
+                                return WhoAmI.myself;
                               } else {
                                 return WhoAmI.user;
                               }

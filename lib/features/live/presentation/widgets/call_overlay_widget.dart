@@ -293,6 +293,7 @@ class _CallOverlayWidgetState extends State<CallOverlayWidget> {
       link: _layerLink,
       child: GestureDetector(
         onTap: () {
+          print("Overlay tapped");
           if (widget.whoAmI == WhoAmI.host || widget.whoAmI == WhoAmI.admin) {
             _showOptionsOverlay();
           }
