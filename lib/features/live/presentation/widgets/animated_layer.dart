@@ -23,7 +23,7 @@ class _AnimatedLayerState extends State<AnimatedLayer>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 7000),
+      duration: const Duration(milliseconds: 7000), // 7 seconds duration
     );
     _scaleAnimation = Tween<double>(
       begin: 0.8,
@@ -33,7 +33,17 @@ class _AnimatedLayerState extends State<AnimatedLayer>
       begin: 0.0,
       end: 1.0,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
+    
+    // Start the animation
     _controller.forward();
+    
+    // Auto-hide after animation completes
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        // Start fade out animation
+        _controller.reverse();
+      }
+    });
   }
 
   @override
@@ -57,58 +67,63 @@ class _AnimatedLayerState extends State<AnimatedLayer>
         animation: _controller,
         builder: (context, child) => Opacity(
           opacity: _opacityAnimation.value,
-          child: Center(
-            child: ScaleTransition(
-              scale: _scaleAnimation,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Gift animation
-                  SizedBox(
-                    height: 42.h,
-                    width: 42.w,
-                    child: SVGAEasyPlayer(
-                      resUrl: lastGift.gift.svgaImage,
-                      fit: BoxFit.cover,
-                    ),
+          child: Stack(
+            children: [
+              // Fullscreen SVGA animation
+              Positioned.fill(
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: SVGAEasyPlayer(
+                    resUrl: lastGift.gift.svgaImage,
+                    fit: BoxFit.cover,
                   ),
-                  const SizedBox(height: 10),
-
-                  // Gift details - simple text overlay
-                  Text(
-                    '${lastGift.name} sent ${lastGift.gift.name}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      shadows: [
-                        Shadow(
-                          offset: Offset(1, 1),
-                          blurRadius: 3,
-                          color: Colors.black54,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${lastGift.diamonds} diamonds',
-                    style: const TextStyle(
-                      color: Colors.yellow,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      shadows: [
-                        Shadow(
-                          offset: Offset(1, 1),
-                          blurRadius: 3,
-                          color: Colors.black54,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+              
+              // Text overlay on top
+              Positioned(
+                top: 100.h, // Adjust position as needed
+                left: 20.w,
+                right: 20.w,
+                child: Column(
+                  children: [
+                    Text(
+                      '${lastGift.name} sent ${lastGift.gift.name}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                        shadows: const [
+                          Shadow(
+                            offset: Offset(2, 2),
+                            blurRadius: 4,
+                            color: Colors.black87,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${lastGift.diamonds} diamonds',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.yellow,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
+                        shadows: const [
+                          Shadow(
+                            offset: Offset(2, 2),
+                            blurRadius: 4,
+                            color: Colors.black87,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
