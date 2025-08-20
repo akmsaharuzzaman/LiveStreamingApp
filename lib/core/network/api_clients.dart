@@ -475,14 +475,17 @@ class GiftApiClient {
 
   /// Send gift to a user
   Future<ApiResponse<Map<String, dynamic>>> sendGift({
-    required String userId,
+    required List<String> userIds,
     required String roomId,
     required String giftId,
+    required int qty,
   }) async {
-    print('Sending gift: userId=$userId, roomId=$roomId, giftId=$giftId');
+    print(
+      'Sending gift: userIds=$userIds, roomId=$roomId, giftId=$giftId, qty=$qty',
+    );
     final response = await _apiService.put<Map<String, dynamic>>(
       '/api/auth/user/gift',
-      data: {'userId': userId, 'roomId': roomId, 'giftId': giftId},
+      data: {'userId': userIds, 'roomId': roomId, 'giftId': giftId, 'qty': qty},
     );
 
     return response.fold(

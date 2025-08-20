@@ -61,7 +61,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
   String? _selectedGiftId;
   int _giftQuantity = 1;
   int _currentBalance = 0; // Will be loaded from API
-  String? _selectedUserId; // null means send to host
+  Set<String> _selectedUserIds = {}; // Changed to Set for multiple selection
   bool _isLoading = true;
   bool _isSending = false;
   List<Gift> _allGifts = [];
@@ -190,11 +190,17 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                           GestureDetector(
                             onTap: () {
                               setState(() {
-                                _selectedUserId = null; // null means host
+                                if (_selectedUserIds.contains(
+                                  widget.hostUserId!,
+                                )) {
+                                  _selectedUserIds.remove(widget.hostUserId!);
+                                } else {
+                                  _selectedUserIds.add(widget.hostUserId!);
+                                }
                               });
                             },
                             child: _buildUserAvatar(
-                              _selectedUserId == null,
+                              _selectedUserIds.contains(widget.hostUserId!),
                               widget.hostAvatar ??
                                   'https://thispersondoesnotexist.com/',
                               widget.hostName ?? 'Host',
@@ -211,11 +217,15 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                             child: GestureDetector(
                               onTap: () {
                                 setState(() {
-                                  _selectedUserId = viewer.id;
+                                  if (_selectedUserIds.contains(viewer.id)) {
+                                    _selectedUserIds.remove(viewer.id);
+                                  } else {
+                                    _selectedUserIds.add(viewer.id);
+                                  }
                                 });
                               },
                               child: _buildUserAvatar(
-                                _selectedUserId == viewer.id,
+                                _selectedUserIds.contains(viewer.id),
                                 viewer.avatar.isNotEmpty
                                     ? viewer.avatar
                                     : 'https://thispersondoesnotexist.com/',
@@ -232,7 +242,22 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                 GestureDetector(
                   onTap: () {
                     setState(() {
-                      _selectedUserId = 'all';
+                      // Check if all users are selected
+                      Set<String> allUserIds = {};
+                      if (widget.hostUserId != null)
+                        allUserIds.add(widget.hostUserId!);
+                      allUserIds.addAll(widget.activeViewers.map((v) => v.id));
+
+                      if (_selectedUserIds.length == allUserIds.length &&
+                          allUserIds.every(
+                            (id) => _selectedUserIds.contains(id),
+                          )) {
+                        // All are selected, deselect all
+                        _selectedUserIds.clear();
+                      } else {
+                        // Not all are selected, select all
+                        _selectedUserIds = allUserIds;
+                      }
                     });
                   },
                   child: Container(
@@ -241,14 +266,40 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                       vertical: 8.h,
                     ),
                     decoration: BoxDecoration(
-                      color: _selectedUserId == 'all'
-                          ? const Color(0xFFE91E63)
-                          : const Color(0xFF2A2A3E),
+                      color: () {
+                        Set<String> allUserIds = {};
+                        if (widget.hostUserId != null)
+                          allUserIds.add(widget.hostUserId!);
+                        allUserIds.addAll(
+                          widget.activeViewers.map((v) => v.id),
+                        );
+                        bool allSelected =
+                            _selectedUserIds.length == allUserIds.length &&
+                            allUserIds.every(
+                              (id) => _selectedUserIds.contains(id),
+                            );
+                        return allSelected
+                            ? const Color(0xFFE91E63)
+                            : const Color(0xFF2A2A3E);
+                      }(),
                       borderRadius: BorderRadius.circular(20.r),
                       border: Border.all(
-                        color: _selectedUserId == 'all'
-                            ? const Color(0xFFE91E63)
-                            : Colors.white24,
+                        color: () {
+                          Set<String> allUserIds = {};
+                          if (widget.hostUserId != null)
+                            allUserIds.add(widget.hostUserId!);
+                          allUserIds.addAll(
+                            widget.activeViewers.map((v) => v.id),
+                          );
+                          bool allSelected =
+                              _selectedUserIds.length == allUserIds.length &&
+                              allUserIds.every(
+                                (id) => _selectedUserIds.contains(id),
+                              );
+                          return allSelected
+                              ? const Color(0xFFE91E63)
+                              : Colors.white24;
+                        }(),
                         width: 2,
                       ),
                     ),
@@ -265,12 +316,36 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                         ),
                         SizedBox(width: 4.w),
                         Icon(
-                          _selectedUserId == 'all'
-                              ? Icons.check_circle
-                              : Icons.check_circle_outline,
-                          color: _selectedUserId == 'all'
-                              ? Colors.white
-                              : Colors.white54,
+                          () {
+                            Set<String> allUserIds = {};
+                            if (widget.hostUserId != null)
+                              allUserIds.add(widget.hostUserId!);
+                            allUserIds.addAll(
+                              widget.activeViewers.map((v) => v.id),
+                            );
+                            bool allSelected =
+                                _selectedUserIds.length == allUserIds.length &&
+                                allUserIds.every(
+                                  (id) => _selectedUserIds.contains(id),
+                                );
+                            return allSelected
+                                ? Icons.check_circle
+                                : Icons.check_circle_outline;
+                          }(),
+                          color: () {
+                            Set<String> allUserIds = {};
+                            if (widget.hostUserId != null)
+                              allUserIds.add(widget.hostUserId!);
+                            allUserIds.addAll(
+                              widget.activeViewers.map((v) => v.id),
+                            );
+                            bool allSelected =
+                                _selectedUserIds.length == allUserIds.length &&
+                                allUserIds.every(
+                                  (id) => _selectedUserIds.contains(id),
+                                );
+                            return allSelected ? Colors.white : Colors.white54;
+                          }(),
                           size: 16.sp,
                         ),
                       ],
@@ -461,7 +536,10 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                 // Send button
                 GestureDetector(
                   // --- CORRECTED CONDITION ---
-                  onTap: (_selectedGiftId != null && !_isSending)
+                  onTap:
+                      (_selectedGiftId != null &&
+                          _selectedUserIds.isNotEmpty &&
+                          !_isSending)
                       ? _sendGift
                       : null,
                   child: Container(
@@ -470,18 +548,27 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                       vertical: 12.h,
                     ),
                     decoration: BoxDecoration(
-                      gradient: (_selectedGiftId != null && !_isSending)
+                      gradient:
+                          (_selectedGiftId != null &&
+                              _selectedUserIds.isNotEmpty &&
+                              !_isSending)
                           ? const LinearGradient(
                               colors: [Color(0xFFFF6B9D), Color(0xFFE91E63)],
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                             )
                           : null,
-                      color: (_selectedGiftId == null || _isSending)
+                      color:
+                          (_selectedGiftId == null ||
+                              _selectedUserIds.isEmpty ||
+                              _isSending)
                           ? Colors.grey[600]
                           : null,
                       borderRadius: BorderRadius.circular(25.r),
-                      boxShadow: (_selectedGiftId != null && !_isSending)
+                      boxShadow:
+                          (_selectedGiftId != null &&
+                              _selectedUserIds.isNotEmpty &&
+                              !_isSending)
                           ? [
                               BoxShadow(
                                 color: const Color(0xFFE91E63).withOpacity(0.3),
@@ -686,6 +773,17 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
       return;
     }
 
+    if (_selectedUserIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select at least one recipient!'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     // --- CORRECTED LOGIC ---
     // Find the selected gift from the main list using its ID.
     final selectedGift = _allGifts.firstWhere((g) => g.id == _selectedGiftId);
@@ -702,46 +800,12 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
     });
 
     try {
-      // Determine recipients
-      List<String> recipientIds = [];
-      String successRecipientLabel = '';
-      int recipientCount = 1;
+      // Prepare recipient information
+      List<String> recipientIds = _selectedUserIds.toList();
+      int recipientCount = recipientIds.length;
 
-      if (_selectedUserId == null) {
-        // Host only
-        if (widget.hostUserId == null) {
-          _showError('Host information not available');
-          setState(() => _isSending = false);
-          return;
-        }
-        recipientIds = [widget.hostUserId!];
-        successRecipientLabel = widget.hostName ?? 'Host';
-      } else if (_selectedUserId == 'all') {
-        // Host + all active viewers
-        final ids = <String>{};
-        if (widget.hostUserId != null) ids.add(widget.hostUserId!);
-        ids.addAll(widget.activeViewers.map((v) => v.id));
-        recipientIds = ids.toList();
-        recipientCount = recipientIds.length;
-        successRecipientLabel = 'All ($recipientCount)';
-      } else {
-        // Specific viewer
-        try {
-          final viewer = widget.activeViewers.firstWhere(
-            (v) => v.id == _selectedUserId,
-          );
-          recipientIds = [viewer.id];
-          successRecipientLabel = viewer.name;
-        } catch (e) {
-          _showError('Selected viewer not found');
-          setState(() => _isSending = false);
-          return;
-        }
-      }
-
-      // Calculate total cost based on recipients
-      final totalCost =
-          selectedGift.coinPrice * _giftQuantity * recipientIds.length;
+      // Calculate total cost based on recipients and quantity
+      final totalCost = selectedGift.coinPrice * _giftQuantity * recipientCount;
 
       if (totalCost > _currentBalance) {
         setState(() => _isSending = false);
@@ -758,36 +822,47 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
         return;
       }
 
-      // Send gift for each recipient and quantity
-      bool allSuccessful = true;
-      String errorMessage = '';
+      // Send gift using new API with multiple recipients and quantity
+      final response = await _giftApiClient.sendGift(
+        userIds: recipientIds,
+        roomId: widget.roomId,
+        giftId: selectedGift.id,
+        qty: _giftQuantity,
+      );
 
-      for (final recipientId in recipientIds) {
-        for (int i = 0; i < _giftQuantity; i++) {
-          final response = await _giftApiClient.sendGift(
-            userId: recipientId,
-            roomId: widget.roomId,
-            giftId: selectedGift.id,
-          );
-          if (!response.isSuccess) {
-            allSuccessful = false;
-            errorMessage = response.message ?? 'Failed to send gift';
-            break;
-          }
-        }
-        if (!allSuccessful) break;
-      }
-
-      if (allSuccessful) {
+      if (response.isSuccess) {
         setState(() {
           _currentBalance -= totalCost;
         });
+
+        // Prepare success message
+        String recipientNames = '';
+        if (recipientCount == 1) {
+          // Single recipient
+          if (recipientIds.first == widget.hostUserId) {
+            recipientNames = widget.hostName ?? 'Host';
+          } else {
+            final viewer = widget.activeViewers.firstWhere(
+              (v) => v.id == recipientIds.first,
+              orElse: () => JoinedUserModel(
+                id: recipientIds.first,
+                name: 'User',
+                avatar: '',
+                uid: recipientIds.first,
+              ),
+            );
+            recipientNames = viewer.name;
+          }
+        } else {
+          // Multiple recipients
+          recipientNames = 'All ($recipientCount)';
+        }
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Sent ${selectedGift.name} x$_giftQuantity to $successRecipientLabel!',
+                'Sent ${selectedGift.name} x$_giftQuantity to $recipientNames!',
                 style: const TextStyle(color: Colors.white),
               ),
               backgroundColor: const Color(0xFFE91E63),
@@ -801,7 +876,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
           // --- CORRECTED RESET ---
           _selectedGiftId = null;
           _giftQuantity = 1;
-          _selectedUserId = null; // Default back to the host
+          _selectedUserIds.clear(); // Clear all selected users
           _isSending = false;
         });
 
@@ -813,7 +888,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
         });
       } else {
         setState(() => _isSending = false);
-        _showError('Failed to send gift: $errorMessage');
+        _showError('Failed to send gift: ${response.message}');
       }
     } catch (e) {
       setState(() => _isSending = false);
