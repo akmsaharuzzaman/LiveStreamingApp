@@ -80,8 +80,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
   List<String> bannedUsers = [];
   // Banned user details
   List<BanUserModel> bannedUserModels = [];
-  // Mute user details
-  List<MuteUserModel> mutedUserModels = [];
+  // Mute user details - store only the latest mute state
+  MuteUserModel? currentMuteState;
   //Admin Details
   List<AdminDetailsModel> adminModels = [];
 
@@ -356,7 +356,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
     _socketService.muteUserStream.listen((data) {
       if (mounted) {
         setState(() {
-          mutedUserModels.add(data);
+          // Store only the latest mute state which contains all muted users
+          currentMuteState = data;
         });
         debugPrint(
           "User muted: ${data.allMutedUsersList} - ${data.lastUserIsMuted}",
@@ -485,14 +486,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   /// Check if current user is in the muted users list
   bool _isCurrentUserMuted() {
-    if (userId == null) return false;
+    if (userId == null || currentMuteState == null) return false;
 
-    for (var muteModel in mutedUserModels) {
-      if (muteModel.allMutedUsersList.contains(userId)) {
-        return true;
-      }
-    }
-    return false;
+    // Check if current user is in the complete list of muted users
+    return currentMuteState!.allMutedUsersList.contains(userId);
   }
 
   /// Force mute current user when they are administratively muted
@@ -1664,40 +1661,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   ? broadcaster.avatar
                                   : null, // null will show placeholder
                               onDisconnect: () {
-                                // Handle disconnect for this broadcaster
-                                if (checkRole(broadcaster.id) == WhoAmI.host ||
-                                    checkRole(broadcaster.id) ==
-                                        WhoAmI.myself ||
-                                    checkRole(broadcaster.id) == WhoAmI.admin) {
-                                  _socketService.removeBroadcaster(
-                                    broadcaster.id,
-                                  );
-                                  debugPrint(
-                                    "Disconnecting broadcaster: ${broadcaster.id}",
-                                  );
-                                } else {
-                                  _showSnackBar(
-                                    '🚫 You cannot disconnect this user',
-                                    Colors.red,
-                                  );
-                                }
+                                _socketService.removeBroadcaster(
+                                  broadcaster.id,
+                                );
                               },
                               onMute: () {
-                                if (checkRole(broadcaster.id) ==
-                                        WhoAmI.myself &&
-                                    !_isCurrentUserMuted()) {
-                                  _toggleMute();
-                                } else if (checkRole(broadcaster.id) ==
-                                        WhoAmI.host ||
-                                    checkRole(broadcaster.id) == WhoAmI.admin) {
-                                  // Handle mute for this broadcaster
-                                  _muteUser(broadcaster.id);
-                                } else {
-                                  _showSnackBar(
-                                    '🚫 You cannot mute this user',
-                                    Colors.red,
-                                  );
-                                }
+                                _muteUser(broadcaster.id);
                               },
                               onManage: () {
                                 // No-op here; bottom sheet handles actions
@@ -1902,43 +1871,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   ? broadcaster.avatar
                                   : null, // null will show placeholder
                               onDisconnect: () {
-                                // Handle disconnect for this broadcaster
-                                if (checkHostRole(broadcaster.id) ==
-                                        WhoAmI.host ||
-                                    checkHostRole(broadcaster.id) ==
-                                        WhoAmI.myself ||
-                                    checkHostRole(broadcaster.id) ==
-                                        WhoAmI.admin) {
-                                  _socketService.removeBroadcaster(
-                                    broadcaster.id,
-                                  );
-                                  debugPrint(
-                                    "Disconnecting broadcaster: ${broadcaster.id}",
-                                  );
-                                } else {
-                                  _showSnackBar(
-                                    '🚫 You cannot disconnect this user',
-                                    Colors.red,
-                                  );
-                                }
+                                _socketService.removeBroadcaster(
+                                  broadcaster.id,
+                                );
                               },
                               onMute: () {
-                                if (checkHostRole(broadcaster.id) ==
-                                        WhoAmI.myself &&
-                                    !_isCurrentUserMuted()) {
-                                  _toggleMute();
-                                } else if (checkHostRole(broadcaster.id) ==
-                                        WhoAmI.host ||
-                                    checkHostRole(broadcaster.id) ==
-                                        WhoAmI.admin) {
-                                  // Handle mute for this broadcaster
-                                  _muteUser(broadcaster.id);
-                                } else {
-                                  _showSnackBar(
-                                    '🚫 You cannot mute this user',
-                                    Colors.red,
-                                  );
-                                }
+                                _muteUser(broadcaster.id);
                               },
                               onManage: () {
                                 // No-op; actions are fired from bottom sheet
