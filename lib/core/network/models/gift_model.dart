@@ -1,15 +1,17 @@
 class GiftModel {
   final String? avatar;
   final String name;
-  final String recieverId;
+  final List<String> recieverIds;
   final int diamonds;
+  final int qty;
   final Gift gift;
 
   GiftModel({
     this.avatar,
     required this.name,
-    required this.recieverId,
+    required this.recieverIds,
     required this.diamonds,
+    required this.qty,
     required this.gift,
   });
 
@@ -17,8 +19,9 @@ class GiftModel {
     return GiftModel(
       avatar: json['avatar'] as String?,
       name: json['name'] as String,
-      recieverId: json['recieverId'] as String,
+      recieverIds: List<String>.from(json['recieverIds'] as List),
       diamonds: json['diamonds'] as int,
+      qty: json['qty'] as int,
       gift: Gift.fromJson(json['gift'] as Map<String, dynamic>),
     );
   }
@@ -27,11 +30,13 @@ class GiftModel {
     return {
       'avatar': avatar,
       'name': name,
-      'recieverId': recieverId,
+      'recieverIds': recieverIds,
       'diamonds': diamonds,
+      'qty': qty,
       'gift': gift.toJson(),
     };
   }
+
   static int totalDiamonds(List<GiftModel> gifts) {
     return gifts.fold(0, (sum, gift) => sum + gift.diamonds);
   }
@@ -91,6 +96,4 @@ class Gift {
       '__v': v,
     };
   }
-
-  
 }
