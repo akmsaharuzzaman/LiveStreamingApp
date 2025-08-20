@@ -483,6 +483,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
     _socketService.makeAdmin(userId);
   }
 
+  // Remove Admin
+  void _removeAdmin(String userId) {
+    _socketService.makeAdmin(userId);
+  }
+
   /// Ban User
   void _banUser(String userId) {
     _socketService.banUser(userId);
@@ -519,7 +524,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   /// Check if current user is an admin
   bool _isCurrentUserAdmin() {
-    print("Checking if user is admin");
     if (userId == null) return false;
 
     for (var adminModel in adminModels) {
@@ -1669,6 +1673,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 _makeAdmin(id);
                                 _showSnackBar('👑 Set as admin', Colors.green);
                               },
+                              onRemoveAdmin: (id) {
+                                _removeAdmin(id);
+                                _showSnackBar(
+                                  '👤 Admin removed',
+                                  Colors.orange,
+                                );
+                              },
+                              adminModels: adminModels,
                               onMuteUser: (id) {
                                 _muteUser(id);
                                 _showSnackBar('🔇 User muted', Colors.orange);
@@ -1879,6 +1891,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 _makeAdmin(id);
                                 _showSnackBar('👑 Set as admin', Colors.green);
                               },
+                              onRemoveAdmin: (id) {
+                                _removeAdmin(id);
+                                _showSnackBar(
+                                  '👤 Admin removed',
+                                  Colors.orange,
+                                );
+                              },
+                              adminModels: adminModels,
                               onMuteUser: (id) {
                                 _muteUser(id);
                                 _showSnackBar('🔇 User muted', Colors.orange);

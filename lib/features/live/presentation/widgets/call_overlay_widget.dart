@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/network/models/admin_details_model.dart';
 
 enum WhoAmI { user, admin, host, myself }
 
@@ -13,9 +14,11 @@ class CallOverlayWidget extends StatefulWidget {
   final VoidCallback? onManage;
   // Manage actions
   final ValueChanged<String>? onSetAdmin; // userId
+  final ValueChanged<String>? onRemoveAdmin; // userId - NEW
   final ValueChanged<String>? onMuteUser; // userId
   final ValueChanged<String>? onKickOut; // userId (alias of ban)
   final ValueChanged<String>? onBanUser; // userId
+  final List<AdminDetailsModel> adminModels; // NEW
   final WhoAmI whoAmI;
 
   const CallOverlayWidget({
@@ -27,9 +30,11 @@ class CallOverlayWidget extends StatefulWidget {
     this.onMute,
     this.onManage,
     this.onSetAdmin,
+    this.onRemoveAdmin,
     this.onMuteUser,
     this.onKickOut,
     this.onBanUser,
+    this.adminModels = const [],
     required this.whoAmI,
   });
 
@@ -40,6 +45,12 @@ class CallOverlayWidget extends StatefulWidget {
 class _CallOverlayWidgetState extends State<CallOverlayWidget> {
   final LayerLink _layerLink = LayerLink();
   OverlayEntry? _optionsOverlay;
+
+  /// Check if the current user is already an admin
+  bool _isCurrentUserAdmin() {
+    if (widget.userId == null) return false;
+    return widget.adminModels.any((admin) => admin.id == widget.userId);
+  }
 
   void _hideOptionsOverlay() {
     _optionsOverlay?.remove();
@@ -201,12 +212,16 @@ class _CallOverlayWidgetState extends State<CallOverlayWidget> {
             children: [
               _manageTile(
                 Icons.admin_panel_settings,
-                'Set Admin',
+                _isCurrentUserAdmin() ? 'Remove Admin' : 'Set Admin',
                 onTap: () {
                   Navigator.pop(context);
                   final id = widget.userId;
                   if (id != null) {
-                    widget.onSetAdmin?.call(id);
+                    if (_isCurrentUserAdmin()) {
+                      widget.onRemoveAdmin?.call(id);
+                    } else {
+                      widget.onSetAdmin?.call(id);
+                    }
                   }
                 },
               ),
