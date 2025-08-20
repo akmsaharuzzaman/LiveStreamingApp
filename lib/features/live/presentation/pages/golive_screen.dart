@@ -33,6 +33,7 @@ import '../component/diamond_star_status.dart';
 import '../component/end_stream_overlay.dart';
 import '../component/game_bottomsheet.dart';
 import '../component/host_info.dart';
+import '../component/menu_bottom_sheet.dart';
 import '../widgets/animated_layer.dart';
 import '../widgets/call_manage_bottom_sheet.dart';
 import '../widgets/live_chat_widget.dart';
@@ -1602,7 +1603,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 ),
                                 CustomLiveButton(
                                   iconPath: "assets/icons/menu_icon.png",
-                                  onTap: () {},
+                                  onTap: () {
+                                    showMenuBottomSheet(
+                                      context,
+                                      userId: userId,
+                                      isHost: isHost,
+                                    );
+                                  },
                                   height: 40.h,
                                 ),
                               ],
