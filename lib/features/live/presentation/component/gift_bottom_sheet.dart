@@ -55,7 +55,7 @@ class GiftBottomSheet extends StatefulWidget {
 
 class _GiftBottomSheetState extends State<GiftBottomSheet>
     with TickerProviderStateMixin {
-  late TabController _tabController;
+  TabController? _tabController;
   // --- CORRECTED STATE ---
   // Store the ID of the selected gift instead of its index.
   String? _selectedGiftId;
@@ -65,25 +65,15 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
   bool _isLoading = true;
   bool _isSending = false;
   List<Gift> _allGifts = [];
+  List<String> _dynamicTabs = []; // Will be populated with categories from API
 
   final GiftApiClient _giftApiClient = getIt<GiftApiClient>();
   final UserApiClient _userApiClient = getIt<UserApiClient>();
 
-  // Categories for gifts
-  final List<String> _tabs = ['Recent', 'Hot', 'SVIP', 'Nobel', 'Package'];
-
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
-    _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        // Reset selection when tab changes
-        setState(() {
-          _selectedGiftId = null;
-        });
-      }
-    });
+    // Don't initialize TabController yet, will be created after loading gifts
     _loadGifts();
     _loadUserBalance();
   }
@@ -115,10 +105,43 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
     try {
       final response = await _giftApiClient.getAllGifts();
       if (response.isSuccess && response.data != null) {
+        final gifts = response.data!;
+
+        // Extract unique categories from gifts, filtering out null/empty values
+        final categories = gifts
+            .map((gift) => gift.category)
+            .where((category) => category.isNotEmpty)
+            .toSet()
+            .toList();
+        categories.sort(); // Sort alphabetically
+
+        // Create dynamic tabs: only sorted categories (no Recent tab)
+        final newTabs = categories;
+
         setState(() {
-          _allGifts = response.data!;
+          _allGifts = gifts;
+          _dynamicTabs = newTabs;
           _isLoading = false;
         });
+
+        // Create TabController with new length (dispose old one if exists)
+        if (_dynamicTabs.isNotEmpty) {
+          // Dispose old controller if it exists
+          _tabController?.dispose();
+
+          _tabController = TabController(
+            length: _dynamicTabs.length,
+            vsync: this,
+          );
+          _tabController!.addListener(() {
+            if (!_tabController!.indexIsChanging) {
+              // Reset selection when tab changes
+              setState(() {
+                _selectedGiftId = null;
+              });
+            }
+          });
+        }
       } else {
         setState(() {
           _isLoading = false;
@@ -146,7 +169,8 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
 
   @override
   void dispose() {
-    _tabController.dispose();
+    // Only dispose if TabController was initialized
+    _tabController?.dispose();
     super.dispose();
   }
 
@@ -372,27 +396,28 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
 
           SizedBox(height: 8.h),
 
-          // Tabs
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 16.w),
-            child: TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              indicatorColor: const Color(0xFFE91E63),
-              indicatorWeight: 2,
-              labelColor: const Color(0xFFE91E63),
-              unselectedLabelColor: Colors.white70,
-              labelStyle: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w600,
+          // Tabs - only show when data is loaded
+          if (!_isLoading && _dynamicTabs.isNotEmpty && _tabController != null)
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 16.w),
+              child: TabBar(
+                controller: _tabController!,
+                isScrollable: true,
+                indicatorColor: const Color(0xFFE91E63),
+                indicatorWeight: 2,
+                labelColor: const Color(0xFFE91E63),
+                unselectedLabelColor: Colors.white70,
+                labelStyle: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+                unselectedLabelStyle: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w400,
+                ),
+                tabs: _dynamicTabs.map((tab) => Tab(text: tab)).toList(),
               ),
-              unselectedLabelStyle: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w400,
-              ),
-              tabs: _tabs.map((tab) => Tab(text: tab)).toList(),
             ),
-          ),
 
           // Gift grid
           Expanded(
@@ -400,23 +425,24 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                 ? const Center(
                     child: CircularProgressIndicator(color: Color(0xFFE91E63)),
                   )
+                : _dynamicTabs.isEmpty || _tabController == null
+                ? const Center(
+                    child: Text(
+                      'No gift categories available',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  )
                 : TabBarView(
-                    controller: _tabController,
-                    children: _tabs.map((category) {
-                      List<Gift> categoryGifts;
-                      if (category == 'Recent') {
-                        // Show all gifts for Recent tab
-                        categoryGifts = _allGifts;
-                      } else {
-                        // Filter by exact category match
-                        categoryGifts = _allGifts
-                            .where(
-                              (gift) =>
-                                  gift.category.toLowerCase() ==
-                                  category.toLowerCase(),
-                            )
-                            .toList();
-                      }
+                    controller: _tabController!,
+                    children: _dynamicTabs.map((category) {
+                      // Filter by exact category match
+                      final categoryGifts = _allGifts
+                          .where(
+                            (gift) =>
+                                gift.category.toLowerCase() ==
+                                category.toLowerCase(),
+                          )
+                          .toList();
                       return _buildGiftGrid(categoryGifts, category);
                     }).toList(),
                   ),
@@ -788,13 +814,6 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
     // Find the selected gift from the main list using its ID.
     final selectedGift = _allGifts.firstWhere((g) => g.id == _selectedGiftId);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Sending gift...'),
-        backgroundColor: Colors.blue,
-        duration: Duration(seconds: 5),
-      ),
-    );
     setState(() {
       _isSending = true;
     });
@@ -834,42 +853,6 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
         setState(() {
           _currentBalance -= totalCost;
         });
-
-        // Prepare success message
-        String recipientNames = '';
-        if (recipientCount == 1) {
-          // Single recipient
-          if (recipientIds.first == widget.hostUserId) {
-            recipientNames = widget.hostName ?? 'Host';
-          } else {
-            final viewer = widget.activeViewers.firstWhere(
-              (v) => v.id == recipientIds.first,
-              orElse: () => JoinedUserModel(
-                id: recipientIds.first,
-                name: 'User',
-                avatar: '',
-                uid: recipientIds.first,
-              ),
-            );
-            recipientNames = viewer.name;
-          }
-        } else {
-          // Multiple recipients
-          recipientNames = 'All ($recipientCount)';
-        }
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Sent ${selectedGift.name} x$_giftQuantity to $recipientNames!',
-                style: const TextStyle(color: Colors.white),
-              ),
-              backgroundColor: const Color(0xFFE91E63),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
 
         // Reset selection
         setState(() {
