@@ -405,12 +405,15 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
           // Tabs - only show when data is loaded
           if (!_isLoading && _dynamicTabs.isNotEmpty && _tabController != null)
             Container(
+              alignment: Alignment.centerLeft,
               margin: EdgeInsets.symmetric(horizontal: 16.w),
               child: TabBar(
                 controller: _tabController!,
                 isScrollable: true,
+                tabAlignment: TabAlignment.start,
                 indicatorColor: const Color(0xFFE91E63),
-                indicatorWeight: 2,
+                indicatorWeight: .1,
+                dividerColor: Colors.transparent,
                 labelColor: const Color(0xFFE91E63),
                 unselectedLabelColor: Colors.white70,
                 labelStyle: TextStyle(
