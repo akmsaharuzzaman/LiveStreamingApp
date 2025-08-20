@@ -6,6 +6,7 @@ import 'package:dlstarlive/core/network/models/gift_model.dart';
 import 'package:dlstarlive/core/network/models/joined_user_model.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/injection/injection.dart';
+import 'package:flutter_svga/flutter_svga.dart';
 
 import '../../../../core/utils/app_utils.dart';
 
@@ -721,28 +722,15 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // Use network image for gift preview
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8.r),
-                      child: Image.network(
-                        gift.previewImage,
-                        width: 42.w,
-                        height: 42.h,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            width: 42.w,
-                            height: 42.h,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[600],
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            child: Icon(
-                              Icons.card_giftcard,
-                              color: Colors.white,
-                              size: 20.sp,
-                            ),
-                          );
-                        },
+                    SizedBox(
+                      height: 42.h,
+                      width: 42.w,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8.r),
+                        child: SVGAEasyPlayer(
+                          resUrl: gift.svgaImage,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                     SizedBox(height: 4.h),
