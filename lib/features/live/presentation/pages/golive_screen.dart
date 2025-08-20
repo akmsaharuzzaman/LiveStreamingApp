@@ -2071,22 +2071,22 @@ class _GoliveScreenState extends State<GoliveScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-              SizedBox(height: 20.h),
-              Text(
-                'Host is disconnected',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(height: 10.h),
-              Text(
-                'Please wait...',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 14),
-              ),
+              // SizedBox(height: 20.h),
+              // Text(
+              //   'Host is disconnected',
+              //   textAlign: TextAlign.center,
+              //   style: TextStyle(
+              //     color: Colors.white,
+              //     fontSize: 18.sp,
+              //     fontWeight: FontWeight.w500,
+              //   ),
+              // ),
+              // SizedBox(height: 10.h),
+              // Text(
+              //   'Please wait...',
+              //   textAlign: TextAlign.center,
+              //   style: TextStyle(color: Colors.grey, fontSize: 14),
+              // ),
             ],
           ),
         ),

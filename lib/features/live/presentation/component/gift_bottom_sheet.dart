@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dlstarlive/core/network/api_clients.dart';
 import 'package:dlstarlive/core/network/models/gift_model.dart';
 import 'package:dlstarlive/core/network/models/joined_user_model.dart';
+import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/injection/injection.dart';
+
+import '../../../../core/utils/app_utils.dart';
 
 void showGiftBottomSheet(
   BuildContext context, {
@@ -56,13 +60,14 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
   // Store the ID of the selected gift instead of its index.
   String? _selectedGiftId;
   int _giftQuantity = 1;
-  int _currentBalance = 150000;
+  int _currentBalance = 0; // Will be loaded from API
   String? _selectedUserId; // null means send to host
   bool _isLoading = true;
   bool _isSending = false;
   List<Gift> _allGifts = [];
 
   final GiftApiClient _giftApiClient = getIt<GiftApiClient>();
+  final UserApiClient _userApiClient = getIt<UserApiClient>();
 
   // Categories for gifts
   final List<String> _tabs = ['Recent', 'Hot', 'SVIP', 'Nobel', 'Package'];
@@ -80,6 +85,30 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
       }
     });
     _loadGifts();
+    _loadUserBalance();
+  }
+
+  Future<void> _loadUserBalance() async {
+    try {
+      // Get current user from AuthBloc
+      final authState = context.read<AuthBloc>().state;
+      if (authState is AuthAuthenticated) {
+        setState(() {
+          _currentBalance = authState.user.stats?.coins ?? 0;
+        });
+      } else {
+        // Fallback to API call if not available from AuthBloc
+        final response = await _userApiClient.getUserProfile();
+        if (response.isSuccess && response.data != null) {
+          final userData = response.data!;
+          setState(() {
+            _currentBalance = userData['coins'] ?? userData['balance'] ?? 0;
+          });
+        }
+      }
+    } catch (e) {
+      _showError('Error loading balance: $e');
+    }
   }
 
   Future<void> _loadGifts() async {
@@ -199,7 +228,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                     ),
                   ),
                 ),
-                // "All" option
+                // "Select All" option - improved styling
                 GestureDetector(
                   onTap: () {
                     setState(() {
@@ -207,29 +236,44 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                     });
                   },
                   child: Container(
-                    width: 40.w,
-                    height: 40.h,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 8.h,
+                    ),
                     decoration: BoxDecoration(
                       color: _selectedUserId == 'all'
                           ? const Color(0xFFE91E63)
                           : const Color(0xFF2A2A3E),
-                      shape: BoxShape.circle,
+                      borderRadius: BorderRadius.circular(20.r),
                       border: Border.all(
                         color: _selectedUserId == 'all'
                             ? const Color(0xFFE91E63)
-                            : Colors.transparent,
+                            : Colors.white24,
                         width: 2,
                       ),
                     ),
-                    child: Center(
-                      child: Text(
-                        'All',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w500,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Select All',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
+                        SizedBox(width: 4.w),
+                        Icon(
+                          _selectedUserId == 'all'
+                              ? Icons.check_circle
+                              : Icons.check_circle_outline,
+                          color: _selectedUserId == 'all'
+                              ? Colors.white
+                              : Colors.white54,
+                          size: 16.sp,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -284,14 +328,20 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                 : TabBarView(
                     controller: _tabController,
                     children: _tabs.map((category) {
-                      final categoryGifts = _allGifts
-                          .where(
-                            (gift) =>
-                                gift.category.toLowerCase() ==
-                                    category.toLowerCase() ||
-                                category == 'Recent',
-                          ) // Show all gifts in Recent for now
-                          .toList();
+                      List<Gift> categoryGifts;
+                      if (category == 'Recent') {
+                        // Show all gifts for Recent tab
+                        categoryGifts = _allGifts;
+                      } else {
+                        // Filter by exact category match
+                        categoryGifts = _allGifts
+                            .where(
+                              (gift) =>
+                                  gift.category.toLowerCase() ==
+                                  category.toLowerCase(),
+                            )
+                            .toList();
+                      }
                       return _buildGiftGrid(categoryGifts, category);
                     }).toList(),
                   ),
@@ -309,70 +359,101 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
             ),
             child: Row(
               children: [
-                // Quantity selector (Dropdown)
+                // Quantity selector (Dropdown) - matching design
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12.w),
+                  width: 120.w,
                   height: 40.h,
                   decoration: BoxDecoration(
                     color: const Color(0xFF1A1A2E),
-                    borderRadius: BorderRadius.circular(12.r),
+                    borderRadius: BorderRadius.circular(20.r),
                     border: Border.all(color: Colors.white24),
                   ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<int>(
-                      value: _giftQuantity,
-                      icon: Icon(
-                        Icons.keyboard_arrow_down,
-                        color: Colors.white70,
-                        size: 18.sp,
-                      ),
-                      dropdownColor: const Color(0xFF2A2A3E),
-                      style: TextStyle(color: Colors.white, fontSize: 14.sp),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setState(() => _giftQuantity = val);
-                        }
-                      },
-                      items: const [1, 5, 10, 20, 50, 100]
-                          .map(
-                            (q) => DropdownMenuItem<int>(
-                              value: q,
-                              child: Text('Qty: $q'),
+                  child: Stack(
+                    children: [
+                      DropdownButtonHideUnderline(
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          child: DropdownButton<int>(
+                            value: _giftQuantity,
+                            icon: const SizedBox.shrink(), // Hide default icon
+                            dropdownColor: const Color(0xFF2A2A3E),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
                             ),
-                          )
-                          .toList(),
-                    ),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() => _giftQuantity = val);
+                              }
+                            },
+                            items: const [1, 2, 3, 4, 5, 10, 20, 50, 100]
+                                .map(
+                                  (q) => DropdownMenuItem<int>(
+                                    value: q,
+                                    child: Text('$q'),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ),
+                      ),
+                      // Custom triangle arrow pointing up
+                      Positioned(
+                        right: 12.w,
+                        top: 0,
+                        bottom: 0,
+                        child: Center(
+                          child: Icon(
+                            Icons.keyboard_arrow_up,
+                            color: Colors.white70,
+                            size: 24.sp,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
                 SizedBox(width: 16.w),
 
-                // Balance
-                Row(
-                  children: [
-                    Container(
-                      width: 20.w,
-                      height: 20.h,
-                      decoration: const BoxDecoration(
-                        color: Colors.amber,
-                        shape: BoxShape.circle,
+                // Balance display - improved styling
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12.w,
+                    vertical: 8.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1A2E),
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 20.w,
+                        height: 20.h,
+                        decoration: const BoxDecoration(
+                          color: Colors.amber,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.monetization_on,
+                          color: Colors.white,
+                          size: 12.sp,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.monetization_on,
-                        color: Colors.white,
-                        size: 12.sp,
+                      SizedBox(width: 6.w),
+                      Text(
+                        '$_currentBalance',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 4.w),
-                    Text(
-                      '$_currentBalance',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
 
                 const Spacer(),
@@ -385,15 +466,30 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                       : null,
                   child: Container(
                     padding: EdgeInsets.symmetric(
-                      horizontal: 24.w,
+                      horizontal: 32.w,
                       vertical: 12.h,
                     ),
                     decoration: BoxDecoration(
-                      // --- CORRECTED CONDITION ---
-                      color: (_selectedGiftId != null && !_isSending)
-                          ? const Color(0xFFE91E63)
-                          : Colors.grey[600],
-                      borderRadius: BorderRadius.circular(20.r),
+                      gradient: (_selectedGiftId != null && !_isSending)
+                          ? const LinearGradient(
+                              colors: [Color(0xFFFF6B9D), Color(0xFFE91E63)],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            )
+                          : null,
+                      color: (_selectedGiftId == null || _isSending)
+                          ? Colors.grey[600]
+                          : null,
+                      borderRadius: BorderRadius.circular(25.r),
+                      boxShadow: (_selectedGiftId != null && !_isSending)
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFFE91E63).withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                          : null,
                     ),
                     child: _isSending
                         ? SizedBox(
@@ -408,8 +504,8 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                             'Send',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w600,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                   ),
@@ -435,28 +531,45 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
           height: 40.h,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            image: DecorationImage(
-              image: NetworkImage(imageUrl),
-              fit: BoxFit.cover,
-            ),
             border: isSelected
-                ? Border.all(color: Colors.white, width: 2)
+                ? Border.all(color: const Color(0xFFE91E63), width: 3)
+                : Border.all(color: Colors.white24, width: 1),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFFE91E63).withOpacity(0.3),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ]
                 : null,
           ),
-        ),
-        if (name != null) ...[
-          SizedBox(height: 4.h),
-          Text(
-            isHost ? '👑 $name' : name,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 10.sp,
-              fontWeight: FontWeight.w500,
+          child: ClipOval(
+            child: Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: Colors.grey[600],
+                  child: Icon(Icons.person, color: Colors.white, size: 35.sp),
+                );
+              },
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-        ],
+        ),
+        // if (name != null) ...[
+        //   SizedBox(height: 4.h),
+        //   Text(
+        //     isHost ? '👑 $name' : name,
+        //     style: TextStyle(
+        //       color: isSelected ? Colors.white : Colors.white70,
+        //       fontSize: 10.sp,
+        //       fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+        //     ),
+        //     maxLines: 1,
+        //     overflow: TextOverflow.ellipsis,
+        //   ),
+        // ],
       ],
     );
   }
@@ -487,24 +600,10 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
           },
           child: Container(
             decoration: BoxDecoration(
-              color: isSelected
-                  ? const Color(0xFFE91E63).withOpacity(0.2)
-                  : const Color(0xFF2A2A3E),
+              // color: const Color(0xFF2A2A3E),
               borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(
-                color: isSelected
-                    ? const Color(0xFFE91E63)
-                    : Colors.transparent,
-                width: isSelected ? 2 : 0,
-              ),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: const Color(0xFFE91E63).withOpacity(0.3),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ]
+              border: isSelected
+                  ? Border.all(color: const Color(0xFFE91E63), width: 2)
                   : null,
             ),
             child: Stack(
@@ -541,11 +640,9 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                     Text(
                       gift.name,
                       style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.white70,
+                        color: Colors.white,
                         fontSize: 10.sp,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.w500,
+                        fontWeight: FontWeight.w500,
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 1,
@@ -555,45 +652,20 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.diamond,
-                          color: isSelected ? Colors.blue[300] : Colors.blue,
-                          size: 10.sp,
-                        ),
+                        Icon(Icons.diamond, color: Colors.blue, size: 10.sp),
                         SizedBox(width: 2.w),
                         Text(
-                          '${gift.coinPrice}',
+                          AppUtils.formatNumber(gift.coinPrice),
                           style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.white70,
+                            color: Colors.white70,
                             fontSize: 10.sp,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                       ],
                     ),
                   ],
                 ),
-                // Selected indicator
-                if (isSelected)
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: Container(
-                      width: 16.w,
-                      height: 16.h,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE91E63),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 10.sp,
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
@@ -603,144 +675,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
   }
 
   Future<void> _sendGift() async {
-    // --- CORRECTED LOGIC ---
-    // Find the selected gift from the main list using its ID.
-    final selectedGift = _allGifts.firstWhere(
-      (g) => g.id == _selectedGiftId,
-      // orElse: () => null, // Return null if not found
-    );
-
-    if (selectedGift != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sending gift...'),
-          backgroundColor: Colors.blue,
-          duration: Duration(seconds: 5),
-        ),
-      );
-      setState(() {
-        _isSending = true;
-      });
-
-      try {
-        // Determine recipients
-        List<String> recipientIds = [];
-        String successRecipientLabel = '';
-        int recipientCount = 1;
-
-        if (_selectedUserId == null) {
-          // Host only
-          if (widget.hostUserId == null) {
-            _showError('Host information not available');
-            setState(() => _isSending = false);
-            return;
-          }
-          recipientIds = [widget.hostUserId!];
-          successRecipientLabel = widget.hostName ?? 'Host';
-        } else if (_selectedUserId == 'all') {
-          // Host + all active viewers
-          final ids = <String>{};
-          if (widget.hostUserId != null) ids.add(widget.hostUserId!);
-          ids.addAll(widget.activeViewers.map((v) => v.id));
-          recipientIds = ids.toList();
-          recipientCount = recipientIds.length;
-          successRecipientLabel = 'All ($recipientCount)';
-        } else {
-          // Specific viewer
-          try {
-            final viewer = widget.activeViewers.firstWhere(
-              (v) => v.id == _selectedUserId,
-            );
-            recipientIds = [viewer.id];
-            successRecipientLabel = viewer.name;
-          } catch (e) {
-            _showError('Selected viewer not found');
-            setState(() => _isSending = false);
-            return;
-          }
-        }
-
-        // Calculate total cost based on recipients
-        final totalCost =
-            selectedGift.coinPrice * _giftQuantity * recipientIds.length;
-
-        if (totalCost > _currentBalance) {
-          setState(() => _isSending = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Insufficient balance!',
-                style: TextStyle(color: Colors.white),
-              ),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 2),
-            ),
-          );
-          return;
-        }
-
-        // Send gift for each recipient and quantity
-        bool allSuccessful = true;
-        String errorMessage = '';
-
-        for (final recipientId in recipientIds) {
-          for (int i = 0; i < _giftQuantity; i++) {
-            final response = await _giftApiClient.sendGift(
-              userId: recipientId,
-              roomId: widget.roomId,
-              giftId: selectedGift.id,
-            );
-            if (!response.isSuccess) {
-              allSuccessful = false;
-              errorMessage = response.message ?? 'Failed to send gift';
-              break;
-            }
-          }
-          if (!allSuccessful) break;
-        }
-
-        if (allSuccessful) {
-          setState(() {
-            _currentBalance -= totalCost;
-          });
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Sent ${selectedGift.name} x$_giftQuantity to $successRecipientLabel!',
-                  style: const TextStyle(color: Colors.white),
-                ),
-                backgroundColor: const Color(0xFFE91E63),
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
-
-          // Reset selection
-          setState(() {
-            // --- CORRECTED RESET ---
-            _selectedGiftId = null;
-            _giftQuantity = 1;
-            _selectedUserId = null; // Default back to the host
-            _isSending = false;
-          });
-
-          // Close bottom sheet after a delay
-          Future.delayed(const Duration(milliseconds: 1000), () {
-            if (mounted) {
-              Navigator.pop(context);
-            }
-          });
-        } else {
-          setState(() => _isSending = false);
-          _showError('Failed to send gift: $errorMessage');
-        }
-      } catch (e) {
-        setState(() => _isSending = false);
-        _showError('Error sending gift: $e');
-      }
-    } else {
+    if (_selectedGiftId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select a gift first!'),
@@ -748,6 +683,141 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
           duration: Duration(seconds: 2),
         ),
       );
+      return;
+    }
+
+    // --- CORRECTED LOGIC ---
+    // Find the selected gift from the main list using its ID.
+    final selectedGift = _allGifts.firstWhere((g) => g.id == _selectedGiftId);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Sending gift...'),
+        backgroundColor: Colors.blue,
+        duration: Duration(seconds: 5),
+      ),
+    );
+    setState(() {
+      _isSending = true;
+    });
+
+    try {
+      // Determine recipients
+      List<String> recipientIds = [];
+      String successRecipientLabel = '';
+      int recipientCount = 1;
+
+      if (_selectedUserId == null) {
+        // Host only
+        if (widget.hostUserId == null) {
+          _showError('Host information not available');
+          setState(() => _isSending = false);
+          return;
+        }
+        recipientIds = [widget.hostUserId!];
+        successRecipientLabel = widget.hostName ?? 'Host';
+      } else if (_selectedUserId == 'all') {
+        // Host + all active viewers
+        final ids = <String>{};
+        if (widget.hostUserId != null) ids.add(widget.hostUserId!);
+        ids.addAll(widget.activeViewers.map((v) => v.id));
+        recipientIds = ids.toList();
+        recipientCount = recipientIds.length;
+        successRecipientLabel = 'All ($recipientCount)';
+      } else {
+        // Specific viewer
+        try {
+          final viewer = widget.activeViewers.firstWhere(
+            (v) => v.id == _selectedUserId,
+          );
+          recipientIds = [viewer.id];
+          successRecipientLabel = viewer.name;
+        } catch (e) {
+          _showError('Selected viewer not found');
+          setState(() => _isSending = false);
+          return;
+        }
+      }
+
+      // Calculate total cost based on recipients
+      final totalCost =
+          selectedGift.coinPrice * _giftQuantity * recipientIds.length;
+
+      if (totalCost > _currentBalance) {
+        setState(() => _isSending = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Insufficient balance!',
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+
+      // Send gift for each recipient and quantity
+      bool allSuccessful = true;
+      String errorMessage = '';
+
+      for (final recipientId in recipientIds) {
+        for (int i = 0; i < _giftQuantity; i++) {
+          final response = await _giftApiClient.sendGift(
+            userId: recipientId,
+            roomId: widget.roomId,
+            giftId: selectedGift.id,
+          );
+          if (!response.isSuccess) {
+            allSuccessful = false;
+            errorMessage = response.message ?? 'Failed to send gift';
+            break;
+          }
+        }
+        if (!allSuccessful) break;
+      }
+
+      if (allSuccessful) {
+        setState(() {
+          _currentBalance -= totalCost;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Sent ${selectedGift.name} x$_giftQuantity to $successRecipientLabel!',
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: const Color(0xFFE91E63),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+
+        // Reset selection
+        setState(() {
+          // --- CORRECTED RESET ---
+          _selectedGiftId = null;
+          _giftQuantity = 1;
+          _selectedUserId = null; // Default back to the host
+          _isSending = false;
+        });
+
+        // Close bottom sheet after a delay
+        Future.delayed(const Duration(milliseconds: 1000), () {
+          if (mounted) {
+            Navigator.pop(context);
+          }
+        });
+      } else {
+        setState(() => _isSending = false);
+        _showError('Failed to send gift: $errorMessage');
+      }
+    } catch (e) {
+      setState(() => _isSending = false);
+      _showError('Error sending gift: $e');
     }
   }
 }
