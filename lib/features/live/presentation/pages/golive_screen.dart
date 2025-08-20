@@ -358,7 +358,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
         setState(() {
           mutedUserModels.add(data);
         });
-        debugPrint("User muted: ${data.mutedUsers} - ${data.isMuted}");
+        debugPrint(
+          "User muted: ${data.allMutedUsersList} - ${data.lastUserIsMuted}",
+        );
 
         // Check if current user is muted and force mute them
         if (_isCurrentUserMuted()) {
@@ -486,7 +488,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     if (userId == null) return false;
 
     for (var muteModel in mutedUserModels) {
-      if (muteModel.mutedUsers.contains(userId)) {
+      if (muteModel.allMutedUsersList.contains(userId)) {
         return true;
       }
     }
