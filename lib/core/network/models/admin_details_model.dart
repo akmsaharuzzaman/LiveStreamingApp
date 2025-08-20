@@ -18,7 +18,7 @@ class AdminDetailsModel {
       name: json['adminDetails']['name'],
       avatar: json['adminDetails']['avatar'],
       uid: json['adminDetails']['uid'],
-      id: json['_id'],
+      id: json['adminDetails']['_id'], // <-- updated here
       message: json['message'],
     );
   }

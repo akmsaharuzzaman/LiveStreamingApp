@@ -663,7 +663,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
         RtcEngineContext(
           logConfig: LogConfig(
             filePath: 'agora_rtc_engine.log',
-            level: LogLevel.logLevelNone
+            level: LogLevel.logLevelNone,
           ),
           appId: dotenv.env['AGORA_APP_ID'] ?? '',
           channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
