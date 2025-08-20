@@ -82,7 +82,7 @@ class _AnimatedLayerState extends State<AnimatedLayer>
 
               // Text overlay on top
               Positioned(
-                top: MediaQuery.of(context).size.height * 0.15, // 15% from top
+                top: MediaQuery.of(context).size.height * 0.40, // 40% from top
                 left: 20.w,
                 right: 20.w,
                 child: Column(
