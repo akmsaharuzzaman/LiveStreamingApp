@@ -33,10 +33,10 @@ class _AnimatedLayerState extends State<AnimatedLayer>
       begin: 0.0,
       end: 1.0,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
-    
+
     // Start the animation
     _controller.forward();
-    
+
     // Auto-hide after animation completes
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -79,10 +79,10 @@ class _AnimatedLayerState extends State<AnimatedLayer>
                   ),
                 ),
               ),
-              
+
               // Text overlay on top
               Positioned(
-                top: 100.h, // Adjust position as needed
+                top: MediaQuery.of(context).size.height * 0.15, // 15% from top
                 left: 20.w,
                 right: 20.w,
                 child: Column(
@@ -92,32 +92,42 @@ class _AnimatedLayerState extends State<AnimatedLayer>
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 18.sp,
+                        fontSize: 20.sp,
                         fontWeight: FontWeight.bold,
                         shadows: const [
                           Shadow(
                             offset: Offset(2, 2),
-                            blurRadius: 4,
+                            blurRadius: 6,
                             color: Colors.black87,
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${lastGift.diamonds} diamonds',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.yellow,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
-                        shadows: const [
-                          Shadow(
-                            offset: Offset(2, 2),
-                            blurRadius: 4,
-                            color: Colors.black87,
-                          ),
-                        ],
+                    SizedBox(height: 12.h),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 8.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: Text(
+                        '${lastGift.diamonds} diamonds',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.yellow,
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w700,
+                          shadows: const [
+                            Shadow(
+                              offset: Offset(1, 1),
+                              blurRadius: 3,
+                              color: Colors.black87,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
