@@ -268,8 +268,9 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                     setState(() {
                       // Check if all users are selected
                       Set<String> allUserIds = {};
-                      if (widget.hostUserId != null)
+                      if (widget.hostUserId != null) {
                         allUserIds.add(widget.hostUserId!);
+                      }
                       allUserIds.addAll(widget.activeViewers.map((v) => v.id));
 
                       if (_selectedUserIds.length == allUserIds.length &&
@@ -292,8 +293,9 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                     decoration: BoxDecoration(
                       color: () {
                         Set<String> allUserIds = {};
-                        if (widget.hostUserId != null)
+                        if (widget.hostUserId != null) {
                           allUserIds.add(widget.hostUserId!);
+                        }
                         allUserIds.addAll(
                           widget.activeViewers.map((v) => v.id),
                         );
@@ -310,8 +312,9 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                       border: Border.all(
                         color: () {
                           Set<String> allUserIds = {};
-                          if (widget.hostUserId != null)
+                          if (widget.hostUserId != null) {
                             allUserIds.add(widget.hostUserId!);
+                          }
                           allUserIds.addAll(
                             widget.activeViewers.map((v) => v.id),
                           );
@@ -324,7 +327,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                               ? const Color(0xFFE91E63)
                               : Colors.white24;
                         }(),
-                        width: 2,
+                        width: 1,
                       ),
                     ),
                     child: Row(
@@ -342,8 +345,9 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                         Icon(
                           () {
                             Set<String> allUserIds = {};
-                            if (widget.hostUserId != null)
+                            if (widget.hostUserId != null) {
                               allUserIds.add(widget.hostUserId!);
+                            }
                             allUserIds.addAll(
                               widget.activeViewers.map((v) => v.id),
                             );
@@ -358,8 +362,9 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                           }(),
                           color: () {
                             Set<String> allUserIds = {};
-                            if (widget.hostUserId != null)
+                            if (widget.hostUserId != null) {
                               allUserIds.add(widget.hostUserId!);
+                            }
                             allUserIds.addAll(
                               widget.activeViewers.map((v) => v.id),
                             );
@@ -452,7 +457,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
           Container(
             padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(
-              color: const Color(0xFF2A2A3E),
+              // color: const Color(0xFF2A2A3E),
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(16.r),
                 topRight: Radius.circular(16.r),
@@ -465,7 +470,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                   width: 120.w,
                   height: 40.h,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A2E),
+                    color: const Color(0xFF424040),
                     borderRadius: BorderRadius.circular(20.r),
                     border: Border.all(color: Colors.white24),
                   ),
@@ -477,7 +482,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                           child: DropdownButton<int>(
                             value: _giftQuantity,
                             icon: const SizedBox.shrink(), // Hide default icon
-                            dropdownColor: const Color(0xFF2A2A3E),
+                            dropdownColor: const Color(0xFF424040),
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 16.sp,
@@ -519,44 +524,33 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                 SizedBox(width: 16.w),
 
                 // Balance display - improved styling
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 8.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A2E),
-                    borderRadius: BorderRadius.circular(20.r),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 20.w,
-                        height: 20.h,
-                        decoration: const BoxDecoration(
-                          color: Colors.amber,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.monetization_on,
-                          color: Colors.white,
-                          size: 12.sp,
-                        ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 20.w,
+                      height: 20.h,
+                      decoration: const BoxDecoration(
+                        color: Colors.amber,
+                        shape: BoxShape.circle,
                       ),
-                      SizedBox(width: 6.w),
-                      Text(
-                        '$_currentBalance',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Icon(
+                        Icons.monetization_on,
+                        color: Colors.white,
+                        size: 12.sp,
                       ),
-                    ],
-                  ),
+                    ),
+                    SizedBox(width: 6.w),
+                    Text(
+                      '$_currentBalance',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-
                 const Spacer(),
 
                 // Send button
@@ -579,7 +573,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                               _selectedUserIds.isNotEmpty &&
                               !_isSending)
                           ? const LinearGradient(
-                              colors: [Color(0xFFFF6B9D), Color(0xFFE91E63)],
+                              colors: [Color(0xFF825CB3), Color(0xFF984E64)],
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                             )
@@ -591,18 +585,18 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                           ? Colors.grey[600]
                           : null,
                       borderRadius: BorderRadius.circular(25.r),
-                      boxShadow:
-                          (_selectedGiftId != null &&
-                              _selectedUserIds.isNotEmpty &&
-                              !_isSending)
-                          ? [
-                              BoxShadow(
-                                color: const Color(0xFFE91E63).withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ]
-                          : null,
+                      // boxShadow:
+                      //     (_selectedGiftId != null &&
+                      //         _selectedUserIds.isNotEmpty &&
+                      //         !_isSending)
+                      //     ? [
+                      //         BoxShadow(
+                      //           color: const Color(0xFFE91E63).withOpacity(0.3),
+                      //           blurRadius: 8,
+                      //           offset: const Offset(0, 4),
+                      //         ),
+                      //       ]
+                      //     : null,
                     ),
                     child: _isSending
                         ? SizedBox(
@@ -645,7 +639,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: isSelected
-                ? Border.all(color: const Color(0xFFE91E63), width: 3)
+                ? Border.all(color: const Color(0xFFFFFFFF), width: 3)
                 : Border.all(color: Colors.white24, width: 1),
             boxShadow: isSelected
                 ? [
@@ -713,7 +707,9 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
           },
           child: Container(
             decoration: BoxDecoration(
-              // color: const Color(0xFF2A2A3E),
+              color: isSelected
+                  ? const Color(0xFFFFFFFF).withValues(alpha: 0.1)
+                  : null,
               borderRadius: BorderRadius.circular(12.r),
               border: isSelected
                   ? Border.all(color: const Color(0xFFE91E63), width: 2)
@@ -729,13 +725,13 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                       borderRadius: BorderRadius.circular(8.r),
                       child: Image.network(
                         gift.previewImage,
-                        width: 32.w,
-                        height: 32.h,
+                        width: 42.w,
+                        height: 42.h,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
-                            width: 32.w,
-                            height: 32.h,
+                            width: 42.w,
+                            height: 42.h,
                             decoration: BoxDecoration(
                               color: Colors.grey[600],
                               borderRadius: BorderRadius.circular(8.r),
@@ -754,7 +750,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                       gift.name,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 10.sp,
+                        fontSize: 14.sp,
                         fontWeight: FontWeight.w500,
                       ),
                       textAlign: TextAlign.center,
@@ -771,7 +767,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                           AppUtils.formatNumber(gift.coinPrice),
                           style: TextStyle(
                             color: Colors.white70,
-                            fontSize: 10.sp,
+                            fontSize: 14.sp,
                             fontWeight: FontWeight.w400,
                           ),
                         ),
