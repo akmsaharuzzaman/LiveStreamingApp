@@ -66,10 +66,8 @@ class _MenuBottomSheetState extends State<MenuBottomSheet> {
 
   /// Get the appropriate label based on current state
   String _getMuteLabel() {
-    if (widget.isAdminMuted == true) {
-      return 'Muted by Admin'; // Show admin muted status
-    } else if (widget.isMuted == true) {
-      return 'Unmute'; // Show unmute option when muted
+    if (widget.isMuted == true) {
+      return 'Unmute'; // Show unmute option when muted (regardless of admin status)
     } else {
       return 'Mute'; // Show mute option when not muted
     }
@@ -77,22 +75,8 @@ class _MenuBottomSheetState extends State<MenuBottomSheet> {
 
   /// Handle mute toggle with admin mute check
   void _handleMuteToggle() {
-    if (widget.isAdminMuted == true && widget.isMuted == true) {
-      // Show snackbar if trying to unmute when admin muted
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            '🔇 You cannot unmute yourself - you have been muted by an admin',
-            style: TextStyle(color: Colors.white),
-          ),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 3),
-        ),
-      );
-      return;
-    }
-
-    // Call the toggle mute callback if available
+    // Allow users to unmute themselves even if they were admin muted
+    // The admin mute status is just informational now
     widget.onToggleMute?.call();
   }
 
@@ -212,9 +196,6 @@ class _MenuBottomSheetState extends State<MenuBottomSheet> {
                             Navigator.pop(context);
                             _handleMuteToggle();
                           },
-                          isDisabled:
-                              widget.isAdminMuted == true &&
-                              widget.isMuted == true,
                         ),
                         _buildControlOption(
                           iconPath: "assets/icons/coin_grid_icon.png",

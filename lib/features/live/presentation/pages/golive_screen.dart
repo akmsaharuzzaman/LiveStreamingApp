@@ -1227,15 +1227,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   // Toggle microphone
   void _toggleMute() async {
     if (isHost || _isAudioCaller) {
-      // Check if user is trying to unmute but is administratively muted
-      if (_muted && _isCurrentUserMuted()) {
-        _showSnackBar(
-          '🔇 You cannot unmute yourself - you have been muted by an admin',
-          Colors.red,
-        );
-        return;
-      }
-
+      // Allow users to unmute themselves even if they were admin muted
       await _engine.muteLocalAudioStream(!_muted);
       setState(() {
         _muted = !_muted;
