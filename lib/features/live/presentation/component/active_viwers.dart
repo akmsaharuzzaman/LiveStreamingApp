@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/network/models/joined_user_model.dart';
+import '../../../../core/utils/app_utils.dart';
 import '../../../profile/presentation/widgets/user_profile_bottom_sheet.dart';
 
 class ActiveViewers extends StatelessWidget {
@@ -48,8 +49,8 @@ class ActiveViewers extends StatelessWidget {
                             borderRadius: BorderRadius.circular(100.r),
                           ),
                           child: Center(
-                            child: Text(
-                              "2K",
+                            child: Text( //This is basically gift amount , if if matched upate this text from the sentGifts
+                              AppUtils.formatNumber(0),
                               style: TextStyle(
                                 fontSize: 10.sp,
                                 color: Colors.white,
