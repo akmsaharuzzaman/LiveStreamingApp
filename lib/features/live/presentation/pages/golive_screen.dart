@@ -98,6 +98,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
   DateTime? _streamStartTime;
   Timer? _durationTimer;
   Duration _streamDuration = Duration.zero;
+
+  // Host activity tracking for viewers
+  Timer? _hostActivityTimer;
+  DateTime? _lastHostActivity;
   bool _animationPlaying = false;
 
   // Stream subscriptions for proper cleanup
@@ -190,6 +194,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
       if (connected) {
         _setupSocketListeners();
+
+        // Initialize host activity monitoring for viewers
+        if (!isHost) {
+          _initHostActivityMonitoring();
+        }
 
         // If roomId is provided, join the room
         if (isHost) {
@@ -289,10 +298,21 @@ class _GoliveScreenState extends State<GoliveScreen> {
         // Check if current user is in broadcaster list before removing (for non-host logic)
         bool wasUserInBroadcasterList = broadcasterList.contains(userId);
 
-        // Remove ONLY the host from UI list (not current user if they're a caller)
         // Determine host ID: for hosts it's userId, for viewers it's widget.hostUserId
         String? hostId = isHost ? userId : widget.hostUserId;
 
+        // Update host activity timestamp for viewers
+        if (!isHost && hostId != null && broadcasterList.contains(hostId)) {
+          _lastHostActivity = DateTime.now();
+        }
+
+        // CHECK FOR HOST DISCONNECTION - Exit live screen if host is no longer in broadcaster list
+        if (!isHost && hostId != null && !broadcasterList.contains(hostId)) {
+          _handleHostDisconnection("Host disconnected. Live session ended.");
+          return; // Early return to prevent further processing
+        }
+
+        // Remove ONLY the host from UI list (not current user if they're a caller)
         if (hostId != null && broadcasterList.contains(hostId)) {
           broadcasterList.remove(hostId);
           broadcasterModels.removeWhere((model) => model.id == hostId);
@@ -386,6 +406,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
           adminModels.add(data);
         });
         debugPrint("Admin list updated: ${adminModels.length} admins");
+      }
+    });
+
+    // Room Closed - Host ended the live session
+    _socketService.roomClosedStream.listen((data) {
+      if (mounted) {
+        _handleHostDisconnection("Live session ended by host.");
       }
     });
 
@@ -571,6 +598,51 @@ class _GoliveScreenState extends State<GoliveScreen> {
         ),
       );
     }
+  }
+
+  /// Handle host disconnection - Exit live screen with cleanup
+  void _handleHostDisconnection(String reason) {
+    if (!mounted) return;
+
+    debugPrint("🚨 $reason - Exiting live screen...");
+    _showSnackBar('📱 $reason', Colors.red);
+
+    // Perform basic cleanup
+    _stopStreamTimer();
+    _hostActivityTimer?.cancel();
+
+    // Small delay to show the message before navigating
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) {
+        Navigator.of(context).pop(); // Exit the live screen
+      }
+    });
+  }
+
+  /// Initialize host activity monitoring for viewers
+  void _initHostActivityMonitoring() {
+    if (isHost) return; // Only for viewers
+
+    _lastHostActivity = DateTime.now();
+
+    // Check host activity every 30 seconds
+    _hostActivityTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      final now = DateTime.now();
+      final lastActivity = _lastHostActivity;
+
+      // If no activity detected for 2 minutes, consider host disconnected
+      if (lastActivity != null && now.difference(lastActivity).inMinutes >= 2) {
+        timer.cancel();
+        _handleHostDisconnection(
+          "Host appears to be inactive. Live session ended.",
+        );
+      }
+    });
   }
 
   //Agora SDK
@@ -2238,6 +2310,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
     // Stop the duration timer
     _stopStreamTimer();
+
+    // Stop host activity timer
+    _hostActivityTimer?.cancel();
 
     // Dispose other resources
     _titleController.dispose();
