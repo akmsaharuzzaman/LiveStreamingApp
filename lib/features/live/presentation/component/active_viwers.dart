@@ -68,7 +68,7 @@ class ActiveViewers extends StatelessWidget {
             ],
           ),
 
-        if (hiddenCount == 0)
+        if (activeUserList.isEmpty)
           SizedBox.shrink()
         else
           Transform.translate(
@@ -80,7 +80,7 @@ class ActiveViewers extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8.r),
               ),
               child: Text(
-                hiddenCount.toString(),
+                activeUserList.length.toString(),
                 style: TextStyle(fontSize: 16.sp, color: Colors.white),
               ),
             ),
