@@ -2180,6 +2180,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
     // Removed spammy debug print that was called on every rebuild
 
+    return _buildSingleVideoView(broadcasterUids[0], isHostView: isHostView);
     if (broadcasterCount == 1) {
       // Single broadcaster - full screen
       return _buildSingleVideoView(broadcasterUids[0], isHostView: isHostView);
@@ -2309,42 +2310,42 @@ class _GoliveScreenState extends State<GoliveScreen> {
                   isHostView: isHostView,
                 ),
               ),
-              Container(
-                width: 2.w,
-                color: Colors.white24,
-              ), // Vertical separator
-              Expanded(
-                child: _buildSingleVideoView(
-                  gridUids[1],
-                  isHostView: isHostView,
-                ),
-              ),
+              // Container(
+              //   width: 2.w,
+              //   color: Colors.white24,
+              // ), // Vertical separator
+              // Expanded(
+              //   child: _buildSingleVideoView(
+              //     gridUids[1],
+              //     isHostView: isHostView,
+              //   ),
+              // ),
             ],
           ),
         ),
-        Container(height: 2.h, color: Colors.white24), // Horizontal separator
-        Expanded(
-          child: Row(
-            children: [
-              Expanded(
-                child: _buildSingleVideoView(
-                  gridUids[2],
-                  isHostView: isHostView,
-                ),
-              ),
-              Container(
-                width: 2.w,
-                color: Colors.white24,
-              ), // Vertical separator
-              Expanded(
-                child: _buildSingleVideoView(
-                  gridUids.length > 3 ? gridUids[3] : gridUids[0],
-                  isHostView: isHostView,
-                ),
-              ),
-            ],
-          ),
-        ),
+        // Container(height: 2.h, color: Colors.white24), // Horizontal separator
+        // Expanded(
+        //   child: Row(
+        //     children: [
+        //       Expanded(
+        //         child: _buildSingleVideoView(
+        //           gridUids[2],
+        //           isHostView: isHostView,
+        //         ),
+        //       ),
+        //       Container(
+        //         width: 2.w,
+        //         color: Colors.white24,
+        //       ), // Vertical separator
+        //       Expanded(
+        //         child: _buildSingleVideoView(
+        //           gridUids.length > 3 ? gridUids[3] : gridUids[0],
+        //           isHostView: isHostView,
+        //         ),
+        //       ),
+        //     ],
+        //   ),
+        // ),
       ],
     );
   }
