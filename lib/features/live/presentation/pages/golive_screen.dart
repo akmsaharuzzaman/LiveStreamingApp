@@ -682,9 +682,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
       final now = DateTime.now();
       final lastActivity = _lastHostActivity;
 
-      // If no activity detected for 10 seconds, consider host disconnected
+      // If no activity detected for 13 seconds, consider host disconnected
       if (lastActivity != null &&
-          now.difference(lastActivity).inSeconds >= 10) {
+          now.difference(lastActivity).inSeconds >= 13) {
         timer.cancel();
         _handleHostDisconnection(
           "Host appears to be inactive. Live session ended.",
