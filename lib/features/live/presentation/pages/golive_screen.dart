@@ -1416,7 +1416,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   hostUserId: widget.hostUserId ?? "",
                                   currentUserId: state.user.id,
                                 ),
-
+                              Spacer(),
                               // *show the viwers
                               ActiveViewers(activeUserList: activeViewers),
 

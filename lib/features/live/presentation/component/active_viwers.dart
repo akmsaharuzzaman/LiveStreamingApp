@@ -12,9 +12,6 @@ class ActiveViewers extends StatelessWidget {
   Widget build(BuildContext context) {
     bool isLarge = MediaQuery.of(context).size.width > 400.w;
     int maxVisible = isLarge ? 3 : 2;
-    int hiddenCount = (activeUserList.length - maxVisible) > 0
-        ? activeUserList.length - maxVisible
-        : 0;
     List visibleUsers = activeUserList.take(maxVisible).toList();
     return Row(
       children: [
@@ -72,16 +69,16 @@ class ActiveViewers extends StatelessWidget {
           SizedBox.shrink()
         else
           Transform.translate(
-            offset: Offset(-12.w, 0),
+            offset: Offset(-6.w, 0),
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 7.h),
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
               decoration: BoxDecoration(
                 color: Color(0xff888686),
                 borderRadius: BorderRadius.circular(8.r),
               ),
               child: Text(
                 activeUserList.length.toString(),
-                style: TextStyle(fontSize: 16.sp, color: Colors.white),
+                style: TextStyle(fontSize: 18.sp, color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),
           ),
