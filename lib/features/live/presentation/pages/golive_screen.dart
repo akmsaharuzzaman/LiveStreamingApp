@@ -125,6 +125,20 @@ class _GoliveScreenState extends State<GoliveScreen> {
     });
   }
 
+  /// Update diamonds for specific users when gifts are received
+  void _updateUserDiamonds(GiftModel gift) {
+    // Update diamonds for each receiver
+    for (String receiverId in gift.recieverIds) {
+      // Find user in activeViewers and update their diamonds
+      int userIndex = activeViewers.indexWhere((user) => user.id == receiverId);
+      if (userIndex != -1) {
+        activeViewers[userIndex] = activeViewers[userIndex].copyWith(
+          diamonds: activeViewers[userIndex].diamonds + gift.diamonds,
+        );
+      }
+    }
+  }
+
   /// Convert HostDetails to JoinedUserModel and initialize existing viewers
   void _initializeExistingViewers() {
     if (widget.existingViewers.isNotEmpty) {
@@ -135,6 +149,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
           avatar: hostDetail.avatar,
           name: hostDetail.name,
           uid: hostDetail.uid,
+          diamonds:
+              0, // Initialize with 0, will be updated when gifts are received
         );
       }).toList();
 
@@ -369,6 +385,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
       if (mounted) {
         setState(() {
           sentGifts.add(data);
+          // Update diamonds for users who received the gift
+          _updateUserDiamonds(data);
         });
         debugPrint("User sent a gift: ${data.gift.name}");
         sentGifts.isNotEmpty ? _playAnimation() : null;
@@ -1449,7 +1467,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
                           //  this is the second row TODO:  diamond and star count display
                           DiamondStarStatus(
                             diamonCount: AppUtils.formatNumber(
-                              GiftModel.totalDiamonds(sentGifts),
+                              GiftModel.totalDiamondsForHost(
+                                sentGifts,
+                                widget.hostUserId,
+                              ),
                             ),
                             starCount: AppUtils.formatNumber(0),
                           ),

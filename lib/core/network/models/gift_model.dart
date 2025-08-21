@@ -40,6 +40,19 @@ class GiftModel {
   static int totalDiamonds(List<GiftModel> gifts) {
     return gifts.fold(0, (sum, gift) => sum + gift.diamonds);
   }
+
+  // Calculate total diamonds received by a specific user
+  static int totalDiamondsForUser(List<GiftModel> gifts, String userId) {
+    return gifts
+        .where((gift) => gift.recieverIds.contains(userId))
+        .fold(0, (sum, gift) => sum + gift.diamonds);
+  }
+
+  // Calculate total diamonds sent to the host
+  static int totalDiamondsForHost(List<GiftModel> gifts, String? hostId) {
+    if (hostId == null) return 0;
+    return totalDiamondsForUser(gifts, hostId);
+  }
 }
 
 class Gift {
