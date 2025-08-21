@@ -2176,35 +2176,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
     List<int> broadcasterUids, {
     required bool isHostView,
   }) {
-    int broadcasterCount = broadcasterUids.length;
-
-    // Removed spammy debug print that was called on every rebuild
-
+    // Since only host shows video and others are audio-only callers,
+    // always show single video view (host's video in full screen)
     return _buildSingleVideoView(broadcasterUids[0], isHostView: isHostView);
-    if (broadcasterCount == 1) {
-      // Single broadcaster - full screen
-      return _buildSingleVideoView(broadcasterUids[0], isHostView: isHostView);
-    } else if (broadcasterCount == 2) {
-      // Two broadcasters - split screen
-      return _buildTwoBroadcasterLayout(
-        broadcasterUids,
-        isHostView: isHostView,
-      );
-    } else if (broadcasterCount == 3) {
-      // Three broadcasters - main + 2 small
-      return _buildThreeBroadcasterLayout(
-        broadcasterUids,
-        isHostView: isHostView,
-      );
-    } else if (broadcasterCount >= 4) {
-      // Four or more broadcasters - grid layout
-      return _buildFourBroadcasterLayout(
-        broadcasterUids,
-        isHostView: isHostView,
-      );
-    }
-
-    return Container(color: Colors.black); // Fallback
   }
 
   /// Single broadcaster view
@@ -2227,127 +2201,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
         ),
       );
     }
-  }
-
-  /// Two broadcaster layout - split screen
-  Widget _buildTwoBroadcasterLayout(
-    List<int> uids, {
-    required bool isHostView,
-  }) {
-    return Column(
-      children: [
-        Expanded(child: _buildSingleVideoView(uids[0], isHostView: isHostView)),
-        Container(height: 2.h, color: Colors.white24), // Separator
-        Expanded(child: _buildSingleVideoView(uids[1], isHostView: isHostView)),
-      ],
-    );
-  }
-
-  /// Three broadcaster layout - main view + 2 small views
-  Widget _buildThreeBroadcasterLayout(
-    List<int> uids, {
-    required bool isHostView,
-  }) {
-    return Stack(
-      children: [
-        // Main video (first broadcaster - usually host)
-        _buildSingleVideoView(uids[0], isHostView: isHostView),
-
-        // Small video views on the right
-        Positioned(
-          top: 100.h,
-          right: 10.w,
-          child: Column(
-            children: [
-              Container(
-                width: 120.w,
-                height: 160.h,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white, width: 2.w),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(6.r),
-                  child: _buildSingleVideoView(uids[1], isHostView: isHostView),
-                ),
-              ),
-              SizedBox(height: 10.h),
-              Container(
-                width: 120.w,
-                height: 160.h,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white, width: 2.w),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(6.r),
-                  child: _buildSingleVideoView(uids[2], isHostView: isHostView),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Four+ broadcaster layout - 2x2 grid
-  Widget _buildFourBroadcasterLayout(
-    List<int> uids, {
-    required bool isHostView,
-  }) {
-    // Take first 4 broadcasters for grid layout
-    List<int> gridUids = uids.take(4).toList();
-
-    return Column(
-      children: [
-        Expanded(
-          child: Row(
-            children: [
-              Expanded(
-                child: _buildSingleVideoView(
-                  gridUids[0],
-                  isHostView: isHostView,
-                ),
-              ),
-              // Container(
-              //   width: 2.w,
-              //   color: Colors.white24,
-              // ), // Vertical separator
-              // Expanded(
-              //   child: _buildSingleVideoView(
-              //     gridUids[1],
-              //     isHostView: isHostView,
-              //   ),
-              // ),
-            ],
-          ),
-        ),
-        // Container(height: 2.h, color: Colors.white24), // Horizontal separator
-        // Expanded(
-        //   child: Row(
-        //     children: [
-        //       Expanded(
-        //         child: _buildSingleVideoView(
-        //           gridUids[2],
-        //           isHostView: isHostView,
-        //         ),
-        //       ),
-        //       Container(
-        //         width: 2.w,
-        //         color: Colors.white24,
-        //       ), // Vertical separator
-        //       Expanded(
-        //         child: _buildSingleVideoView(
-        //           gridUids.length > 3 ? gridUids[3] : gridUids[0],
-        //           isHostView: isHostView,
-        //         ),
-        //       ),
-        //     ],
-        //   ),
-        // ),
-      ],
-    );
   }
 
   @override
