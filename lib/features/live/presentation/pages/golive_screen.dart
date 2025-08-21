@@ -128,21 +128,24 @@ class _GoliveScreenState extends State<GoliveScreen> {
   /// Convert HostDetails to JoinedUserModel and initialize existing viewers
   void _initializeExistingViewers() {
     if (widget.existingViewers.isNotEmpty) {
-      // Filter out the host from existing viewers
-      activeViewers = widget.existingViewers
-          .where((hostDetail) {
-            String? hostId = isHost ? userId : widget.hostUserId;
-            return hostDetail.id != hostId;
-          })
-          .map((hostDetail) {
-            return JoinedUserModel(
-              id: hostDetail.id,
-              avatar: hostDetail.avatar,
-              name: hostDetail.name,
-              uid: hostDetail.uid,
-            );
-          })
-          .toList();
+      // First convert all existing viewers to JoinedUserModel
+      activeViewers = widget.existingViewers.map((hostDetail) {
+        return JoinedUserModel(
+          id: hostDetail.id,
+          avatar: hostDetail.avatar,
+          name: hostDetail.name,
+          uid: hostDetail.uid,
+        );
+      }).toList();
+
+      // Then check if host is in the list and remove if found
+      if (widget.hostUserId != null) {
+        activeViewers.removeWhere((viewer) => viewer.id == widget.hostUserId);
+        debugPrint(
+          "Host (${widget.hostUserId}) removed from active viewers list",
+        );
+      }
+
       debugPrint(
         "Initialized ${activeViewers.length} existing viewers (host excluded)",
       );
@@ -248,9 +251,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
     // User events
     _socketService.userJoinedStream.listen((data) {
       if (mounted) {
-        // Don't add host to activeViewers list
-        String? hostId = isHost ? userId : widget.hostUserId;
-        if (data.id != hostId &&
+        // Don't add host to activeViewers list (use hostUserId from widget)
+        if (data.id != widget.hostUserId &&
             !activeViewers.any((user) => user.id == data.id)) {
           activeViewers.add(data);
         }
