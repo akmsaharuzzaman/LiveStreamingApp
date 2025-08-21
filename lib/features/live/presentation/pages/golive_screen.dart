@@ -633,6 +633,39 @@ class _GoliveScreenState extends State<GoliveScreen> {
     });
   }
 
+  /// Start monitoring for host disconnection when no video broadcasters are present
+  void _startHostDisconnectionMonitoring() {
+    // Don't start multiple timers
+    if (_hostActivityTimer != null) return;
+
+    debugPrint(
+      "🔍 No video broadcasters detected - starting 7 second countdown...",
+    );
+
+    // Wait 7 seconds before considering host disconnected
+    _hostActivityTimer = Timer(const Duration(seconds: 7), () {
+      if (!mounted) return;
+
+      // Double check that there are still no video broadcasters
+      List<int> currentBroadcasters = [
+        if (_remoteUid != null) _remoteUid!,
+        ..._videoCallerUids,
+        if (_isAudioCaller && isCameraEnabled) 0,
+      ];
+
+      if (currentBroadcasters.isEmpty) {
+        debugPrint(
+          "🚨 No video broadcasters for 7 seconds - host disconnected",
+        );
+        _handleHostDisconnection("Host disconnected. Live session ended.");
+      } else {
+        debugPrint("✅ Video broadcasters detected - host reconnected");
+      }
+
+      _hostActivityTimer = null;
+    });
+  }
+
   /// Initialize host activity monitoring for viewers
   void _initHostActivityMonitoring() {
     if (isHost) return; // Only for viewers
@@ -2103,6 +2136,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
     ];
 
     if (allVideoBroadcasters.isEmpty) {
+      // Start host disconnection monitoring when no video broadcasters are present
+      if (!isHost) {
+        _startHostDisconnectionMonitoring();
+      }
+
       return Container(
         color: Colors.black,
         child: Center(
@@ -2130,6 +2168,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
           ),
         ),
       );
+    } else {
+      // Cancel host disconnection monitoring if video broadcasters are present
+      if (_hostActivityTimer != null) {
+        _hostActivityTimer?.cancel();
+        _hostActivityTimer = null;
+      }
     }
 
     return _buildMultiVideoLayout(allVideoBroadcasters, isHostView: false);
