@@ -242,14 +242,6 @@ class _MenuBottomSheetState extends State<MenuBottomSheet> {
                             // Handle sound off
                           },
                         ),
-                        _buildControlOption(
-                          iconPath: "assets/icons/music_grid_icon.png",
-                          label: 'Music',
-                          onTap: () {
-                            Navigator.pop(context);
-                            // Handle music
-                          },
-                        ),
                       ],
                     ),
                   ),
