@@ -19,12 +19,15 @@ class MainNavigationPage extends StatefulWidget {
 class _MainNavigationPageState extends State<MainNavigationPage> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
+  List<Widget> get _pages => [
     const HomePage(),
     const NewsfeedPage(),
     const SizedBox(),
     const ChatPage(),
-    const ProfilePage(),
+    // Use a unique key to force ProfilePage to rebuild each time
+    ProfilePage(
+      key: ValueKey('profile_${DateTime.now().millisecondsSinceEpoch}'),
+    ),
   ];
   @override
   Widget build(BuildContext context) {
@@ -53,6 +56,14 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                 context.push(AppRoutes.live);
                 return;
               }
+
+              // If profile tab is selected, force rebuild by updating state
+              if (index == 4) {
+                _currentIndex = index;
+                // Force rebuild to refresh profile data
+                return;
+              }
+
               _currentIndex = index;
             });
           },

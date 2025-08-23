@@ -22,8 +22,26 @@ import '../../../reels/data/models/reel_response_model.dart';
 import '../../../reels/data/models/reel_api_response_model.dart';
 import '../../../reels/presentation/utils/reel_mapper.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Refresh user profile data when ProfilePage is created
+    _refreshUserProfile();
+  }
+
+  void _refreshUserProfile() {
+    // Trigger auth refresh to get latest user data from /api/auth/my-profile
+    final authBloc = context.read<AuthBloc>();
+    authBloc.add(const AuthCheckStatusEvent());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +49,18 @@ class ProfilePage extends StatelessWidget {
       builder: (context, state) {
         if (state is AuthAuthenticated) {
           return _ProfileContent(user: state.user);
+        } else if (state is AuthLoading) {
+          // Show loading indicator when auth is refreshing
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Refreshing profile...'),
+              ],
+            ),
+          );
         }
         return const Center(child: Text('User not authenticated'));
       },
@@ -100,9 +130,46 @@ class _ProfileContentState extends State<_ProfileContent> {
     super.initState();
     _postService = PostService(ApiService.instance, AuthBlocAdapter(context));
     _reelsService = ReelsService(ApiService.instance, AuthBlocAdapter(context));
+    _loadInitialData();
+  }
+
+  @override
+  void didUpdateWidget(_ProfileContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If user data changed, refresh follower counts (important social stats)
+    if (oldWidget.user.id != widget.user.id) {
+      _refreshImportantData();
+    }
+  }
+
+  void _loadInitialData() {
     _loadFollowerCounts();
     _loadUserPosts();
     _loadUserReels();
+  }
+
+  /// Refresh only important data (follower counts, not posts/reels)
+  void _refreshImportantData() {
+    debugPrint('🔄 Refreshing important profile data (follower counts)');
+    _loadFollowerCounts();
+  }
+
+  /// Public method to refresh all data - can be called from parent
+  void refreshData() {
+    setState(() {
+      isLoadingCounts = true;
+      isLoadingPosts = true;
+      isLoadingReels = true;
+      // Reset page counters
+      _currentPage = 1;
+      _currentReelsPage = 1;
+      // Clear existing data
+      userPosts.clear();
+      userReels.clear();
+      followerCounts = null;
+    });
+
+    _loadInitialData();
   }
 
   @override
