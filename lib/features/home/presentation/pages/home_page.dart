@@ -102,6 +102,36 @@ class _HomePageState extends State<HomePage>
     });
   }
 
+  /// Handle pull-to-refresh action
+  Future<void> _handleRefresh() async {
+    try {
+      debugPrint('🔄 Pull to refresh triggered - fetching latest rooms');
+
+      // Check if socket is connected
+      if (!_socketService.isConnected) {
+        debugPrint('Socket not connected, attempting to reconnect...');
+        await _initializeSocket();
+      } else {
+        // If already connected, just get the rooms
+        await _socketService.getRooms();
+      }
+
+      // Add a small delay to ensure the refresh indicator shows
+      await Future.delayed(const Duration(milliseconds: 500));
+    } catch (e) {
+      debugPrint('Error during refresh: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to refresh rooms. Please try again.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void initState() {
     // Initialize tab controller with 4 tabs
@@ -224,98 +254,101 @@ class _HomePageState extends State<HomePage>
 
   // Popular tab with current homepage content
   Widget _buildPopularTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: 7.sp),
-        const ListUserFollow(),
-        SizedBox(height: 12.sp),
-        Padding(
-          padding: EdgeInsets.only(right: 8.sp, left: 8.sp),
-          child: SizedBox(
-            height: 132.sp,
-            width: double.infinity,
-            child: FlutterCarousel(
-              options: FlutterCarouselOptions(
-                height: 132.sp,
-                autoPlay: true,
-                viewportFraction: 1.0,
-                enlargeCenterPage: false,
-                showIndicator: true,
-                indicatorMargin: 8,
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 7.sp),
+          const ListUserFollow(),
+          SizedBox(height: 12.sp),
+          Padding(
+            padding: EdgeInsets.only(right: 8.sp, left: 8.sp),
+            child: SizedBox(
+              height: 132.sp,
+              width: double.infinity,
+              child: FlutterCarousel(
+                options: FlutterCarouselOptions(
+                  height: 132.sp,
+                  autoPlay: true,
+                  viewportFraction: 1.0,
+                  enlargeCenterPage: false,
+                  showIndicator: true,
+                  indicatorMargin: 8,
 
-                slideIndicator: CircularSlideIndicator(
-                  slideIndicatorOptions: SlideIndicatorOptions(
-                    alignment: Alignment.bottomCenter,
-                    currentIndicatorColor: Colors.white,
-                    indicatorBackgroundColor: Colors.white.withOpacity(0.5),
-                    indicatorBorderColor: Colors.transparent,
-                    indicatorBorderWidth: 0.5,
-                    indicatorRadius: 3.8,
-                    itemSpacing: 15,
-                    padding: const EdgeInsets.only(top: 10.0),
-                    enableHalo: false,
-                    enableAnimation: true,
+                  slideIndicator: CircularSlideIndicator(
+                    slideIndicatorOptions: SlideIndicatorOptions(
+                      alignment: Alignment.bottomCenter,
+                      currentIndicatorColor: Colors.white,
+                      indicatorBackgroundColor: Colors.white.withOpacity(0.5),
+                      indicatorBorderColor: Colors.transparent,
+                      indicatorBorderWidth: 0.5,
+                      indicatorRadius: 3.8,
+                      itemSpacing: 15,
+                      padding: const EdgeInsets.only(top: 10.0),
+                      enableHalo: false,
+                      enableAnimation: true,
+                    ),
                   ),
                 ),
-              ),
-              items: imageUrls.map((url) {
-                return Builder(
-                  builder: (BuildContext context) {
-                    return Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.symmetric(horizontal: 8.0),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8.0),
-                        child: Image.asset(
-                          url,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Center(
-                              child: Icon(
-                                Icons.broken_image,
-                                size: 50,
-                                color: Colors.red,
-                              ),
-                            );
-                          },
+                items: imageUrls.map((url) {
+                  return Builder(
+                    builder: (BuildContext context) {
+                      return Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.symmetric(horizontal: 8.0),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(8.0),
                         ),
-                      ),
-                    );
-                  },
-                );
-              }).toList(),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8.0),
+                          child: Image.asset(
+                            url,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Center(
+                                child: Icon(
+                                  Icons.broken_image,
+                                  size: 50,
+                                  color: Colors.red,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }).toList(),
+              ),
             ),
           ),
-        ),
-        // SizedBox(height: 18.sp),
-        // Padding(
-        //   padding: const EdgeInsets.symmetric(horizontal: 18.0),
-        //   child: Row(
-        //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        //     children: [
-        //       Image.asset(
-        //         'assets/images/general/top_sender.png',
-        //         height: MediaQuery.of(context).size.height * 0.08,
-        //       ),
-        //       Image.asset(
-        //         'assets/images/general/top_host.png',
-        //         height: MediaQuery.of(context).size.height * 0.08,
-        //       ),
-        //       Image.asset(
-        //         'assets/images/general/top_agency.png',
-        //         height: MediaQuery.of(context).size.height * 0.08,
-        //       ),
-        //     ],
-        //   ),
-        // ),
-        SizedBox(height: 18.sp),
-        ListLiveStream(availableRooms: _availableRooms ?? []),
-      ],
+          // SizedBox(height: 18.sp),
+          // Padding(
+          //   padding: const EdgeInsets.symmetric(horizontal: 18.0),
+          //   child: Row(
+          //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //     children: [
+          //       Image.asset(
+          //         'assets/images/general/top_sender.png',
+          //         height: MediaQuery.of(context).size.height * 0.08,
+          //       ),
+          //       Image.asset(
+          //         'assets/images/general/top_host.png',
+          //         height: MediaQuery.of(context).size.height * 0.08,
+          //       ),
+          //       Image.asset(
+          //         'assets/images/general/top_agency.png',
+          //         height: MediaQuery.of(context).size.height * 0.08,
+          //       ),
+          //     ],
+          //   ),
+          // ),
+          SizedBox(height: 18.sp),
+          ListLiveStream(availableRooms: _availableRooms ?? []),
+        ],
+      ),
     );
   }
 
