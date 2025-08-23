@@ -49,8 +49,7 @@ class ActiveViewers extends StatelessWidget {
                             borderRadius: BorderRadius.circular(100.r),
                           ),
                           child: Center(
-                            child: Text(
-                              //This is basically gift amount , if if matched upate this text from the sentGifts
+                            child: Text( //This is basically gift amount , if if matched upate this text from the sentGifts
                               AppUtils.formatNumber(user.diamonds),
                               style: TextStyle(
                                 fontSize: 10.sp,
@@ -80,11 +79,7 @@ class ActiveViewers extends StatelessWidget {
               ),
               child: Text(
                 activeUserList.length.toString(),
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18.sp, color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),
           ),
