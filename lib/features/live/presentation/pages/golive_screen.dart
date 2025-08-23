@@ -128,34 +128,48 @@ class _GoliveScreenState extends State<GoliveScreen> {
   /// Debug method to print current diamond status
   void _debugDiamondStatus() {
     debugPrint("=== DIAMOND STATUS DEBUG ===");
-    debugPrint("🏠 Host ID: ${widget.hostUserId}");
+    debugPrint("🔍 Is host: $isHost");
+    debugPrint("🔍 Current user ID: $userId");
+    debugPrint("🏠 Widget host ID: ${widget.hostUserId}");
+    String? actualHostId = isHost ? userId : widget.hostUserId;
+    debugPrint("🏆 Actual host ID for calculation: $actualHostId");
     debugPrint("📊 Total gifts received: ${sentGifts.length}");
     debugPrint("👥 Active viewers count: ${activeViewers.length}");
-    
+
     for (var viewer in activeViewers) {
-      debugPrint("👤 ${viewer.name} (${viewer.id}): ${viewer.diamonds} diamonds");
+      debugPrint(
+        "👤 ${viewer.name} (${viewer.id}): ${viewer.diamonds} diamonds",
+      );
     }
-    
-    debugPrint("🏆 Host total diamonds: ${GiftModel.totalDiamondsForHost(sentGifts, widget.hostUserId)}");
+
+    debugPrint(
+      "🏆 Host total diamonds: ${GiftModel.totalDiamondsForHost(sentGifts, actualHostId)}",
+    );
     debugPrint("=== END DEBUG ===");
   }
 
   /// Update diamonds for specific users when gifts are received
   void _updateUserDiamonds(GiftModel gift) {
-    debugPrint("🎁 Processing gift: ${gift.gift.name} - ${gift.diamonds} diamonds");
+    debugPrint(
+      "🎁 Processing gift: ${gift.gift.name} - ${gift.diamonds} diamonds",
+    );
     debugPrint("🎯 Gift receiver IDs: ${gift.recieverIds}");
-    debugPrint("🏠 Current host ID: ${widget.hostUserId}");
-    debugPrint("👥 Current active viewers count: ${activeViewers.length}");
-    
+    debugPrint("🏠 Widget host ID: ${widget.hostUserId}");
+    debugPrint("� Current user ID: $userId");
+    debugPrint("🔍 Is host: $isHost");
+    debugPrint("�👥 Current active viewers count: ${activeViewers.length}");
+
     // Update diamonds for each receiver
     for (String receiverId in gift.recieverIds) {
       debugPrint("🔍 Checking receiver ID: $receiverId");
-      
-      // Check if this receiver is the host
-      if (receiverId == widget.hostUserId) {
+
+      // Check if this receiver is the host (use different logic for host vs viewer)
+      String? actualHostId = isHost ? userId : widget.hostUserId;
+      if (receiverId == actualHostId) {
         debugPrint("✅ Host ($receiverId) received ${gift.diamonds} diamonds");
+        debugPrint("🏆 Host is identified as: $actualHostId");
       }
-      
+
       // Find user in activeViewers and update their diamonds
       int userIndex = activeViewers.indexWhere((user) => user.id == receiverId);
       if (userIndex != -1) {
@@ -163,17 +177,34 @@ class _GoliveScreenState extends State<GoliveScreen> {
         activeViewers[userIndex] = activeViewers[userIndex].copyWith(
           diamonds: activeViewers[userIndex].diamonds + gift.diamonds,
         );
-        debugPrint("💎 Updated ${activeViewers[userIndex].name} diamonds: $oldDiamonds → ${activeViewers[userIndex].diamonds}");
+        debugPrint(
+          "💎 Updated ${activeViewers[userIndex].name} diamonds: $oldDiamonds → ${activeViewers[userIndex].diamonds}",
+        );
       } else {
-        debugPrint("⚠️ Receiver ID $receiverId not found in activeViewers list");
+        debugPrint(
+          "⚠️ Receiver ID $receiverId not found in activeViewers list",
+        );
+        if (receiverId == actualHostId) {
+          debugPrint(
+            "📝 This is normal for host - host is not in activeViewers list",
+          );
+        }
         // Print all active viewer IDs for debugging
-        debugPrint("📋 Active viewer IDs: ${activeViewers.map((v) => v.id).toList()}");
+        debugPrint(
+          "📋 Active viewer IDs: ${activeViewers.map((v) => v.id).toList()}",
+        );
       }
     }
-    
-    // Calculate total host diamonds for verification
-    int hostDiamonds = GiftModel.totalDiamondsForHost(sentGifts, widget.hostUserId);
-    debugPrint("🏆 Total host diamonds: $hostDiamonds");
+
+    // Calculate total host diamonds for verification using correct host ID
+    String? hostIdForCalculation = isHost ? userId : widget.hostUserId;
+    int hostDiamonds = GiftModel.totalDiamondsForHost(
+      sentGifts,
+      hostIdForCalculation,
+    );
+    debugPrint(
+      "🏆 Total host diamonds (using $hostIdForCalculation): $hostDiamonds",
+    );
   }
 
   /// Convert HostDetails to JoinedUserModel and initialize existing viewers
@@ -308,11 +339,16 @@ class _GoliveScreenState extends State<GoliveScreen> {
         if (data.id != widget.hostUserId &&
             !activeViewers.any((user) => user.id == data.id)) {
           // Ensure new users start with 0 diamonds, but calculate existing diamonds from sentGifts
-          int existingDiamonds = GiftModel.totalDiamondsForUser(sentGifts, data.id);
-          
-          JoinedUserModel userWithDiamonds = data.copyWith(diamonds: existingDiamonds);
+          int existingDiamonds = GiftModel.totalDiamondsForUser(
+            sentGifts,
+            data.id,
+          );
+
+          JoinedUserModel userWithDiamonds = data.copyWith(
+            diamonds: existingDiamonds,
+          );
           activeViewers.add(userWithDiamonds);
-          
+
           debugPrint("👤 User joined: ${data.name} - ${data.uid}");
           debugPrint("💎 User's existing diamonds: $existingDiamonds");
         }
@@ -429,19 +465,44 @@ class _GoliveScreenState extends State<GoliveScreen> {
         debugPrint("🎁 Gift received from socket: ${data.gift.name}");
         debugPrint("💰 Gift diamonds: ${data.diamonds}");
         debugPrint("🎯 Receivers: ${data.recieverIds}");
-        
+        debugPrint("🔍 Is current user host? $isHost");
+        debugPrint("🔍 Current user ID: $userId");
+        debugPrint("🔍 Host user ID: ${widget.hostUserId}");
+
         setState(() {
           sentGifts.add(data);
           // Update diamonds for users who received the gift
           _updateUserDiamonds(data);
         });
-        
+
         debugPrint("📊 Total gifts in list: ${sentGifts.length}");
-        debugPrint("🏆 Host total diamonds: ${GiftModel.totalDiamondsForHost(sentGifts, widget.hostUserId)}");
-        
+
+        // Calculate host diamonds separately for verification
+        int hostDiamonds = GiftModel.totalDiamondsForHost(
+          sentGifts,
+          widget.hostUserId,
+        );
+        debugPrint("🏆 Host total diamonds (calculated): $hostDiamonds");
+
+        // For host, also check using current userId
+        if (isHost && userId != null) {
+          int hostDiamondsFromUserId = GiftModel.totalDiamondsForUser(
+            sentGifts,
+            userId!,
+          );
+          debugPrint("🏆 Host diamonds using userId: $hostDiamondsFromUserId");
+        }
+
         // Debug current status
         _debugDiamondStatus();
-        
+
+        // Force UI update
+        if (mounted) {
+          setState(() {
+            // Trigger rebuild to ensure DiamondStarStatus updates
+          });
+        }
+
         sentGifts.isNotEmpty ? _playAnimation() : null;
       }
     });
@@ -1522,7 +1583,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             diamonCount: AppUtils.formatNumber(
                               GiftModel.totalDiamondsForHost(
                                 sentGifts,
-                                widget.hostUserId,
+                                isHost
+                                    ? userId
+                                    : widget
+                                          .hostUserId, // Use userId for host, widget.hostUserId for viewers
                               ),
                             ),
                             starCount: AppUtils.formatNumber(0),

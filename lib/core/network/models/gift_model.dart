@@ -46,13 +46,15 @@ class GiftModel {
     int total = gifts
         .where((gift) => gift.recieverIds.contains(userId))
         .fold(0, (sum, gift) => sum + gift.diamonds);
-    
+
     // Debug logging
     print("🔍 Calculating diamonds for user: $userId");
     print("📊 Total gifts in list: ${gifts.length}");
-    print("🎯 Gifts for this user: ${gifts.where((gift) => gift.recieverIds.contains(userId)).length}");
+    print(
+      "🎯 Gifts for this user: ${gifts.where((gift) => gift.recieverIds.contains(userId)).length}",
+    );
     print("💎 Total diamonds: $total");
-    
+
     return total;
   }
 
