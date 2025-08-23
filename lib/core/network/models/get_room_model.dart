@@ -35,6 +35,7 @@ class GetRoomModel {
   final List<HostDetails> callRequests;
   final HostDetails? adminDetails;
   final String title;
+  final int hostCoins;
 
   GetRoomModel({
     required this.hostId,
@@ -50,6 +51,7 @@ class GetRoomModel {
     required this.broadcastersDetails,
     required this.callRequests,
     required this.title,
+    this.hostCoins = 0,
   });
 
   factory GetRoomModel.fromJson(Map<String, dynamic> json) {
@@ -77,6 +79,7 @@ class GetRoomModel {
           ? HostDetails.fromJson(json['adminDetails'])
           : null,
       title: json['title'] as String,
+      hostCoins: json['hostCoins'] as int? ?? 0,
     );
   }
 

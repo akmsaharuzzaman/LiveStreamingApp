@@ -48,6 +48,8 @@ class GoliveScreen extends StatefulWidget {
   final String? hostUserId;
   final String? hostAvatar;
   final List<HostDetails> existingViewers;
+  final int hostCoins;
+  
   const GoliveScreen({
     super.key,
     this.roomId,
@@ -55,6 +57,7 @@ class GoliveScreen extends StatefulWidget {
     this.hostUserId,
     this.hostAvatar,
     this.existingViewers = const [],
+    this.hostCoins = 0,
   });
 
   @override
@@ -233,6 +236,50 @@ class _GoliveScreenState extends State<GoliveScreen> {
       debugPrint(
         "Initialized ${activeViewers.length} existing viewers (host excluded)",
       );
+    }
+    
+    // Initialize host coins as existing gifts
+    _initializeHostCoins();
+  }
+
+  /// Initialize host coins as synthetic gifts for display purposes
+  void _initializeHostCoins() {
+    if (widget.hostCoins > 0) {
+      debugPrint("💰 Initializing host coins: ${widget.hostCoins}");
+      
+      // Create a synthetic gift model to represent existing host coins
+      // We need to determine the correct host ID
+      String? hostId = isHost ? userId : widget.hostUserId;
+      
+      if (hostId != null) {
+        GiftModel syntheticGift = GiftModel(
+          avatar: widget.hostAvatar ?? "https://thispersondoesnotexist.com/",
+          name: widget.hostName ?? "Host",
+          recieverIds: [hostId],
+          diamonds: widget.hostCoins,
+          qty: 1,
+          gift: Gift(
+            id: "synthetic_initial_coins",
+            name: "Initial Coins",
+            category: "System",
+            diamonds: widget.hostCoins,
+            coinPrice: widget.hostCoins,
+            previewImage: "",
+            svgaImage: "",
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+            v: 0,
+          ),
+        );
+        
+        sentGifts.add(syntheticGift);
+        debugPrint("✅ Added synthetic gift for host coins: ${widget.hostCoins}");
+        debugPrint("🏆 Total gifts after initialization: ${sentGifts.length}");
+      } else {
+        debugPrint("⚠️ Could not initialize host coins - host ID is null");
+      }
+    } else {
+      debugPrint("💰 No host coins to initialize (${widget.hostCoins})");
     }
   }
 
