@@ -385,6 +385,7 @@ class ListLiveStream extends StatelessWidget {
                 },
                 extra: {
                   'existingViewers': availableRooms[index].membersDetails,
+                  'hostCoins': availableRooms[index].hostCoins,
                 },
               );
             },

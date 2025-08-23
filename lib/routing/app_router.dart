@@ -131,7 +131,8 @@ final GoRouter appRouter = GoRouter(
             (state.extra as Map<String, dynamic>?)?['existingViewers']
                 as List<HostDetails>? ??
             [];
-        final hostCoins = (state.extra as Map<String, dynamic>?)?['hostCoins'] as int? ?? 0;
+        final hostCoins =
+            (state.extra as Map<String, dynamic>?)?['hostCoins'] as int? ?? 0;
         return GoliveScreen(
           roomId: roomId,
           hostName: hostName,

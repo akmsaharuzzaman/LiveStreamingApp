@@ -49,7 +49,7 @@ class GoliveScreen extends StatefulWidget {
   final String? hostAvatar;
   final List<HostDetails> existingViewers;
   final int hostCoins;
-  
+
   const GoliveScreen({
     super.key,
     this.roomId,
@@ -237,7 +237,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
         "Initialized ${activeViewers.length} existing viewers (host excluded)",
       );
     }
-    
+
     // Initialize host coins as existing gifts
     _initializeHostCoins();
   }
@@ -246,11 +246,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
   void _initializeHostCoins() {
     if (widget.hostCoins > 0) {
       debugPrint("💰 Initializing host coins: ${widget.hostCoins}");
-      
+
       // Create a synthetic gift model to represent existing host coins
       // We need to determine the correct host ID
       String? hostId = isHost ? userId : widget.hostUserId;
-      
+
       if (hostId != null) {
         GiftModel syntheticGift = GiftModel(
           avatar: widget.hostAvatar ?? "https://thispersondoesnotexist.com/",
@@ -271,9 +271,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
             v: 0,
           ),
         );
-        
+
         sentGifts.add(syntheticGift);
-        debugPrint("✅ Added synthetic gift for host coins: ${widget.hostCoins}");
+        debugPrint(
+          "✅ Added synthetic gift for host coins: ${widget.hostCoins}",
+        );
         debugPrint("🏆 Total gifts after initialization: ${sentGifts.length}");
       } else {
         debugPrint("⚠️ Could not initialize host coins - host ID is null");
