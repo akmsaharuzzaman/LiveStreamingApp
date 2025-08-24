@@ -20,7 +20,8 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   int _currentIndex = 0;
 
   List<Widget> get _pages => [
-    const HomePage(),
+    // Use a unique key to force HomePage to rebuild and refresh each time
+    HomePage(key: ValueKey('home_${DateTime.now().millisecondsSinceEpoch}')),
     const NewsfeedPage(),
     const SizedBox(),
     const ChatPage(),
@@ -57,7 +58,14 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                 return;
               }
 
-              // If profile tab is selected, force rebuild by updating state
+              // If home tab is selected, force rebuild to refresh data
+              if (index == 0) {
+                _currentIndex = index;
+                // Force rebuild to refresh home data
+                return;
+              }
+
+              // If profile tab is selected, force rebuild to refresh profile data
               if (index == 4) {
                 _currentIndex = index;
                 // Force rebuild to refresh profile data

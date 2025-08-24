@@ -105,7 +105,7 @@ class _HomePageState extends State<HomePage>
   /// Handle pull-to-refresh action
   Future<void> _handleRefresh() async {
     try {
-      debugPrint('🔄 Pull to refresh triggered - fetching latest rooms');
+      debugPrint('🔄 Home page refresh triggered - fetching latest rooms');
 
       // Check if socket is connected
       if (!_socketService.isConnected) {
@@ -138,6 +138,13 @@ class _HomePageState extends State<HomePage>
     _tabController = TabController(length: 4, vsync: this);
 
     _initializeSocket();
+
+    // Trigger refresh each time HomePage is created
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      debugPrint('🏠 HomePage created - triggering auto-refresh');
+      _handleRefresh();
+    });
+
     // Removed duplicate _setupSocketListeners() call - it's already called in _initializeSocket()
     super.initState();
   }
