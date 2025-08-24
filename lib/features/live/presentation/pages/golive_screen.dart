@@ -609,6 +609,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
         setState(() {
           bannedUserModels.add(data);
         });
+        if (data.targetId == userId) {
+          _handleHostDisconnection("You have been banned from this room.");
+        }
         debugPrint("User banned: ${data.targetId}->${data.message}");
       }
     });
