@@ -563,6 +563,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
           bannedUsers = List.from(data);
         });
         debugPrint("Banned user list updated: $bannedUsers");
+        if (bannedUsers.contains(userId)) {
+          _handleHostDisconnection("You have been banned from this room.");
+        }
       }
     });
 
@@ -2326,7 +2329,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     if (allVideoBroadcasters.isEmpty) {
       // Start host disconnection monitoring when no video broadcasters are present
       if (!isHost) {
-        _startHostDisconnectionMonitoring();
+        _startHostDisconnectionMonitoring();//TODO: Implement host disconnection monitoring
       }
 
       return Container(
