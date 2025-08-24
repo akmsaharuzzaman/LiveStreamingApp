@@ -538,7 +538,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
     _userLeftSubscription = _socketService.userLeftStream.listen((data) {
       if (mounted) {
         activeViewers.removeWhere((user) => user.id == data.id);
-        debugPrint("User left: ${data.name} - ${data.uid}");
+        broadcasterList.removeWhere((user) => user == data.id);
+        broadcasterDetails.removeWhere((user) => user.id == data.id);
+        broadcasterModels.removeWhere((model) => model.id == data.id);
+        debugPrint("User left: ${data.name} - ${data.id}");
+        debugPrint("Broadcaster list updated: $broadcasterList");
       }
     });
 
@@ -608,11 +612,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
       if (mounted) {
         setState(() {
           bannedUserModels.add(data);
+          broadcasterList.removeWhere((user) => user == data.targetId);
+          //TODO: Update UI to reflect banned user
         });
         if (data.targetId == userId) {
           _handleHostDisconnection("You have been banned from this room.");
         }
-        debugPrint("User banned: ${data.targetId}->${data.message}");
+        _showSnackBar(data.message, Colors.red);
       }
     });
 
@@ -623,7 +629,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
           // Store only the latest mute state which contains all muted users
           currentMuteState = data;
         });
-        if (mounted && !isHost) {
+        if (mounted) {
           _showSnackBar(
             "An ${data.lastUserIsMuted ? 'user is muted' : 'user is unmuted'} by admin",
             Colors.red,
