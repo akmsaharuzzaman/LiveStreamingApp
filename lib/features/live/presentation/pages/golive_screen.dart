@@ -583,6 +583,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
           // Store only the latest mute state which contains all muted users
           currentMuteState = data;
         });
+        if (mounted && !isHost) {
+          _showSnackBar(
+            "An ${data.lastUserIsMuted ? 'user is muted' : 'user is unmuted'} by admin",
+            Colors.red,
+          );
+        }
         debugPrint(
           "User muted: ${data.allMutedUsersList} - ${data.lastUserIsMuted}",
         );
@@ -785,13 +791,16 @@ class _GoliveScreenState extends State<GoliveScreen> {
   /// Show snackbar message
   void _showSnackBar(String message, Color color) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: color,
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      // Remove current snackbar before showing a new one
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: color,
+            duration: const Duration(seconds: 2),
+          ),
+        );
     }
   }
 
