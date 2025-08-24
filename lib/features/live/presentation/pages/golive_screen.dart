@@ -238,8 +238,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
       );
     }
 
-    // Initialize host coins as existing gifts
-    _initializeHostCoins();
+    // Note: Host coins initialization moved to _loadUidAndDispatchEvent after userId is set
   }
 
   /// Initialize host coins as synthetic gifts for display purposes
@@ -248,10 +247,19 @@ class _GoliveScreenState extends State<GoliveScreen> {
       debugPrint("💰 Initializing host coins: ${widget.hostCoins}");
 
       // Create a synthetic gift model to represent existing host coins
-      // We need to determine the correct host ID
-      String? hostId = isHost ? userId : widget.hostUserId;
+      // Use widget.hostUserId (always available) or userId if this user is the host
+      String? hostId = widget.hostUserId;
 
-      if (hostId != null) {
+      // If we don't have hostUserId from widget, but this user is the host, use userId
+      if (hostId == null && isHost && userId != null) {
+        hostId = userId;
+      }
+
+      debugPrint(
+        "🔍 Using host ID: $hostId (isHost: $isHost, userId: $userId, widget.hostUserId: ${widget.hostUserId})",
+      );
+
+      if (hostId != null && hostId.isNotEmpty) {
         GiftModel syntheticGift = GiftModel(
           avatar: widget.hostAvatar ?? "https://thispersondoesnotexist.com/",
           name: widget.hostName ?? "Host",
@@ -274,11 +282,16 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
         sentGifts.add(syntheticGift);
         debugPrint(
-          "✅ Added synthetic gift for host coins: ${widget.hostCoins}",
+          "✅ Added synthetic gift for host coins: ${widget.hostCoins} to host ID: $hostId",
         );
         debugPrint("🏆 Total gifts after initialization: ${sentGifts.length}");
       } else {
-        debugPrint("⚠️ Could not initialize host coins - host ID is null");
+        debugPrint(
+          "⚠️ Could not initialize host coins - host ID is null or empty",
+        );
+        debugPrint("   widget.hostUserId: ${widget.hostUserId}");
+        debugPrint("   userId: $userId");
+        debugPrint("   isHost: $isHost");
       }
     } else {
       debugPrint("💰 No host coins to initialize (${widget.hostCoins})");
@@ -323,6 +336,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
         userId = uid;
         debugPrint("User ID set: $userId");
       });
+
+      // Initialize host coins after userId is set
+      if (widget.hostCoins > 0) {
+        _initializeHostCoins();
+      }
 
       // Initialize Agora and socket AFTER userId is loaded
       await initAgoraLoad();
