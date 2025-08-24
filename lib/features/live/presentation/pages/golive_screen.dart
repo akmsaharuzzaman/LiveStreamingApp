@@ -879,9 +879,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
       if (lastActivity != null &&
           now.difference(lastActivity).inSeconds >= 13) {
         timer.cancel();
-        _handleHostDisconnection(
-          "Host appears to be inactive. Live session ended.",
-        );
+        // _handleHostDisconnection(
+        //   "Host appears to be inactive. Live session ended.",
+        // );
       }
     });
   }
@@ -2329,7 +2329,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     if (allVideoBroadcasters.isEmpty) {
       // Start host disconnection monitoring when no video broadcasters are present
       if (!isHost) {
-        _startHostDisconnectionMonitoring();//TODO: Implement host disconnection monitoring
+        // _startHostDisconnectionMonitoring();//TODO: Implement host disconnection monitoring
       }
 
       return Container(

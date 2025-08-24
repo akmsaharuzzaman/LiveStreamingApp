@@ -46,25 +46,14 @@ class GiftModel {
     int total = gifts
         .where((gift) => gift.recieverIds.contains(userId))
         .fold(0, (sum, gift) => sum + gift.diamonds);
-
-    // Debug logging
-    print("🔍 Calculating diamonds for user: $userId");
-    print("📊 Total gifts in list: ${gifts.length}");
-    print(
-      "🎯 Gifts for this user: ${gifts.where((gift) => gift.recieverIds.contains(userId)).length}",
-    );
-    print("💎 Total diamonds: $total");
-
     return total;
   }
 
   // Calculate total diamonds sent to the host
   static int totalDiamondsForHost(List<GiftModel> gifts, String? hostId) {
     if (hostId == null) {
-      print("⚠️ Host ID is null, returning 0 diamonds");
       return 0;
     }
-    print("🏠 Calculating host diamonds for ID: $hostId");
     return totalDiamondsForUser(gifts, hostId);
   }
 }
