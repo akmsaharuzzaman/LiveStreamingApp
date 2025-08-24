@@ -115,6 +115,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
   StreamSubscription? _roomDeletedSubscription;
   StreamSubscription? _errorSubscription;
 
+  // Additional socket stream subscriptions
+  StreamSubscription? _userJoinedSubscription;
+  StreamSubscription? _userLeftSubscription;
+  StreamSubscription? _sentMessageSubscription;
+  StreamSubscription? _sentGiftSubscription;
+  StreamSubscription? _broadcasterListSubscription;
+  StreamSubscription? _bannedListSubscription;
+  StreamSubscription? _bannedUserSubscription;
+  StreamSubscription? _joinCallRequestSubscription;
+  StreamSubscription? _joinCallRequestListSubscription;
+
   // Chat messages
   final List<ChatModel> _chatMessages = [];
 
@@ -400,7 +411,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
         });
 
     // User events
-    _socketService.userJoinedStream.listen((data) {
+    _userJoinedSubscription = _socketService.userJoinedStream.listen((data) {
       if (mounted) {
         // Don't add host to activeViewers list (use hostUserId from widget)
         if (data.id != widget.hostUserId &&
@@ -423,7 +434,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
     });
 
     //Joined Call Requests List
-    _socketService.joinCallRequestStream.listen((data) {
+    _joinCallRequestSubscription = _socketService.joinCallRequestStream.listen((
+      data,
+    ) {
       if (mounted) {
         if (!callRequests.any((user) => user.userId == data.userId)) {
           callRequests.add(data);
@@ -440,30 +453,33 @@ class _GoliveScreenState extends State<GoliveScreen> {
       }
     });
 
-    _socketService.joinCallRequestListStream.listen((data) {
-      if (mounted) {
-        callDetailRequest = data;
-        debugPrint("Call request list updated: $callDetailRequest");
-        // Update bottom sheet if it's open
-        _updateCallManageBottomSheet();
-      }
-    });
+    _joinCallRequestListSubscription = _socketService.joinCallRequestListStream
+        .listen((data) {
+          if (mounted) {
+            callDetailRequest = data;
+            debugPrint("Call request list updated: $callDetailRequest");
+            // Update bottom sheet if it's open
+            _updateCallManageBottomSheet();
+          }
+        });
 
     // Sent Messages
-    _socketService.sentMessageStream.listen((data) {
+    _sentMessageSubscription = _socketService.sentMessageStream.listen((data) {
       if (mounted) {
         debugPrint("User sent a message: ${data.text}");
-      }
-      setState(() {
-        _chatMessages.add(data);
-      });
-      if (_chatMessages.length > 50) {
-        _chatMessages.removeAt(0);
+        setState(() {
+          _chatMessages.add(data);
+        });
+        if (_chatMessages.length > 50) {
+          _chatMessages.removeAt(0);
+        }
       }
     });
 
     // Broadcaster List - in call
-    _socketService.broadcasterListStream.listen((data) {
+    _broadcasterListSubscription = _socketService.broadcasterListStream.listen((
+      data,
+    ) {
       if (mounted) {
         // Now data is already List<BroadcasterModel> from socket
         broadcasterModels = List.from(data);
@@ -519,7 +535,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
       }
     });
 
-    _socketService.userLeftStream.listen((data) {
+    _userLeftSubscription = _socketService.userLeftStream.listen((data) {
       if (mounted) {
         activeViewers.removeWhere((user) => user.id == data.id);
         debugPrint("User left: ${data.name} - ${data.uid}");
@@ -527,7 +543,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     });
 
     //Sent Gifts
-    _socketService.sentGiftStream.listen((data) {
+    _sentGiftSubscription = _socketService.sentGiftStream.listen((data) {
       if (mounted) {
         debugPrint("🎁 Gift received from socket: ${data.gift.name}");
         debugPrint("💰 Gift diamonds: ${data.diamonds}");
@@ -575,7 +591,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     });
 
     //BannedUserList
-    _socketService.bannedListStream.listen((data) {
+    _bannedListSubscription = _socketService.bannedListStream.listen((data) {
       if (mounted) {
         setState(() {
           bannedUsers = List.from(data);
@@ -588,7 +604,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     });
 
     //BannedUsers
-    _socketService.bannedUserStream.listen((data) {
+    _bannedUserSubscription = _socketService.bannedUserStream.listen((data) {
       if (mounted) {
         setState(() {
           bannedUserModels.add(data);
@@ -2429,6 +2445,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
     _roomLeftSubscription?.cancel();
     _roomDeletedSubscription?.cancel();
     _errorSubscription?.cancel();
+
+    // Cancel additional socket stream subscriptions
+    _userJoinedSubscription?.cancel();
+    _userLeftSubscription?.cancel();
+    _sentMessageSubscription?.cancel();
+    _sentGiftSubscription?.cancel();
+    _broadcasterListSubscription?.cancel();
+    _bannedListSubscription?.cancel();
+    _bannedUserSubscription?.cancel();
+    _joinCallRequestSubscription?.cancel();
+    _joinCallRequestListSubscription?.cancel();
 
     // Stop the duration timer
     _stopStreamTimer();
