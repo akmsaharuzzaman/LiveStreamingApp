@@ -328,7 +328,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
         Column(
           children: [
             Text(
-              "1.5K",
+              "0",
               style:  TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 18.sp,
@@ -351,7 +351,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
         Column(
           children: [
             Text(
-              "2.3K",
+              "0",
               style:  TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 18.sp,
