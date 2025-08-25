@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:video_player/video_player.dart';
 import '../../../../core/auth/auth_bloc.dart';
 import '../../../../core/constants/app_constants.dart';
 
@@ -17,6 +18,8 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _textController;
   late Animation<double> _logoAnimation;
   late Animation<double> _textAnimation;
+  late VideoPlayerController _videoController;
+  bool _isVideoInitialized = false;
 
   @override
   void initState() {
@@ -41,6 +44,9 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(parent: _textController, curve: Curves.easeInOut),
     );
 
+    // Initialize video
+    _initializeVideo();
+
     // Start animations
     _logoController.forward();
     _textController.forward();
@@ -49,10 +55,26 @@ class _SplashScreenState extends State<SplashScreen>
     context.read<AuthBloc>().add(const AuthInitializeEvent());
   }
 
+  void _initializeVideo() {
+    _videoController = VideoPlayerController.asset(
+      'assets/images/onboarding/intro_video.mp4',
+    );
+
+    _videoController.initialize().then((_) {
+      setState(() {
+        _isVideoInitialized = true;
+      });
+      _videoController.setLooping(true);
+      _videoController.setVolume(0.0); // Mute the video
+      _videoController.play();
+    });
+  }
+
   @override
   void dispose() {
     _logoController.dispose();
     _textController.dispose();
+    _videoController.dispose();
     super.dispose();
   }
 
@@ -80,146 +102,166 @@ class _SplashScreenState extends State<SplashScreen>
         }
       },
       child: Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.primaryContainer,
-              ],
-            ),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Logo Animation
-                AnimatedBuilder(
-                  animation: _logoAnimation,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _logoAnimation.value,
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(60),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(60),
-                          child: Image.asset(
-                            'assets/icons/icon.png',
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+        body: Stack(
+          children: [
+            // Background video
+            if (_isVideoInitialized)
+              Positioned.fill(
+                child: AspectRatio(
+                  aspectRatio: _videoController.value.aspectRatio,
+                  child: VideoPlayer(_videoController),
                 ),
+              ),
 
-                const SizedBox(height: UIConstants.spacingXL),
-
-                // App Name Animation
-                AnimatedBuilder(
-                  animation: _textAnimation,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _textAnimation.value,
-                      child: Column(
-                        children: [
-                          Text(
-                            AppConstants.appName,
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
+            // Original gradient overlay
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.8),
+                    Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer.withValues(alpha: 0.8),
+                  ],
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Logo Animation
+                    AnimatedBuilder(
+                      animation: _logoAnimation,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: _logoAnimation.value,
+                          child: Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(60),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 10),
                                 ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-
-                const SizedBox(height: UIConstants.spacingXL * 2),
-
-                // Loading Indicator
-                BlocBuilder<AuthBloc, AuthState>(
-                  builder: (context, state) {
-                    if (state is AuthSplashLoading) {
-                      return Column(
-                        children: [
-                          const CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(60),
+                              child: Image.asset(
+                                'assets/icons/icon.png',
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.contain,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: UIConstants.spacingM),
-                          Text(
-                            'Initializing...',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: Colors.white70),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: UIConstants.spacingXL),
+
+                    // App Name Animation
+                    AnimatedBuilder(
+                      animation: _textAnimation,
+                      builder: (context, child) {
+                        return Opacity(
+                          opacity: _textAnimation.value,
+                          child: Column(
+                            children: [
+                              Text(
+                                AppConstants.appName,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
+                                    ?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
-                        ],
-                      );
-                    } else if (state is AuthError) {
-                      return Column(
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            color: Colors.red[300],
-                            size: 48,
-                          ),
-                          const SizedBox(height: UIConstants.spacingM),
-                          Text(
-                            'Initialization Failed',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: Colors.red[300]),
-                          ),
-                          const SizedBox(height: UIConstants.spacingS),
-                          Text(
-                            state.message,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: Colors.white70),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: UIConstants.spacingM),
-                          ElevatedButton(
-                            onPressed: () {
-                              context.read<AuthBloc>().add(
-                                const AuthInitializeEvent(),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Theme.of(
-                                context,
-                              ).colorScheme.primary,
-                            ),
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: UIConstants.spacingXL * 2),
+
+                    // Loading Indicator
+                    BlocBuilder<AuthBloc, AuthState>(
+                      builder: (context, state) {
+                        if (state is AuthSplashLoading) {
+                          return Column(
+                            children: [
+                              const CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: UIConstants.spacingM),
+                              Text(
+                                'Initializing...',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(color: Colors.white70),
+                              ),
+                            ],
+                          );
+                        } else if (state is AuthError) {
+                          return Column(
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                color: Colors.red[300],
+                                size: 48,
+                              ),
+                              const SizedBox(height: UIConstants.spacingM),
+                              Text(
+                                'Initialization Failed',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(color: Colors.red[300]),
+                              ),
+                              const SizedBox(height: UIConstants.spacingS),
+                              Text(
+                                state.message,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(color: Colors.white70),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: UIConstants.spacingM),
+                              ElevatedButton(
+                                onPressed: () {
+                                  context.read<AuthBloc>().add(
+                                    const AuthInitializeEvent(),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.primary,
+                                ),
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
