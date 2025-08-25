@@ -274,6 +274,7 @@ class LiveSummaryScreen extends StatelessWidget {
           children: [
             Text(
               title,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 16.sp,
                 color: Colors.grey[600],

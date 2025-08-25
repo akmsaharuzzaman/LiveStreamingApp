@@ -1549,12 +1549,21 @@ class _GoliveScreenState extends State<GoliveScreen> {
         if (mounted) {
           final state = context.read<AuthBloc>().state;
           if (state is AuthAuthenticated) {
+            // Calculate total earned diamonds/coins
+            int earnedDiamonds = GiftModel.totalDiamondsForHost(
+              sentGifts,
+              userId, // Use userId for host
+            );
+            
+            debugPrint("🏆 Host ending live stream - Total earned diamonds: $earnedDiamonds");
+            debugPrint("📊 Total gifts received: ${sentGifts.length}");
+            
             context.go(
               AppRoutes.liveSummary,
               extra: {
                 'userName': state.user.name,
                 'userId': state.user.id.substring(0, 6),
-                'earnedPoints': 0,
+                'earnedPoints': earnedDiamonds, // Pass actual earned diamonds
                 'newFollowers': 0,
                 'totalDuration': _formatDuration(_streamDuration),
                 'userAvatar': state.user.avatar,
