@@ -677,7 +677,7 @@ class _StoryViewerPageState extends State<StoryViewerPage>
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -707,7 +707,9 @@ class _StoryViewerPageState extends State<StoryViewerPage>
                                   : index < _currentStoryIndex
                                   ? 1.0
                                   : 0.0,
-                              backgroundColor: Colors.white.withOpacity(0.3),
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.3,
+                              ),
                               valueColor: const AlwaysStoppedAnimation<Color>(
                                 Colors.white,
                               ),
@@ -764,7 +766,7 @@ class _StoryViewerPageState extends State<StoryViewerPage>
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.8),
+                      color: Colors.red.withValues(alpha: 0.8),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -858,7 +860,7 @@ class _StoryViewerPageState extends State<StoryViewerPage>
                     Text(
                       _formatTimeAgo(story.createdAt),
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 12,
                       ),
                     ),
@@ -877,7 +879,7 @@ class _StoryViewerPageState extends State<StoryViewerPage>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
+                color: Colors.black.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -911,8 +913,8 @@ class _StoryViewerPageState extends State<StoryViewerPage>
         height: 50,
         decoration: BoxDecoration(
           color: isMyReaction
-              ? Colors.red.withOpacity(0.8)
-              : Colors.black.withOpacity(0.6),
+              ? Colors.red.withValues(alpha: 0.8)
+              : Colors.black.withValues(alpha: 0.6),
           shape: BoxShape.circle,
           border: isMyReaction ? Border.all(color: Colors.red, width: 2) : null,
         ),

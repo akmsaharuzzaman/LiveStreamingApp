@@ -284,7 +284,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     blurRadius: 10,
                     offset: const Offset(0, -5),
                   ),
@@ -316,10 +316,10 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                     //       width: 40.w,
                     //       height: 40.h,
                     //       decoration: BoxDecoration(
-                    //         color: Colors.black.withOpacity(0.7),
+                    //         color: Colors.black.withValues(alpha:0.7),
                     //         borderRadius: BorderRadius.circular(20.r),
                     //         border: Border.all(
-                    //           color: Colors.white.withOpacity(0.3),
+                    //           color: Colors.white.withValues(alpha:0.3),
                     //           width: 1,
                     //         ),
                     //       ),
@@ -348,7 +348,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                             width: 40.w,
                             height: 4.h,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.5),
+                              color: Colors.white.withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(2.r),
                             ),
                           ),

@@ -19,7 +19,7 @@ class EndStreamOverlay extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.8),
+      barrierColor: Colors.black.withValues(alpha: 0.8),
       builder: (BuildContext context) {
         return EndStreamOverlay(
           onKeepStream: onKeepStream,
@@ -58,7 +58,7 @@ class EndStreamOverlay extends StatelessWidget {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFF69B4).withOpacity(0.3),
+                      color: const Color(0xFFFF69B4).withValues(alpha: 0.3),
                       spreadRadius: 2.r,
                       blurRadius: 8.r,
                       offset: const Offset(0, 4),
@@ -100,7 +100,7 @@ class EndStreamOverlay extends StatelessWidget {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFF69B4).withOpacity(0.3),
+                      color: const Color(0xFFFF69B4).withValues(alpha: 0.3),
                       spreadRadius: 2.r,
                       blurRadius: 8.r,
                       offset: const Offset(0, 4),

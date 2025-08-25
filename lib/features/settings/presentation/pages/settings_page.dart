@@ -95,7 +95,7 @@ class _SettingsPageState extends State<SettingsPage> {
         // Match other pages by using a subtle grey background
         backgroundColor: Theme.of(
           context,
-        ).colorScheme.surface.withOpacity(0.02),
+        ).colorScheme.surface.withValues(alpha:0.02),
         body: Container(
           color: Theme.of(context).colorScheme.surface,
           height: MediaQuery.of(context).size.height,
@@ -514,7 +514,7 @@ class _SectionContainer extends StatelessWidget {
         border: borderColor != null ? Border.all(color: borderColor!) : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha:0.1),
             spreadRadius: 2,
             blurRadius: 8,
             offset: const Offset(0, 3),
@@ -530,7 +530,7 @@ class _SectionDivider extends StatelessWidget {
   const _SectionDivider();
   @override
   Widget build(BuildContext context) {
-    return Divider(height: 1, color: Colors.grey.withOpacity(0.15));
+    return Divider(height: 1, color: Colors.grey.withValues(alpha:0.15));
   }
 }
 
@@ -561,7 +561,7 @@ class _SettingsTile extends StatelessWidget {
       leading: CircleAvatar(
         radius: 18.r,
         backgroundColor: (iconColor ?? Theme.of(context).colorScheme.primary)
-            .withOpacity(0.08),
+            .withValues(alpha:0.08),
         child: Icon(icon, color: iconColor ?? Colors.black87, size: 20.r),
       ),
       title: Text(

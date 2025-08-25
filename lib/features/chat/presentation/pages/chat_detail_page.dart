@@ -105,7 +105,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                       ),
                       decoration: BoxDecoration(
                         color: isMe
-                            ? Theme.of(context).primaryColor.withOpacity(0.1)
+                            ? Theme.of(
+                                context,
+                              ).primaryColor.withValues(alpha: 0.1)
                             : Colors.grey[100],
                         borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(20.r),
@@ -367,7 +369,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     offset: const Offset(0, -2),
                     blurRadius: 4,
                   ),

@@ -262,7 +262,7 @@ class _MenuBottomSheetState extends State<MenuBottomSheet> {
             label,
             style: TextStyle(
               color: isDisabled
-                  ? const Color(0xFF202020).withOpacity(0.5)
+                  ? const Color(0xFF202020).withValues(alpha: 0.5)
                   : const Color(0xFF202020),
               fontSize: 15.sp,
               fontWeight: FontWeight.w400,

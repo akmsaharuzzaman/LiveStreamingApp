@@ -180,8 +180,8 @@ class _LivePageState extends State<LivePage> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.3),
-                    Colors.black.withOpacity(0.7),
+                    Colors.black.withValues(alpha: 0.3),
+                    Colors.black.withValues(alpha: 0.7),
                   ],
                 ),
               ),
@@ -198,10 +198,10 @@ class _LivePageState extends State<LivePage> {
           //       width: 40.w,
           //       height: 40.w,
           //       decoration: BoxDecoration(
-          //         color: Colors.black.withOpacity(0.5),
+          //         color: Colors.black.withValues(alpha:0.5),
           //         shape: BoxShape.circle,
           //         border: Border.all(
-          //           color: Colors.white.withOpacity(0.3),
+          //           color: Colors.white.withValues(alpha:0.3),
           //           width: 1,
           //         ),
           //       ),
@@ -317,7 +317,7 @@ class _LivePageState extends State<LivePage> {
                         color: Colors.white.withValues(alpha: 0.3),
                       ),
                       borderRadius: BorderRadius.circular(12.r),
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -436,10 +436,10 @@ class _LivePageState extends State<LivePage> {
                             decoration: BoxDecoration(
                               border: Border.all(
                                 width: 1.w,
-                                color: Colors.white.withOpacity(0.3),
+                                color: Colors.white.withValues(alpha: 0.3),
                               ),
                               borderRadius: BorderRadius.circular(8.r),
-                              color: Colors.black.withOpacity(0.3),
+                              color: Colors.black.withValues(alpha: 0.3),
                             ),
                             child: TextField(
                               controller: _passwordController,
@@ -451,7 +451,7 @@ class _LivePageState extends State<LivePage> {
                               decoration: InputDecoration(
                                 hintText: 'Enter Password',
                                 hintStyle: TextStyle(
-                                  color: Colors.white.withOpacity(0.5),
+                                  color: Colors.white.withValues(alpha: 0.5),
                                   fontSize: 16.sp,
                                 ),
                                 border: InputBorder.none,
@@ -614,7 +614,9 @@ class _LivePageState extends State<LivePage> {
           color: isSelected ? Colors.white : Colors.transparent,
           border: Border.all(
             width: 2.w,
-            color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
+            color: isSelected
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.3),
           ),
           borderRadius: BorderRadius.circular(20.r),
         ),

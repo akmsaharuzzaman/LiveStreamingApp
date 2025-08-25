@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:dlstarlive/features/reels/custom_package/reels_viewer.dart' as reels_viewer;
+import 'package:dlstarlive/features/reels/custom_package/reels_viewer.dart'
+    as reels_viewer;
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../../core/network/api_clients.dart';
@@ -586,7 +587,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -604,8 +605,8 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black.withOpacity(0.3),
-                        Colors.black.withOpacity(0.8),
+                        Colors.black.withValues(alpha: 0.3),
+                        Colors.black.withValues(alpha: 0.8),
                       ],
                     ),
                   ),

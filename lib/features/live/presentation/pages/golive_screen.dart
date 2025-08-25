@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
+import 'package:dlstarlive/core/network/api_service.dart';
 import 'package:dlstarlive/core/network/models/broadcaster_model.dart';
 import 'package:dlstarlive/core/network/models/call_request_list_model.dart';
 import 'package:dlstarlive/core/network/models/call_request_model.dart';
@@ -66,6 +67,7 @@ class GoliveScreen extends StatefulWidget {
 
 class _GoliveScreenState extends State<GoliveScreen> {
   final TextEditingController _titleController = TextEditingController();
+  final ApiService _apiService = ApiService.instance;
 
   // Debug helper method to control logging based on debug mode
   void _debugLog(String message) {
@@ -101,6 +103,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
   DateTime? _streamStartTime;
   Timer? _durationTimer;
   Duration _streamDuration = Duration.zero;
+
+  // Daily bonus tracking
+  bool _hasCalled50MinuteBonus = false;
 
   // Host activity tracking for viewers
   Timer? _hostActivityTimer;
@@ -1490,6 +1495,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
         setState(() {
           _streamDuration = DateTime.now().difference(_streamStartTime!);
         });
+
+        // Check for 50 minute milestone for hosts only
+        if (isHost &&
+            !_hasCalled50MinuteBonus &&
+            _streamDuration.inMinutes >= 50) {
+          _callDailyBonusAPI();
+        }
       }
     });
   }
@@ -1523,6 +1535,39 @@ class _GoliveScreenState extends State<GoliveScreen> {
     });
   }
 
+  // Call daily bonus API for 50 minute milestone
+  Future<void> _callDailyBonusAPI() async {
+    if (!isHost || _hasCalled50MinuteBonus) return;
+
+    try {
+      final totalMinutes = _streamDuration.inMinutes;
+      debugPrint(
+        "🏆 Calling daily bonus API for $totalMinutes minutes of streaming",
+      );
+
+      final response = await _apiService.post<Map<String, dynamic>>(
+        '/api/auth/daily-bonus',
+        data: {'totalTime': totalMinutes, 'type': 'live'},
+      );
+
+      response.fold(
+        (data) {
+          debugPrint("✅ Daily bonus API call successful: $data");
+          _showSnackBar('🎉 Daily streaming bonus earned!', Colors.green);
+          setState(() {
+            _hasCalled50MinuteBonus = true;
+          });
+        },
+        (error) {
+          debugPrint("❌ Daily bonus API call failed: $error");
+          _showSnackBar('⚠️ Bonus reward processing...', Colors.orange);
+        },
+      );
+    } catch (e) {
+      debugPrint("❌ Exception calling daily bonus API: $e");
+    }
+  }
+
   // End live stream
   void _endLiveStream() async {
     try {
@@ -1549,6 +1594,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
         if (mounted) {
           final state = context.read<AuthBloc>().state;
           if (state is AuthAuthenticated) {
+            // Call daily bonus API if stream duration is valid and not already called
+            if (!_hasCalled50MinuteBonus && _streamDuration.inMinutes > 0) {
+              await _callDailyBonusAPI();
+            }
+
             // Calculate total earned diamonds/coins
             int earnedDiamonds = GiftModel.totalDiamondsForHost(
               sentGifts,

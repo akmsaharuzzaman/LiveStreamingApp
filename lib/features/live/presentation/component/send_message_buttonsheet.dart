@@ -42,7 +42,7 @@ class _BottomSheetBackdrop extends StatelessWidget {
       child: Stack(
         children: [
           // Dark scrim
-          Container(color: Colors.black.withOpacity(0.35)),
+          Container(color: Colors.black.withValues(alpha: 0.35)),
           // Bottom sheet content (prevent sheet tap closing)
           Align(
             alignment: Alignment.bottomCenter,
@@ -108,12 +108,15 @@ class _ShowMessageBottomsheetState extends State<ShowMessageBottomsheet> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black.withValues(alpha: 0.4),
               offset: Offset(0, -4.h),
               blurRadius: 12.r,
             ),
           ],
-          border: Border.all(color: Colors.white.withOpacity(0.05), width: 1.w),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.05),
+            width: 1.w,
+          ),
         ),
         child: SafeArea(
           top: false,
@@ -127,7 +130,7 @@ class _ShowMessageBottomsheetState extends State<ShowMessageBottomsheet> {
                   height: 5.h,
                   margin: EdgeInsets.only(bottom: 14.h),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.18),
+                    color: Colors.white.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(3.r),
                   ),
                 ),
@@ -156,10 +159,10 @@ class _ShowMessageBottomsheetState extends State<ShowMessageBottomsheet> {
                             hintText: 'Type your message...',
                             hintStyle: TextStyle(
                               fontSize: 14.sp,
-                              color: Colors.white.withOpacity(0.45),
+                              color: Colors.white.withValues(alpha: 0.45),
                             ),
                             filled: true,
-                            fillColor: Colors.white.withOpacity(0.06),
+                            fillColor: Colors.white.withValues(alpha: 0.06),
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: 14.w,
                               vertical: 10.h,
@@ -167,7 +170,7 @@ class _ShowMessageBottomsheetState extends State<ShowMessageBottomsheet> {
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(24.r),
                               borderSide: BorderSide(
-                                color: Colors.white.withOpacity(0.12),
+                                color: Colors.white.withValues(alpha: 0.12),
                                 width: 1.w,
                               ),
                             ),
@@ -221,7 +224,7 @@ class _SendButton extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.35),
+              color: Colors.black.withValues(alpha: 0.35),
               offset: Offset(0, 3.h),
               blurRadius: 6.r,
             ),

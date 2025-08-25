@@ -79,7 +79,7 @@ class _LoginWithEmailState extends State<LoginWithEmail> {
             ),
 
           // Dark overlay for better text readability
-          Container(color: Colors.black.withOpacity(0.4)),
+          Container(color: Colors.black.withValues(alpha: 0.4)),
 
           // Login form content
           BlocListener<AuthBloc, AuthState>(
@@ -116,7 +116,7 @@ class _LoginWithEmailState extends State<LoginWithEmail> {
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.1),
+                              color: Colors.white.withValues(alpha: 0.1),
                             ),
                             child: Image.asset(
                               'assets/icons/icon.png',
@@ -137,7 +137,7 @@ class _LoginWithEmailState extends State<LoginWithEmail> {
                                 Shadow(
                                   offset: const Offset(0, 2),
                                   blurRadius: 4,
-                                  color: Colors.black.withOpacity(0.5),
+                                  color: Colors.black.withValues(alpha: 0.5),
                                 ),
                               ],
                             ),
@@ -148,12 +148,12 @@ class _LoginWithEmailState extends State<LoginWithEmail> {
                           Text(
                             'Sign in to your account',
                             style: theme.textTheme.bodyLarge?.copyWith(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               shadows: [
                                 Shadow(
                                   offset: const Offset(0, 1),
                                   blurRadius: 2,
-                                  color: Colors.black.withOpacity(0.5),
+                                  color: Colors.black.withValues(alpha: 0.5),
                                 ),
                               ],
                             ),
@@ -162,7 +162,7 @@ class _LoginWithEmailState extends State<LoginWithEmail> {
                           const SizedBox(height: 32), // Email Field
                           Container(
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: TextFormField(
@@ -194,7 +194,7 @@ class _LoginWithEmailState extends State<LoginWithEmail> {
                           // Password Field
                           Container(
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: TextFormField(
@@ -238,7 +238,7 @@ class _LoginWithEmailState extends State<LoginWithEmail> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
+                              color: Colors.white.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -263,7 +263,9 @@ class _LoginWithEmailState extends State<LoginWithEmail> {
                                       Shadow(
                                         offset: const Offset(0, 1),
                                         blurRadius: 2,
-                                        color: Colors.black.withOpacity(0.5),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.5,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -288,7 +290,9 @@ class _LoginWithEmailState extends State<LoginWithEmail> {
                                         Shadow(
                                           offset: const Offset(0, 1),
                                           blurRadius: 2,
-                                          color: Colors.black.withOpacity(0.5),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.5,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -344,7 +348,7 @@ class _LoginWithEmailState extends State<LoginWithEmail> {
                             children: [
                               Expanded(
                                 child: Divider(
-                                  color: Colors.white.withOpacity(0.5),
+                                  color: Colors.white.withValues(alpha: 0.5),
                                   thickness: 1,
                                 ),
                               ),
@@ -355,13 +359,15 @@ class _LoginWithEmailState extends State<LoginWithEmail> {
                                 child: Text(
                                   'OR',
                                   style: theme.textTheme.bodySmall?.copyWith(
-                                    color: Colors.white.withOpacity(0.8),
+                                    color: Colors.white.withValues(alpha: 0.8),
                                     fontWeight: FontWeight.w500,
                                     shadows: [
                                       Shadow(
                                         offset: const Offset(0, 1),
                                         blurRadius: 2,
-                                        color: Colors.black.withOpacity(0.5),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.5,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -369,7 +375,7 @@ class _LoginWithEmailState extends State<LoginWithEmail> {
                               ),
                               Expanded(
                                 child: Divider(
-                                  color: Colors.white.withOpacity(0.5),
+                                  color: Colors.white.withValues(alpha: 0.5),
                                   thickness: 1,
                                 ),
                               ),
@@ -386,12 +392,14 @@ class _LoginWithEmailState extends State<LoginWithEmail> {
                                 Text(
                                   'Don\'t have an account? ',
                                   style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: Colors.white.withOpacity(0.9),
+                                    color: Colors.white.withValues(alpha: 0.9),
                                     shadows: [
                                       Shadow(
                                         offset: const Offset(0, 1),
                                         blurRadius: 2,
-                                        color: Colors.black.withOpacity(0.5),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.5,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -409,7 +417,9 @@ class _LoginWithEmailState extends State<LoginWithEmail> {
                                         Shadow(
                                           offset: const Offset(0, 1),
                                           blurRadius: 2,
-                                          color: Colors.black.withOpacity(0.5),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.5,
+                                          ),
                                         ),
                                       ],
                                     ),

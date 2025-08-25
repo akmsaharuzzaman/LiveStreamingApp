@@ -57,9 +57,12 @@ class _StoryTextOverlayState extends State<StoryTextOverlay> {
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.7),
+            color: Colors.black.withValues(alpha: 0.7),
             borderRadius: BorderRadius.circular(8.r),
-            border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.3),
+              width: 1,
+            ),
           ),
           child: Text(
             widget.text,
@@ -102,7 +105,7 @@ class StoryControlButton extends StatelessWidget {
             width: 48.w,
             height: 48.h,
             decoration: BoxDecoration(
-              color: backgroundColor ?? Colors.white.withOpacity(0.2),
+              color: backgroundColor ?? Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: iconColor ?? Colors.white, size: 24.sp),
@@ -176,7 +179,7 @@ class StoryLoadingOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black.withOpacity(0.8),
+      color: Colors.black.withValues(alpha: 0.8),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -287,7 +287,9 @@ class _HomePageState extends State<HomePage>
                     slideIndicatorOptions: SlideIndicatorOptions(
                       alignment: Alignment.bottomCenter,
                       currentIndicatorColor: Colors.white,
-                      indicatorBackgroundColor: Colors.white.withOpacity(0.5),
+                      indicatorBackgroundColor: Colors.white.withValues(
+                        alpha: 0.5,
+                      ),
                       indicatorBorderColor: Colors.transparent,
                       indicatorBorderWidth: 0.5,
                       indicatorRadius: 3.8,
@@ -631,7 +633,7 @@ class LiveStreamCard extends StatelessWidget {
                   gradient: LinearGradient(
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(0.89),
+                      Colors.black.withValues(alpha: 0.89),
                     ],
                     end: Alignment.bottomCenter,
                     begin: Alignment.topCenter,
@@ -656,7 +658,7 @@ class LiveStreamCard extends StatelessWidget {
                                 vertical: 2.sp,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.45),
+                                color: Colors.black.withValues(alpha: 0.45),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,

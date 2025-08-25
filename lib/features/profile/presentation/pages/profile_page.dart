@@ -392,7 +392,7 @@ class _ProfileContentState extends State<_ProfileContent> {
         // border: Border.all(color: Colors.white, width: 4),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -524,7 +524,7 @@ class _ProfileContentState extends State<_ProfileContent> {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 2.r,
             blurRadius: 8.r,
             offset: const Offset(0, 3), // changes position of shadow
@@ -660,7 +660,7 @@ class _ProfileContentState extends State<_ProfileContent> {
             borderRadius: BorderRadius.circular(8.r),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
+                color: Colors.grey.withValues(alpha: 0.1),
                 spreadRadius: 2.r,
                 blurRadius: 8.r,
                 offset: const Offset(0, 3), // changes position of shadow
@@ -728,7 +728,7 @@ class _ProfileContentState extends State<_ProfileContent> {
             borderRadius: BorderRadius.circular(8.r),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
+                color: Colors.grey.withValues(alpha: 0.1),
                 spreadRadius: 2.r,
                 blurRadius: 8.r,
                 offset: const Offset(0, 3), // changes position of shadow

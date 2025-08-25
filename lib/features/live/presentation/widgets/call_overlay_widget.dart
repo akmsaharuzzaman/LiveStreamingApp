@@ -102,7 +102,7 @@ class _CallOverlayWidgetState extends State<CallOverlayWidget> {
         borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -320,7 +320,7 @@ class _CallOverlayWidgetState extends State<CallOverlayWidget> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15.r),
             border: Border.all(
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withValues(alpha: 0.3),
               width: 1.5,
             ),
           ),
@@ -359,7 +359,9 @@ class _CallOverlayWidgetState extends State<CallOverlayWidget> {
                 Positioned.fill(
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-                    child: Container(color: Colors.black.withOpacity(0.3)),
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.3),
+                    ),
                   ),
                 ),
 
@@ -371,12 +373,12 @@ class _CallOverlayWidgetState extends State<CallOverlayWidget> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         width: 2.w,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),

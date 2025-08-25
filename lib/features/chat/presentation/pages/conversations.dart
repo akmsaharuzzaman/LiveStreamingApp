@@ -45,7 +45,9 @@ class Conversation extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: isMe
-                            ? Theme.of(context).primaryColor.withOpacity(0.1)
+                            ? Theme.of(
+                                context,
+                              ).primaryColor.withValues(alpha: 0.1)
                             : Colors.grey[100],
                         borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(20.r),

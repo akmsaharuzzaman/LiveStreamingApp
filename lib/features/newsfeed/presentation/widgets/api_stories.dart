@@ -79,7 +79,7 @@ class _ApiStoriesState extends State<ApiStories> {
       //   SnackBar(
       //     content: const Text('Stories updated'),
       //     duration: const Duration(seconds: 1),
-      //     backgroundColor: Colors.green.withOpacity(0.8),
+      //     backgroundColor: Colors.green.withValues(alpha:0.8),
       //     behavior: SnackBarBehavior.floating,
       //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       //     margin: const EdgeInsets.only(bottom: 100, left: 16, right: 16),
@@ -354,7 +354,7 @@ class ApiStoryCard extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Colors.transparent, Colors.black.withOpacity(0.3)],
+              colors: [Colors.transparent, Colors.black.withValues(alpha: 0.3)],
             ),
           ),
         ),
@@ -420,7 +420,7 @@ class ApiStoryCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7),
+                color: Colors.black.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(

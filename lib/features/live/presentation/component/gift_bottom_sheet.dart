@@ -595,7 +595,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                       //         !_isSending)
                       //     ? [
                       //         BoxShadow(
-                      //           color: const Color(0xFFE91E63).withOpacity(0.3),
+                      //           color: const Color(0xFFE91E63).withValues(alpha:0.3),
                       //           blurRadius: 8,
                       //           offset: const Offset(0, 4),
                       //         ),
@@ -648,7 +648,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: const Color(0xFFE91E63).withOpacity(0.3),
+                      color: const Color(0xFFE91E63).withValues(alpha: 0.3),
                       blurRadius: 8,
                       spreadRadius: 1,
                     ),
