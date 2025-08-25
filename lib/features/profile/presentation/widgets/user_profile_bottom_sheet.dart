@@ -170,8 +170,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
   Widget build(BuildContext context) {
     return Container(
       height:
-          MediaQuery.of(context).size.height *
-          0.64.h, // Reduced height to match image
+          MediaQuery.of(context).size.height * .6,
       decoration:  BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(

@@ -323,33 +323,28 @@ class _LivePageState extends State<LivePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Image.asset(
-                            'assets/images/image_holder.png',
-                            width: 75.w,
-                            height: 75.h,
-                          ),
+                          'assets/images/image_holder.png',
+                          width: 75.w,
+                          height: 75.h,
+                        ),
                         SizedBox(width: 16.w),
                         Expanded(
-                          child: Column(
-                            children: [
-                              TextField(
-                                
-                                controller: _titleController,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16.sp,
-                                ),
-                                decoration: InputDecoration(
-                                  filled: false,
-                                  hintText: 'Add a title',
-                                  hintStyle: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.7),
-                                    fontSize: 16.sp,
-                                  ),
-                                  hintMaxLines: 2,
-                                  border: InputBorder.none,
-                                ),
+                          child: TextField(
+                            controller: _titleController,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16.sp,
+                            ),
+                            decoration: InputDecoration(
+                              filled: false,
+                              hintText: 'Add a title',
+                              hintStyle: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.7),
+                                fontSize: 16.sp,
                               ),
-                            ],
+                              hintMaxLines: 2,
+                              border: InputBorder.none,
+                            ),
                           ),
                         ),
                       ],

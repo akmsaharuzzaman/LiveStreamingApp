@@ -1615,360 +1615,405 @@ class _GoliveScreenState extends State<GoliveScreen> {
                         horizontal: 20.w,
                         vertical: 30.h,
                       ),
-                      child: Column(
-                        spacing: 15.h,
-                        children: [
-                          // this is the top row
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              if (isHost)
-                                HostInfo(
-                                  imageUrl:
-                                      state.user.avatar ??
-                                      "https://thispersondoesnotexist.com/",
-                                  name: state.user.name,
-                                  id: state.user.id.substring(0, 4),
-                                  hostUserId: state.user.id,
-                                  currentUserId: state.user.id,
-                                )
-                              else
-                                HostInfo(
-                                  imageUrl:
-                                      widget.hostAvatar ??
-                                      "https://thispersondoesnotexist.com/",
-                                  name: widget.hostName ?? "Host",
-                                  id:
-                                      widget.hostUserId?.substring(0, 4) ??
-                                      "Host",
-                                  hostUserId: widget.hostUserId ?? "",
-                                  currentUserId: state.user.id,
-                                ),
-                              Spacer(),
-                              // *show the viwers
-                              ActiveViewers(activeUserList: activeViewers),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            physics: NeverScrollableScrollPhysics(),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight,
+                              ),
+                              child: IntrinsicHeight(
+                                child: Column(
+                                  children: [
+                                    // this is the top row
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        if (isHost)
+                                          HostInfo(
+                                            imageUrl:
+                                                state.user.avatar ??
+                                                "https://thispersondoesnotexist.com/",
+                                            name: state.user.name,
+                                            id: state.user.id.substring(0, 4),
+                                            hostUserId: state.user.id,
+                                            currentUserId: state.user.id,
+                                          )
+                                        else
+                                          HostInfo(
+                                            imageUrl:
+                                                widget.hostAvatar ??
+                                                "https://thispersondoesnotexist.com/",
+                                            name: widget.hostName ?? "Host",
+                                            id:
+                                                widget.hostUserId?.substring(
+                                                  0,
+                                                  4,
+                                                ) ??
+                                                "Host",
+                                            hostUserId: widget.hostUserId ?? "",
+                                            currentUserId: state.user.id,
+                                          ),
+                                        Spacer(),
+                                        // *show the viwers
+                                        ActiveViewers(
+                                          activeUserList: activeViewers,
+                                        ),
 
-                              // * to show the leave button
-                              (isHost)
-                                  ? GestureDetector(
-                                      onTap: () {
-                                        EndStreamOverlay.show(
-                                          context,
-                                          onKeepStream: () {
-                                            debugPrint("Keep stream pressed");
-                                          },
-                                          onEndStream: () {
-                                            _endLiveStream();
-                                            debugPrint("End stream pressed");
-                                          },
-                                        );
-                                      },
-                                      child: Image.asset(
-                                        "assets/icons/live_exit_icon.png",
-                                        height: 50.h,
-                                        // width: 40.w,
+                                        // * to show the leave button
+                                        (isHost)
+                                            ? GestureDetector(
+                                                onTap: () {
+                                                  EndStreamOverlay.show(
+                                                    context,
+                                                    onKeepStream: () {
+                                                      debugPrint(
+                                                        "Keep stream pressed",
+                                                      );
+                                                    },
+                                                    onEndStream: () {
+                                                      _endLiveStream();
+                                                      debugPrint(
+                                                        "End stream pressed",
+                                                      );
+                                                    },
+                                                  );
+                                                },
+                                                child: Image.asset(
+                                                  "assets/icons/live_exit_icon.png",
+                                                  height: 50.h,
+                                                  // width: 40.w,
+                                                ),
+                                              )
+                                            : InkWell(
+                                                onTap: () {
+                                                  _endLiveStream();
+                                                  debugPrint(
+                                                    "Disconnect pressed",
+                                                  );
+                                                },
+                                                child: Image.asset(
+                                                  "assets/icons/live_exit_icon.png",
+                                                  height: 50.h,
+                                                ),
+                                              ),
+                                      ],
+                                    ),
+
+                                    //  this is the second row TODO:  diamond and star count display
+                                    DiamondStarStatus(
+                                      diamonCount: AppUtils.formatNumber(
+                                        GiftModel.totalDiamondsForHost(
+                                          sentGifts,
+                                          isHost
+                                              ? userId
+                                              : widget
+                                                    .hostUserId, // Use userId for host, widget.hostUserId for viewers
+                                        ),
                                       ),
-                                    )
-                                  : InkWell(
-                                      onTap: () {
-                                        _endLiveStream();
-                                        debugPrint("Disconnect pressed");
-                                      },
-                                      child: Image.asset(
-                                        "assets/icons/live_exit_icon.png",
-                                        height: 50.h,
+                                      starCount: AppUtils.formatNumber(0),
+                                    ),
+
+                                    Spacer(),
+
+                                    // Chat widget - positioned at bottom left
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: LiveChatWidget(
+                                        messages: _chatMessages,
                                       ),
                                     ),
-                            ],
-                          ),
 
-                          //  this is the second row TODO:  diamond and star count display
-                          DiamondStarStatus(
-                            diamonCount: AppUtils.formatNumber(
-                              GiftModel.totalDiamondsForHost(
-                                sentGifts,
-                                isHost
-                                    ? userId
-                                    : widget
-                                          .hostUserId, // Use userId for host, widget.hostUserId for viewers
+                                    SizedBox(height: 10.h),
+
+                                    // the bottom buttons
+                                    if (isHost)
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceAround,
+                                        children: [
+                                          InkWell(
+                                            onTap: () {
+                                              showSendMessageBottomSheet(
+                                                context,
+                                                onSendMessage: (message) {
+                                                  print("Send message pressed");
+                                                  _emitMessageToSocket(message);
+                                                },
+                                              );
+                                            },
+                                            child: Stack(
+                                              children: [
+                                                Image.asset(
+                                                  "assets/icons/message_icon.png",
+                                                  height: 40.h,
+                                                ),
+                                                Positioned(
+                                                  left: 10.w,
+                                                  top: 0,
+                                                  bottom: 0,
+                                                  child: Row(
+                                                    children: [
+                                                      Image.asset(
+                                                        "assets/icons/message_user_icon.png",
+                                                        height: 20.h,
+                                                      ),
+                                                      SizedBox(width: 5.w),
+                                                      Text(
+                                                        'Say Hello!',
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 18.sp,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          CustomLiveButton(
+                                            iconPath:
+                                                "assets/icons/gift_user_icon.png",
+                                            onTap: () {
+                                              // _showSnackBar(
+                                              //   '🎁 Not implemented yet',
+                                              //   Colors.green,
+                                              // );
+                                              showGiftBottomSheet(
+                                                context,
+                                                activeViewers: activeViewers,
+                                                roomId:
+                                                    _currentRoomId ?? roomId,
+                                                hostUserId: isHost
+                                                    ? userId
+                                                    : widget.hostUserId,
+                                                hostName: isHost
+                                                    ? state.user.name
+                                                    : widget.hostName,
+                                                hostAvatar: isHost
+                                                    ? state.user.avatar
+                                                    : widget.hostAvatar,
+                                              );
+                                            },
+                                          ),
+                                          CustomLiveButton(
+                                            iconPath:
+                                                "assets/icons/pk_icon.png",
+                                            onTap: () {
+                                              _playAnimation();
+                                              _showSnackBar(
+                                                '🎶 Not implemented yet',
+                                                Colors.green,
+                                              );
+                                              // showMusicBottomSheet(context);
+                                            },
+                                          ),
+                                          CustomLiveButton(
+                                            iconPath: _muted
+                                                ? "assets/icons/mute_icon.png"
+                                                : "assets/icons/unmute_icon.png",
+                                            onTap: () {
+                                              _toggleMute();
+                                            },
+                                          ),
+                                          CustomLiveButton(
+                                            iconPath:
+                                                "assets/icons/call_icon.png",
+                                            onTap: () {
+                                              if (_audioCallerUids.isNotEmpty) {
+                                                _showSnackBar(
+                                                  '🎤 ${_audioCallerUids.length} audio caller${_audioCallerUids.length > 1 ? 's' : ''} connected',
+                                                  Colors.green,
+                                                );
+                                              } else {
+                                                _showSnackBar(
+                                                  '📞 Waiting for audio callers to join...',
+                                                  Colors.blue,
+                                                );
+                                              }
+                                              showModalBottomSheet(
+                                                context: context,
+                                                isScrollControlled: true,
+                                                backgroundColor:
+                                                    Colors.transparent,
+                                                builder: (context) => CallManageBottomSheet(
+                                                  key: callManageBottomSheetKey,
+                                                  onAcceptCall: (userId) {
+                                                    debugPrint(
+                                                      "Accepting call request from $userId",
+                                                    );
+                                                    _socketService
+                                                        .acceptCallRequest(
+                                                          userId,
+                                                        );
+                                                    callRequests.removeWhere(
+                                                      (call) =>
+                                                          call.userId == userId,
+                                                    );
+                                                    // Update the bottom sheet with new data
+                                                    _updateCallManageBottomSheet();
+                                                  },
+                                                  onRejectCall: (userId) {
+                                                    debugPrint(
+                                                      "Rejecting call request from $userId",
+                                                    );
+                                                    _socketService
+                                                        .rejectCallRequest(
+                                                          userId,
+                                                        );
+                                                    // Update the bottom sheet with new data
+                                                    _updateCallManageBottomSheet();
+                                                  },
+                                                  onKickUser: (userId) {
+                                                    _socketService
+                                                        .removeBroadcaster(
+                                                          userId,
+                                                        );
+                                                    debugPrint(
+                                                      "Kicking user $userId from call",
+                                                    );
+                                                    // Update the bottom sheet with new data
+                                                    _updateCallManageBottomSheet();
+                                                  },
+                                                  callers: callRequests,
+                                                  inCallList: broadcasterModels,
+                                                ),
+                                              );
+                                            },
+                                          ),
+
+                                          CustomLiveButton(
+                                            iconPath:
+                                                "assets/icons/menu_icon.png",
+                                            onTap: () {
+                                              showGameBottomSheet(
+                                                context,
+                                                userId: userId,
+                                                isHost: isHost,
+                                                streamDuration: _streamDuration,
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      )
+                                    else
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceAround,
+                                        children: [
+                                          InkWell(
+                                            onTap: () {
+                                              // _showSnackBar(
+                                              //   '💬 Not implemented yet',
+                                              //   Colors.green,
+                                              // );
+                                              showSendMessageBottomSheet(
+                                                context,
+                                                onSendMessage: (message) {
+                                                  print("Send message pressed");
+                                                  _emitMessageToSocket(message);
+                                                },
+                                              );
+                                            },
+                                            child: Stack(
+                                              children: [
+                                                Image.asset(
+                                                  "assets/icons/message_icon.png",
+                                                  height: 40.h,
+                                                ),
+                                                Positioned(
+                                                  left: 10,
+                                                  top: 0,
+                                                  bottom: 0,
+                                                  child: Row(
+                                                    children: [
+                                                      Image.asset(
+                                                        "assets/icons/message_user_icon.png",
+                                                        height: 20.h,
+                                                      ),
+                                                      SizedBox(width: 5.w),
+                                                      Text(
+                                                        'Say Hello!',
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 18.sp,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+
+                                          CustomLiveButton(
+                                            iconPath:
+                                                "assets/icons/gift_user_icon.png",
+                                            onTap: () {
+                                              showGiftBottomSheet(
+                                                context,
+                                                activeViewers: activeViewers,
+                                                roomId:
+                                                    _currentRoomId ?? roomId,
+                                                hostUserId: isHost
+                                                    ? userId
+                                                    : widget.hostUserId,
+                                                hostName: isHost
+                                                    ? state.user.name
+                                                    : widget.hostName,
+                                                hostAvatar: isHost
+                                                    ? state.user.avatar
+                                                    : widget.hostAvatar,
+                                              );
+                                            },
+                                            height: 40.h,
+                                          ),
+
+                                          CustomLiveButton(
+                                            iconPath:
+                                                "assets/icons/game_user_icon.png",
+                                            onTap: () {
+                                              showGameBottomSheet(
+                                                context,
+                                                userId: userId,
+                                                streamDuration: _streamDuration,
+                                              );
+                                            },
+                                            height: 40.h,
+                                          ),
+                                          CustomLiveButton(
+                                            iconPath:
+                                                "assets/icons/share_user_icon.png",
+                                            onTap: () {},
+                                            height: 40.h,
+                                          ),
+                                          CustomLiveButton(
+                                            iconPath:
+                                                "assets/icons/menu_icon.png",
+                                            onTap: () {
+                                              showMenuBottomSheet(
+                                                context,
+                                                userId: userId,
+                                                isHost: isHost,
+                                                isMuted: _muted,
+                                                isAdminMuted:
+                                                    _isCurrentUserMuted(),
+                                                onToggleMute: _toggleMute,
+                                              );
+                                            },
+                                            height: 40.h,
+                                          ),
+                                        ],
+                                      ),
+                                  ],
+                                ),
                               ),
                             ),
-                            starCount: AppUtils.formatNumber(0),
-                          ),
-
-                          Spacer(),
-
-                          // Chat widget - positioned at bottom left
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: LiveChatWidget(messages: _chatMessages),
-                          ),
-
-                          SizedBox(height: 10.h),
-
-                          // the bottom buttons
-                          if (isHost)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                InkWell(
-                                  onTap: () {
-                                    showSendMessageBottomSheet(
-                                      context,
-                                      onSendMessage: (message) {
-                                        print("Send message pressed");
-                                        _emitMessageToSocket(message);
-                                      },
-                                    );
-                                  },
-                                  child: Stack(
-                                    children: [
-                                      Image.asset(
-                                        "assets/icons/message_icon.png",
-                                        height: 40.h,
-                                      ),
-                                      Positioned(
-                                        left: 10.w,
-                                        top: 0,
-                                        bottom: 0,
-                                        child: Row(
-                                          children: [
-                                            Image.asset(
-                                              "assets/icons/message_user_icon.png",
-                                              height: 20.h,
-                                            ),
-                                            SizedBox(width: 5.w),
-                                            Text(
-                                              'Say Hello!',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 18.sp,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/gift_user_icon.png",
-                                  onTap: () {
-                                    // _showSnackBar(
-                                    //   '🎁 Not implemented yet',
-                                    //   Colors.green,
-                                    // );
-                                    showGiftBottomSheet(
-                                      context,
-                                      activeViewers: activeViewers,
-                                      roomId: _currentRoomId ?? roomId,
-                                      hostUserId: isHost
-                                          ? userId
-                                          : widget.hostUserId,
-                                      hostName: isHost
-                                          ? state.user.name
-                                          : widget.hostName,
-                                      hostAvatar: isHost
-                                          ? state.user.avatar
-                                          : widget.hostAvatar,
-                                    );
-                                  },
-                                ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/pk_icon.png",
-                                  onTap: () {
-                                    _playAnimation();
-                                    _showSnackBar(
-                                      '🎶 Not implemented yet',
-                                      Colors.green,
-                                    );
-                                    // showMusicBottomSheet(context);
-                                  },
-                                ),
-                                CustomLiveButton(
-                                  iconPath: _muted
-                                      ? "assets/icons/mute_icon.png"
-                                      : "assets/icons/unmute_icon.png",
-                                  onTap: () {
-                                    _toggleMute();
-                                  },
-                                ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/call_icon.png",
-                                  onTap: () {
-                                    if (_audioCallerUids.isNotEmpty) {
-                                      _showSnackBar(
-                                        '🎤 ${_audioCallerUids.length} audio caller${_audioCallerUids.length > 1 ? 's' : ''} connected',
-                                        Colors.green,
-                                      );
-                                    } else {
-                                      _showSnackBar(
-                                        '📞 Waiting for audio callers to join...',
-                                        Colors.blue,
-                                      );
-                                    }
-                                    showModalBottomSheet(
-                                      context: context,
-                                      isScrollControlled: true,
-                                      backgroundColor: Colors.transparent,
-                                      builder: (context) => CallManageBottomSheet(
-                                        key: callManageBottomSheetKey,
-                                        onAcceptCall: (userId) {
-                                          debugPrint(
-                                            "Accepting call request from $userId",
-                                          );
-                                          _socketService.acceptCallRequest(
-                                            userId,
-                                          );
-                                          callRequests.removeWhere(
-                                            (call) => call.userId == userId,
-                                          );
-                                          // Update the bottom sheet with new data
-                                          _updateCallManageBottomSheet();
-                                        },
-                                        onRejectCall: (userId) {
-                                          debugPrint(
-                                            "Rejecting call request from $userId",
-                                          );
-                                          _socketService.rejectCallRequest(
-                                            userId,
-                                          );
-                                          // Update the bottom sheet with new data
-                                          _updateCallManageBottomSheet();
-                                        },
-                                        onKickUser: (userId) {
-                                          _socketService.removeBroadcaster(
-                                            userId,
-                                          );
-                                          debugPrint(
-                                            "Kicking user $userId from call",
-                                          );
-                                          // Update the bottom sheet with new data
-                                          _updateCallManageBottomSheet();
-                                        },
-                                        callers: callRequests,
-                                        inCallList: broadcasterModels,
-                                      ),
-                                    );
-                                  },
-                                ),
-
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/menu_icon.png",
-                                  onTap: () {
-                                    showGameBottomSheet(
-                                      context,
-                                      userId: userId,
-                                      isHost: isHost,
-                                      streamDuration: _streamDuration,
-                                    );
-                                  },
-                                ),
-                              ],
-                            )
-                          else
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                InkWell(
-                                  onTap: () {
-                                    // _showSnackBar(
-                                    //   '💬 Not implemented yet',
-                                    //   Colors.green,
-                                    // );
-                                    showSendMessageBottomSheet(
-                                      context,
-                                      onSendMessage: (message) {
-                                        print("Send message pressed");
-                                        _emitMessageToSocket(message);
-                                      },
-                                    );
-                                  },
-                                  child: Stack(
-                                    children: [
-                                      Image.asset(
-                                        "assets/icons/message_icon.png",
-                                        height: 40.h,
-                                      ),
-                                      Positioned(
-                                        left: 10,
-                                        top: 0,
-                                        bottom: 0,
-                                        child: Row(
-                                          children: [
-                                            Image.asset(
-                                              "assets/icons/message_user_icon.png",
-                                              height: 20.h,
-                                            ),
-                                            SizedBox(width: 5.w),
-                                            Text(
-                                              'Say Hello!',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 18.sp,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/gift_user_icon.png",
-                                  onTap: () {
-                                    showGiftBottomSheet(
-                                      context,
-                                      activeViewers: activeViewers,
-                                      roomId: _currentRoomId ?? roomId,
-                                      hostUserId: isHost
-                                          ? userId
-                                          : widget.hostUserId,
-                                      hostName: isHost
-                                          ? state.user.name
-                                          : widget.hostName,
-                                      hostAvatar: isHost
-                                          ? state.user.avatar
-                                          : widget.hostAvatar,
-                                    );
-                                  },
-                                  height: 40.h,
-                                ),
-
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/game_user_icon.png",
-                                  onTap: () {
-                                    showGameBottomSheet(
-                                      context,
-                                      userId: userId,
-                                      streamDuration: _streamDuration,
-                                    );
-                                  },
-                                  height: 40.h,
-                                ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/share_user_icon.png",
-                                  onTap: () {},
-                                  height: 40.h,
-                                ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/menu_icon.png",
-                                  onTap: () {
-                                    showMenuBottomSheet(
-                                      context,
-                                      userId: userId,
-                                      isHost: isHost,
-                                      isMuted: _muted,
-                                      isAdminMuted: _isCurrentUserMuted(),
-                                      onToggleMute: _toggleMute,
-                                    );
-                                  },
-                                  height: 40.h,
-                                ),
-                              ],
-                            ),
-                        ],
+                          );
+                        },
                       ),
                     ),
                   ),
