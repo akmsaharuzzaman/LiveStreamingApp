@@ -492,25 +492,28 @@ class _ProfileContentState extends State<_ProfileContent> {
         ),
 
         // Diamonds
-        Stack(
-          children: [
-            Image.asset(
-              'assets/images/general/withdraw_banner.png',
-              width: MediaQuery.of(context).size.width * 0.5 - 25.w,
-            ),
-            Positioned(
-              left: 50.w,
-              top: 5.h,
-              child: Text(
-                AppUtils.formatNumber(stats?.diamonds ?? 0),
-                style: TextStyle(
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.w400,
-                  color: const Color(0xFF202020),
+        GestureDetector(
+          onTap: () => _showWithdrawDialog(context),
+          child: Stack(
+            children: [
+              Image.asset(
+                'assets/images/general/withdraw_banner.png',
+                width: MediaQuery.of(context).size.width * 0.5 - 25.w,
+              ),
+              Positioned(
+                left: 50.w,
+                top: 5.h,
+                child: Text(
+                  AppUtils.formatNumber(stats?.diamonds ?? 0),
+                  style: TextStyle(
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF202020),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -1105,6 +1108,481 @@ class _ProfileContentState extends State<_ProfileContent> {
         );
       },
     );
+  }
+
+  // Withdraw Dialog Method
+  void _showWithdrawDialog(BuildContext context) {
+    final TextEditingController amountController = TextEditingController();
+    final TextEditingController phoneController = TextEditingController();
+    String selectedAccountType = 'bkash';
+    bool isLoading = false;
+
+    // Set max amount from user's diamonds
+    final maxAmount = widget.user.stats?.diamonds ?? 0;
+    amountController.text = maxAmount.toString();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.r),
+              ),
+              title: Row(
+                children: [
+                  Icon(
+                    Icons.account_balance_wallet,
+                    color: Theme.of(context).primaryColor,
+                    size: 24.sp,
+                  ),
+                  SizedBox(width: 8.w),
+                  Text(
+                    'Withdraw Bonus',
+                    style: TextStyle(
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF202020),
+                    ),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Amount Field
+                    Text(
+                      'Amount (Max: ${AppUtils.formatNumber(maxAmount)})',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF666666),
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    TextFormField(
+                      controller: amountController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        hintText: 'Enter amount',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.diamond,
+                          color: Colors.amber,
+                          size: 20.sp,
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12.w,
+                          vertical: 12.h,
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 16.h),
+
+                    // Account Type Selection
+                    Text(
+                      'Account Type',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF666666),
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12.w),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: selectedAccountType,
+                          isExpanded: true,
+                          items: [
+                            DropdownMenuItem(
+                              value: 'bkash',
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 24.w,
+                                    height: 24.h,
+                                    decoration: BoxDecoration(
+                                      color: Colors.pink.shade100,
+                                      borderRadius: BorderRadius.circular(4.r),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        'bK',
+                                        style: TextStyle(
+                                          fontSize: 10.sp,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.pink,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8.w),
+                                  const Text('bKash'),
+                                ],
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'nagad',
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 24.w,
+                                    height: 24.h,
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.shade100,
+                                      borderRadius: BorderRadius.circular(4.r),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        'N',
+                                        style: TextStyle(
+                                          fontSize: 12.sp,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.orange,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8.w),
+                                  const Text('Nagad'),
+                                ],
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'rocket',
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 24.w,
+                                    height: 24.h,
+                                    decoration: BoxDecoration(
+                                      color: Colors.purple.shade100,
+                                      borderRadius: BorderRadius.circular(4.r),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        'R',
+                                        style: TextStyle(
+                                          fontSize: 12.sp,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.purple,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8.w),
+                                  const Text('Rocket'),
+                                ],
+                              ),
+                            ),
+                          ],
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              selectedAccountType = newValue!;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 16.h),
+
+                    // Phone Number Field
+                    Text(
+                      'Account Number / Phone Number',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF666666),
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    TextFormField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        hintText: 'Enter account number',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.phone,
+                          color: Colors.green,
+                          size: 20.sp,
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12.w,
+                          vertical: 12.h,
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 12.h),
+
+                    // Info text
+                    Container(
+                      padding: EdgeInsets.all(12.w),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8.r),
+                        border: Border.all(color: Colors.blue.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: Colors.blue,
+                            size: 16.sp,
+                          ),
+                          SizedBox(width: 8.w),
+                          Expanded(
+                            child: Text(
+                              'You can only withdraw once per day',
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: Colors.blue.shade700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                // Cancel Button
+                TextButton(
+                  onPressed: isLoading
+                      ? null
+                      : () {
+                          Navigator.of(dialogContext).pop();
+                        },
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 14.sp,
+                    ),
+                  ),
+                ),
+
+                // Withdraw Button
+                ElevatedButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          if (amountController.text.isEmpty ||
+                              phoneController.text.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please fill all fields'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
+                          final amount = int.tryParse(amountController.text);
+                          if (amount == null ||
+                              amount <= 0 ||
+                              amount > maxAmount) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Please enter a valid amount (1 - $maxAmount)',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
+                          setState(() {
+                            isLoading = true;
+                          });
+
+                          await _processWithdraw(
+                            context: context,
+                            dialogContext: dialogContext,
+                            accountType: selectedAccountType,
+                            accountNumber: phoneController.text,
+                            totalSalary: amount,
+                          );
+
+                          setState(() {
+                            isLoading = false;
+                          });
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 8.h,
+                    ),
+                  ),
+                  child: isLoading
+                      ? SizedBox(
+                          width: 20.w,
+                          height: 20.h,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : Text(
+                          'Withdraw',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Process Withdraw API Call
+  Future<void> _processWithdraw({
+    required BuildContext context,
+    required BuildContext dialogContext,
+    required String accountType,
+    required String accountNumber,
+    required int totalSalary,
+  }) async {
+    try {
+      final apiService = ApiService.instance;
+
+      final response = await apiService.post<Map<String, dynamic>>(
+        '/api/auth/withdraw-bonus',
+        data: {
+          'accountType': accountType,
+          'accountNumber': accountNumber,
+          'totalSalary': totalSalary,
+        },
+      );
+
+      response.fold(
+        (data) {
+          // Success
+          Navigator.of(dialogContext).pop(); // Close dialog
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      'Withdraw request submitted successfully!',
+                      style: TextStyle(fontSize: 14.sp),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+
+          // Refresh user profile to update diamond count
+          final authBloc = context.read<AuthBloc>();
+          authBloc.add(const AuthCheckStatusEvent());
+        },
+        (error) {
+          // Error
+          Navigator.of(dialogContext).pop(); // Close dialog
+
+          // Parse error message
+          String errorMessage = 'Failed to process withdrawal';
+          if (error.contains('already applied')) {
+            errorMessage = 'You have already applied for bonus today';
+          } else if (error.contains('insufficient')) {
+            errorMessage = 'Insufficient balance';
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error, color: Colors.white),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      errorMessage,
+                      style: TextStyle(fontSize: 14.sp),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      Navigator.of(dialogContext).pop(); // Close dialog
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error, color: Colors.white),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: Text(
+                  'Network error. Please try again.',
+                  style: TextStyle(fontSize: 14.sp),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 }
 
