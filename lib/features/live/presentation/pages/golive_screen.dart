@@ -1554,10 +1554,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
               sentGifts,
               userId, // Use userId for host
             );
-            
-            debugPrint("🏆 Host ending live stream - Total earned diamonds: $earnedDiamonds");
+
+            debugPrint(
+              "🏆 Host ending live stream - Total earned diamonds: $earnedDiamonds",
+            );
             debugPrint("📊 Total gifts received: ${sentGifts.length}");
-            
+
             context.go(
               AppRoutes.liveSummary,
               extra: {
