@@ -1827,6 +1827,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                               ),
                                       ],
                                     ),
+                                    SizedBox(height: 10.h),
 
                                     //  this is the second row TODO:  diamond and star count display
                                     DiamondStarStatus(
