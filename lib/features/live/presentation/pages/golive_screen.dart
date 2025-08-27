@@ -1553,18 +1553,79 @@ class _GoliveScreenState extends State<GoliveScreen> {
       response.fold(
         (data) {
           debugPrint("✅ Daily bonus API call successful: $data");
-          _showSnackBar('🎉 Daily streaming bonus earned!', Colors.green);
-          setState(() {
-            _hasCalled50MinuteBonus = true;
-          });
+
+          // Check if response is successful and has result data
+          if (data['success'] == true && data['result'] != null) {
+            final result = data['result'] as Map<String, dynamic>;
+            final int bonusDiamonds = result['diamonds'] ?? 0;
+
+            if (bonusDiamonds > 0) {
+              debugPrint("💎 Received daily bonus: $bonusDiamonds diamonds");
+
+              // Create a synthetic gift model to represent the daily bonus
+              final bonusGift = GiftModel(
+                avatar:
+                    "https://cdn-icons-png.flaticon.com/512/2583/2583788.png", // Bonus icon
+                name: "System Bonus",
+                recieverIds: [userId!], // Host receives the bonus
+                diamonds: bonusDiamonds,
+                qty: 1,
+                gift: Gift(
+                  id: "daily_bonus_${DateTime.now().millisecondsSinceEpoch}",
+                  name: "Daily Streaming Bonus",
+                  category: "Bonus",
+                  diamonds: bonusDiamonds,
+                  coinPrice: bonusDiamonds,
+                  previewImage:
+                      "https://cdn-icons-png.flaticon.com/512/2583/2583788.png",
+                  svgaImage: "",
+                  createdAt: DateTime.now(),
+                  updatedAt: DateTime.now(),
+                  v: 0,
+                ),
+              );
+
+              // Add the bonus gift to sentGifts and update UI like a received gift
+              setState(() {
+                sentGifts.add(bonusGift);
+                _updateUserDiamonds(bonusGift);
+                _hasCalled50MinuteBonus = true;
+              });
+
+              // Trigger gift animation
+              _playAnimation();
+
+              _showSnackBar(
+                '🎉 Daily streaming bonus earned: $bonusDiamonds diamonds!',
+                Colors.green,
+              );
+              debugPrint("🎁 Daily bonus added as gift to host");
+            } else {
+              _showSnackBar('🎉 Daily streaming bonus earned!', Colors.green);
+              setState(() {
+                _hasCalled50MinuteBonus = true;
+              });
+            }
+          } else {
+            _showSnackBar('🎉 Daily streaming bonus earned!', Colors.green);
+            setState(() {
+              _hasCalled50MinuteBonus = true;
+            });
+          }
         },
         (error) {
           debugPrint("❌ Daily bonus API call failed: $error");
-          _showSnackBar('⚠️ Bonus reward processing...', Colors.orange);
+          // Check if it's a "maximum bonus reached" error
+          if (error.contains("maximum bonus") || error.contains("reached")) {
+            _showSnackBar('⚠️ Daily bonus limit reached', Colors.orange);
+          } else {
+            _showSnackBar('⚠️ Bonus reward processing...', Colors.orange);
+          }
         },
       );
     } catch (e) {
       debugPrint("❌ Exception calling daily bonus API: $e");
+      _showSnackBar('❌ Failed to process bonus', Colors.red);
     }
   }
 
