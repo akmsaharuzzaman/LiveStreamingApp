@@ -608,12 +608,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
         debugPrint("Banned user list updated: $bannedUsers");
         if (bannedUsers.contains(userId)) {
           _handleHostDisconnection("You have been banned from this room.");
+
         }
       }
     });
 
     //BannedUsers
     _bannedUserSubscription = _socketService.bannedUserStream.listen((data) {
+      debugPrint("Banned user received:${data.targetId}");
       if (mounted) {
         setState(() {
           bannedUserModels.add(data);
