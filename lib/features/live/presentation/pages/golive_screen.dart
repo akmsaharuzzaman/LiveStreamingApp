@@ -618,7 +618,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
         setState(() {
           bannedUserModels.add(data);
           broadcasterList.removeWhere((user) => user == data.targetId);
-          //TODO: Update UI to reflect banned user
+          activeViewers.removeWhere((user) => user.id == data.targetId);
+          bannedUsers.add(data.targetId);
+          adminModels.removeWhere((user) => user.id == data.targetId);
+          broadcasterDetails.removeWhere((user) => user.id == data.targetId);
+          broadcasterModels.removeWhere((user) => user.id == data.targetId);
         });
         if (data.targetId == userId) {
           _handleHostDisconnection("You have been banned from this room.");

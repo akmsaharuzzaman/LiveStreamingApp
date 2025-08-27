@@ -82,21 +82,22 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        print('Splash screen received state: ${state.runtimeType}');
+        // await Future.delayed(const Duration(seconds: 10));
+        debugPrint('Splash screen received state: ${state.runtimeType}');
         if (state is AuthAuthenticated) {
-          print('Navigating to home page');
+          debugPrint('Navigating to home page');
           // User is authenticated, navigate to home
           context.go('/');
         } else if (state is AuthProfileIncomplete) {
-          print('Navigating to profile completion page');
+          debugPrint('Navigating to profile completion page');
           // User needs to complete profile, navigate to profile completion
           context.go('/profile-completion');
         } else if (state is AuthUnauthenticated || state is AuthError) {
-          print('Navigating to login page');
+          debugPrint('Navigating to login page');
           // User is not authenticated, navigate to login
           context.go('/login');
         } else if (state is AuthTokenExpired) {
-          print('Token expired, navigating to login page');
+          debugPrint('Token expired, navigating to login page');
           // Token expired, navigate to login
           context.go('/login');
         }
