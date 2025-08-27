@@ -104,8 +104,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
   Timer? _durationTimer;
   Duration _streamDuration = Duration.zero;
 
-  // Daily bonus tracking
-  bool _hasCalled50MinuteBonus = false;
+  // Daily bonus tracking - track last milestone called (50, 100, 150, etc.)
+  int _lastBonusMilestone = 0;
 
   // Host activity tracking for viewers
   Timer? _hostActivityTimer;
@@ -1502,11 +1502,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
           _streamDuration = DateTime.now().difference(_streamStartTime!);
         });
 
-        // Check for 50 minute milestone for hosts only
-        if (isHost &&
-            !_hasCalled50MinuteBonus &&
-            _streamDuration.inMinutes >= 50) {
-          _callDailyBonusAPI();
+        // Check for 50-minute milestones for hosts only (50, 100, 150, etc.)
+        if (isHost && _streamDuration.inMinutes >= 50) {
+          int currentMilestone = (_streamDuration.inMinutes ~/ 50) * 50;
+          
+          // Only call API if we've reached a new milestone
+          if (currentMilestone > _lastBonusMilestone) {
+            _callDailyBonusAPI();
+          }
         }
       }
     });
@@ -1541,14 +1544,19 @@ class _GoliveScreenState extends State<GoliveScreen> {
     });
   }
 
-  // Call daily bonus API for 50 minute milestone
+  // Call daily bonus API for every 50 minute milestone (50, 100, 150, etc.)
   Future<void> _callDailyBonusAPI() async {
-    if (!isHost || _hasCalled50MinuteBonus) return;
+    if (!isHost) return;
+
+    final totalMinutes = _streamDuration.inMinutes;
+    final currentMilestone = (totalMinutes ~/ 50) * 50;
+    
+    // Don't call if we've already processed this milestone
+    if (currentMilestone <= _lastBonusMilestone) return;
 
     try {
-      final totalMinutes = _streamDuration.inMinutes;
       debugPrint(
-        "🏆 Calling daily bonus API for $totalMinutes minutes of streaming",
+        "🏆 Calling daily bonus API for $totalMinutes minutes of streaming (milestone: ${currentMilestone}m)",
       );
 
       final response = await _apiService.post<Map<String, dynamic>>(
@@ -1595,43 +1603,52 @@ class _GoliveScreenState extends State<GoliveScreen> {
               setState(() {
                 sentGifts.add(bonusGift);
                 _updateUserDiamonds(bonusGift);
-                _hasCalled50MinuteBonus = true;
+                _lastBonusMilestone = currentMilestone;
               });
 
               // Trigger gift animation
               _playAnimation();
 
               _showSnackBar(
-                '🎉 Daily streaming bonus earned: $bonusDiamonds diamonds!',
+                '🎉 Daily streaming bonus earned: $bonusDiamonds diamonds! (${currentMilestone}m milestone)',
                 Colors.green,
               );
               debugPrint("🎁 Daily bonus added as gift to host");
             } else {
-              _showSnackBar('🎉 Daily streaming bonus earned!', Colors.green);
+              _showSnackBar('🎉 Daily streaming bonus earned! (${currentMilestone}m milestone)', Colors.green);
               setState(() {
-                _hasCalled50MinuteBonus = true;
+                _lastBonusMilestone = currentMilestone;
               });
             }
           } else {
-            _showSnackBar('🎉 Daily streaming bonus earned!', Colors.green);
+            _showSnackBar('🎉 Daily streaming bonus earned! (${currentMilestone}m milestone)', Colors.green);
             setState(() {
-              _hasCalled50MinuteBonus = true;
+              _lastBonusMilestone = currentMilestone;
             });
           }
         },
         (error) {
           debugPrint("❌ Daily bonus API call failed: $error");
+          // Update milestone even on error to prevent continuous retries
+          setState(() {
+            _lastBonusMilestone = currentMilestone;
+          });
+          
           // Check if it's a "maximum bonus reached" error
           if (error.contains("maximum bonus") || error.contains("reached")) {
-            _showSnackBar('⚠️ Daily bonus limit reached', Colors.orange);
+            _showSnackBar('⚠️ Daily bonus limit reached (${currentMilestone}m)', Colors.orange);
           } else {
-            _showSnackBar('⚠️ Bonus reward processing...', Colors.orange);
+            _showSnackBar('⚠️ Bonus reward processing... (${currentMilestone}m)', Colors.orange);
           }
         },
       );
     } catch (e) {
       debugPrint("❌ Exception calling daily bonus API: $e");
-      _showSnackBar('❌ Failed to process bonus', Colors.red);
+      // Update milestone even on exception to prevent continuous retries
+      setState(() {
+        _lastBonusMilestone = currentMilestone;
+      });
+      _showSnackBar('❌ Failed to process bonus (${currentMilestone}m)', Colors.red);
     }
   }
 
@@ -1661,9 +1678,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
         if (mounted) {
           final state = context.read<AuthBloc>().state;
           if (state is AuthAuthenticated) {
-            // Call daily bonus API if stream duration is valid and not already called
-            if (!_hasCalled50MinuteBonus && _streamDuration.inMinutes > 0) {
-              await _callDailyBonusAPI();
+            // Call daily bonus API if stream duration is valid and we haven't called for current milestone
+            if (_streamDuration.inMinutes > 0) {
+              int currentMilestone = (_streamDuration.inMinutes ~/ 50) * 50;
+              if (currentMilestone > _lastBonusMilestone && currentMilestone >= 50) {
+                await _callDailyBonusAPI();
+              }
             }
 
             // Calculate total earned diamonds/coins
