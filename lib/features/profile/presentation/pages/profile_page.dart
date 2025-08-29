@@ -439,27 +439,32 @@ class _ProfileContentState extends State<_ProfileContent> {
         runSpacing: 8.h,
         children: [
           //Age Badge
+          if(widget.user.userRole == 'age')
           Image.asset('assets/images/general/age_tag.png'),
           SizedBox(width: 8.w),
+          if(widget.user.userRole == 'coin')
           Image.asset('assets/images/general/coin_tag.png'),
 
           SizedBox(width: 8.w),
           // Host Badge
+          if(widget.user.userRole == 'vip')
           Image.asset('assets/images/general/vip_tag.png'),
-
+          
           SizedBox(width: 8.w),
+          if(widget.user.userRole == 'svip')
           Image.asset('assets/images/general/svip_tag.png'),
 
           SizedBox(width: 8.w),
+          if(widget.user.userRole == 'host')
           Image.asset('assets/images/general/host_tag.png'),
 
           SizedBox(width: 8.w),
-
-          // Agent Badge
+          if(widget.user.userRole == 'agent')
           Image.asset('assets/images/general/agent_tag.png'),
 
           SizedBox(width: 8.w),
           // Re Seller Badge
+          if(widget.user.userRole == 're_seller')
           Image.asset('assets/images/general/re_seller_tag.png'),
         ],
       ),
