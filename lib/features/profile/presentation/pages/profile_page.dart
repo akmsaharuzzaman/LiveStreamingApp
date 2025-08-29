@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dlstarlive/features/reels/custom_package/reels_viewer.dart'
     as reels_viewer;
@@ -192,27 +193,30 @@ class _ProfileContentState extends State<_ProfileContent> {
                             fit: BoxFit.cover,
                           ),
                         )
-                      : SizedBox(height: 200.h, width: double.infinity),
+                      : Container(
+                          height: 200.h,
+                          width: double.infinity,
+                          color: Color(0xFF888686),
+                          child: Center(
+                            child: Text(
+                              'No Cover Photo',
+                              style: TextStyle(color: Colors.white, fontSize: 16.sp),
+                            ),
+                          ),
+                        ),
                   Positioned.fill(
                     // top: 10.h,
-                    left: 20.w,
+                    // left: 20.w,
                     bottom: 100.h,
                     child: Padding(
                       padding: EdgeInsets.all(20.w),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          InkWell(
-                            onTap: () {
-                              context.push(AppRoutes.settings);
-                            },
-                            child: Image.asset(
-                              'assets/images/general/settings_icon.png',
-                              width: 24.w,
-                              height: 24.h,
-                            ),
-                          ),
-                          InkWell(
+                          Spacer(),
+                          GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+
                             onTap: () {
                               context.push(AppRoutes.profileUpdate);
                             },
@@ -439,33 +443,33 @@ class _ProfileContentState extends State<_ProfileContent> {
         runSpacing: 8.h,
         children: [
           //Age Badge
-          if(widget.user.userRole == 'age')
-          Image.asset('assets/images/general/age_tag.png'),
+          if (widget.user.userRole == 'age')
+            Image.asset('assets/images/general/age_tag.png'),
           SizedBox(width: 8.w),
-          if(widget.user.userRole == 'coin')
-          Image.asset('assets/images/general/coin_tag.png'),
+          if (widget.user.userRole == 'coin')
+            Image.asset('assets/images/general/coin_tag.png'),
 
           SizedBox(width: 8.w),
           // Host Badge
-          if(widget.user.userRole == 'vip')
-          Image.asset('assets/images/general/vip_tag.png'),
-          
-          SizedBox(width: 8.w),
-          if(widget.user.userRole == 'svip')
-          Image.asset('assets/images/general/svip_tag.png'),
+          if (widget.user.userRole == 'vip')
+            Image.asset('assets/images/general/vip_tag.png'),
 
           SizedBox(width: 8.w),
-          if(widget.user.userRole == 'host')
-          Image.asset('assets/images/general/host_tag.png'),
+          if (widget.user.userRole == 'svip')
+            Image.asset('assets/images/general/svip_tag.png'),
 
           SizedBox(width: 8.w),
-          if(widget.user.userRole == 'agent')
-          Image.asset('assets/images/general/agent_tag.png'),
+          if (widget.user.userRole == 'host')
+            Image.asset('assets/images/general/host_tag.png'),
+
+          SizedBox(width: 8.w),
+          if (widget.user.userRole == 'agent')
+            Image.asset('assets/images/general/agent_tag.png'),
 
           SizedBox(width: 8.w),
           // Re Seller Badge
-          if(widget.user.userRole == 're_seller')
-          Image.asset('assets/images/general/re_seller_tag.png'),
+          if (widget.user.userRole == 're_seller')
+            Image.asset('assets/images/general/re_seller_tag.png'),
         ],
       ),
     );
