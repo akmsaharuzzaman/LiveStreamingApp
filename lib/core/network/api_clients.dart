@@ -201,6 +201,7 @@ class AuthApiClient {
     String? name,
     String? firstName,
     File? avatarFile,
+    File? coverPictureFile,
     String? gender,
   }) async {
     // Create form data map
@@ -216,15 +217,19 @@ class AuthApiClient {
       formData['gender'] = gender;
     }
 
-    // If we have an avatar file, we need to use file upload
-    if (avatarFile != null) {
+    // If we have file(s) to upload, we need to use file upload
+    if (avatarFile != null || coverPictureFile != null) {
       try {
+        // Create custom FormData with multiple files
         final response = await _apiService
-            .customFileUpload<Map<String, dynamic>>(
+            .customMultiFileUpload<Map<String, dynamic>>(
               endpoint: ApiConstants.userProfileUpdateEndpoint,
-              filePath: avatarFile.path,
               method: 'PUT', // Use PUT method for profile updates
-              fieldName: 'avatar',
+              files: {
+                if (avatarFile != null) 'avatar': avatarFile.path,
+                if (coverPictureFile != null)
+                  'coverPicture': coverPictureFile.path,
+              },
               data: formData,
             );
 

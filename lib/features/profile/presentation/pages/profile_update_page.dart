@@ -19,6 +19,7 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
   final _firstNameController = TextEditingController();
   String? _selectedGender; // New state variable for gender
   File? _selectedImage;
+  File? _selectedCoverImage;
   UserModel? _currentUser;
 
   @override
@@ -65,6 +66,30 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
     }
   }
 
+  Future<void> _pickCoverImage() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        setState(() {
+          _selectedCoverImage = File(result.files.single.path!);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking cover image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _submitUpdate() {
     if (_formKey.currentState!.validate()) {
       final hasNameChanged =
@@ -72,11 +97,13 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
       final hasFirstNameChanged =
           _firstNameController.text.trim() != (_currentUser?.firstName ?? '');
       final hasImageChanged = _selectedImage != null;
+      final hasCoverImageChanged = _selectedCoverImage != null;
       final hasGenderChanged = _selectedGender != (_currentUser?.gender ?? '');
 
       if (!hasNameChanged &&
           !hasFirstNameChanged &&
           !hasImageChanged &&
+          !hasCoverImageChanged &&
           !hasGenderChanged) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -94,6 +121,7 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
               ? _firstNameController.text.trim()
               : null,
           avatarFile: _selectedImage,
+          coverPictureFile: _selectedCoverImage,
           gender: hasGenderChanged
               ? _selectedGender
               : null, // Add gender to event
@@ -166,6 +194,10 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                   children: [
                     // Profile Picture Section
                     _buildProfilePictureSection(),
+                    const SizedBox(height: 24),
+
+                    // Cover Picture Section
+                    _buildCoverPictureSection(),
                     const SizedBox(height: 32),
 
                     // Nick Name Field
@@ -226,7 +258,6 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                     _buildLabeledField(
                       label: 'Region',
                       child: TextFormField(
-                        
                         controller: TextEditingController(text: 'Bangladesh'),
                         decoration: InputDecoration(
                           border: OutlineInputBorder(
@@ -303,6 +334,77 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildCoverPictureSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Cover Picture',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.pink[300],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: _pickCoverImage,
+          child: Container(
+            height: 120,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!, width: 2),
+              image: _getCoverImage(),
+            ),
+            child: _getCoverImage() == null
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.camera_alt, size: 40, color: Colors.grey[400]),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Add Cover Picture',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  )
+                : Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.black.withOpacity(0.3),
+                        ),
+                      ),
+                      Center(
+                        child: Icon(
+                          Icons.camera_alt,
+                          size: 32,
+                          color: Colors.white.withOpacity(0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Tap to change cover picture',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      ],
     );
   }
 
@@ -616,6 +718,22 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
         ],
       ],
     );
+  }
+
+  DecorationImage? _getCoverImage() {
+    if (_selectedCoverImage != null) {
+      return DecorationImage(
+        image: FileImage(_selectedCoverImage!),
+        fit: BoxFit.cover,
+      );
+    } else if (_currentUser?.coverPicture != null &&
+        _currentUser!.coverPicture!.isNotEmpty) {
+      return DecorationImage(
+        image: NetworkImage(_currentUser!.coverPicture!),
+        fit: BoxFit.cover,
+      );
+    }
+    return null;
   }
 
   DecorationImage? _getProfileImage() {
