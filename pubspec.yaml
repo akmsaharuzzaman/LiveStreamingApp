@@ -67,11 +67,9 @@ dependencies:
 
   # Real-Time & Video Communication
   agora_rtc_engine: ^6.5.2
-  permission_handler: ^12.0.1
+  permission_handler: any
   wakelock_plus: ^1.3.2
-  # deepar_flutter_fork:
-  #   git:
-  #     url: https://github.com/zamansheikh/deepar-flutter-fork.git
+  deepar_flutter: ^0.0.5
 
   # Media Viewers & Editors
   share_plus: ^11.1.0

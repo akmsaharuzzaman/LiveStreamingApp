@@ -127,6 +127,7 @@ class UserModel extends Equatable {
   final String? lastName;
   final String? uid;
   final String? avatar;
+  final String? coverPicture;
   final String userStateInApp;
   final List<dynamic> userPermissions;
   final bool isViewer;
@@ -158,6 +159,7 @@ class UserModel extends Equatable {
     this.lastName,
     this.uid,
     this.avatar,
+    this.coverPicture,
     required this.userStateInApp,
     required this.userPermissions,
     required this.isViewer,
@@ -198,6 +200,7 @@ class UserModel extends Equatable {
       lastName: lastName,
       uid: googleId,
       avatar: profilePictureUrl,
+      coverPicture: null, // Will be set later if user uploads a cover picture
       userStateInApp: 'Online',
       userPermissions: const [],
       isViewer: false,
@@ -225,6 +228,7 @@ class UserModel extends Equatable {
     String? lastName,
     String? uid,
     String? avatar,
+    String? coverPicture,
     String? userStateInApp,
     List<dynamic>? userPermissions,
     bool? isViewer,
@@ -249,6 +253,7 @@ class UserModel extends Equatable {
       lastName: lastName ?? this.lastName,
       uid: uid ?? this.uid,
       avatar: avatar ?? this.avatar,
+      coverPicture: coverPicture ?? this.coverPicture,
       userStateInApp: userStateInApp ?? this.userStateInApp,
       userPermissions: userPermissions ?? this.userPermissions,
       isViewer: isViewer ?? this.isViewer,
@@ -281,6 +286,7 @@ class UserModel extends Equatable {
     lastName,
     uid,
     avatar,
+    coverPicture,
     userStateInApp,
     userPermissions,
     isViewer,
