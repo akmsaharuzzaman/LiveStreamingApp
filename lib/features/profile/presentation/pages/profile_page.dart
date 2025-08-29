@@ -182,15 +182,17 @@ class _ProfileContentState extends State<_ProfileContent> {
               // Cover Photo and Top Icons
               Stack(
                 children: [
-                  Container(
-                    width: double.infinity,
-                    height: 200.h,
-                    decoration: const BoxDecoration(color: Colors.white),
-                    child: Image.asset(
-                      'assets/images/general/cover_pic.png',
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                  (widget.user.coverPicture != null)
+                      ? Container(
+                          width: double.infinity,
+                          height: 200.h,
+                          decoration: const BoxDecoration(color: Colors.white),
+                          child: Image.network(
+                            widget.user.coverPicture ?? '',
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : SizedBox(height: 200.h, width: double.infinity),
                   Positioned.fill(
                     // top: 10.h,
                     left: 20.w,
@@ -224,15 +226,16 @@ class _ProfileContentState extends State<_ProfileContent> {
                       ),
                     ),
                   ),
-                  Positioned.fill(
-                    top: 125.h,
-                    left: MediaQuery.of(context).size.width - 160.w,
-                    // bottom: 100.h,
-                    child: Image.asset(
-                      "assets/images/general/super_admin_frame.png",
-                      height: 26.h,
+                  if (widget.user.userRole == 'admin')
+                    Positioned.fill(
+                      top: 125.h,
+                      left: MediaQuery.of(context).size.width - 160.w,
+                      // bottom: 100.h,
+                      child: Image.asset(
+                        "assets/images/general/super_admin_frame.png",
+                        height: 26.h,
+                      ),
                     ),
-                  ),
                 ],
               ),
 
@@ -370,7 +373,7 @@ class _ProfileContentState extends State<_ProfileContent> {
               ),
             ),
             Text(
-              'Super Admin',
+              widget.user.userRole.toUpperCase(),
               style: TextStyle(
                 fontSize: 16.sp,
                 color: const Color(0xFF1B706A),
@@ -679,7 +682,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                 'Store',
                 context,
                 onTap: () {
-                  context.push(AppRoutes.store);
+                  // context.push(AppRoutes.store);
                 },
               ),
               _buildFeatureIcon(
