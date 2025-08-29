@@ -380,15 +380,15 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
           children: [
             if (isLoading)
               SizedBox(
-                width: 32.sp,
-                height: 32.sp,
+                width: 32.w,
+                height: 32.h,
                 child: const CircularProgressIndicator(
                   color: Colors.blue,
                   strokeWidth: 2,
                 ),
               )
             else
-              Image.asset(icon, width: 32.sp, height: 32.sp),
+              Image.asset(icon, width: 32.w, height: 32.h),
             SizedBox(height: 8.h),
             Text(
               label,
