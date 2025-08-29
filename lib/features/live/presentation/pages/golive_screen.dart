@@ -608,7 +608,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
         debugPrint("Banned user list updated: $bannedUsers");
         if (bannedUsers.contains(userId)) {
           _handleHostDisconnection("You have been banned from this room.");
-
         }
       }
     });
@@ -1505,7 +1504,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
         // Check for 50-minute milestones for hosts only (50, 100, 150, etc.)
         if (isHost && _streamDuration.inMinutes >= 50) {
           int currentMilestone = (_streamDuration.inMinutes ~/ 50) * 50;
-          
+
           // Only call API if we've reached a new milestone
           if (currentMilestone > _lastBonusMilestone) {
             _callDailyBonusAPI();
@@ -1550,7 +1549,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
     final totalMinutes = _streamDuration.inMinutes;
     final currentMilestone = (totalMinutes ~/ 50) * 50;
-    
+
     // Don't call if we've already processed this milestone
     if (currentMilestone <= _lastBonusMilestone) return;
 
@@ -1615,13 +1614,19 @@ class _GoliveScreenState extends State<GoliveScreen> {
               );
               debugPrint("🎁 Daily bonus added as gift to host");
             } else {
-              _showSnackBar('🎉 Daily streaming bonus earned! (${currentMilestone}m milestone)', Colors.green);
+              _showSnackBar(
+                '🎉 Daily streaming bonus earned! (${currentMilestone}m milestone)',
+                Colors.green,
+              );
               setState(() {
                 _lastBonusMilestone = currentMilestone;
               });
             }
           } else {
-            _showSnackBar('🎉 Daily streaming bonus earned! (${currentMilestone}m milestone)', Colors.green);
+            _showSnackBar(
+              '🎉 Daily streaming bonus earned! (${currentMilestone}m milestone)',
+              Colors.green,
+            );
             setState(() {
               _lastBonusMilestone = currentMilestone;
             });
@@ -1633,12 +1638,18 @@ class _GoliveScreenState extends State<GoliveScreen> {
           setState(() {
             _lastBonusMilestone = currentMilestone;
           });
-          
+
           // Check if it's a "maximum bonus reached" error
           if (error.contains("maximum bonus") || error.contains("reached")) {
-            _showSnackBar('⚠️ Daily bonus limit reached (${currentMilestone}m)', Colors.orange);
+            _showSnackBar(
+              '⚠️ Daily bonus limit reached (${currentMilestone}m)',
+              Colors.orange,
+            );
           } else {
-            _showSnackBar('⚠️ Bonus reward processing... (${currentMilestone}m)', Colors.orange);
+            _showSnackBar(
+              '⚠️ Bonus reward processing... (${currentMilestone}m)',
+              Colors.orange,
+            );
           }
         },
       );
@@ -1648,7 +1659,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
       setState(() {
         _lastBonusMilestone = currentMilestone;
       });
-      _showSnackBar('❌ Failed to process bonus (${currentMilestone}m)', Colors.red);
+      _showSnackBar(
+        '❌ Failed to process bonus (${currentMilestone}m)',
+        Colors.red,
+      );
     }
   }
 
@@ -1681,7 +1695,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
             // Call daily bonus API if stream duration is valid and we haven't called for current milestone
             if (_streamDuration.inMinutes > 0) {
               int currentMilestone = (_streamDuration.inMinutes ~/ 50) * 50;
-              if (currentMilestone > _lastBonusMilestone && currentMilestone >= 50) {
+              if (currentMilestone > _lastBonusMilestone &&
+                  currentMilestone >= 50) {
                 await _callDailyBonusAPI();
               }
             }
