@@ -324,35 +324,35 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                                       vertical: 14,
                                     ),
                                   ),
-                                  maxLines: 3,
+                                  maxLines: 1,
                                 ),
                               ),
                               const SizedBox(height: 32),
 
-                              // Talent Grade
-                              _buildProgressSection(
-                                title: 'Talent Grade',
-                                level: 'MD',
-                                showGradeIcon: true,
-                              ),
-                              const SizedBox(height: 24),
+                              // // Talent Grade
+                              // _buildProgressSection(
+                              //   title: 'Talent Grade',
+                              //   level: 'MD',
+                              //   showGradeIcon: true,
+                              // ),
+                              // const SizedBox(height: 24),
 
-                              // Star
-                              _buildProgressSection(
-                                title: 'Star',
-                                heartCount: '0',
-                                level: '0',
-                                showExpProgress: true,
-                              ),
-                              const SizedBox(height: 24),
+                              // // Star
+                              // _buildProgressSection(
+                              //   title: 'Star',
+                              //   heartCount: '0',
+                              //   level: '0',
+                              //   showExpProgress: true,
+                              // ),
+                              // const SizedBox(height: 24),
 
-                              // Wealth
-                              _buildProgressSection(
-                                title: 'Wealth',
-                                level: '1',
-                                showExpProgress: true,
-                              ),
-                              const SizedBox(height: 32),
+                              // // Wealth
+                              // _buildProgressSection(
+                              //   title: 'Wealth',
+                              //   level: '1',
+                              //   showExpProgress: true,
+                              // ),
+                              // const SizedBox(height: 32),
                             ],
                           ),
                         ),
@@ -531,7 +531,7 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
           label,
           style: TextStyle(
             fontSize: 16,
-            color: Colors.pink[300],
+            color: Colors.grey[600],
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -566,10 +566,10 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                       fontSize: 16,
                       color: _selectedGender != null
                           ? Colors.grey[800]
-                          : Colors.grey[700],
+                          : Colors.grey[500],
                     ),
                   ),
-                  Icon(Icons.arrow_drop_down, color: Colors.grey[700]),
+                  Icon(Icons.arrow_drop_down, color: Colors.grey[500]),
                 ],
               ),
             ),
@@ -592,38 +592,29 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
-                      vertical: 8,
+                      vertical: 12,
                     ),
                     child: Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: _selectedGender == 'Male'
-                                  ? Colors.pink[300]!
-                                  : Colors.grey[400]!,
-                              width: 2,
-                            ),
-                          ),
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: _selectedGender == 'Male'
-                                  ? Colors.pink[300]
-                                  : Colors.transparent,
-                            ),
-                          ),
+                        Image.asset(
+                          'assets/icons/male_icon.png',
+                          width: 24,
+                          height: 24,
+                          color: _selectedGender == 'Male'
+                              ? Colors.black
+                              : Colors.grey[400],
                         ),
                         const SizedBox(width: 12),
                         Text(
                           'Male',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Colors.grey[800],
+                            color: _selectedGender == 'Male'
+                                ? Colors.black
+                                : Colors.grey[600],
+                            fontWeight: _selectedGender == 'Male'
+                                ? FontWeight.w600
+                                : FontWeight.normal,
                           ),
                         ),
                       ],
@@ -641,38 +632,29 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
-                      vertical: 8,
+                      vertical: 12,
                     ),
                     child: Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: _selectedGender == 'Female'
-                                  ? Colors.pink[300]!
-                                  : Colors.grey[400]!,
-                              width: 2,
-                            ),
-                          ),
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: _selectedGender == 'Female'
-                                  ? Colors.pink[300]
-                                  : Colors.transparent,
-                            ),
-                          ),
+                        Image.asset(
+                          'assets/icons/female_icon.png',
+                          width: 24,
+                          height: 24,
+                          color: _selectedGender == 'Female'
+                              ? Colors.black
+                              : Colors.grey[400],
                         ),
                         const SizedBox(width: 12),
                         Text(
                           'Female',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Colors.grey[800],
+                            color: _selectedGender == 'Female'
+                                ? Colors.black
+                                : Colors.grey[600],
+                            fontWeight: _selectedGender == 'Female'
+                                ? FontWeight.w600
+                                : FontWeight.normal,
                           ),
                         ),
                       ],
@@ -715,7 +697,7 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.amber,
+              color: Colors.grey[800],
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -736,7 +718,7 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: showGradeIcon ? Colors.pink[400] : Colors.pink[300],
+              color: Colors.grey[700],
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -770,7 +752,7 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: heartCount != null ? Colors.amber : Colors.pink[300],
+              color: Colors.grey[700],
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
