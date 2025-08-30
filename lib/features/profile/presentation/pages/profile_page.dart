@@ -329,7 +329,7 @@ class _ProfileContentState extends State<_ProfileContent> {
           style: TextStyle(
             fontSize: 20.sp,
             fontWeight: FontWeight.w500,
-            color: Colors.white,
+            color: Colors.black,
           ),
         ),
 
