@@ -186,7 +186,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                   (widget.user.coverPicture != null)
                       ? Container(
                           width: double.infinity,
-                          height: 200.h,
+                          height: 170.h,
                           decoration: const BoxDecoration(color: Colors.white),
                           child: Image.network(
                             widget.user.coverPicture ?? '',
@@ -194,7 +194,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                           ),
                         )
                       : Container(
-                          height: 200.h,
+                          height: 170.h,
                           width: double.infinity,
                           color: Color(0xFF888686),
                           child: Center(
@@ -207,7 +207,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                   Positioned.fill(
                     // top: 10.h,
                     // left: 20.w,
-                    bottom: 100.h,
+                    bottom: 70.h,
                     child: Padding(
                       padding: EdgeInsets.all(20.w),
                       child: Row(
@@ -253,7 +253,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                   ),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.only(top: 20.h, left: 20.w, right: 20.w),
+                  padding: EdgeInsets.only(top: 50.h, left: 20.w, right: 20.w),
                   child: Column(
                     children: [
                       // Space and layout for profile picture with user info
@@ -303,7 +303,7 @@ class _ProfileContentState extends State<_ProfileContent> {
 
           // Overlapping Profile Picture
           Positioned(
-            top: 150.h, // Position to overlap cover photo and content
+            top: 120.h, // Position to overlap cover photo and content
             left: 25.w, // Left position closer to left edge
             child: _buildOverlappingProfilePicture(),
           ),
