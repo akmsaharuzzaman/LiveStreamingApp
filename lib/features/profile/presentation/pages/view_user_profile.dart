@@ -297,21 +297,6 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        forceMaterialTransparency: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_horiz),
-            onPressed: () {
-              // Handle more options
-            },
-          ),
-        ],
-      ),
       body: SizedBox(
         width: MediaQuery.of(context).size.width,
         height: MediaQuery.of(context).size.height,
@@ -366,103 +351,214 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
           height: double.infinity,
           width: double.infinity,
           child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.only(
-                left: 24.0,
-                right: 24.0,
-                top: 24.0,
-              ),
-              child: Column(
-                children: [
-                  // Profile Picture with Frame
-                  _buildProfileHeader(user),
+            child: Stack(
+              children: [
+                Column(
+                  children: [
+                    // Cover Photo and Top Icons
+                    Stack(
+                      children: [
+                        (user.coverPicture != null)
+                            ? Container(
+                                width: double.infinity,
+                                height: 170.h,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                ),
+                                child: Image.network(
+                                  user.coverPicture ?? '',
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : Container(
+                                height: 170.h,
+                                width: double.infinity,
+                                color: const Color(0xFF888686),
+                                child: Center(
+                                  child: Text(
+                                    'No Cover Photo',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16.sp,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                        if (user.userRole == 'admin')
+                          Positioned.fill(
+                            top: 125.h,
+                            left: MediaQuery.of(context).size.width - 160.w,
+                            child: Image.asset(
+                              "assets/images/general/super_admin_frame.png",
+                              height: 26.h,
+                            ),
+                          ),
+                        Positioned(
+                          top: 50.h,
+                          left: 20.w,
+                          right: 20.w,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () => Navigator.of(context).pop(),
+                                child: Icon(
+                                  Icons.arrow_back_ios,
+                                  size: 20.sp,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              GestureDetector(
+                                child: Icon(
+                                  Icons.more_horiz,
+                                  size: 20.sp,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
 
-                  const SizedBox(height: 16),
-
-                  // User Name
-                  Text(
-                    user.name,
-                    style: const TextStyle(
-                      fontSize: 25,
-                      fontWeight: FontWeight.w400,
-                      color: Color(0xFF2D3142),
+                          )
+                        ),
+                      ],
                     ),
-                  ),
 
-                  const SizedBox(height: 8),
+                    // Content section with padding for overlapping profile picture
+                    Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.centerLeft,
+                          colors: [Color(0xFFD7CAFE), Color(0xFFFFFFFF)],
+                        ),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top: 50.h,
+                          left: 20.w,
+                          right: 20.w,
+                        ),
+                        child: Column(
+                          children: [
+                            // Space and layout for profile picture with user info
+                            SizedBox(height: 36.h),
 
-                  // User ID and Location
-                  Text(
-                    'ID:${user.id.substring(0, 6)} | Bangladesh', // Truncated ID
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF202020),
-                      fontWeight: FontWeight.w400,
+                            // Profile info section - positioned next to profile picture
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // User information positioned to the right of profile
+                                Expanded(child: _buildLevelBadges()),
+                              ],
+                            ),
+
+                            SizedBox(height: 20.h),
+
+                            // Friends/Followers/Following
+                            _buildSocialStats(),
+
+                            SizedBox(height: 20.h),
+
+                            // Profile Card Section
+                            _buildProfileCard(user),
+                            SizedBox(height: 20.h),
+
+                            // Expandable Tiles
+                            _buildExpandableTile(
+                              'assets/images/general/baggage_icon.png',
+                              'Baggage',
+                              () {
+                                // Handle baggage tap
+                                print('Baggage tapped');
+                              },
+                            ),
+                            // Divider Line
+                            Container(
+                              height: 1,
+                              color: const Color(0xFFF1F1F1),
+                              margin: EdgeInsets.symmetric(vertical: 20.h),
+                            ),
+                            _buildExpandableTile(
+                              'assets/images/general/black_badge_icon.png',
+                              'Badges',
+                              () {
+                                // Handle badges tap
+                                print('Badges tapped');
+                              },
+                            ),
+
+                            // Continue with the rest of the content...
+                            Container(
+                              height: 1,
+                              color: const Color(0xFFF1F1F1),
+                              margin: EdgeInsets.symmetric(vertical: 20.h),
+                            ),
+
+                            // Moments and Posts section
+                            _buildMomentsGrid(),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
+                ),
 
-                  SizedBox(height: 5.h),
-
-                  // Status Message
-                  const Text(
-                    'Hey! WhatsApp',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Color(0xFF808080),
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-
-                  SizedBox(height: 10.h),
-
-                  // Level Badges
-                  _buildLevelBadges(),
-                  SizedBox(height: 20.h),
-
-                  // Friends/Followers/Following
-                  _buildSocialStats(),
-
-                  SizedBox(height: 20.h),
-
-                  // Profile Card Section
-                  _buildProfileCard(user),
-                  SizedBox(height: 20.h),
-                  // Exapanable Tile
-                  _buildExpandableTile(
-                    'assets/images/general/baggage_icon.png',
-                    'Baggage',
-                    () {
-                      // Handle baggage tap
-                      print('Baggage tapped');
-                    },
-                  ),
-                  // DividerLIne
-                  Container(
-                    height: 1,
-                    color: const Color(0xFFF1F1F1),
-                    margin: EdgeInsets.symmetric(vertical: 20.h),
-                  ),
-                  _buildExpandableTile(
-                    'assets/images/general/black_badge_icon.png',
-                    'Badges',
-                    () {
-                      // Handle baggage tap
-                      print('Baggage tapped');
-                    },
-                  ),
-                  // DividerLIne
-                  Container(
-                    height: 1,
-                    color: const Color(0xFFF1F1F1),
-                    margin: EdgeInsets.symmetric(vertical: 20.h),
-                  ),
-                  _buildMomentsGrid(),
-                ],
-              ),
+                // Overlapping Profile Picture
+                Positioned(
+                  top: 120.h, // Position to overlap cover photo and content
+                  left: 25.w, // Left position closer to left edge
+                  child: _buildProfileHeader(user),
+                ),
+                // Build Overlapping User Information
+                Positioned(
+                  top: 160.h, // Position to overlap cover photo and content
+                  left: 140.w, // Left position closer to left edge
+                  child: _buildOverlappingUserInformation(user),
+                ),
+              ],
             ),
           ),
         ),
         Positioned(right: 0, left: 0, bottom: 0, child: _buildActionButtons()),
+      ],
+    );
+  }
+
+  // Add the missing _buildOverlappingUserInformation method
+  Widget _buildOverlappingUserInformation(UserModel user) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 12.h),
+        // User Name
+        Text(
+          user.name,
+          style: TextStyle(
+            fontSize: 20.sp,
+            fontWeight: FontWeight.w500,
+            color: Colors.black,
+          ),
+        ),
+
+        SizedBox(height: 12.h),
+
+        // User ID and Location
+        Row(
+          children: [
+            Text(
+              'ID:${user.id.substring(0, 6)} | Bangladesh',
+              style: TextStyle(
+                fontSize: 16.sp,
+                color: const Color(0xFF202020),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+
+     
+
+       
       ],
     );
   }
@@ -724,18 +820,24 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
 
   Widget _buildProfileHeader(UserModel user) {
     return Container(
-      width: 100.h,
+      width: 100.w,
       height: 100.h,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        // border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: ClipOval(
         child: (user.avatar != null || user.profilePictureUrl != null)
             ? Image.network(
                 user.avatar ?? user.profilePictureUrl!,
-                width: 80,
-                height: 80,
+                width: 100.w,
+                height: 100.h,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) =>
                     _buildDefaultAvatar(),
@@ -747,13 +849,13 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
 
   Widget _buildDefaultAvatar() {
     return Container(
-      width: 100.h,
+      width: 100.w,
       height: 100.h,
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
         color: Color(0xFFF0F0F0),
       ),
-      child: Icon(Icons.person, size: 40, color: Colors.grey[600]),
+      child: Icon(Icons.person, size: 40.sp, color: Colors.grey[600]),
     );
   }
 
