@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/auth/auth_bloc.dart';
+import '../../../../core/services/in_app_update_service.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 
@@ -18,6 +19,25 @@ class MainNavigationPage extends StatefulWidget {
 
 class _MainNavigationPageState extends State<MainNavigationPage> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Check for optional app updates when main navigation loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForOptionalUpdates();
+    });
+  }
+
+  /// Check for optional updates (non-forced) when user is actively using the app
+  Future<void> _checkForOptionalUpdates() async {
+    try {
+      await InAppUpdateService.checkForOptionalUpdate(context);
+    } catch (e) {
+      debugPrint('Error checking for optional updates: $e');
+      // Silently fail for optional updates
+    }
+  }
 
   List<Widget> get _pages => [
     // Use a unique key to force HomePage to rebuild and refresh each time

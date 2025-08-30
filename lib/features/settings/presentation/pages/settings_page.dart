@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/auth/auth_bloc.dart';
 import '../../../../core/utils/device_service.dart';
+import '../../../../core/services/in_app_update_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -95,7 +96,7 @@ class _SettingsPageState extends State<SettingsPage> {
         // Match other pages by using a subtle grey background
         backgroundColor: Theme.of(
           context,
-        ).colorScheme.surface.withValues(alpha:0.02),
+        ).colorScheme.surface.withValues(alpha: 0.02),
         body: Container(
           color: Theme.of(context).colorScheme.surface,
           height: MediaQuery.of(context).size.height,
@@ -161,6 +162,16 @@ class _SettingsPageState extends State<SettingsPage> {
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () {
                             _showAboutDialog(context);
+                          },
+                        ),
+                        const _SectionDivider(),
+                        _SettingsTile(
+                          icon: Icons.system_update,
+                          title: 'Check for Updates',
+                          subtitle: 'Update to the latest version',
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            _checkForUpdates(context);
                           },
                         ),
                       ],
@@ -336,6 +347,60 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
     );
+  }
+
+  /// Check for app updates manually
+  Future<void> _checkForUpdates(BuildContext context) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Checking for updates...'),
+            ],
+          ),
+        );
+      },
+    );
+
+    try {
+      // Check for updates
+      await InAppUpdateService.checkForOptionalUpdate(context);
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+
+        // Show success message if no update was found
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Your app is up to date!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to check for updates: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   void _showDeleteAccountDialog(BuildContext context) {
@@ -514,7 +579,7 @@ class _SectionContainer extends StatelessWidget {
         border: borderColor != null ? Border.all(color: borderColor!) : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha:0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 2,
             blurRadius: 8,
             offset: const Offset(0, 3),
@@ -530,7 +595,7 @@ class _SectionDivider extends StatelessWidget {
   const _SectionDivider();
   @override
   Widget build(BuildContext context) {
-    return Divider(height: 1, color: Colors.grey.withValues(alpha:0.15));
+    return Divider(height: 1, color: Colors.grey.withValues(alpha: 0.15));
   }
 }
 
@@ -561,7 +626,7 @@ class _SettingsTile extends StatelessWidget {
       leading: CircleAvatar(
         radius: 18.r,
         backgroundColor: (iconColor ?? Theme.of(context).colorScheme.primary)
-            .withValues(alpha:0.08),
+            .withValues(alpha: 0.08),
         child: Icon(icon, color: iconColor ?? Colors.black87, size: 20.r),
       ),
       title: Text(

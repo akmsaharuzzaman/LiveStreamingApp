@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 import '../../../../core/auth/auth_bloc.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/services/in_app_update_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -51,8 +52,27 @@ class _SplashScreenState extends State<SplashScreen>
     _logoController.forward();
     _textController.forward();
 
-    // Initialize authentication
-    context.read<AuthBloc>().add(const AuthInitializeEvent());
+    // Check for app updates first, then initialize authentication
+    _initializeApp();
+  }
+
+  /// Initialize app with update check and authentication
+  Future<void> _initializeApp() async {
+    try {
+      // Check for forced updates first
+      await InAppUpdateService.checkForForcedUpdate(context);
+
+      // If no forced update required, proceed with authentication
+      if (mounted) {
+        context.read<AuthBloc>().add(const AuthInitializeEvent());
+      }
+    } catch (e) {
+      debugPrint('Error during app initialization: $e');
+      // Continue with authentication even if update check fails
+      if (mounted) {
+        context.read<AuthBloc>().add(const AuthInitializeEvent());
+      }
+    }
   }
 
   void _initializeVideo() {
