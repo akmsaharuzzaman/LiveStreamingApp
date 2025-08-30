@@ -347,7 +347,14 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
   Widget _buildUserProfileContent(UserModel user) {
     return Stack(
       children: [
-        SizedBox(
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.centerLeft,
+              colors: [Color(0xFFD7CAFE), Color(0xFFFFFFFF)],
+            ),
+          ),
           height: double.infinity,
           width: double.infinity,
           child: SingleChildScrollView(
@@ -417,21 +424,13 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                                 ),
                               ),
                             ],
-
-                          )
+                          ),
                         ),
                       ],
                     ),
 
                     // Content section with padding for overlapping profile picture
-                    Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.centerLeft,
-                          colors: [Color(0xFFD7CAFE), Color(0xFFFFFFFF)],
-                        ),
-                      ),
+                    SizedBox(
                       child: Padding(
                         padding: EdgeInsets.only(
                           top: 50.h,
@@ -555,10 +554,6 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
             ),
           ],
         ),
-
-     
-
-       
       ],
     );
   }
