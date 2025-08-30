@@ -10,7 +10,7 @@ class ChatApiService {
 
   ChatApiService(this._apiService);
 
-  static const String _baseUrl = 'http://dlstarlive.com:8000/api/chats';
+  static const String _baseUrl = 'http://31.97.222.97:8000/api/chats';
 
   /// Send a message
   Future<ApiResult<ChatMessage>> sendMessage({

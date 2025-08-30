@@ -2,10 +2,10 @@ import 'package:dlstarlive/features/home/presentation/pages/home_page.dart';
 import 'package:dlstarlive/features/newsfeed/presentation/pages/newsfeed.dart';
 import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_constants.dart';
-import '../../../live/presentation/pages/live_page.dart';
+import '../../../../core/auth/auth_bloc.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 
@@ -53,8 +53,33 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
           onTap: (index) {
             setState(() {
               if (index == 2) {
-                // Skip the middle item (Live Stream)
-                context.push(AppRoutes.live);
+                // Check if user is host before allowing live stream access
+                final authState = context.read<AuthBloc>().state;
+                if (authState is AuthAuthenticated) {
+                  final userRole = authState.user.userRole;
+                  if (userRole == 'host') {
+                    // User is host, allow access to live stream
+                    context.push(AppRoutes.live);
+                  } else {
+                    // User is not host, show restriction message
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('You must be a host to go live'),
+                        backgroundColor: Colors.red,
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                } else {
+                  // User not authenticated
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please log in to access live streaming'),
+                      backgroundColor: Colors.red,
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                }
                 return;
               }
 

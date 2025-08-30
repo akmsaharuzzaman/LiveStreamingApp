@@ -67,7 +67,7 @@ class SocketService {
       StreamController<MuteUserModel>.broadcast();
 
   // Constants
-  static const String _baseUrl = 'http://dlstarlive.com:8000';
+  static const String _baseUrl = 'http://31.97.222.97:8000';
 
   // Event names - Updated to match your new event structure
   static const String _createRoomEvent = 'create-room';

@@ -4,10 +4,20 @@
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">147.93.103.135</domain>
     </domain-config>
+
+     <!-- Allow cleartext traffic for external game server -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">31.97.222.97</domain>
+    </domain-config>
     
     <!-- Allow cleartext traffic for API server -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">dlstarlive.com</domain>
+    </domain-config>
+
+    <!-- Allow cleartext traffic for API server -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">dlstarliveplan1.com</domain>
     </domain-config>
     
     <!-- Allow cleartext traffic for all local addresses -->

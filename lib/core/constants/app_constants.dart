@@ -13,7 +13,7 @@ class AppConstants {
 class DataConstants {
   // API Constants
   // static const String baseUrl = 'https://b8eff8466e05.ngrok-free.app';
-  static const String baseUrl = 'http://dlstarlive.com:8000';
+  static const String baseUrl = 'http://31.97.222.97:8000';
   static const Duration connectionTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);
 
