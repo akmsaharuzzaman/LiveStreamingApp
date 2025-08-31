@@ -77,7 +77,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                 final authState = context.read<AuthBloc>().state;
                 if (authState is AuthAuthenticated) {
                   final userRole = authState.user.userRole;
-                  if (userRole != 'host') {
+                  if (userRole == 'host') {
                     // User is host, allow access to live stream
                     context.push(AppRoutes.live);
                   } else {
