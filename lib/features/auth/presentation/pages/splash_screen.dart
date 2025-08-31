@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:video_player/video_player.dart';
 import '../../../../core/auth/auth_bloc.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/in_app_update_service.dart';
@@ -19,8 +18,6 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _textController;
   late Animation<double> _logoAnimation;
   late Animation<double> _textAnimation;
-  late VideoPlayerController _videoController;
-  bool _isVideoInitialized = false;
 
   @override
   void initState() {
@@ -44,9 +41,6 @@ class _SplashScreenState extends State<SplashScreen>
     _textAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _textController, curve: Curves.easeInOut),
     );
-
-    // Initialize video
-    _initializeVideo();
 
     // Start animations
     _logoController.forward();
@@ -75,26 +69,10 @@ class _SplashScreenState extends State<SplashScreen>
     }
   }
 
-  void _initializeVideo() {
-    _videoController = VideoPlayerController.asset(
-      'assets/images/onboarding/intro_video.mp4',
-    );
-
-    _videoController.initialize().then((_) {
-      setState(() {
-        _isVideoInitialized = true;
-      });
-      _videoController.setLooping(true);
-      _videoController.setVolume(0.0); // Mute the video
-      _videoController.play();
-    });
-  }
-
   @override
   void dispose() {
     _logoController.dispose();
     _textController.dispose();
-    _videoController.dispose();
     super.dispose();
   }
 
@@ -125,16 +103,7 @@ class _SplashScreenState extends State<SplashScreen>
       child: Scaffold(
         body: Stack(
           children: [
-            // Background video
-            if (_isVideoInitialized)
-              Positioned.fill(
-                child: AspectRatio(
-                  aspectRatio: _videoController.value.aspectRatio,
-                  child: VideoPlayer(_videoController),
-                ),
-              ),
-
-            // Original gradient overlay
+            // Gradient overlay (now the only background)
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -227,12 +196,6 @@ class _SplashScreenState extends State<SplashScreen>
                                 valueColor: AlwaysStoppedAnimation<Color>(
                                   Colors.white,
                                 ),
-                              ),
-                              const SizedBox(height: UIConstants.spacingM),
-                              Text(
-                                'Initializing...',
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(color: Colors.white70),
                               ),
                             ],
                           );
