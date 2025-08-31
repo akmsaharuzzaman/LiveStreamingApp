@@ -3,6 +3,8 @@ import 'dart:ui';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:dlstarlive/core/network/socket_service.dart';
+import 'package:dlstarlive/core/network/api_clients.dart';
+import 'package:dlstarlive/injection/injection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -25,6 +27,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   final SocketService _socketService = SocketService.instance;
+  final GenericApiClient _genericApiClient = getIt<GenericApiClient>();
   List<GetRoomModel>? _availableRooms;
 
   // Stream subscriptions for proper cleanup
@@ -35,11 +38,9 @@ class _HomePageState extends State<HomePage>
   // Tab controller for horizontal sliding tabs
   late TabController _tabController;
 
-  List<String> imageUrls = [
-    'assets/images/general/banners/banner_1.jpg',
-    'assets/images/general/banners/banner_2.jpg',
-  ];
-
+  // Banner URLs - will be populated from API
+  List<String> _bannerUrls = [];
+  bool _isBannersLoading = true;
   /// Initialize socket connection when entering live streaming page
   Future<void> _initializeSocket() async {
     try {
@@ -105,16 +106,25 @@ class _HomePageState extends State<HomePage>
   /// Handle pull-to-refresh action
   Future<void> _handleRefresh() async {
     try {
-      debugPrint('🔄 Home page refresh triggered - fetching latest rooms');
+      debugPrint(
+        '🔄 Home page refresh triggered - fetching latest rooms and banners',
+      );
 
-      // Check if socket is connected
-      if (!_socketService.isConnected) {
-        debugPrint('Socket not connected, attempting to reconnect...');
-        await _initializeSocket();
-      } else {
-        // If already connected, just get the rooms
-        await _socketService.getRooms();
-      }
+      // Refresh both rooms and banners simultaneously
+      await Future.wait([
+        // Check if socket is connected and get rooms
+        () async {
+          if (!_socketService.isConnected) {
+            debugPrint('Socket not connected, attempting to reconnect...');
+            await _initializeSocket();
+          } else {
+            // If already connected, just get the rooms
+            await _socketService.getRooms();
+          }
+        }(),
+        // Refresh banners
+        _fetchBanners(),
+      ]);
 
       // Add a small delay to ensure the refresh indicator shows
       await Future.delayed(const Duration(milliseconds: 500));
@@ -123,7 +133,7 @@ class _HomePageState extends State<HomePage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Failed to refresh rooms. Please try again.'),
+            content: Text('Failed to refresh content. Please try again.'),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 2),
           ),
@@ -132,12 +142,56 @@ class _HomePageState extends State<HomePage>
     }
   }
 
+  /// Fetch banner images from API
+  Future<void> _fetchBanners() async {
+    try {
+      debugPrint('🎨 Fetching banners from API');
+
+      final response = await _genericApiClient.get<Map<String, dynamic>>(
+        '/api/admin/banners',
+      );
+
+      if (response.isSuccess && response.data != null) {
+        final data = response.data!;
+        if (data['success'] == true && data['result'] != null) {
+          final List<dynamic> bannerList = data['result'] as List<dynamic>;
+          final List<String> urls = bannerList.cast<String>();
+
+          setState(() {
+            _bannerUrls = urls;
+            _isBannersLoading = false;
+          });
+
+          debugPrint('✅ Loaded ${urls.length} banners from API');
+        } else {
+          throw Exception('API response indicates failure');
+        }
+      } else {
+        throw Exception('Failed to get banners: ${response.message}');
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching banners: $e');
+      // Use fallback banners if API fails
+      setState(() {
+        _bannerUrls = [];
+        _isBannersLoading = false;
+      });
+      debugPrint('🔄 Using fallback banners');
+    }
+  }
+
+  /// Helper method to check if URL is a network URL
+  bool _isNetworkUrl(String url) {
+    return url.startsWith('http://') || url.startsWith('https://');
+  }
+
   @override
   void initState() {
     // Initialize tab controller with 4 tabs
     _tabController = TabController(length: 4, vsync: this);
 
     _initializeSocket();
+    _fetchBanners(); // Fetch banners from API
 
     // Trigger refresh each time HomePage is created
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -269,68 +323,125 @@ class _HomePageState extends State<HomePage>
           SizedBox(height: 7.sp),
           const ListUserFollow(),
           SizedBox(height: 12.sp),
+          //Banner Section
           Padding(
             padding: EdgeInsets.only(right: 8.sp, left: 8.sp),
             child: SizedBox(
               height: 132.sp,
               width: double.infinity,
-              child: FlutterCarousel(
-                options: FlutterCarouselOptions(
-                  height: 132.sp,
-                  autoPlay: true,
-                  viewportFraction: 1.0,
-                  enlargeCenterPage: false,
-                  showIndicator: true,
-                  indicatorMargin: 8,
-
-                  slideIndicator: CircularSlideIndicator(
-                    slideIndicatorOptions: SlideIndicatorOptions(
-                      alignment: Alignment.bottomCenter,
-                      currentIndicatorColor: Colors.white,
-                      indicatorBackgroundColor: Colors.white.withValues(
-                        alpha: 0.5,
+              child: _isBannersLoading
+                  ? Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(8.0),
                       ),
-                      indicatorBorderColor: Colors.transparent,
-                      indicatorBorderWidth: 0.5,
-                      indicatorRadius: 3.8,
-                      itemSpacing: 15,
-                      padding: const EdgeInsets.only(top: 10.0),
-                      enableHalo: false,
-                      enableAnimation: true,
-                    ),
-                  ),
-                ),
-                items: imageUrls.map((url) {
-                  return Builder(
-                    builder: (BuildContext context) {
-                      return Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.symmetric(horizontal: 8.0),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(8.0),
+                      child: const Center(child: CircularProgressIndicator()),
+                    )
+                  : _bannerUrls.isEmpty
+                  ? Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'No banners available',
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8.0),
-                          child: Image.asset(
-                            url,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Center(
-                                child: Icon(
-                                  Icons.broken_image,
-                                  size: 50,
-                                  color: Colors.red,
-                                ),
-                              );
-                            },
+                      ),
+                    )
+                  : FlutterCarousel(
+                      options: FlutterCarouselOptions(
+                        height: 132.sp,
+                        autoPlay: true,
+                        viewportFraction: 1.0,
+                        enlargeCenterPage: false,
+                        showIndicator: true,
+                        indicatorMargin: 8,
+
+                        slideIndicator: CircularSlideIndicator(
+                          slideIndicatorOptions: SlideIndicatorOptions(
+                            alignment: Alignment.bottomCenter,
+                            currentIndicatorColor: Colors.white,
+                            indicatorBackgroundColor: Colors.white.withValues(
+                              alpha: 0.5,
+                            ),
+                            indicatorBorderColor: Colors.transparent,
+                            indicatorBorderWidth: 0.5,
+                            indicatorRadius: 3.8,
+                            itemSpacing: 15,
+                            padding: const EdgeInsets.only(top: 10.0),
+                            enableHalo: false,
+                            enableAnimation: true,
                           ),
                         ),
-                      );
-                    },
-                  );
-                }).toList(),
-              ),
+                      ),
+                      items: _bannerUrls.map((url) {
+                        return Builder(
+                          builder: (BuildContext context) {
+                            return Container(
+                              width: double.infinity,
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 8.0,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8.0),
+                                child: _isNetworkUrl(url)
+                                    ? Image.network(
+                                        url,
+                                        fit: BoxFit.cover,
+                                        loadingBuilder: (context, child, loadingProgress) {
+                                          if (loadingProgress == null)
+                                            return child;
+                                          return Center(
+                                            child: CircularProgressIndicator(
+                                              value:
+                                                  loadingProgress
+                                                          .expectedTotalBytes !=
+                                                      null
+                                                  ? loadingProgress
+                                                            .cumulativeBytesLoaded /
+                                                        loadingProgress
+                                                            .expectedTotalBytes!
+                                                  : null,
+                                            ),
+                                          );
+                                        },
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return const Center(
+                                                child: Icon(
+                                                  Icons.broken_image,
+                                                  size: 50,
+                                                  color: Colors.red,
+                                                ),
+                                              );
+                                            },
+                                      )
+                                    : Image.asset(
+                                        url,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return const Center(
+                                                child: Icon(
+                                                  Icons.broken_image,
+                                                  size: 50,
+                                                  color: Colors.red,
+                                                ),
+                                              );
+                                            },
+                                      ),
+                              ),
+                            );
+                          },
+                        );
+                      }).toList(),
+                    ),
             ),
           ),
           // SizedBox(height: 18.sp),
