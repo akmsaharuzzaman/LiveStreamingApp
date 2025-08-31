@@ -7,6 +7,7 @@ import 'package:dlstarlive/core/network/models/joined_user_model.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/injection/injection.dart';
 import 'package:flutter_svga/flutter_svga.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 import '../../../../core/utils/app_utils.dart';
 
@@ -22,7 +23,7 @@ void showGiftBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
-    builder: (context) {
+    builder: (bottomSheetContext) {
       return GiftBottomSheet(
         activeViewers: activeViewers,
         roomId: roomId,
@@ -159,12 +160,40 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_LONG,
+      gravity: ToastGravity.TOP,
+      timeInSecForIosWeb: 3,
+      backgroundColor: Colors.red,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
+  }
+
+  void _showSuccess(String message) {
+    if (!mounted) return;
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.TOP,
+      timeInSecForIosWeb: 2,
+      backgroundColor: Colors.green,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
+  }
+
+  void _showWarning(String message) {
+    if (!mounted) return;
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.TOP,
+      timeInSecForIosWeb: 2,
+      backgroundColor: Colors.orange,
+      textColor: Colors.white,
+      fontSize: 16.0,
     );
   }
 
@@ -776,24 +805,12 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
 
   Future<void> _sendGift() async {
     if (_selectedGiftId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a gift first!'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      _showWarning('Please select a gift first!');
       return;
     }
 
     if (_selectedUserIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select at least one recipient!'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      _showWarning('Please select at least one recipient!');
       return;
     }
 
@@ -815,16 +832,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
 
       if (totalCost > _currentBalance) {
         setState(() => _isSending = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Insufficient balance!',
-              style: TextStyle(color: Colors.white),
-            ),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
-          ),
-        );
+        _showError('Insufficient balance!');
         return;
       }
 
@@ -840,6 +848,11 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
         setState(() {
           _currentBalance -= totalCost;
         });
+
+        // Show success message
+        _showSuccess(
+          'Gift sent successfully to $recipientCount recipient${recipientCount > 1 ? 's' : ''}!',
+        );
 
         // Reset selection
         setState(() {
