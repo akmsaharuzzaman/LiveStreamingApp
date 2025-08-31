@@ -466,9 +466,20 @@ class GiftApiClient {
   GiftApiClient(this._apiService);
 
   /// Get all available gifts
-  Future<ApiResponse<List<Gift>>> getAllGifts() async {
+  Future<ApiResponse<List<Gift>>> getAllGifts({
+    String? sortBy,
+    String? sortOrder,
+  }) async {
+    Map<String, dynamic>? queryParams;
+    if (sortBy != null || sortOrder != null) {
+      queryParams = {};
+      if (sortBy != null) queryParams['sortBy'] = sortBy;
+      if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
+    }
+
     final response = await _apiService.get<Map<String, dynamic>>(
       '/api/admin/gift',
+      queryParameters: queryParams,
     );
 
     return response.fold((data) {

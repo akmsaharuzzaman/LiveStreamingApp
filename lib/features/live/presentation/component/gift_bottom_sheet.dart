@@ -67,6 +67,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
   bool _isLoading = true;
   bool _isSending = false;
   List<Gift> _allGifts = [];
+  List<Gift> _hotGifts = []; // Hot/popular gifts based on send count
   List<String> _dynamicTabs = []; // Will be populated with categories from API
 
   final GiftApiClient _giftApiClient = getIt<GiftApiClient>();
@@ -77,6 +78,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
     super.initState();
     // Don't initialize TabController yet, will be created after loading gifts
     _loadGifts();
+    _loadHotGifts(); // Load hot/popular gifts
     _loadUserBalance();
   }
 
@@ -117,8 +119,8 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
             .toList();
         categories.sort(); // Sort alphabetically
 
-        // Create dynamic tabs: only sorted categories (no Recent tab)
-        final newTabs = categories;
+        // Create dynamic tabs: Add "Hot" as first tab, then sorted categories
+        final newTabs = ['Hot', ...categories];
 
         setState(() {
           _allGifts = gifts;
@@ -155,6 +157,23 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
         _isLoading = false;
       });
       _showError('Error loading gifts: $e');
+    }
+  }
+
+  Future<void> _loadHotGifts() async {
+    try {
+      final response = await _giftApiClient.getAllGifts(
+        sortBy: 'sendCount',
+        sortOrder: 'desc',
+      );
+      if (response.isSuccess && response.data != null) {
+        setState(() {
+          _hotGifts = response.data!;
+        });
+      }
+    } catch (e) {
+      print('Error loading hot gifts: $e');
+      // Don't show error to user for hot gifts failure - just fail silently
     }
   }
 
@@ -473,15 +492,20 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                 : TabBarView(
                     controller: _tabController!,
                     children: _dynamicTabs.map((category) {
-                      // Filter by exact category match
-                      final categoryGifts = _allGifts
-                          .where(
-                            (gift) =>
-                                gift.category.toLowerCase() ==
-                                category.toLowerCase(),
-                          )
-                          .toList();
-                      return _buildGiftGrid(categoryGifts, category);
+                      if (category == 'Hot') {
+                        // Show hot/popular gifts for "Hot" tab
+                        return _buildGiftGrid(_hotGifts, category);
+                      } else {
+                        // Filter by exact category match for other tabs
+                        final categoryGifts = _allGifts
+                            .where(
+                              (gift) =>
+                                  gift.category.toLowerCase() ==
+                                  category.toLowerCase(),
+                            )
+                            .toList();
+                        return _buildGiftGrid(categoryGifts, category);
+                      }
                     }).toList(),
                   ),
           ),
@@ -815,8 +839,18 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
     }
 
     // --- CORRECTED LOGIC ---
-    // Find the selected gift from the main list using its ID.
-    final selectedGift = _allGifts.firstWhere((g) => g.id == _selectedGiftId);
+    // Find the selected gift from all available gifts (both hot and regular)
+    Gift? selectedGift;
+    try {
+      selectedGift = _allGifts.firstWhere((g) => g.id == _selectedGiftId);
+    } catch (e) {
+      try {
+        selectedGift = _hotGifts.firstWhere((g) => g.id == _selectedGiftId);
+      } catch (e) {
+        _showError('Selected gift not found!');
+        return;
+      }
+    }
 
     setState(() {
       _isSending = true;
