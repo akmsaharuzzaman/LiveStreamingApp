@@ -453,6 +453,8 @@ class AuthInterceptor extends Interceptor {
       '/auth/refresh',
       '/auth/forgot-password',
       '/auth/reset-password',
+      '/api/release/latest',
+      '/release/latest',
     ];
 
     return skipAuthPaths.any((skipPath) => path.contains(skipPath));
