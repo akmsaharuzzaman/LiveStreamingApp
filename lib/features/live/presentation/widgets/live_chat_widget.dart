@@ -126,7 +126,7 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
       children: [
         // Badges (Level, VIP, etc.)
         // ...message.id.map((badge) => _buildBadge(badge)),
-        _buildBadge("vip"),
+        // _buildBadge("vip"),
         if (message.avatar != null) const SizedBox(width: 6),
 
         const SizedBox(width: 8),
