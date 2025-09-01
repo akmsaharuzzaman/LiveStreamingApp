@@ -41,6 +41,7 @@ dependencies:
   # Utility Libraries
   dartz: ^0.10.1
   device_info_plus: ^11.5.0
+  package_info_plus: ^8.3.1
   intl: any
 
   # File & Media Pickers
@@ -83,6 +84,7 @@ dependencies:
   flutter_svga: ^0.0.6
   in_app_update: ^4.2.3
   fluttertoast: ^8.2.12
+  url_launcher: ^6.3.1
 
 
 dev_dependencies:

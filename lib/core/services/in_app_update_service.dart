@@ -1,6 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:in_app_update/in_app_update.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../network/api_clients.dart';
+import '../models/server_update_model.dart';
+import '../constants/app_constants.dart';
+import '../../injection/injection.dart';
 
 class InAppUpdateService {
   static const InAppUpdateService _instance = InAppUpdateService._internal();
@@ -221,13 +227,323 @@ class InAppUpdateService {
     );
   }
 
-  /// Check for update and show dialog if app needs forced update
+  /// Check for server-side updates first, then fall back to Play Store updates
   static Future<void> checkForForcedUpdate(BuildContext context) async {
-    await checkForUpdate(context: context, isForced: true);
+    try {
+      // Check server-side updates first
+      final hasServerUpdate = await _checkServerSideUpdate(context);
+
+      // If no server update required, check Play Store updates
+      if (!hasServerUpdate) {
+        await checkForUpdate(context: context, isForced: true);
+      }
+    } catch (e) {
+      debugPrint('Error in comprehensive update check: $e');
+      // Fall back to Play Store update check
+      await checkForUpdate(context: context, isForced: true);
+    }
+  }
+
+  /// Check for server-side update
+  static Future<bool> _checkServerSideUpdate(BuildContext context) async {
+    try {
+      // Get current app version
+      final packageInfo = await PackageInfo.fromPlatform();
+      final currentVersion = packageInfo.version;
+
+      // Get server update info
+      final genericApiClient = getIt<GenericApiClient>();
+      final response = await genericApiClient.get<Map<String, dynamic>>(
+        ApiConstants.latestRelease,
+      );
+
+      if (response.isSuccess && response.data != null) {
+        final serverUpdate = ServerUpdateModel.fromJson(response.data!);
+
+        // Compare versions
+        if (_isUpdateRequired(currentVersion, serverUpdate.version)) {
+          debugPrint(
+            'Server update required: $currentVersion -> ${serverUpdate.version}',
+          );
+
+          if (context.mounted) {
+            await _showServerUpdateDialog(context, serverUpdate);
+          }
+          return true;
+        } else {
+          debugPrint(
+            'App is up to date. Current: $currentVersion, Latest: ${serverUpdate.version}',
+          );
+          return false;
+        }
+      } else {
+        debugPrint('Failed to fetch server update info: ${response.message}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error checking server-side update: $e');
+      return false;
+    }
+  }
+
+  /// Compare version strings to determine if update is required
+  static bool _isUpdateRequired(String currentVersion, String latestVersion) {
+    try {
+      final current = _parseVersion(currentVersion);
+      final latest = _parseVersion(latestVersion);
+
+      // Compare major.minor.patch
+      for (int i = 0; i < 3; i++) {
+        if (latest[i] > current[i]) {
+          return true;
+        } else if (latest[i] < current[i]) {
+          return false;
+        }
+      }
+      return false; // Versions are equal
+    } catch (e) {
+      debugPrint('Error comparing versions: $e');
+      return false; // Assume no update needed on error
+    }
+  }
+
+  /// Parse version string into [major, minor, patch] integers
+  static List<int> _parseVersion(String version) {
+    final parts = version.split('.');
+    return [
+      int.parse(parts.isNotEmpty ? parts[0] : '0'),
+      int.parse(parts.length > 1 ? parts[1] : '0'),
+      int.parse(parts.length > 2 ? parts[2] : '0'),
+    ];
+  }
+
+  /// Show server update dialog with force update
+  static Future<void> _showServerUpdateDialog(
+    BuildContext context,
+    ServerUpdateModel updateInfo,
+  ) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false, // Prevent back button
+          child: AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  Icons.system_update,
+                  color: Theme.of(context).primaryColor,
+                ),
+                const SizedBox(width: 8),
+                const Text('Update Required'),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'A new version (${updateInfo.version}) is available and required to continue using the app.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  if (updateInfo.releaseNote.isNotEmpty) ...[
+                    Text(
+                      'What\'s New:',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        updateInfo.releaseNote,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              ElevatedButton.icon(
+                onPressed: () async {
+                  await _launchUpdateUrl(updateInfo.downloadURL);
+                  // Close app after directing to download
+                  exit(0);
+                },
+                icon: const Icon(Icons.download),
+                label: const Text('Update Now'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Launch update URL (Play Store or direct download)
+  static Future<void> _launchUpdateUrl(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        debugPrint('Could not launch update URL: $url');
+      }
+    } catch (e) {
+      debugPrint('Error launching update URL: $e');
+    }
   }
 
   /// Check for update and show optional update dialog
   static Future<void> checkForOptionalUpdate(BuildContext context) async {
-    await checkForUpdate(context: context, isForced: false);
+    try {
+      // Check server-side updates first
+      final hasServerUpdate = await _checkServerSideUpdateOptional(context);
+
+      // If no server update found, check Play Store updates
+      if (!hasServerUpdate) {
+        await checkForUpdate(context: context, isForced: false);
+      }
+    } catch (e) {
+      debugPrint('Error in optional update check: $e');
+      // Fall back to Play Store update check
+      await checkForUpdate(context: context, isForced: false);
+    }
+  }
+
+  /// Check for server-side update (optional)
+  static Future<bool> _checkServerSideUpdateOptional(
+    BuildContext context,
+  ) async {
+    try {
+      // Get current app version
+      final packageInfo = await PackageInfo.fromPlatform();
+      final currentVersion = packageInfo.version;
+
+      // Get server update info
+      final genericApiClient = getIt<GenericApiClient>();
+      final response = await genericApiClient.get<Map<String, dynamic>>(
+        ApiConstants.latestRelease,
+      );
+
+      if (response.isSuccess && response.data != null) {
+        final serverUpdate = ServerUpdateModel.fromJson(response.data!);
+
+        // Compare versions
+        if (_isUpdateRequired(currentVersion, serverUpdate.version)) {
+          debugPrint(
+            'Optional server update available: $currentVersion -> ${serverUpdate.version}',
+          );
+
+          if (context.mounted) {
+            await _showOptionalServerUpdateDialog(context, serverUpdate);
+          }
+          return true;
+        } else {
+          debugPrint(
+            'App is up to date. Current: $currentVersion, Latest: ${serverUpdate.version}',
+          );
+          return false;
+        }
+      } else {
+        debugPrint('Failed to fetch server update info: ${response.message}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error checking optional server-side update: $e');
+      return false;
+    }
+  }
+
+  /// Show optional server update dialog
+  static Future<void> _showOptionalServerUpdateDialog(
+    BuildContext context,
+    ServerUpdateModel updateInfo,
+  ) async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.system_update_alt,
+                color: Theme.of(context).primaryColor,
+              ),
+              const SizedBox(width: 8),
+              const Text('Update Available'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'A new version (${updateInfo.version}) is available.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                if (updateInfo.releaseNote.isNotEmpty) ...[
+                  Text(
+                    'What\'s New:',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      updateInfo.releaseNote,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Later'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _launchUpdateUrl(updateInfo.downloadURL);
+              },
+              icon: const Icon(Icons.download),
+              label: const Text('Update'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

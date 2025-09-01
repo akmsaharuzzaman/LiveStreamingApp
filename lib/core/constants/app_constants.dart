@@ -167,6 +167,7 @@ class ApiConstants {
   // Version and health
   static const String version = '/version';
   static const String health = '/health';
+  static const String latestRelease = '/release/latest';
 
   // Headers
   static const String authHeader = 'Authorization';
