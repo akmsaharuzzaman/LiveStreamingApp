@@ -86,8 +86,8 @@ class _OptimizedGiftWidgetState extends State<OptimizedGiftWidget> {
           children: [
             // Optimized gift image display
             SizedBox(
-              height: 42.h,
-              width: 42.w,
+              height: 52.h,
+              width: 52.w,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8.r),
                 child: _buildGiftImage(),
@@ -145,11 +145,19 @@ class _OptimizedGiftWidgetState extends State<OptimizedGiftWidget> {
       fit: BoxFit.cover,
       placeholder: (context, url) => Container(
         color: Colors.grey[700],
-        child: Icon(Icons.card_giftcard, color: Colors.white54, size: 20.sp),
+        child: Icon(
+          Icons.card_giftcard,
+          color: Colors.white54,
+          size: 24.sp,
+        ),
       ),
       errorWidget: (context, url, error) => Container(
         color: Colors.grey[700],
-        child: Icon(Icons.card_giftcard, color: Colors.white54, size: 20.sp),
+        child: Icon(
+          Icons.card_giftcard,
+          color: Colors.white54,
+          size: 24.sp,
+        ),
       ),
     );
   }

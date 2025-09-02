@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:dlstarlive/core/network/socket_service.dart';
@@ -379,65 +380,47 @@ class _HomePageState extends State<HomePage>
                       items: _bannerUrls.map((url) {
                         return Builder(
                           builder: (BuildContext context) {
-                            return Container(
-                              width: double.infinity,
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 8.0,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8.0),
-                                child: _isNetworkUrl(url)
-                                    ? Image.network(
-                                        url,
-                                        fit: BoxFit.cover,
-                                        loadingBuilder: (context, child, loadingProgress) {
-                                          if (loadingProgress == null)
-                                            return child;
-                                          return Center(
-                                            child: CircularProgressIndicator(
-                                              value:
-                                                  loadingProgress
-                                                          .expectedTotalBytes !=
-                                                      null
-                                                  ? loadingProgress
-                                                            .cumulativeBytesLoaded /
-                                                        loadingProgress
-                                                            .expectedTotalBytes!
-                                                  : null,
-                                            ),
-                                          );
-                                        },
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                              return const Center(
-                                                child: Icon(
-                                                  Icons.broken_image,
-                                                  size: 50,
-                                                  color: Colors.red,
-                                                ),
-                                              );
-                                            },
-                                      )
-                                    : Image.asset(
-                                        url,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                              return const Center(
-                                                child: Icon(
-                                                  Icons.broken_image,
-                                                  size: 50,
-                                                  color: Colors.red,
-                                                ),
-                                              );
-                                            },
-                                      ),
-                              ),
-                            );
+                          return Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.symmetric(
+                            horizontal: 8.0,
+                            ),
+                            decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8.0),
+                            child: _isNetworkUrl(url)
+                              ? CachedNetworkImage(
+                                imageUrl: url,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                                errorWidget: (context, url, error) => const Center(
+                                  child: Icon(
+                                  Icons.broken_image,
+                                  size: 50,
+                                  color: Colors.red,
+                                  ),
+                                ),
+                                )
+                              : Image.asset(
+                                url,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Center(
+                                  child: Icon(
+                                    Icons.broken_image,
+                                    size: 50,
+                                    color: Colors.red,
+                                  ),
+                                  );
+                                },
+                                ),
+                            ),
+                          );
                           },
                         );
                       }).toList(),
