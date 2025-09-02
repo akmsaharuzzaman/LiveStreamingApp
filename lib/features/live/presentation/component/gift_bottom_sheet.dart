@@ -6,10 +6,8 @@ import 'package:dlstarlive/core/network/models/gift_model.dart';
 import 'package:dlstarlive/core/network/models/joined_user_model.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/injection/injection.dart';
-import 'package:flutter_svga/flutter_svga.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-
-import '../../../../core/utils/app_utils.dart';
+import 'optimized_gift_widget.dart';
 
 void showGiftBottomSheet(
   BuildContext context, {
@@ -69,6 +67,9 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
   List<Gift> _allGifts = [];
   List<Gift> _hotGifts = []; // Hot/popular gifts based on send count
   List<String> _dynamicTabs = []; // Will be populated with categories from API
+  
+  // Optimization state for SVGA preloading
+  Set<String> _preloadedAnimations = {}; // Track which SVGA animations are preloaded
 
   final GiftApiClient _giftApiClient = getIt<GiftApiClient>();
   final UserApiClient _userApiClient = getIt<UserApiClient>();
@@ -170,10 +171,53 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
         setState(() {
           _hotGifts = response.data!;
         });
+        
+        // Preload animations for the first 3 hot gifts for better UX
+        _preloadTopGiftsAnimations();
       }
     } catch (e) {
       print('Error loading hot gifts: $e');
       // Don't show error to user for hot gifts failure - just fail silently
+    }
+  }
+
+  /// Preload animations for top 3 hot gifts for better initial UX
+  Future<void> _preloadTopGiftsAnimations() async {
+    if (_hotGifts.isNotEmpty) {
+      // Preload first 3 hot gifts in background
+      final topGifts = _hotGifts.take(3);
+      for (final gift in topGifts) {
+        _preloadGiftAnimation(gift.id);
+      }
+      debugPrint('🚀 Preloading animations for ${topGifts.length} top gifts');
+    }
+  }
+
+  /// Preload SVGA animation for a specific gift
+  Future<void> _preloadGiftAnimation(String giftId) async {
+    if (_preloadedAnimations.contains(giftId)) {
+      return; // Already preloaded
+    }
+
+    try {
+      // Find the gift
+      Gift? gift;
+      try {
+        gift = _allGifts.firstWhere((g) => g.id == giftId);
+      } catch (e) {
+        gift = _hotGifts.firstWhere((g) => g.id == giftId);
+      }
+
+      if (gift.svgaImage.isNotEmpty) {
+        // Mark as preloaded immediately to prevent duplicate loading
+        setState(() {
+          _preloadedAnimations.add(giftId);
+        });
+        
+        debugPrint('🎬 Preloaded SVGA animation for gift: ${gift.name}');
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to preload animation for gift $giftId: $e');
     }
   }
 
@@ -218,6 +262,9 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
 
   @override
   void dispose() {
+    // Clear preloaded animations set
+    _preloadedAnimations.clear();
+    
     // Only dispose if TabController was initialized
     _tabController?.dispose();
     super.dispose();
@@ -754,7 +801,11 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
         // Check for selection using the gift's unique ID.
         final isSelected = _selectedGiftId == gift.id;
 
-        return GestureDetector(
+        return OptimizedGiftWidget(
+          gift: gift,
+          isSelected: isSelected,
+          preloadedAnimations: _preloadedAnimations,
+          onAnimationPreload: _preloadGiftAnimation,
           onTap: () {
             // --- CORRECTED LOGIC ---
             // Store the gift's unique ID on tap.
@@ -762,66 +813,6 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
               _selectedGiftId = gift.id;
             });
           },
-          child: Container(
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? const Color(0xFFFFFFFF).withValues(alpha: 0.1)
-                  : null,
-              borderRadius: BorderRadius.circular(12.r),
-              border: isSelected
-                  ? Border.all(color: const Color(0xFFE91E63), width: 2)
-                  : null,
-            ),
-            child: Stack(
-              children: [
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Use network image for gift preview
-                    SizedBox(
-                      height: 42.h,
-                      width: 42.w,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8.r),
-                        child: SVGAEasyPlayer(
-                          resUrl: gift.svgaImage,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      gift.name,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: 2.h),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.diamond, color: Colors.blue, size: 10.sp),
-                        SizedBox(width: 2.w),
-                        Text(
-                          AppUtils.formatNumber(gift.coinPrice),
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
         );
       },
     );
