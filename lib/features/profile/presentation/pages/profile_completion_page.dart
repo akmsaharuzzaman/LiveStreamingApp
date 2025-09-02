@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:country_picker/country_picker.dart';
 import '../../../../core/auth/auth_bloc.dart';
 import '../../../../core/constants/app_constants.dart';
 
@@ -13,7 +14,7 @@ class ProfileCompletionPage extends StatefulWidget {
 
 class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   final _formKey = GlobalKey<FormState>();
-  final _countryController = TextEditingController();
+  Country? _selectedCountry;
   String? _selectedGender;
   DateTime? _selectedBirthday;
 
@@ -23,12 +24,6 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   static const Color _primaryPink = Color(0xFFFF6B9D);
   static const Color _primaryBlue = Color(0xFF9BC7FB);
   static const BorderRadius _cardRadius = BorderRadius.all(Radius.circular(16));
-
-  @override
-  void dispose() {
-    _countryController.dispose();
-    super.dispose();
-  }
 
   Future<void> _selectBirthday() async {
     final DateTime? picked = await showDatePicker(
@@ -48,11 +43,12 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
   void _submitProfile() {
     if (_formKey.currentState!.validate() &&
+        _selectedCountry != null &&
         _selectedGender != null &&
         _selectedBirthday != null) {
       context.read<AuthBloc>().add(
         AuthUpdateProfileEvent(
-          country: _countryController.text.trim(),
+          country: _selectedCountry!.name,
           gender: _selectedGender!,
           birthday: _selectedBirthday!,
         ),
@@ -111,7 +107,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    
+
                     children: [
                       // Themed header with gradient and icon
                       //Complete Profile
@@ -202,25 +198,75 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              // Country Field
-                              TextFormField(
-                                controller: _countryController,
-                                decoration: InputDecoration(
-                                  labelText: 'Country',
-                                  hintText: 'Enter your country',
-                                  prefixIcon: const Icon(Icons.public),
-                                  filled: true,
-                                  fillColor: const Color(0xFFF9FAFB),
-                                  border: inputBorder,
-                                  enabledBorder: inputBorder,
-                                  focusedBorder: focusedBorder,
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Country is required';
-                                  }
-                                  return null;
+                              // Country Picker
+                              InkWell(
+                                onTap: () {
+                                  showCountryPicker(
+                                    context: context,
+                                    showPhoneCode: false,
+                                    onSelect: (Country country) {
+                                      setState(() {
+                                        _selectedCountry = country;
+                                      });
+                                    },
+                                    countryListTheme: CountryListThemeData(
+                                      bottomSheetHeight: 500,
+                                      backgroundColor: Colors.white,
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(20),
+                                        topRight: Radius.circular(20),
+                                      ),
+                                      inputDecoration: InputDecoration(
+                                        labelText: 'Search',
+                                        hintText: 'Start typing to search',
+                                        prefixIcon: const Icon(Icons.search),
+                                        border: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color: const Color(
+                                              0xFF8C98A8,
+                                            ).withValues(alpha: 0.2),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
                                 },
+                                child: InputDecorator(
+                                  decoration: InputDecoration(
+                                    labelText: 'Country',
+                                    hintText: 'Select your country',
+                                    prefixIcon: _selectedCountry != null
+                                        ? Padding(
+                                            padding: const EdgeInsets.all(12.0),
+                                            child: Text(
+                                              _selectedCountry!.flagEmoji,
+                                              style: const TextStyle(
+                                                fontSize: 20,
+                                              ),
+                                            ),
+                                          )
+                                        : const Icon(Icons.public),
+                                    filled: true,
+                                    fillColor: const Color(0xFFF9FAFB),
+                                    border: inputBorder,
+                                    enabledBorder: inputBorder,
+                                    focusedBorder: focusedBorder,
+                                    suffixIcon: const Icon(
+                                      Icons.arrow_drop_down,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _selectedCountry?.name ??
+                                        'Select your country',
+                                    style: TextStyle(
+                                      color: _selectedCountry != null
+                                          ? Theme.of(
+                                              context,
+                                            ).textTheme.bodyLarge?.color
+                                          : Theme.of(context).hintColor,
+                                    ),
+                                  ),
+                                ),
                               ),
                               const SizedBox(height: UIConstants.spacingM),
 
