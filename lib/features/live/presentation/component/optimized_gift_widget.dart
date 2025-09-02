@@ -33,16 +33,16 @@ class _OptimizedGiftWidgetState extends State<OptimizedGiftWidget> {
   @override
   void didUpdateWidget(OptimizedGiftWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     // If gift becomes selected and animation is preloaded, show animation
-    if (widget.isSelected && 
-        !oldWidget.isSelected && 
+    if (widget.isSelected &&
+        !oldWidget.isSelected &&
         widget.preloadedAnimations.contains(widget.gift.id)) {
       setState(() {
         _showAnimation = true;
       });
     }
-    
+
     // If gift becomes unselected, hide animation
     if (!widget.isSelected && oldWidget.isSelected) {
       setState(() {
@@ -51,11 +51,11 @@ class _OptimizedGiftWidgetState extends State<OptimizedGiftWidget> {
     }
 
     // Preload animation when selected
-    if (widget.isSelected && 
-        !oldWidget.isSelected && 
+    if (widget.isSelected &&
+        !oldWidget.isSelected &&
         !widget.preloadedAnimations.contains(widget.gift.id)) {
       widget.onAnimationPreload?.call(widget.gift.id);
-      
+
       // Show animation after a short delay to allow preloading
       Future.delayed(const Duration(milliseconds: 300), () {
         if (mounted && widget.isSelected) {
@@ -129,36 +129,27 @@ class _OptimizedGiftWidgetState extends State<OptimizedGiftWidget> {
 
   Widget _buildGiftImage() {
     // Show SVGA animation if selected and preloaded/ready
-    if (widget.isSelected && _showAnimation && widget.gift.svgaImage.isNotEmpty) {
-      return SVGAEasyPlayer(
-        resUrl: widget.gift.svgaImage,
-        fit: BoxFit.cover,
-      );
+    if (widget.isSelected &&
+        _showAnimation &&
+        widget.gift.svgaImage.isNotEmpty) {
+      return SVGAEasyPlayer(resUrl: widget.gift.svgaImage, fit: BoxFit.cover);
     }
-    
+
     // Otherwise show cached preview image for fast loading
-    final imageUrl = widget.gift.previewImage.isNotEmpty 
-        ? widget.gift.previewImage 
+    final imageUrl = widget.gift.previewImage.isNotEmpty
+        ? widget.gift.previewImage
         : widget.gift.svgaImage; // Fallback to SVGA if no preview
-    
+
     return CachedNetworkImage(
       imageUrl: imageUrl,
       fit: BoxFit.cover,
       placeholder: (context, url) => Container(
         color: Colors.grey[700],
-        child: Icon(
-          Icons.card_giftcard,
-          color: Colors.white54,
-          size: 20.sp,
-        ),
+        child: Icon(Icons.card_giftcard, color: Colors.white54, size: 20.sp),
       ),
       errorWidget: (context, url, error) => Container(
         color: Colors.grey[700],
-        child: Icon(
-          Icons.card_giftcard,
-          color: Colors.white54,
-          size: 20.sp,
-        ),
+        child: Icon(Icons.card_giftcard, color: Colors.white54, size: 20.sp),
       ),
     );
   }

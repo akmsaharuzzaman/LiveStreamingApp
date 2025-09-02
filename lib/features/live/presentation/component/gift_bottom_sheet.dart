@@ -67,9 +67,10 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
   List<Gift> _allGifts = [];
   List<Gift> _hotGifts = []; // Hot/popular gifts based on send count
   List<String> _dynamicTabs = []; // Will be populated with categories from API
-  
+
   // Optimization state for SVGA preloading
-  Set<String> _preloadedAnimations = {}; // Track which SVGA animations are preloaded
+  Set<String> _preloadedAnimations =
+      {}; // Track which SVGA animations are preloaded
 
   final GiftApiClient _giftApiClient = getIt<GiftApiClient>();
   final UserApiClient _userApiClient = getIt<UserApiClient>();
@@ -171,7 +172,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
         setState(() {
           _hotGifts = response.data!;
         });
-        
+
         // Preload animations for the first 3 hot gifts for better UX
         _preloadTopGiftsAnimations();
       }
@@ -213,7 +214,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
         setState(() {
           _preloadedAnimations.add(giftId);
         });
-        
+
         debugPrint('🎬 Preloaded SVGA animation for gift: ${gift.name}');
       }
     } catch (e) {
@@ -264,7 +265,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
   void dispose() {
     // Clear preloaded animations set
     _preloadedAnimations.clear();
-    
+
     // Only dispose if TabController was initialized
     _tabController?.dispose();
     super.dispose();
