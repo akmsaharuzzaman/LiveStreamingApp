@@ -23,6 +23,7 @@ import '../../../reels/data/models/reel_api_response_model.dart';
 import '../../../reels/presentation/utils/reel_mapper.dart';
 import 'top_up_page.dart';
 import 'level_page.dart';
+import 'bag_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -733,6 +734,14 @@ class _ProfileContentState extends State<_ProfileContent> {
                 "assets/images/general/my_bag_icon.png",
                 'My Bag',
                 context,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BagPage(user: widget.user),
+                    ),
+                  );
+                },
               ),
               _buildFeatureIcon(
                 "assets/images/general/helping_icon.png",
