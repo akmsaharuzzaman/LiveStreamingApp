@@ -212,22 +212,20 @@ class _LevelPageState extends State<LevelPage>
               // Tab Section
               Expanded(
                 child: Container(
-                  margin: EdgeInsets.only(top: 30.h),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8F4FF), // Light purple background
-                  ),
+                  margin: EdgeInsets.only(top: 10.h),
+                  color: const Color(0xFFF8F4FF),
                   child: Column(
                     children: [
-                      // Tab Bar
+                      // Level Range Selector moved above tabs per design
+                      _buildLevelRangeSelector(),
+                      SizedBox(height: 12.h),
                       _buildTabBar(),
-
-                      // Tab Content
                       Expanded(
                         child: TabBarView(
                           controller: _tabController,
                           children: [
-                            _buildUserLevelTab(),
-                            _buildHostLevelTab(),
+                            _buildLevelIconsGrid(isHostLevel: false),
+                            _buildLevelIconsGrid(isHostLevel: true),
                           ],
                         ),
                       ),
@@ -294,7 +292,7 @@ class _LevelPageState extends State<LevelPage>
       child: Column(
         children: [
           // Level Badge
-          Container(
+          SizedBox(
             width: 120.w,
             height: 120.w,
             child: Image.asset(
@@ -305,88 +303,93 @@ class _LevelPageState extends State<LevelPage>
 
           SizedBox(height: 20.h),
 
-          // Progress Text
+          // Progress Text (use group end threshold for display like 500k / 1M)
           Text(
-            progressText, // Use actual progress
+            _groupProgressText(),
             style: TextStyle(
               color: Colors.white,
-              fontSize: 20.sp,
+              fontSize: 18.sp,
               fontWeight: FontWeight.w500,
             ),
           ),
 
           SizedBox(height: 15.h),
 
-          // Progress Bar
-          LayoutBuilder(
+          // Progress Bar (range based)
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 20.w),
+            child: _buildRangeProgressBar(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _groupProgressText() {
+    final groupIndex = ((userLevel - 1) / 5).floor();
+    final groupStart = groupIndex * 5 + 1;
+    final groupEnd = groupStart + 4;
+    // use end-of-group threshold for display
+    final endValue =
+        levelRechargeValues[groupEnd] ??
+        levelRechargeValues[userLevel + 1] ??
+        "0";
+    final endNumeric = _parseCoins(endValue);
+    final displayEnd = _compactFormat(endNumeric);
+    return "${_formatCoins(userCoins)} / $displayEnd";
+  }
+
+  String _compactFormat(int value) {
+    if (value >= 1000000) return "${(value / 1000000).toStringAsFixed(1)}M";
+    if (value >= 1000) return "${(value / 1000).toStringAsFixed(0)}k";
+    return value.toString();
+  }
+
+  Widget _buildRangeProgressBar() {
+    final progress = _calculateProgress();
+    final groupIndex = ((userLevel - 1) / 5).floor();
+    final groupStart = groupIndex * 5 + 1;
+    final groupEnd = groupStart + 4;
+    return Row(
+      children: [
+        Text(
+          'Lv $groupStart',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: LayoutBuilder(
             builder: (context, constraints) {
-              final progress = _calculateProgress();
-              final trackWidth =
-                  constraints.maxWidth -
-                  80.w; // account for side margins inside this container
-              final knobSize = 14.w;
-              final knobOffset =
-                  (trackWidth - knobSize).clamp(0, double.infinity) * progress;
-              return Container(
-                width: double.infinity,
-                margin: EdgeInsets.symmetric(horizontal: 40.w),
-                child: Column(
+              final knobSize = 12.w;
+              final knobOffset = (constraints.maxWidth - knobSize) * progress;
+              return SizedBox(
+                height: 16.h,
+                child: Stack(
+                  alignment: Alignment.centerLeft,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Lv $userLevel',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          'Lv ${userLevel + 1}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                    Container(
+                      height: 6.h,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(4.r),
+                      ),
                     ),
-                    SizedBox(height: 10.h),
-                    SizedBox(
-                      height: 16.h,
-                      width: double.infinity,
-                      child: Stack(
-                        alignment: Alignment.centerLeft,
-                        children: [
-                          // Track
-                          Positioned.fill(
-                            left: 0,
-                            right: 0,
-                            child: Container(
-                              margin: EdgeInsets.symmetric(vertical: 4.h),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.4),
-                                borderRadius: BorderRadius.circular(4.r),
-                              ),
-                            ),
-                          ),
-                          // Knob
-                          Positioned(
-                            left:
-                                knobOffset +
-                                40.w, // align with horizontal margin used above
-                            child: Container(
-                              width: knobSize,
-                              height: knobSize,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFFFD700),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                        ],
+                    Positioned(
+                      left: knobOffset.clamp(
+                        0,
+                        constraints.maxWidth - knobSize,
+                      ),
+                      child: Container(
+                        width: knobSize,
+                        height: knobSize,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFFD700),
+                          shape: BoxShape.circle,
+                        ),
                       ),
                     ),
                   ],
@@ -394,8 +397,17 @@ class _LevelPageState extends State<LevelPage>
               );
             },
           ),
-        ],
-      ),
+        ),
+        SizedBox(width: 12.w),
+        Text(
+          'Lv $groupEnd',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 
@@ -457,37 +469,11 @@ class _LevelPageState extends State<LevelPage>
     );
   }
 
-  Widget _buildUserLevelTab() {
-    return Column(
-      children: [
-        // Level Range Selector
-        _buildLevelRangeSelector(),
-
-        SizedBox(height: 20.h),
-
-        // Level Icons Grid
-        Expanded(child: _buildLevelIconsGrid(isHostLevel: false)),
-      ],
-    );
-  }
-
-  Widget _buildHostLevelTab() {
-    return Column(
-      children: [
-        // Level Range Selector
-        _buildLevelRangeSelector(),
-
-        SizedBox(height: 20.h),
-
-        // Level Icons Grid
-        Expanded(child: _buildLevelIconsGrid(isHostLevel: true)),
-      ],
-    );
-  }
+  // Removed separate tab content builders; grid now directly in TabBarView
 
   Widget _buildLevelRangeSelector() {
     return Container(
-      height: 50.h,
+      height: 40.h,
       margin: EdgeInsets.symmetric(horizontal: 20.w),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
