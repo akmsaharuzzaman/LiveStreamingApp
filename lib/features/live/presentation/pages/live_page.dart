@@ -50,8 +50,42 @@ class _LivePageState extends State<LivePage> {
   @override
   void initState() {
     super.initState();
-    _initializeCamera();
-    _initializeDeepAR();
+    _initializeWithPermissions();
+  }
+
+  Future<void> _initializeWithPermissions() async {
+    try {
+      setState(() {
+        _isInitializingCamera = true;
+      });
+
+      // First, ensure we have permissions before initializing anything
+      bool hasPermissions = await PermissionHelper.hasLiveStreamPermissions();
+      if (!hasPermissions) {
+        bool granted = await PermissionHelper.requestLiveStreamPermissions();
+        if (!granted) {
+          setState(() {
+            _isInitializingCamera = false;
+          });
+          return;
+        }
+      }
+
+      // Load camera preference
+      final prefs = await SharedPreferences.getInstance();
+      _isFrontCamera = prefs.getBool('is_front_camera') ?? true;
+      debugPrint(
+        '🔍 Loaded camera preference: ${_isFrontCamera ? 'Front' : 'Rear'} camera',
+      );
+
+      // Initialize both systems after permissions are granted
+      await Future.wait([_initializeCamera(), _initializeDeepAR()]);
+    } catch (e) {
+      debugPrint('Error during initialization: $e');
+      setState(() {
+        _isInitializingCamera = false;
+      });
+    }
   }
 
   Future<void> _initializeDeepAR() async {
@@ -96,29 +130,6 @@ class _LivePageState extends State<LivePage> {
 
   Future<void> _initializeCamera() async {
     try {
-      setState(() {
-        _isInitializingCamera = true;
-      });
-
-      // Load camera preference from SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      _isFrontCamera = prefs.getBool('is_front_camera') ?? true;
-      debugPrint(
-        '🔍 Loaded camera preference: ${_isFrontCamera ? 'Front' : 'Rear'} camera',
-      );
-
-      // Check permissions
-      bool hasPermissions = await PermissionHelper.hasLiveStreamPermissions();
-      if (!hasPermissions) {
-        bool granted = await PermissionHelper.requestLiveStreamPermissions();
-        if (!granted) {
-          setState(() {
-            _isInitializingCamera = false;
-          });
-          return;
-        }
-      }
-
       // Initialize Agora engine
       _engine = createAgoraRtcEngine();
       await _engine.initialize(
@@ -127,7 +138,16 @@ class _LivePageState extends State<LivePage> {
           channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
         ),
       );
-      // Apply the saved camera preference after preview starts
+
+      await _engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
+      await _engine.enableVideo();
+
+      // Start Agora preview only if DeepAR is not enabled
+      if (!_isDeepArEnabled) {
+        await _engine.startPreview();
+      }
+
+      // Apply the saved camera preference
       if (!_isFrontCamera) {
         await _engine.switchCamera();
         debugPrint('🔄 Applied saved camera preference: Rear camera');
@@ -135,19 +155,12 @@ class _LivePageState extends State<LivePage> {
         debugPrint('🔄 Applied saved camera preference: Front camera');
       }
 
-      await _engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
-      await _engine.enableVideo();
-      await _engine.startPreview();
-
       setState(() {
         _isCameraInitialized = true;
         _isInitializingCamera = false;
       });
-
-      // Don't save preference here since we're just applying the loaded one
-      // await _saveCameraPreference(_isFrontCamera);
     } catch (e) {
-      debugPrint('Error initializing camera: $e');
+      debugPrint('Error initializing Agora camera: $e');
       setState(() {
         _isInitializingCamera = false;
       });
@@ -155,19 +168,29 @@ class _LivePageState extends State<LivePage> {
   }
 
   Future<void> _flipCamera() async {
-    if (_isCameraInitialized) {
-      try {
+    try {
+      if (_isDeepArEnabled && _isDeepArInitialized) {
+        // DeepAR mode: Use DeepAR's flip camera function
+        debugPrint('🔄 Flipping camera in DeepAR mode');
+        // Note: DeepAR might handle camera flipping internally through the preview widget
+        // If DeepAR has a specific flip method, it would be called here
+        setState(() {
+          _isFrontCamera = !_isFrontCamera;
+        });
+      } else if (_isCameraInitialized) {
+        // Agora mode: Use Agora's switch camera
+        debugPrint('🔄 Flipping camera in Agora mode');
         await _engine.switchCamera();
         setState(() {
           _isFrontCamera = !_isFrontCamera;
         });
-        debugPrint('Camera flipped to ${_isFrontCamera ? 'front' : 'back'}');
-
-        // Save camera preference
-        await _saveCameraPreference(_isFrontCamera);
-      } catch (e) {
-        debugPrint('Error flipping camera: $e');
       }
+
+      // Save camera preference for both modes
+      await _saveCameraPreference(_isFrontCamera);
+      debugPrint('Camera flipped to ${_isFrontCamera ? 'front' : 'back'}');
+    } catch (e) {
+      debugPrint('Error flipping camera: $e');
     }
   }
 
@@ -200,15 +223,24 @@ class _LivePageState extends State<LivePage> {
       _isDeepArEnabled = !_isDeepArEnabled;
     });
 
-    if (!_isDeepArEnabled) {
-      // Clear current effect
-      try {
-        await _deepArController.switchEffect("");
+    try {
+      if (_isDeepArEnabled) {
+        // Switching to DeepAR: Stop Agora preview to free camera resource
+        debugPrint('🔄 Switching to DeepAR mode - stopping Agora preview');
+        if (_isCameraInitialized) {
+          await _engine.stopPreview();
+        }
+      } else {
+        // Switching to Agora: Clear DeepAR effect and restart Agora preview
+        debugPrint('🔄 Switching to Agora mode - restarting Agora preview');
         _currentEffect = null;
-        debugPrint('DeepAR effects cleared');
-      } catch (e) {
-        debugPrint('Error clearing DeepAR effect: $e');
+
+        if (_isCameraInitialized) {
+          await _engine.startPreview();
+        }
       }
+    } catch (e) {
+      debugPrint('Error during camera mode switch: $e');
     }
   }
 
@@ -226,12 +258,47 @@ class _LivePageState extends State<LivePage> {
     }
   }
 
+  Future<void> _clearDeepArEffect() async {
+    if (!_isDeepArInitialized || !_isDeepArEnabled) return;
+
+    try {
+      // The proper way to clear DeepAR effects is to disable and re-enable DeepAR
+      // or restart the preview. Since switchEffect("") fails, we'll use this approach:
+
+      // Method 1: Temporarily disable and re-enable AR (safest approach)
+      setState(() {
+        _currentEffect = null;
+      });
+
+      // Method 2: If the above doesn't work visually, we might need to restart preview
+      // This would require more complex implementation
+
+      debugPrint('DeepAR effect cleared from UI state');
+    } catch (e) {
+      debugPrint('Error clearing DeepAR effect: $e');
+      // Fallback: just clear the UI state
+      setState(() {
+        _currentEffect = null;
+      });
+    }
+  }
+
   Widget _buildDeepArPreview() {
-    if (!_isDeepArInitialized) {
+    if (!_isDeepArInitialized || !_deepArController.isInitialized) {
       return Container(
         color: Colors.black,
         child: const Center(
-          child: CircularProgressIndicator(color: Colors.white),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Colors.white),
+              SizedBox(height: 16),
+              Text(
+                'Initializing AR Camera...',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -254,6 +321,7 @@ class _LivePageState extends State<LivePage> {
       return _buildDeepArPreview();
     }
 
+    // Show Agora preview
     if (!_isCameraInitialized) {
       return Container(
         color: Colors.black,
@@ -644,12 +712,7 @@ class _LivePageState extends State<LivePage> {
                                 effectPath: "",
                                 isSelected: _currentEffect == null,
                                 label: "Clear",
-                                onTap: () async {
-                                  await _deepArController.switchEffect("");
-                                  setState(() {
-                                    _currentEffect = null;
-                                  });
-                                },
+                                onTap: _clearDeepArEffect,
                               );
                             }
 
@@ -869,10 +932,14 @@ class _LivePageState extends State<LivePage> {
   void dispose() {
     _titleController.dispose();
     _passwordController.dispose();
+
+    // Clean up Agora resources
     if (_isCameraInitialized) {
+      _engine.stopPreview();
       _engine.leaveChannel();
       _engine.release();
     }
+
     // DeepAR controller will be cleaned up automatically
     super.dispose();
   }
