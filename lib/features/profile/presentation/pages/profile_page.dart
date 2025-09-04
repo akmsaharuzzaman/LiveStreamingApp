@@ -718,7 +718,9 @@ class _ProfileContentState extends State<_ProfileContent> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const LevelPage()),
+                    MaterialPageRoute(
+                      builder: (context) => LevelPage(user: widget.user),
+                    ),
                   );
                 },
               ),
