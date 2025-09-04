@@ -159,10 +159,12 @@ class _HomePageState extends State<HomePage>
           final List<dynamic> bannerList = data['result'] as List<dynamic>;
           final List<String> urls = bannerList.cast<String>();
 
-          setState(() {
-            _bannerUrls = urls;
-            _isBannersLoading = false;
-          });
+          if (mounted) {
+            setState(() {
+              _bannerUrls = urls;
+              _isBannersLoading = false;
+            });
+          }
 
           debugPrint('✅ Loaded ${urls.length} banners from API');
         } else {
@@ -174,9 +176,11 @@ class _HomePageState extends State<HomePage>
     } catch (e) {
       debugPrint('❌ Error fetching banners: $e');
       // Use fallback banners if API fails
-      setState(() {
-        _isBannersLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isBannersLoading = false;
+        });
+      }
       debugPrint('🔄 Using fallback banners');
     }
   }

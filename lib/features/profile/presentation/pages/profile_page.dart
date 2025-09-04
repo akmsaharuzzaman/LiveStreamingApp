@@ -889,10 +889,12 @@ class _ProfileContentState extends State<_ProfileContent> {
         },
       );
     } catch (e) {
-      setState(() {
-        postsErrorMessage = 'Error: ${e.toString()}';
-        isLoadingPosts = false;
-      });
+      if (mounted) {
+        setState(() {
+          postsErrorMessage = 'Error: ${e.toString()}';
+          isLoadingPosts = false;
+        });
+      }
     }
   }
 
