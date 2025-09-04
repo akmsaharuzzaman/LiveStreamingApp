@@ -217,9 +217,10 @@ class _LevelPageState extends State<LevelPage>
                   child: Column(
                     children: [
                       // Level Range Selector moved above tabs per design
-                      _buildLevelRangeSelector(),
-                      SizedBox(height: 12.h),
                       _buildTabBar(),
+                      SizedBox(height: 12.h),
+                      _buildLevelRangeSelector(),
+                      SizedBox(height: 10.h),
                       Expanded(
                         child: TabBarView(
                           controller: _tabController,
@@ -454,6 +455,7 @@ class _LevelPageState extends State<LevelPage>
           insets: EdgeInsets.symmetric(horizontal: 20),
         ),
         indicatorSize: TabBarIndicatorSize.label,
+        dividerColor: Colors.transparent,
         labelColor: const Color(0xFF8B5CF6),
         unselectedLabelColor: Colors.grey[600],
         labelStyle: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
