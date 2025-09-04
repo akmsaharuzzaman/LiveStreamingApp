@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dlstarlive/features/reels/custom_package/reels_viewer.dart'
     as reels_viewer;
@@ -22,6 +21,7 @@ import '../../../reels/data/services/reels_service.dart';
 import '../../../reels/data/models/reel_response_model.dart';
 import '../../../reels/data/models/reel_api_response_model.dart';
 import '../../../reels/presentation/utils/reel_mapper.dart';
+import 'top_up_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -200,7 +200,10 @@ class _ProfileContentState extends State<_ProfileContent> {
                           child: Center(
                             child: Text(
                               'No Cover Photo',
-                              style: TextStyle(color: Colors.white, fontSize: 16.sp),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16.sp,
+                              ),
                             ),
                           ),
                         ),
@@ -482,25 +485,33 @@ class _ProfileContentState extends State<_ProfileContent> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         // Gold/Stars
-        Stack(
-          children: [
-            Image.asset(
-              'assets/images/general/coins_banner.png',
-              width: MediaQuery.of(context).size.width * 0.5 - 25.w,
-            ),
-            Positioned(
-              left: 50.w,
-              top: 5.h,
-              child: Text(
-                AppUtils.formatNumber(stats?.coins ?? 0),
-                style: TextStyle(
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.w400,
-                  color: const Color(0xFF202020),
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const TopUpPage()),
+            );
+          },
+          child: Stack(
+            children: [
+              Image.asset(
+                'assets/images/general/coins_banner.png',
+                width: MediaQuery.of(context).size.width * 0.5 - 25.w,
+              ),
+              Positioned(
+                left: 50.w,
+                top: 5.h,
+                child: Text(
+                  AppUtils.formatNumber(stats?.coins ?? 0),
+                  style: TextStyle(
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF202020),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
 
         // Diamonds
