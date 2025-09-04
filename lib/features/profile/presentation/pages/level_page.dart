@@ -142,6 +142,10 @@ class _LevelPageState extends State<LevelPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (mounted)
+        setState(() {}); // Refresh header/title & progress when tab changes
+    });
   }
 
   // Helper methods to get user data
@@ -211,10 +215,6 @@ class _LevelPageState extends State<LevelPage>
                   margin: EdgeInsets.only(top: 30.h),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8F4FF), // Light purple background
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20.r),
-                      topRight: Radius.circular(20.r),
-                    ),
                   ),
                   child: Column(
                     children: [
@@ -263,7 +263,7 @@ class _LevelPageState extends State<LevelPage>
               ),
               SizedBox(width: 15.w),
               Text(
-                'My Level',
+                _tabController.index == 0 ? 'My Level' : 'Host Level',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18.sp,
@@ -318,50 +318,81 @@ class _LevelPageState extends State<LevelPage>
           SizedBox(height: 15.h),
 
           // Progress Bar
-          Container(
-            width: double.infinity,
-            margin: EdgeInsets.symmetric(horizontal: 40.w),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final progress = _calculateProgress();
+              final trackWidth =
+                  constraints.maxWidth -
+                  80.w; // account for side margins inside this container
+              final knobSize = 14.w;
+              final knobOffset =
+                  (trackWidth - knobSize).clamp(0, double.infinity) * progress;
+              return Container(
+                width: double.infinity,
+                margin: EdgeInsets.symmetric(horizontal: 40.w),
+                child: Column(
                   children: [
-                    Text(
-                      'Lv $userLevel',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Lv $userLevel',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          'Lv ${userLevel + 1}',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      'Lv ${userLevel + 1}',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w500,
+                    SizedBox(height: 10.h),
+                    SizedBox(
+                      height: 16.h,
+                      width: double.infinity,
+                      child: Stack(
+                        alignment: Alignment.centerLeft,
+                        children: [
+                          // Track
+                          Positioned.fill(
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              margin: EdgeInsets.symmetric(vertical: 4.h),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.4),
+                                borderRadius: BorderRadius.circular(4.r),
+                              ),
+                            ),
+                          ),
+                          // Knob
+                          Positioned(
+                            left:
+                                knobOffset +
+                                40.w, // align with horizontal margin used above
+                            child: Container(
+                              width: knobSize,
+                              height: knobSize,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFFFD700),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 8.h),
-                Container(
-                  height: 8.h,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
-                  child: LinearProgressIndicator(
-                    value: _calculateProgress(), // Calculate actual progress
-                    backgroundColor: Colors.transparent,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      const Color(0xFFFFD700), // Gold color
-                    ),
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
         ],
       ),
@@ -402,22 +433,22 @@ class _LevelPageState extends State<LevelPage>
   }
 
   Widget _buildTabBar() {
-    return Container(
-      margin: EdgeInsets.all(20.w),
+    return Padding(
+      padding: EdgeInsets.only(top: 10.h, left: 20.w, right: 20.w, bottom: 0),
       child: TabBar(
         controller: _tabController,
-        indicator: BoxDecoration(
-          borderRadius: BorderRadius.circular(20.r),
-          color: const Color(0xFF8B5CF6),
+        indicator: const UnderlineTabIndicator(
+          borderSide: BorderSide(width: 3, color: Color(0xFF8B5CF6)),
+          insets: EdgeInsets.symmetric(horizontal: 20),
         ),
-        labelColor: Colors.white,
+        indicatorSize: TabBarIndicatorSize.label,
+        labelColor: const Color(0xFF8B5CF6),
         unselectedLabelColor: Colors.grey[600],
-        labelStyle: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w500),
+        labelStyle: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
         unselectedLabelStyle: TextStyle(
-          fontSize: 16.sp,
+          fontSize: 15.sp,
           fontWeight: FontWeight.w400,
         ),
-
         tabs: const [
           Tab(text: 'User Level'),
           Tab(text: 'Host Level'),
@@ -465,23 +496,42 @@ class _LevelPageState extends State<LevelPage>
           final isSelected = selectedLevelRange == index;
           return GestureDetector(
             onTap: () {
-              setState(() {
-                selectedLevelRange = index;
-              });
+              setState(() => selectedLevelRange = index);
             },
             child: Container(
-              margin: EdgeInsets.only(right: 10.w),
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+              margin: EdgeInsets.only(right: 12.w),
+              padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 10.h),
               decoration: BoxDecoration(
-                color: isSelected ? levelRangeColors[index] : Colors.grey[300],
-                borderRadius: BorderRadius.circular(25.r),
+                gradient: isSelected
+                    ? LinearGradient(
+                        colors: [
+                          levelRangeColors[index].withOpacity(0.9),
+                          levelRangeColors[index].withOpacity(0.6),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: isSelected ? null : Colors.grey[300],
+                borderRadius: BorderRadius.circular(24.r),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: levelRangeColors[index].withOpacity(0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ]
+                    : null,
               ),
-              child: Text(
-                levelRanges[index],
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.grey[700],
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
+              child: Center(
+                child: Text(
+                  levelRanges[index],
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.grey[700],
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -635,30 +685,44 @@ class _LevelPageState extends State<LevelPage>
     required String label,
     required Color color,
   }) {
-    return Column(
-      children: [
-        Container(
-          width: 80.w,
-          height: 80.w,
-          child: Image.asset(icon, fit: BoxFit.contain),
-        ),
-        SizedBox(height: 10.h),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(15.r),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w500,
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 80.w,
+            height: 80.w,
+            child: Image.asset(icon, fit: BoxFit.contain),
+          ),
+          SizedBox(height: 14.h),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(20.r),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
