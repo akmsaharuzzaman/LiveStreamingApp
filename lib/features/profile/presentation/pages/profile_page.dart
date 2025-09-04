@@ -123,9 +123,11 @@ class _ProfileContentState extends State<_ProfileContent> {
         },
       );
     } catch (e) {
-      setState(() {
-        isLoadingCounts = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoadingCounts = false;
+        });
+      }
       print('Error loading follower counts: $e');
     }
   }
@@ -927,10 +929,12 @@ class _ProfileContentState extends State<_ProfileContent> {
         },
       );
     } catch (e) {
-      setState(() {
-        reelsErrorMessage = 'Error: ${e.toString()}';
-        isLoadingReels = false;
-      });
+      if (mounted) {
+        setState(() {
+          reelsErrorMessage = 'Error: ${e.toString()}';
+          isLoadingReels = false;
+        });
+      }
     }
   }
 
