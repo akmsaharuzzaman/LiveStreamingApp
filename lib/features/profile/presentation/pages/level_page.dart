@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/models/user_model.dart';
 
 class LevelPage extends StatefulWidget {
-  const LevelPage({super.key});
+  final UserModel? user;
+
+  const LevelPage({super.key, this.user});
 
   @override
   State<LevelPage> createState() => _LevelPageState();
@@ -12,7 +15,7 @@ class LevelPage extends StatefulWidget {
 class _LevelPageState extends State<LevelPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  int selectedLevelRange = 0; // 0: 1-5, 1: 6-10, 2: 11-15, etc.
+  int selectedLevelRange = -1; // -1: show all, 0: 1-5, 1: 6-10, etc.
 
   final List<String> levelRanges = [
     'Level 1-5',
@@ -91,10 +94,86 @@ class _LevelPageState extends State<LevelPage>
     40: "10000,00000 lakh",
   };
 
+  // Host level data structure (receive coin values)
+  final Map<int, String> hostLevelReceiveValues = {
+    1: "3 lakh",
+    2: "9 lakh",
+    3: "15 lakh",
+    4: "30 lakh",
+    5: "45 lakh",
+    6: "63 lakh",
+    7: "90 lakh",
+    8: "126 lakh",
+    9: "165 lakh",
+    10: "210 lakh",
+    11: "300 lakh",
+    12: "450 lakh",
+    13: "750 lakh",
+    14: "1500 lakh",
+    15: "3000 lakh",
+    16: "6000 lakh",
+    17: "12000 lakh",
+    18: "24000 lakh",
+    19: "45000 lakh",
+    20: "90000 lakh",
+    21: "150000 lakh",
+    22: "30,0000 lakh",
+    23: "60,0000 lakh",
+    24: "120,0000 lakh",
+    25: "240,0000 lakh",
+    26: "45,00000 lakh",
+    27: "75,00000 lakh",
+    28: "120,00000 lakh",
+    29: "210,00000 lakh",
+    30: "750,00000 lakh",
+    31: "600,00000 lakh",
+    32: "750,00000 lakh",
+    33: "900,00000 lakh",
+    34: "150,00000 lakh",
+    35: "1200,00000 lakh",
+    36: "2100,00000 lakh",
+    37: "3600,00000 lakh",
+    38: "6600,00000 lakh",
+    39: "13200,00000 lakh",
+    40: "30000,00000 lakh",
+  };
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+  }
+
+  // Helper methods to get user data
+  int get userCoins => widget.user?.stats?.coins ?? 0;
+  int get userLevel => widget.user?.stats?.levels ?? 1;
+
+  String get userLevelIcon {
+    if (userLevel <= 5) return 'assets/icons/lv1-5.png';
+    if (userLevel <= 10) return 'assets/icons/lv6-10.png';
+    if (userLevel <= 15) return 'assets/icons/lv11-15.png';
+    if (userLevel <= 20) return 'assets/icons/lv16-20.png';
+    if (userLevel <= 25) return 'assets/icons/lv21-25.png';
+    if (userLevel <= 30) return 'assets/icons/lv26-30.png';
+    if (userLevel <= 35) return 'assets/icons/lv31-35.png';
+    return 'assets/icons/lv36-40.png';
+  }
+
+  String get progressText {
+    final nextLevel = userLevel + 1;
+    final nextLevelCoins = levelRechargeValues[nextLevel] ?? "Max";
+    return "${_formatCoins(userCoins)} / $nextLevelCoins";
+  }
+
+  String _formatCoins(int coins) {
+    if (coins >= 10000000) {
+      return "${(coins / 10000000).toStringAsFixed(1)}M";
+    } else if (coins >= 100000) {
+      return "${(coins / 100000).toStringAsFixed(1)}L";
+    } else if (coins >= 1000) {
+      return "${(coins / 1000).toStringAsFixed(1)}k";
+    }
+    return coins.toString();
   }
 
   @override
@@ -219,7 +298,7 @@ class _LevelPageState extends State<LevelPage>
             width: 120.w,
             height: 120.w,
             child: Image.asset(
-              'assets/icons/lv1-5.png', // Current user level icon
+              userLevelIcon, // Use actual user level icon
               fit: BoxFit.contain,
             ),
           ),
@@ -228,7 +307,7 @@ class _LevelPageState extends State<LevelPage>
 
           // Progress Text
           Text(
-            '500k / 1M',
+            progressText, // Use actual progress
             style: TextStyle(
               color: Colors.white,
               fontSize: 20.sp,
@@ -248,7 +327,7 @@ class _LevelPageState extends State<LevelPage>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Lv 1',
+                      'Lv $userLevel',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 14.sp,
@@ -256,7 +335,7 @@ class _LevelPageState extends State<LevelPage>
                       ),
                     ),
                     Text(
-                      'Lv 5',
+                      'Lv ${userLevel + 1}',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 14.sp,
@@ -273,7 +352,7 @@ class _LevelPageState extends State<LevelPage>
                     borderRadius: BorderRadius.circular(4.r),
                   ),
                   child: LinearProgressIndicator(
-                    value: 0.5, // 50% progress
+                    value: _calculateProgress(), // Calculate actual progress
                     backgroundColor: Colors.transparent,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       const Color(0xFFFFD700), // Gold color
@@ -287,6 +366,39 @@ class _LevelPageState extends State<LevelPage>
         ],
       ),
     );
+  }
+
+  double _calculateProgress() {
+    final currentLevelValue = _parseCoins(
+      levelRechargeValues[userLevel] ?? "0",
+    );
+    final nextLevelValue = _parseCoins(
+      levelRechargeValues[userLevel + 1] ?? "0",
+    );
+
+    if (nextLevelValue <= currentLevelValue) return 1.0;
+
+    final progress =
+        (userCoins - currentLevelValue) / (nextLevelValue - currentLevelValue);
+    return progress.clamp(0.0, 1.0);
+  }
+
+  int _parseCoins(String coinStr) {
+    // Simple parser for coin strings like "1 lakh" -> 100000
+    final parts = coinStr.toLowerCase().split(' ');
+    if (parts.length < 2) return 0;
+
+    final number = double.tryParse(parts[0].replaceAll(',', '')) ?? 0;
+    final unit = parts[1];
+
+    switch (unit) {
+      case 'lakh':
+        return (number * 100000).toInt();
+      case 'crore':
+        return (number * 10000000).toInt();
+      default:
+        return number.toInt();
+    }
   }
 
   Widget _buildTabBar() {
@@ -305,6 +417,7 @@ class _LevelPageState extends State<LevelPage>
           fontSize: 16.sp,
           fontWeight: FontWeight.w400,
         ),
+
         tabs: const [
           Tab(text: 'User Level'),
           Tab(text: 'Host Level'),
@@ -322,17 +435,22 @@ class _LevelPageState extends State<LevelPage>
         SizedBox(height: 20.h),
 
         // Level Icons Grid
-        Expanded(child: _buildLevelIconsGrid()),
+        Expanded(child: _buildLevelIconsGrid(isHostLevel: false)),
       ],
     );
   }
 
   Widget _buildHostLevelTab() {
-    return Center(
-      child: Text(
-        'Host Level Content Coming Soon',
-        style: TextStyle(fontSize: 16.sp, color: Colors.grey[600]),
-      ),
+    return Column(
+      children: [
+        // Level Range Selector
+        _buildLevelRangeSelector(),
+
+        SizedBox(height: 20.h),
+
+        // Level Icons Grid
+        Expanded(child: _buildLevelIconsGrid(isHostLevel: true)),
+      ],
     );
   }
 
@@ -373,12 +491,35 @@ class _LevelPageState extends State<LevelPage>
     );
   }
 
-  Widget _buildLevelIconsGrid() {
-    // Calculate which levels to show based on selected range
+  Widget _buildLevelIconsGrid({bool isHostLevel = false}) {
+    // Show all levels when selectedLevelRange is -1
+    if (selectedLevelRange == -1) {
+      return GridView.builder(
+        padding: EdgeInsets.symmetric(horizontal: 20.w),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 20.h,
+          crossAxisSpacing: 20.w,
+          childAspectRatio: 0.8,
+        ),
+        itemCount: levelRangeAssets.length,
+        itemBuilder: (context, index) {
+          return GestureDetector(
+            onTap: () => _showLevelDetails(index, isHostLevel),
+            child: _buildLevelIcon(
+              icon: levelRangeAssets[index],
+              label: levelRanges[index].replaceAll('Level ', 'Lv '),
+              color: levelRangeColors[index],
+            ),
+          );
+        },
+      );
+    }
+
+    // Show specific range levels
     int startLevel = (selectedLevelRange * 5) + 1;
     int endLevel = (selectedLevelRange + 1) * 5;
 
-    // For this example, show 2 icons per row
     return GridView.builder(
       padding: EdgeInsets.symmetric(horizontal: 40.w),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -387,28 +528,105 @@ class _LevelPageState extends State<LevelPage>
         crossAxisSpacing: 40.w,
         childAspectRatio: 0.8,
       ),
-      itemCount: endLevel <= 10
-          ? 2
-          : 1, // Show 2 items for first two ranges, 1 for others
+      itemCount: 1, // Show selected range icon
       itemBuilder: (context, index) {
-        if (selectedLevelRange == 0) {
-          // Show Lv 1-5 and Lv 6-10 for first selection
-          return _buildLevelIcon(
-            icon: index == 0
-                ? 'assets/icons/lv1-5.png'
-                : 'assets/icons/lv6-10.png',
-            label: index == 0 ? 'Lv 1-5' : 'Lv 6-10',
-            color: index == 0 ? levelRangeColors[0] : levelRangeColors[1],
-          );
-        } else {
-          // Show selected range icon
-          return _buildLevelIcon(
+        return GestureDetector(
+          onTap: () => _showLevelDetails(selectedLevelRange, isHostLevel),
+          child: _buildLevelIcon(
             icon: levelRangeAssets[selectedLevelRange],
             label: 'Lv ${startLevel}-${endLevel}',
             color: levelRangeColors[selectedLevelRange],
-          );
-        }
+          ),
+        );
       },
+    );
+  }
+
+  void _showLevelDetails(int rangeIndex, bool isHostLevel) {
+    final startLevel = (rangeIndex * 5) + 1;
+    final endLevel = (rangeIndex + 1) * 5;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20.r),
+            topRight: Radius.circular(20.r),
+          ),
+        ),
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: EdgeInsets.all(20.w),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Level $startLevel-$endLevel Details',
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Icon(Icons.close, size: 24.sp),
+                  ),
+                ],
+              ),
+            ),
+
+            // Level details list
+            Expanded(
+              child: ListView.builder(
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                itemCount: 5,
+                itemBuilder: (context, index) {
+                  final level = startLevel + index;
+                  final value = isHostLevel
+                      ? hostLevelReceiveValues[level] ?? "0"
+                      : levelRechargeValues[level] ?? "0";
+
+                  return Container(
+                    margin: EdgeInsets.only(bottom: 10.h),
+                    padding: EdgeInsets.all(15.w),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Level $level',
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          value,
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            color: Colors.blue,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -445,16 +663,21 @@ class _LevelPageState extends State<LevelPage>
   }
 
   void _showLevelRules() {
+    final isHostTab = _tabController.index == 1;
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const LevelRulesPage()),
+      MaterialPageRoute(
+        builder: (context) => LevelRulesPage(isHostLevel: isHostTab),
+      ),
     );
   }
 }
 
 // Level Rules Page
 class LevelRulesPage extends StatelessWidget {
-  const LevelRulesPage({super.key});
+  final bool isHostLevel;
+
+  const LevelRulesPage({super.key, this.isHostLevel = false});
 
   final Map<int, String> levelRechargeValues = const {
     1: "1 lakh",
@@ -499,6 +722,49 @@ class LevelRulesPage extends StatelessWidget {
     40: "10000,00000 lakh",
   };
 
+  final Map<int, String> hostLevelReceiveValues = const {
+    1: "3 lakh",
+    2: "9 lakh",
+    3: "15 lakh",
+    4: "30 lakh",
+    5: "45 lakh",
+    6: "63 lakh",
+    7: "90 lakh",
+    8: "126 lakh",
+    9: "165 lakh",
+    10: "210 lakh",
+    11: "300 lakh",
+    12: "450 lakh",
+    13: "750 lakh",
+    14: "1500 lakh",
+    15: "3000 lakh",
+    16: "6000 lakh",
+    17: "12000 lakh",
+    18: "24000 lakh",
+    19: "45000 lakh",
+    20: "90000 lakh",
+    21: "150000 lakh",
+    22: "30,0000 lakh",
+    23: "60,0000 lakh",
+    24: "120,0000 lakh",
+    25: "240,0000 lakh",
+    26: "45,00000 lakh",
+    27: "75,00000 lakh",
+    28: "120,00000 lakh",
+    29: "210,00000 lakh",
+    30: "750,00000 lakh",
+    31: "600,00000 lakh",
+    32: "750,00000 lakh",
+    33: "900,00000 lakh",
+    34: "150,00000 lakh",
+    35: "1200,00000 lakh",
+    36: "2100,00000 lakh",
+    37: "3600,00000 lakh",
+    38: "6600,00000 lakh",
+    39: "13200,00000 lakh",
+    40: "30000,00000 lakh",
+  };
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -511,7 +777,7 @@ class LevelRulesPage extends StatelessWidget {
           child: Icon(Icons.arrow_back_ios, color: Colors.black87, size: 20.sp),
         ),
         title: Text(
-          'Level Rules',
+          isHostLevel ? 'Host Rules' : 'Level Rules',
           style: TextStyle(
             color: Colors.black87,
             fontSize: 18.sp,
@@ -572,7 +838,7 @@ class LevelRulesPage extends StatelessWidget {
                       ),
                       decoration: const BoxDecoration(color: Color(0xFFB8860B)),
                       child: Text(
-                        'Recharge Value',
+                        isHostLevel ? 'Receive Coin' : 'Recharge Value',
                         style: TextStyle(
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
@@ -589,10 +855,14 @@ class LevelRulesPage extends StatelessWidget {
             // Table Content
             Expanded(
               child: ListView.builder(
-                itemCount: levelRechargeValues.length,
+                itemCount: isHostLevel
+                    ? hostLevelReceiveValues.length
+                    : levelRechargeValues.length,
                 itemBuilder: (context, index) {
                   final level = index + 1;
-                  final value = levelRechargeValues[level]!;
+                  final value = isHostLevel
+                      ? hostLevelReceiveValues[level]!
+                      : levelRechargeValues[level]!;
                   final isEven = index % 2 == 0;
 
                   return Container(
