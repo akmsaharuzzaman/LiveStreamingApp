@@ -11,62 +11,49 @@ class BagPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF8B5CF6), // Purple
-              Color(0xFFEC4899), // Pink
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              _buildHeader(context),
-
-              SizedBox(height: 40.h),
-
-              // User Profile with Frame
-              _buildUserProfile(),
-
-              SizedBox(height: 30.h),
-
-              // VIP Status
-              _buildVipStatus(),
-
-              // Content area (can be expanded later)
-              Expanded(
-                child: Container(
-                  margin: EdgeInsets.only(top: 40.h),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8F4FF),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20.r),
-                      topRight: Radius.circular(20.r),
-                    ),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'Bag Content Area',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                  ),
-                ),
+      body: Column(
+        children: [
+          Container(
+            height: 280.h,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.topRight,
+                colors: [
+                  Color(0xFF9D64B0), // Purple
+                  Color(0xFFFE82A7), // Pink
+                ],
               ),
-            ],
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  _buildHeader(context),
+
+                  // Header
+                  SizedBox(height: 20.h),
+
+                  // User Profile with Frame
+                  _buildUserProfile(),
+                ],
+              ),
+            ),
           ),
-        ),
+
+          SizedBox(height: 10.h),
+
+          // VIP Status
+          _buildVipStatus(),
+
+          // Content area (can be expanded later)
+        ],
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
+      padding: EdgeInsets.symmetric(horizontal: 20.w),
       child: Row(
         children: [
           GestureDetector(
@@ -97,22 +84,15 @@ class BagPage extends StatelessWidget {
   Widget _buildUserProfile() {
     return SizedBox(
       width: 160.w,
-      height: 160.w,
+      height: 140.w,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Profile Frame
-          Image.asset(
-            'assets/images/general/profile_frame.png',
-            width: 160.w,
-            height: 160.w,
-            fit: BoxFit.contain,
-          ),
           // User Image
           Positioned(
             child: Container(
-              width: 100.w,
-              height: 100.w,
+              width: 80.w,
+              height: 80.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2.w),
@@ -129,6 +109,13 @@ class BagPage extends StatelessWidget {
                     : _buildDefaultAvatar(),
               ),
             ),
+          ),
+          // Profile Frame
+          Image.asset(
+            'assets/images/general/profile_frame.png',
+            width: 140.w,
+            height: 140.w,
+            fit: BoxFit.contain,
           ),
         ],
       ),
@@ -147,16 +134,17 @@ class BagPage extends StatelessWidget {
     final userRole = user.userRole.toUpperCase();
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.2),
         borderRadius: BorderRadius.circular(20.r),
         border: Border.all(color: Colors.white.withOpacity(0.3)),
       ),
+      alignment: Alignment.centerLeft,
       child: Text(
         userRole,
         style: TextStyle(
-          color: Colors.white,
+          color: Colors.black,
           fontSize: 16.sp,
           fontWeight: FontWeight.w600,
           letterSpacing: 1.2,
