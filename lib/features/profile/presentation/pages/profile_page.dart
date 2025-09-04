@@ -25,6 +25,7 @@ import 'top_up_page.dart';
 import 'level_page.dart';
 import 'bag_page.dart';
 import 'helping_page.dart';
+import 'my_agency_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -730,6 +731,14 @@ class _ProfileContentState extends State<_ProfileContent> {
                 "assets/images/general/my_agency_icon.png",
                 'My Agency',
                 context,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MyAgencyPage(user: widget.user),
+                    ),
+                  );
+                },
               ),
               _buildFeatureIcon(
                 "assets/images/general/my_bag_icon.png",
