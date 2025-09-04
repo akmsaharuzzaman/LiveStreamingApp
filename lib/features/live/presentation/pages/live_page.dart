@@ -6,6 +6,9 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:deepar_flutter_perfect/deepar_flutter_perfect.dart';
+import 'dart:io';
+import 'dart:async';
 
 class LivePage extends StatefulWidget {
   const LivePage({super.key});
@@ -28,10 +31,67 @@ class _LivePageState extends State<LivePage> {
   bool _isFrontCamera = true;
   bool _isInitializingCamera = false;
 
+  // DeepAR related variables
+  final DeepArControllerPerfect _deepArController = DeepArControllerPerfect();
+  bool _isDeepArInitialized = false;
+  bool _isDeepArEnabled = false;
+  String? _currentEffect;
+
+  // Available effects list
+  final List<String> _availableEffects = [
+    'assets/effects/flower_face.deepar',
+    'assets/effects/Fire_Effect.deepar',
+    'assets/effects/Neon_Devil_Horns.deepar',
+    'assets/effects/MakeupLook.deepar',
+    'assets/effects/viking_helmet.deepar',
+    'assets/effects/Pixel_Hearts.deepar',
+  ];
+
   @override
   void initState() {
     super.initState();
     _initializeCamera();
+    _initializeDeepAR();
+  }
+
+  Future<void> _initializeDeepAR() async {
+    try {
+      final androidKey = dotenv.env['DEEPAR_ANDROID_LICENSE_KEY'] ?? '';
+      final iosKey = dotenv.env['DEEPAR_IOS_LICENSE_KEY'] ?? '';
+
+      final result = await _deepArController.initialize(
+        androidLicenseKey: androidKey,
+        iosLicenseKey: iosKey,
+        resolution: Resolution.medium,
+      );
+
+      if (result.success) {
+        debugPrint("DeepAR initialized successfully: ${result.message}");
+
+        if (Platform.isIOS) {
+          Timer.periodic(Duration(milliseconds: 500), (timer) {
+            if (_deepArController.isInitialized) {
+              debugPrint('iOS DeepAR view fully initialized');
+              setState(() {
+                _isDeepArInitialized = true;
+              });
+              timer.cancel();
+            } else if (timer.tick > 20) {
+              debugPrint('Timeout waiting for iOS DeepAR view initialization');
+              timer.cancel();
+            }
+          });
+        } else {
+          setState(() {
+            _isDeepArInitialized = true;
+          });
+        }
+      } else {
+        debugPrint("DeepAR initialization failed: ${result.message}");
+      }
+    } catch (e) {
+      debugPrint('Error initializing DeepAR: $e');
+    }
   }
 
   Future<void> _initializeCamera() async {
@@ -133,6 +193,52 @@ class _LivePageState extends State<LivePage> {
     }
   }
 
+  Future<void> _toggleDeepAR() async {
+    if (!_isDeepArInitialized) return;
+
+    setState(() {
+      _isDeepArEnabled = !_isDeepArEnabled;
+    });
+
+    if (!_isDeepArEnabled) {
+      // Clear current effect
+      try {
+        await _deepArController.switchEffect("");
+        _currentEffect = null;
+        debugPrint('DeepAR effects cleared');
+      } catch (e) {
+        debugPrint('Error clearing DeepAR effect: $e');
+      }
+    }
+  }
+
+  Future<void> _switchDeepArEffect(String effectPath) async {
+    if (!_isDeepArInitialized || !_isDeepArEnabled) return;
+
+    try {
+      await _deepArController.switchEffect(effectPath);
+      setState(() {
+        _currentEffect = effectPath;
+      });
+      debugPrint('Switched to effect: $effectPath');
+    } catch (e) {
+      debugPrint('Error switching DeepAR effect: $e');
+    }
+  }
+
+  Widget _buildDeepArPreview() {
+    if (!_isDeepArInitialized) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
+      );
+    }
+
+    return DeepArPreviewPerfect(_deepArController);
+  }
+
   Widget _buildCameraPreview() {
     if (_isInitializingCamera) {
       return Container(
@@ -141,6 +247,11 @@ class _LivePageState extends State<LivePage> {
           child: CircularProgressIndicator(color: Colors.white),
         ),
       );
+    }
+
+    // Show DeepAR if enabled and initialized, otherwise show Agora
+    if (_isDeepArEnabled && _isDeepArInitialized) {
+      return _buildDeepArPreview();
     }
 
     if (!_isCameraInitialized) {
@@ -510,11 +621,55 @@ class _LivePageState extends State<LivePage> {
                         ),
                         _buildActionButton(
                           icon: "assets/icons/beauty_icon.png",
-                          label: 'Beauty',
-                          onTap: () {},
+                          label: _isDeepArEnabled ? 'AR ON' : 'AR OFF',
+                          onTap: _toggleDeepAR,
                         ),
                       ],
                     ),
+
+                    // AR Effects Row (only show when AR is enabled)
+                    if (_isDeepArEnabled && _isDeepArInitialized) ...[
+                      SizedBox(height: 20.h),
+                      Container(
+                        height: 80.h,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount:
+                              _availableEffects.length +
+                              1, // +1 for clear effect
+                          itemBuilder: (context, index) {
+                            if (index == 0) {
+                              // Clear effect button
+                              return _buildEffectButton(
+                                effectPath: "",
+                                isSelected: _currentEffect == null,
+                                label: "Clear",
+                                onTap: () async {
+                                  await _deepArController.switchEffect("");
+                                  setState(() {
+                                    _currentEffect = null;
+                                  });
+                                },
+                              );
+                            }
+
+                            final effectPath = _availableEffects[index - 1];
+                            final effectName = effectPath
+                                .split('/')
+                                .last
+                                .split('.')
+                                .first;
+
+                            return _buildEffectButton(
+                              effectPath: effectPath,
+                              isSelected: _currentEffect == effectPath,
+                              label: effectName,
+                              onTap: () => _switchDeepArEffect(effectPath),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
 
                     SizedBox(height: 30.h),
                   ],
@@ -656,6 +811,60 @@ class _LivePageState extends State<LivePage> {
     );
   }
 
+  Widget _buildEffectButton({
+    required String effectPath,
+    required bool isSelected,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 80.w,
+        margin: EdgeInsets.only(right: 12.w),
+        child: Column(
+          children: [
+            Container(
+              width: 60.w,
+              height: 60.h,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? const Color(0xFFFF85A3)
+                    : Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFFFF85A3)
+                      : Colors.white.withValues(alpha: 0.3),
+                  width: 2.w,
+                ),
+              ),
+              child: Icon(
+                effectPath.isEmpty
+                    ? Icons.clear
+                    : Icons.face_retouching_natural,
+                color: Colors.white,
+                size: 24.sp,
+              ),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 10.sp,
+                fontWeight: FontWeight.w400,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -664,6 +873,7 @@ class _LivePageState extends State<LivePage> {
       _engine.leaveChannel();
       _engine.release();
     }
+    // DeepAR controller will be cleaned up automatically
     super.dispose();
   }
 }
