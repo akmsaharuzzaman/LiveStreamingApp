@@ -19,6 +19,7 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
   final _firstNameController = TextEditingController();
   String? _selectedGender; // New state variable for gender
   File? _selectedImage;
+  File? _selectedCoverImage;
   UserModel? _currentUser;
 
   @override
@@ -65,6 +66,30 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
     }
   }
 
+  Future<void> _pickCoverImage() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        setState(() {
+          _selectedCoverImage = File(result.files.single.path!);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking cover image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _submitUpdate() {
     if (_formKey.currentState!.validate()) {
       final hasNameChanged =
@@ -72,11 +97,13 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
       final hasFirstNameChanged =
           _firstNameController.text.trim() != (_currentUser?.firstName ?? '');
       final hasImageChanged = _selectedImage != null;
+      final hasCoverImageChanged = _selectedCoverImage != null;
       final hasGenderChanged = _selectedGender != (_currentUser?.gender ?? '');
 
       if (!hasNameChanged &&
           !hasFirstNameChanged &&
           !hasImageChanged &&
+          !hasCoverImageChanged &&
           !hasGenderChanged) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -94,6 +121,7 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
               ? _firstNameController.text.trim()
               : null,
           avatarFile: _selectedImage,
+          coverPictureFile: _selectedCoverImage,
           gender: hasGenderChanged
               ? _selectedGender
               : null, // Add gender to event
@@ -158,146 +186,187 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
         body: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, state) {
             return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Profile Picture Section
-                    _buildProfilePictureSection(),
-                    const SizedBox(height: 32),
+              child: Stack(
+                children: [
+                  Column(
+                    children: [
+                      // Cover Photo Section
+                      _buildCoverPhotoSection(),
 
-                    // Nick Name Field
-                    _buildLabeledField(
-                      label: 'Full Name',
-                      child: TextFormField(
-                        controller: _nameController,
-                        decoration: InputDecoration(
-                          hintText: 'Enter your full name',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: Colors.grey),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
+                      // Content section with padding for overlapping profile picture
+                      Container(
+                        color: Colors.white,
+                        padding: EdgeInsets.only(
+                          top: 60.h, // Space for overlapping profile picture
+                          left: 24.w,
+                          right: 24.w,
+                          bottom: 16.h,
+                        ),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Space for profile picture overlap
+                              SizedBox(height: 20.h),
+
+                              // Nick Name Field
+                              _buildLabeledField(
+                                label: 'Full Name',
+                                child: TextFormField(
+                                  controller: _nameController,
+                                  decoration: InputDecoration(
+                                    hintText: 'Enter your full name',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 14,
+                                    ),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Name is required';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+
+                              // Gender Field
+                              _buildLabeledField(
+                                label: 'Gender',
+                                child: _buildGenderSelector(),
+                              ),
+                              const SizedBox(height: 4),
+
+                              Padding(
+                                padding: const EdgeInsets.only(left: 8.0),
+                                child: Text(
+                                  '*The gender of Agency Talent cannot be modified',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+
+                              // Region Field
+                              _buildLabeledField(
+                                label: 'Region',
+                                child: TextFormField(
+                                  controller: TextEditingController(
+                                    text: 'Bangladesh',
+                                  ),
+                                  decoration: InputDecoration(
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 14,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+
+                              // Introduction Field
+                              _buildLabeledField(
+                                label: 'Introduction',
+                                child: TextFormField(
+                                  controller: TextEditingController(
+                                    text: 'I am a new user',
+                                  ),
+                                  decoration: InputDecoration(
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 14,
+                                    ),
+                                  ),
+                                  maxLines: 1,
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+
+                              // // Talent Grade
+                              // _buildProgressSection(
+                              //   title: 'Talent Grade',
+                              //   level: 'MD',
+                              //   showGradeIcon: true,
+                              // ),
+                              // const SizedBox(height: 24),
+
+                              // // Star
+                              // _buildProgressSection(
+                              //   title: 'Star',
+                              //   heartCount: '0',
+                              //   level: '0',
+                              //   showExpProgress: true,
+                              // ),
+                              // const SizedBox(height: 24),
+
+                              // // Wealth
+                              // _buildProgressSection(
+                              //   title: 'Wealth',
+                              //   level: '1',
+                              //   showExpProgress: true,
+                              // ),
+                              // const SizedBox(height: 32),
+                            ],
                           ),
                         ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Name is required';
-                          }
-                          return null;
-                        },
                       ),
-                    ),
-                    const SizedBox(height: 24),
+                    ],
+                  ),
 
-                    // Gender Field
-                    _buildLabeledField(
-                      label: 'Gender',
-                      child: _buildGenderSelector(),
-                    ),
-                    const SizedBox(height: 4),
-
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8.0),
-                      child: Text(
-                        '*The gender of Agency Talent cannot be modified',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Region Field
-                    _buildLabeledField(
-                      label: 'Region',
-                      child: TextFormField(
-                        
-                        controller: TextEditingController(text: 'Bangladesh'),
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Introduction Field
-                    _buildLabeledField(
-                      label: 'Introduction',
-                      child: TextFormField(
-                        controller: TextEditingController(
-                          text: 'I am a new user',
-                        ),
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                        ),
-                        maxLines: 3,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Talent Grade
-                    _buildProgressSection(
-                      title: 'Talent Grade',
-                      level: 'MD',
-                      showGradeIcon: true,
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Star
-                    _buildProgressSection(
-                      title: 'Star',
-                      heartCount: '0',
-                      level: '0',
-                      showExpProgress: true,
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Wealth
-                    _buildProgressSection(
-                      title: 'Wealth',
-                      level: '1',
-                      showExpProgress: true,
-                    ),
-                    const SizedBox(height: 32),
-                  ],
-                ),
+                  // Overlapping Profile Picture
+                  Positioned(
+                    top: 150.h, // Position to overlap cover photo and content
+                    left: 25.w, // Left position
+                    child: _buildOverlappingProfilePicture(),
+                  ),
+                ],
               ),
             );
           },
@@ -306,51 +375,150 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
     );
   }
 
-  Widget _buildProfilePictureSection() {
-    return Center(
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: _pickImage,
-            child: Stack(
-              children: [
-                Container(
-                  height: 90,
-                  width: 90,
+  Widget _buildCoverPhotoSection() {
+    return Stack(
+      children: [
+        // Cover Photo
+        (_currentUser?.coverPicture != null &&
+                    _currentUser!.coverPicture!.isNotEmpty) ||
+                _selectedCoverImage != null
+            ? Container(
+                width: double.infinity,
+                height: 200.h,
+                decoration: const BoxDecoration(color: Colors.white),
+                child: _selectedCoverImage != null
+                    ? Image.file(_selectedCoverImage!, fit: BoxFit.cover)
+                    : Image.network(
+                        _currentUser!.coverPicture!,
+                        fit: BoxFit.cover,
+                      ),
+              )
+            : Container(
+                height: 200.h,
+                width: double.infinity,
+                color: const Color(0xFF888686),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.camera_alt,
+                        size: 40.w,
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
+                        'Upload Cover Photo',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+        // Cover photo edit overlay
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.2),
+            ),
+            child: Center(
+              child: GestureDetector(
+                onTap: _pickCoverImage,
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 8.h,
+                  ),
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.grey[300]!, width: 2),
-                    image: _getProfileImage(),
+                    color: Colors.black.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  child: _getProfileImage() == null
-                      ? const Icon(Icons.person, size: 40, color: Colors.grey)
-                      : null,
-                ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  left: 0,
-                  top: 0,
-                  child: Image.asset(
-                    'assets/images/general/upload_icon.png',
-                    width: 24,
-                    height: 24,
-                    color: Colors.white,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.camera_alt, size: 20.w, color: Colors.white),
+                      SizedBox(width: 8.w),
+                      Text(
+                        'Change Cover',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
-          SizedBox(height: 10.h),
-          Text(
-            'Change Photo',
-            style: TextStyle(
-              fontSize: 20.sp,
-              color: Color(0xFF202020),
-              fontWeight: FontWeight.w400,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOverlappingProfilePicture() {
+    return GestureDetector(
+      onTap: _pickImage,
+      child: Container(
+        width: 100.w,
+        height: 100.h,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
             ),
+          ],
+        ),
+        child: ClipOval(
+          child: Stack(
+            children: [
+              // Profile image
+              Container(
+                width: 100.w,
+                height: 100.h,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  image: _getProfileImage(),
+                ),
+                child: _getProfileImage() == null
+                    ? Container(
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.grey,
+                        ),
+                        child: const Icon(
+                          Icons.person,
+                          size: 40,
+                          color: Colors.white,
+                        ),
+                      )
+                    : null,
+              ),
+
+              // Edit overlay
+              Container(
+                width: 100.w,
+                height: 100.h,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black.withValues(alpha: 0.4),
+                ),
+                child: const Center(
+                  child: Icon(Icons.camera_alt, size: 32, color: Colors.white),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -363,7 +531,7 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
           label,
           style: TextStyle(
             fontSize: 16,
-            color: Colors.pink[300],
+            color: Colors.grey[600],
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -398,10 +566,10 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                       fontSize: 16,
                       color: _selectedGender != null
                           ? Colors.grey[800]
-                          : Colors.grey[700],
+                          : Colors.grey[500],
                     ),
                   ),
-                  Icon(Icons.arrow_drop_down, color: Colors.grey[700]),
+                  Icon(Icons.arrow_drop_down, color: Colors.grey[500]),
                 ],
               ),
             ),
@@ -424,38 +592,29 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
-                      vertical: 8,
+                      vertical: 12,
                     ),
                     child: Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: _selectedGender == 'Male'
-                                  ? Colors.pink[300]!
-                                  : Colors.grey[400]!,
-                              width: 2,
-                            ),
-                          ),
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: _selectedGender == 'Male'
-                                  ? Colors.pink[300]
-                                  : Colors.transparent,
-                            ),
-                          ),
+                        Image.asset(
+                          'assets/icons/male_icon.png',
+                          width: 24,
+                          height: 24,
+                          color: _selectedGender == 'Male'
+                              ? Colors.black
+                              : Colors.grey[400],
                         ),
                         const SizedBox(width: 12),
                         Text(
                           'Male',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Colors.grey[800],
+                            color: _selectedGender == 'Male'
+                                ? Colors.black
+                                : Colors.grey[600],
+                            fontWeight: _selectedGender == 'Male'
+                                ? FontWeight.w600
+                                : FontWeight.normal,
                           ),
                         ),
                       ],
@@ -473,38 +632,29 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
-                      vertical: 8,
+                      vertical: 12,
                     ),
                     child: Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: _selectedGender == 'Female'
-                                  ? Colors.pink[300]!
-                                  : Colors.grey[400]!,
-                              width: 2,
-                            ),
-                          ),
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: _selectedGender == 'Female'
-                                  ? Colors.pink[300]
-                                  : Colors.transparent,
-                            ),
-                          ),
+                        Image.asset(
+                          'assets/icons/female_icon.png',
+                          width: 24,
+                          height: 24,
+                          color: _selectedGender == 'Female'
+                              ? Colors.black
+                              : Colors.grey[400],
                         ),
                         const SizedBox(width: 12),
                         Text(
                           'Female',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Colors.grey[800],
+                            color: _selectedGender == 'Female'
+                                ? Colors.black
+                                : Colors.grey[600],
+                            fontWeight: _selectedGender == 'Female'
+                                ? FontWeight.w600
+                                : FontWeight.normal,
                           ),
                         ),
                       ],
@@ -547,7 +697,7 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.amber,
+              color: Colors.grey[800],
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -568,7 +718,7 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: showGradeIcon ? Colors.pink[400] : Colors.pink[300],
+              color: Colors.grey[700],
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -602,11 +752,11 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: heartCount != null ? Colors.amber : Colors.pink[300],
+              color: Colors.grey[700],
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
-              heartCount != null ? heartCount : 'Lv $level',
+              heartCount ?? 'Lv $level',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,

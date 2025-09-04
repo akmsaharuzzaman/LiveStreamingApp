@@ -1,4 +1,5 @@
 import 'package:injectable/injectable.dart';
+import 'package:path/path.dart';
 import '../../../../core/network/api_service.dart';
 import '../models/friends_models.dart';
 
@@ -10,12 +11,13 @@ class FriendsApiService {
 
   /// Get follower and following count for a user
   Future<ApiResult<FollowerCountResult>> getFollowerAndFollowingCount(
-    String userId,
+    String? userId,
   ) async {
+    final String url = userId == null
+        ? '/api/followers/follower-and-following-count'
+        : '/api/followers/follower-and-following-count/$userId';
     try {
-      final response = await _apiService.get(
-        '/api/followers/follower-and-following-count',
-      );
+      final response = await _apiService.get(url);
 
       return response.fold((data) {
         try {
@@ -35,11 +37,12 @@ class FriendsApiService {
   }
 
   /// Get friend list for a user
-  Future<ApiResult<List<FriendItem>>> getFriendList(String userId) async {
+  Future<ApiResult<List<FriendItem>>> getFriendList(String? userId) async {
+    String url = userId == null
+        ? '/api/followers/friend-list'
+        : '/api/followers/friend-list/$userId';
     try {
-      final response = await _apiService.get(
-        '/api/followers/friend-list/$userId',
-      );
+      final response = await _apiService.get(url);
 
       return response.fold((data) {
         try {
@@ -59,11 +62,12 @@ class FriendsApiService {
   }
 
   /// Get following list for a user
-  Future<ApiResult<List<FollowItem>>> getFollowingList(String userId) async {
+  Future<ApiResult<List<FollowItem>>> getFollowingList(String? userId) async {
+    String url = userId == null
+        ? '/api/followers/following-list'
+        : '/api/followers/following-list/$userId';
     try {
-      final response = await _apiService.get(
-        '/api/followers/following-list/$userId',
-      );
+      final response = await _apiService.get(url);
 
       return response.fold((data) {
         try {
@@ -83,11 +87,12 @@ class FriendsApiService {
   }
 
   /// Get follower list for a user
-  Future<ApiResult<List<FollowItem>>> getFollowerList(String userId) async {
+  Future<ApiResult<List<FollowItem>>> getFollowerList(String? userId) async {
+    String url = userId == null
+        ? '/api/followers/follower-list'
+        : '/api/followers/follower-list/$userId';
     try {
-      final response = await _apiService.get(
-        '/api/followers/follower-list/$userId',
-      );
+      final response = await _apiService.get(url);
 
       return response.fold((data) {
         try {

@@ -195,15 +195,20 @@ class FollowItem extends Equatable {
 class UserInfo extends Equatable {
   final String id;
   final String name;
+  final String? avatar;
 
-  const UserInfo({required this.id, required this.name});
+  const UserInfo({required this.id, required this.name, this.avatar});
 
   factory UserInfo.fromJson(Map<String, dynamic> json) {
-    return UserInfo(id: json['_id'] ?? '', name: json['name'] ?? '');
+    return UserInfo(
+      id: json['_id'] ?? '',
+      name: json['name'] ?? '',
+      avatar: json['avatar'],
+    );
   }
 
   @override
-  List<Object?> get props => [id, name];
+  List<Object?> get props => [id, name, avatar];
 }
 
 class Pagination extends Equatable {

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 // import 'package:file_picker/file_picker.dart';
@@ -8,12 +7,12 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_editor/video_editor.dart';
 import 'package:video_player/video_player.dart';
 import 'package:easy_video_editor/easy_video_editor.dart';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
+
+import '../../../../core/network/api_service.dart';
+import '../../data/services/reels_api_service.dart';
 
 class VideoEditorScreen extends StatefulWidget {
   const VideoEditorScreen({super.key});
@@ -167,81 +166,30 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
   }
 
   Future<void> _uploadReel(String videoPath, int videoLength) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token') ?? '';
-
-    if (token.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Authentication token is missing. Please log in again.',
-            ),
-          ),
-        );
-      }
-      setState(() {
-        _isUploading = false;
-      });
-      return;
-    }
-
     setState(() {
       _isUploading = true;
     });
 
-    final url = Uri.parse('http://dlstarlive.com:8000/api/reels/create');
-    final request = http.MultipartRequest('POST', url);
-
-    // Set headers
-    request.headers['Authorization'] = 'Bearer $token';
-
-    // Add form fields
-    request.fields['video_length'] = videoLength.toString();
-
-    // Add video file
-    final file = File(videoPath);
-    if (!await file.exists()) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Video file not found.')));
-      }
-      setState(() {
-        _isUploading = false;
-      });
-      return;
-    }
-
     try {
-      final multipartFile = await http.MultipartFile.fromPath(
-        'video',
-        videoPath,
-        contentType: MediaType('video', 'mp4'),
+      // Use the API service for upload instead of direct HTTP call
+      final apiService = ApiService.instance;
+      final reelsApiService = ReelsApiService(apiService);
+
+      // Convert videoLength to string as expected by backend
+      final success = await reelsApiService.uploadReel(
+        videoPath: videoPath,
+        videoLength: videoLength.toString(),
+        reelCaption:
+            'reel ${DateTime.now().millisecondsSinceEpoch}', // Add a simple caption
       );
-      request.files.add(multipartFile);
 
-      // Send request
-      final response = await request.send();
-      final responseString = await response.stream.bytesToString();
-      final responseJson = jsonDecode(responseString);
-
-      if (response.statusCode == 200 ||
-          response.statusCode == 201 ||
-          response.statusCode == 202) {
-        if (responseJson['success'] == true && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Reel uploaded successfully!')),
-          );
-          context.go('/newsfeed');
-        } else {
-          throw Exception(responseJson['message'] ?? 'Upload failed');
-        }
-      } else {
-        throw Exception(
-          responseJson['message'] ??
-              'Failed to upload. Status code: \\${response.statusCode}',
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reel uploaded successfully!')),
         );
+        context.go('/');
+      } else {
+        throw Exception('Upload failed');
       }
     } catch (e) {
       log('Upload error: $e');
@@ -251,7 +199,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
             content: Text(
               e.toString().contains('either wrong reel Id')
                   ? 'Invalid reel data. Please try again.'
-                  : 'Upload failed: \\${e.toString().replaceFirst('Exception: ', '')}',
+                  : 'Upload failed: ${e.toString().replaceFirst('Exception: ', '')}',
             ),
           ),
         );

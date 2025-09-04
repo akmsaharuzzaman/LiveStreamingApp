@@ -1,6 +1,6 @@
 name: dlstarlive
 description: "A comprehensive Flutter live streaming application with video editing capabilities."
-version: 1.0.0+1
+version: 1.0.5+1
 
 environment:
   sdk: ^3.8.1
@@ -12,8 +12,8 @@ dependencies:
   # Core Flutter UI
   cupertino_icons: ^1.0.8
   flutter_svg: ^2.2.0
-  google_fonts: ^6.2.1
-  iconsax: ^0.0.8
+  google_fonts: ^6.3.1
+  # iconsax: ^0.0.8
   flutter_screenutil: ^5.9.3
   flutter_carousel_widget: ^3.1.0
 
@@ -21,14 +21,14 @@ dependencies:
   flutter_bloc: ^9.1.1
 
   # Dependency Injection
-  get_it: ^8.0.3
-  injectable: ^2.5.0
+  get_it: ^8.2.0
+  injectable: ^2.5.1
 
   # Routing
-  go_router: ^16.0.0
+  go_router: ^16.2.1
 
   # Networking
-  dio: ^5.8.0+1
+  dio: ^5.9.0
   socket_io_client: ^3.1.2
 
   # Data Classes & JSON Serialization
@@ -40,22 +40,24 @@ dependencies:
 
   # Utility Libraries
   dartz: ^0.10.1
+  device_info_plus: ^11.5.0
+  package_info_plus: ^8.3.1
   intl: any
 
   # File & Media Pickers
-  file_picker: ^10.2.0
-  image_picker: ^1.1.2
+  file_picker: ^10.3.2
+  image_picker: ^1.2.0
   image_cropper: ^9.1.0
   cached_network_image: ^3.4.1
   video_player: ^2.10.0
 
   # Firebase & Authentication
-  firebase_core: ^3.15.1
-  firebase_auth: ^5.6.2
-  google_sign_in: ^7.1.0
+  firebase_core: ^4.0.0
+  firebase_auth: ^6.0.1
+  google_sign_in: ^7.1.1
 
   # Environment Variables
-  flutter_dotenv: ^5.2.1
+  flutter_dotenv: ^6.0.0
 
   # WebView & Web Support
   flutter_inappwebview: ^6.1.5
@@ -67,15 +69,24 @@ dependencies:
   # Real-Time & Video Communication
   agora_rtc_engine: ^6.5.2
   permission_handler: ^12.0.1
+  wakelock_plus: ^1.3.2
+  # deepar_flutter: ^0.0.5
 
   # Media Viewers & Editors
-  reels_viewer: ^2.0.0
-  share_plus: ^11.0.0
+  share_plus: ^11.1.0
   video_editor: ^3.0.0
   easy_video_editor: ^0.1.2
+  chewie: ^1.12.1
+  card_swiper: ^3.0.1
 
   # UX Enhancements
   preload_page_view: ^0.2.0
+  flutter_svga: ^0.0.6
+  in_app_update: ^4.2.3
+  fluttertoast: ^8.2.12
+  url_launcher: ^6.3.2
+  country_picker: ^2.0.27
+
 
 dev_dependencies:
   flutter_test:
@@ -85,9 +96,9 @@ dev_dependencies:
   flutter_lints: ^6.0.0
 
   # Code Generation
-  build_runner: ^2.5.4
-  injectable_generator: ^2.7.0
-  json_serializable: ^6.9.5
+  build_runner: ^2.7.0
+  injectable_generator: ^2.8.1
+  json_serializable: ^6.11.0
 
   # Package Renaming
   package_rename: ^1.10.0
@@ -124,10 +135,10 @@ flutter:
     - assets/games/greedyv3/bg.png
     - assets/games/greedyv3/game-icon.png
     - assets/games/greedyv3/Build/Greedy V3.jpg
-    - assets/games/greedyv3/Build/4e777e398274f6af8d8f14acae111808.loader.js
-    - assets/games/greedyv3/Build/2c827871e1d858a70f6291322b708aff.data.unityweb
-    - assets/games/greedyv3/Build/d2822e4a9f0d71c41427f922e253050a.framework.js.unityweb
-    - assets/games/greedyv3/Build/512eeb427526359d9071eebc0f5d6f34.wasm.unityweb
+    - assets/games/greedyv3/Build/6dc6d81ba589edac407b6a78de2394ee.loader.js
+    - assets/games/greedyv3/Build/5da486f778c9c89d8a96bca8c3161959.data.unityweb
+    - assets/games/greedyv3/Build/50e5abe1b403cb19f393edf1af7ac85c.framework.js.unityweb
+    - assets/games/greedyv3/Build/c2b29f92deecf1946c9fbfb4f487858e.wasm.unityweb
 
     # Teen Patty Game
     - assets/games/teenpatty/

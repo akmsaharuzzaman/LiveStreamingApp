@@ -83,17 +83,29 @@ class AuthUpdateUserProfileEvent extends AuthEvent {
   final String? name;
   final String? firstName;
   final File? avatarFile;
+  final File? coverPictureFile;
   final String? gender;
 
   const AuthUpdateUserProfileEvent({
     this.name,
     this.firstName,
     this.avatarFile,
+    this.coverPictureFile,
     this.gender,
   });
 
   @override
-  List<Object?> get props => [name, firstName, avatarFile];
+  List<Object?> get props => [
+    name,
+    firstName,
+    avatarFile,
+    coverPictureFile,
+    gender,
+  ];
+}
+
+class AuthDeleteAccountEvent extends AuthEvent {
+  const AuthDeleteAccountEvent();
 }
 
 // States
@@ -174,6 +186,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthGoogleSignInEvent>(_onGoogleSignIn);
     on<AuthUpdateProfileEvent>(_onUpdateProfile);
     on<AuthUpdateUserProfileEvent>(_onUpdateUserProfile);
+    on<AuthDeleteAccountEvent>(_onDeleteAccount);
   }
 
   // Getters for easy access to current auth state
@@ -251,6 +264,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (e) {
       debugPrint('Auth initialization error: ${e.toString()}');
       emit(AuthError('Failed to initialize authentication: ${e.toString()}'));
+      emit(const AuthUnauthenticated());
     }
   }
 
@@ -290,9 +304,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         }
       } else {
         emit(AuthError(response.message ?? 'Login failed'));
+        emit(const AuthUnauthenticated());
       }
     } catch (e) {
       emit(AuthError('Login error: ${e.toString()}'));
+      emit(const AuthUnauthenticated());
     }
   }
 
@@ -592,6 +608,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         name: event.name,
         firstName: event.firstName,
         avatarFile: event.avatarFile,
+        coverPictureFile: event.coverPictureFile,
         gender: event.gender,
       );
 
@@ -616,6 +633,38 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
     } catch (e) {
       emit(AuthError('Profile update error: ${e.toString()}'));
+    }
+  }
+
+  Future<void> _onDeleteAccount(
+    AuthDeleteAccountEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+
+    try {
+      // Call the delete account API
+      final response = await _userApiClient.deleteAccount();
+
+      if (response.isSuccess) {
+        // Account deletion successful, clean up local state
+
+        // Sign out from Google if user is signed in
+        if (_googleAuthService.isSignedIn) {
+          await _googleAuthService.signOut();
+        }
+
+        // Clear local auth state
+        await _authApiClient.logout();
+        _currentToken = null;
+        _currentUser = null;
+
+        emit(const AuthUnauthenticated());
+      } else {
+        emit(AuthError(response.message ?? 'Failed to delete account'));
+      }
+    } catch (e) {
+      emit(AuthError('Account deletion failed: ${e.toString()}'));
     }
   }
 }

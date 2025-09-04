@@ -1,27 +1,14 @@
+import 'dart:math';
+import 'dart:ui';
+
+import 'package:dlstarlive/core/network/models/chat_model.dart';
+import 'package:dlstarlive/features/profile/presentation/pages/view_user_profile.dart';
+import 'package:dlstarlive/features/profile/presentation/widgets/user_profile_bottom_sheet.dart';
 import 'package:flutter/material.dart';
-
-class ChatMessage {
-  final String id;
-  final String userName;
-  final String message;
-  final DateTime timestamp;
-  final String? userAvatar;
-  final int level;
-  final bool isVip;
-
-  ChatMessage({
-    required this.id,
-    required this.userName,
-    required this.message,
-    required this.timestamp,
-    this.userAvatar,
-    this.level = 1,
-    this.isVip = false,
-  });
-}
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class LiveChatWidget extends StatefulWidget {
-  final List<ChatMessage> messages;
+  final List<ChatModel> messages;
   final VoidCallback? onSendMessage;
 
   const LiveChatWidget({super.key, required this.messages, this.onSendMessage});
@@ -32,6 +19,7 @@ class LiveChatWidget extends StatefulWidget {
 
 class _LiveChatWidgetState extends State<LiveChatWidget> {
   final ScrollController _scrollController = ScrollController();
+  final Map<String, Color> _userColorCache = {};
 
   @override
   void didUpdateWidget(LiveChatWidget oldWidget) {
@@ -74,152 +62,192 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
     );
   }
 
-  Widget _buildChatMessage(ChatMessage message) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Container(
-        height: 60,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          // Linear gradient matching Figma properties
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1B1E48), // #1B1E48
-              Color(0xFF825CB3), // #825CB3
-            ],
-          ),
-          // Background blur effect (Figma shows blur: 5)
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // User Avatar
-              CircleAvatar(
-                radius: 12,
-                backgroundImage: message.userAvatar != null
-                    ? NetworkImage(message.userAvatar!)
-                    : null,
-                backgroundColor: Colors.grey[600],
-                child: message.userAvatar == null
-                    ? Text(
-                        message.userName.substring(0, 1).toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 8),
+  // Generate consistent random color for each user
+  Color _getRandomColorForUser(String userName) {
+    if (_userColorCache.containsKey(userName)) {
+      return _userColorCache[userName]!;
+    }
 
-              // Message content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // User name with level and VIP indicators
-                    Row(
-                      children: [
-                        // Level indicator
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 1,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getLevelColor(message.level),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'Lv${message.level}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 8,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
+    // Use username hash for consistent color generation
+    final hash = userName.hashCode;
+    final random = Random(hash);
 
-                        // VIP indicator
-                        if (message.isVip)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 1,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              'SVIP',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        const SizedBox(width: 4),
+    // Premium color palettes
+    final colorPalettes = [
+      [const Color(0xFF1B1E48), const Color(0xFF825CB3)], // Purple gradient
+      [const Color(0xFF2D1B69), const Color(0xFF11998E)], // Teal gradient
+      [const Color(0xFF834D9B), const Color(0xFFD04ED6)], // Pink gradient
+      [
+        const Color(0xFF667EEA),
+        const Color(0xFF764BA2),
+      ], // Blue-purple gradient
+      [const Color(0xFFE44D26), const Color(0xFFF16529)], // Orange gradient
+      [const Color(0xFF11998E), const Color(0xFF38EF7D)], // Green gradient
+      [
+        const Color(0xFF3A1C71),
+        const Color(0xFFD76D77),
+      ], // Purple-pink gradient
+      [const Color(0xFF1E3C72), const Color(0xFF2A5298)], // Dark blue gradient
+      [const Color(0xFFFF512F), const Color(0xFFDD2476)], // Red-pink gradient
+      [const Color(0xFF6A3093), const Color(0xFFA044FF)], // Purple gradient
+    ];
 
-                        // User name
-                        Flexible(
-                          child: Text(
-                            "${message.userName}:",
-                            style: TextStyle(
-                              color: message.isVip
-                                  ? const Color(0xFFFFD700)
-                                  : Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        // Message text
-                        Text(
-                          message.message,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                  ],
+    final selectedPalette = colorPalettes[random.nextInt(colorPalettes.length)];
+    _userColorCache[userName] =
+        selectedPalette[0]; // Store first color as reference
+
+    return selectedPalette[0];
+  }
+
+  // _getGradientColorsForUser removed (no longer using gradients in new design)
+
+  Widget _buildChatMessage(ChatModel message) {
+    // New design rules:
+    // 1. Premium messages: solid (non-gradient) colored background + blur(5) + subtle radius (8)
+    // 2. Normal messages: transparent (no background) just text (first line style in screenshot)
+    // 3. If you later want a subtle glass background for normal, add a semi–transparent white here.
+
+    final bool isPremium =
+        message.id == "premium"; // Replace with actual premium check logic
+    final BorderRadius radius = BorderRadius.circular(
+      8,
+    ); // simplified radius like screenshot
+
+    // Derive a deterministic color for premium user (slightly warm / badge based) with opacity
+    Color premiumBase = _getRandomColorForUser(message.name);
+    // Ensure it's not too dark; blend with a warm accent
+    premiumBase = Color.alphaBlend(
+      const Color(0xFFCD985F).withValues(alpha: 0.5),
+      premiumBase.withValues(alpha: 0.5),
+    );
+    final Color premiumBackground = premiumBase.withValues(alpha: 0.5);
+
+    Widget content = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Badges (Level, VIP, etc.)
+        // ...message.id.map((badge) => _buildBadge(badge)),
+        // _buildBadge("vip"),
+        if (message.avatar != null) const SizedBox(width: 6),
+
+        const SizedBox(width: 8),
+
+        // Message content with flexible width
+        Flexible(
+          child: RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: "${message.name}: ",
+                  style: TextStyle(
+                    color: isPremium ? Colors.white : Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700, // bolder like screenshot
+                  ),
                 ),
+                TextSpan(
+                  text: message.text,
+                  style: TextStyle(
+                    color: isPremium
+                        ? Colors.white.withValues(alpha: 0.95)
+                        : Colors.white.withValues(alpha: 0.85),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+
+    if (isPremium) {
+      // Apply blur & background
+      content = ClipRRect(
+        borderRadius: radius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: premiumBackground,
+              borderRadius: radius,
+            ),
+            child: content,
+          ),
+        ),
+      );
+    } else {
+      // Normal message – no background (matches first & normal user rows)
+      content = Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
+        child: content,
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      child: GestureDetector(
+        onTap: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            builder: (context) => UserProfileBottomSheet(userId: message.id),
+          );
+        },
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: IntrinsicWidth(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth:
+                    MediaQuery.of(context).size.width * 0.8, // Max 80% width
+                minHeight: 40.h,
               ),
-            ],
+              child: content,
+            ),
           ),
         ),
       ),
     );
   }
 
-  Color _getLevelColor(int level) {
-    if (level >= 20) return const Color(0xFFFF6B6B); // Red for high levels
-    if (level >= 15) return const Color(0xFFFF8E53); // Orange
-    if (level >= 10) return const Color(0xFF4ECDC4); // Teal
-    if (level >= 5) return const Color(0xFF45B7D1); // Blue
-    return const Color(0xFF96CEB4); // Green for low levels
+  Widget _buildBadge(String badge) {
+    Widget badgeContent;
+
+    switch (badge) {
+      case 'level':
+        badgeContent = Image.asset(
+          'assets/images/general/level_badge.png',
+          height: 22.h,
+        );
+        break;
+
+      case 'vip':
+        badgeContent = Image.asset(
+          'assets/images/general/vip_badge.png',
+          height: 22.h,
+        );
+        break;
+
+      case 'svip':
+        badgeContent = Image.asset(
+          'assets/images/general/svip_badge.png',
+          height: 22.h,
+        );
+        break;
+
+      default:
+        badgeContent = Image.asset(
+          'assets/images/general/vip_badge.png',
+          height: 22.h,
+        );
+    }
+
+    return badgeContent;
   }
 }

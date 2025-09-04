@@ -1,4 +1,4 @@
-import 'package:reels_viewer/reels_viewer.dart';
+import 'package:dlstarlive/features/reels/custom_package/src/models/reel_model.dart';
 import '../../domain/entities/reel_entity.dart';
 import '../../data/models/reel_api_response_model.dart';
 
@@ -7,6 +7,7 @@ class ReelMapper {
   static ReelEntity apiModelToEntity(ReelApiModel apiModel) {
     return ReelEntity(
       id: apiModel.id,
+      reelCaption: apiModel.reelCaption,
       status: apiModel.status,
       videoLength: apiModel.videoLength,
       videoMaximumLength: apiModel.videoMaximumLength,
@@ -17,12 +18,7 @@ class ReelMapper {
       userInfo: ReelUserEntity(
         id: apiModel.userInfo.id,
         name: apiModel.userInfo.name,
-        avatar: apiModel.userInfo.avatar != null
-            ? ReelUserAvatarEntity(
-                name: apiModel.userInfo.avatar!.name,
-                url: apiModel.userInfo.avatar!.url,
-              )
-            : null,
+        avatar: apiModel.userInfo.avatar,
       ),
       latestReactions: apiModel.latestReactions
           .map(
@@ -36,12 +32,7 @@ class ReelMapper {
                   ? ReelUserEntity(
                       id: reaction.userInfo!.id,
                       name: reaction.userInfo!.name,
-                      avatar: reaction.userInfo!.avatar != null
-                          ? ReelUserAvatarEntity(
-                              name: reaction.userInfo!.avatar!.name,
-                              url: reaction.userInfo!.avatar!.url,
-                            )
-                          : null,
+                      avatar: reaction.userInfo!.avatar,
                     )
                   : null,
             ),
@@ -58,12 +49,7 @@ class ReelMapper {
                   ? ReelUserEntity(
                       id: apiModel.myReaction!.userInfo!.id,
                       name: apiModel.myReaction!.userInfo!.name,
-                      avatar: apiModel.myReaction!.userInfo!.avatar != null
-                          ? ReelUserAvatarEntity(
-                              name: apiModel.myReaction!.userInfo!.avatar!.name,
-                              url: apiModel.myReaction!.userInfo!.avatar!.url,
-                            )
-                          : null,
+                      avatar: apiModel.myReaction!.userInfo!.avatar,
                     )
                   : null,
             )
@@ -85,12 +71,7 @@ class ReelMapper {
       commentedByInfo: ReelUserEntity(
         id: apiComment.commentedByInfo.id,
         name: apiComment.commentedByInfo.name,
-        avatar: apiComment.commentedByInfo.avatar != null
-            ? ReelUserAvatarEntity(
-                name: apiComment.commentedByInfo.avatar!.name,
-                url: apiComment.commentedByInfo.avatar!.url,
-              )
-            : null,
+        avatar: apiComment.commentedByInfo.avatar,
       ),
       replies: apiComment.replies
           .map((reply) => commentApiModelToEntity(reply))

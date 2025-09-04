@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/auth/auth_bloc.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/services/in_app_update_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -45,8 +46,27 @@ class _SplashScreenState extends State<SplashScreen>
     _logoController.forward();
     _textController.forward();
 
-    // Initialize authentication
-    context.read<AuthBloc>().add(const AuthInitializeEvent());
+    // Check for app updates first, then initialize authentication
+    _initializeApp();
+  }
+
+  /// Initialize app with update check and authentication
+  Future<void> _initializeApp() async {
+    try {
+      // Check for forced updates first
+      await InAppUpdateService.checkForForcedUpdate(context);
+
+      // If no forced update required, proceed with authentication
+      if (mounted) {
+        context.read<AuthBloc>().add(const AuthInitializeEvent());
+      }
+    } catch (e) {
+      debugPrint('Error during app initialization: $e');
+      // Continue with authentication even if update check fails
+      if (mounted) {
+        context.read<AuthBloc>().add(const AuthInitializeEvent());
+      }
+    }
   }
 
   @override
@@ -60,173 +80,172 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        print('Splash screen received state: ${state.runtimeType}');
+        // await Future.delayed(const Duration(seconds: 10));
+        debugPrint('Splash screen received state: ${state.runtimeType}');
         if (state is AuthAuthenticated) {
-          print('Navigating to home page');
+          debugPrint('Navigating to home page');
           // User is authenticated, navigate to home
           context.go('/');
         } else if (state is AuthProfileIncomplete) {
-          print('Navigating to profile completion page');
+          debugPrint('Navigating to profile completion page');
           // User needs to complete profile, navigate to profile completion
           context.go('/profile-completion');
         } else if (state is AuthUnauthenticated || state is AuthError) {
-          print('Navigating to login page');
+          debugPrint('Navigating to login page');
           // User is not authenticated, navigate to login
           context.go('/login');
         } else if (state is AuthTokenExpired) {
-          print('Token expired, navigating to login page');
+          debugPrint('Token expired, navigating to login page');
           // Token expired, navigate to login
           context.go('/login');
         }
       },
       child: Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.primaryContainer,
-              ],
-            ),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Logo Animation
-                AnimatedBuilder(
-                  animation: _logoAnimation,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _logoAnimation.value,
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(60),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(60),
-                          child: Image.asset(
-                            'assets/icons/icon.png',
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+        body: Stack(
+          children: [
+            // Gradient overlay (now the only background)
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.8),
+                    Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer.withValues(alpha: 0.8),
+                  ],
                 ),
-
-                const SizedBox(height: UIConstants.spacingXL),
-
-                // App Name Animation
-                AnimatedBuilder(
-                  animation: _textAnimation,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _textAnimation.value,
-                      child: Column(
-                        children: [
-                          Text(
-                            AppConstants.appName,
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Logo Animation
+                    AnimatedBuilder(
+                      animation: _logoAnimation,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: _logoAnimation.value,
+                          child: Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(60),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 10),
                                 ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: UIConstants.spacingS),
-                          Text(
-                            'Clean Architecture with BLoC',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: Colors.white70),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-
-                const SizedBox(height: UIConstants.spacingXL * 2),
-
-                // Loading Indicator
-                BlocBuilder<AuthBloc, AuthState>(
-                  builder: (context, state) {
-                    if (state is AuthSplashLoading) {
-                      return Column(
-                        children: [
-                          const CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(60),
+                              child: Image.asset(
+                                'assets/icons/icon.png',
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.contain,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: UIConstants.spacingM),
-                          Text(
-                            'Initializing...',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: Colors.white70),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: UIConstants.spacingXL),
+
+                    // App Name Animation
+                    AnimatedBuilder(
+                      animation: _textAnimation,
+                      builder: (context, child) {
+                        return Opacity(
+                          opacity: _textAnimation.value,
+                          child: Column(
+                            children: [
+                              Text(
+                                AppConstants.appName,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
+                                    ?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
-                        ],
-                      );
-                    } else if (state is AuthError) {
-                      return Column(
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            color: Colors.red[300],
-                            size: 48,
-                          ),
-                          const SizedBox(height: UIConstants.spacingM),
-                          Text(
-                            'Initialization Failed',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: Colors.red[300]),
-                          ),
-                          const SizedBox(height: UIConstants.spacingS),
-                          Text(
-                            state.message,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: Colors.white70),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: UIConstants.spacingM),
-                          ElevatedButton(
-                            onPressed: () {
-                              context.read<AuthBloc>().add(
-                                const AuthInitializeEvent(),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Theme.of(
-                                context,
-                              ).colorScheme.primary,
-                            ),
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: UIConstants.spacingXL * 2),
+
+                    // Loading Indicator
+                    BlocBuilder<AuthBloc, AuthState>(
+                      builder: (context, state) {
+                        if (state is AuthSplashLoading) {
+                          return Column(
+                            children: [
+                              const CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            ],
+                          );
+                        } else if (state is AuthError) {
+                          return Column(
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                color: Colors.red[300],
+                                size: 48,
+                              ),
+                              const SizedBox(height: UIConstants.spacingM),
+                              Text(
+                                'Initialization Failed',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(color: Colors.red[300]),
+                              ),
+                              const SizedBox(height: UIConstants.spacingS),
+                              Text(
+                                state.message,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(color: Colors.white70),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: UIConstants.spacingM),
+                              ElevatedButton(
+                                onPressed: () {
+                                  context.read<AuthBloc>().add(
+                                    const AuthInitializeEvent(),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.primary,
+                                ),
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

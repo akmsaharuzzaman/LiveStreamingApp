@@ -25,6 +25,7 @@ class ReelsDependencyContainer {
     // Create use cases
     final getReelsUseCase = GetReelsUseCase(repository);
     final likeReelUseCase = LikeReelUseCase(repository);
+    final reactToReelUseCase = ReactToReelUseCase(repository);
     final shareReelUseCase = ShareReelUseCase(repository);
     final addCommentUseCase = AddCommentUseCase(repository);
     final getReelCommentsUseCase = GetReelCommentsUseCase(repository);
@@ -37,6 +38,7 @@ class ReelsDependencyContainer {
     return ReelsBloc(
       getReelsUseCase: getReelsUseCase,
       likeReelUseCase: likeReelUseCase,
+      reactToReelUseCase: reactToReelUseCase,
       shareReelUseCase: shareReelUseCase,
       addCommentUseCase: addCommentUseCase,
       getReelCommentsUseCase: getReelCommentsUseCase,

@@ -148,9 +148,12 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
         width: 120.w,
         height: 120.h,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.2),
+            width: 1,
+          ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -210,7 +213,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                           vertical: 6.h,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.7),
+                          color: Colors.black.withValues(alpha: 0.7),
                           borderRadius: BorderRadius.circular(8.r),
                         ),
                         child: Text(
@@ -241,7 +244,10 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
               gradient: LinearGradient(
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
-                colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+                colors: [
+                  Colors.black.withValues(alpha: 0.8),
+                  Colors.transparent,
+                ],
               ),
             ),
             child: Column(
@@ -341,7 +347,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
             width: 48.w,
             height: 48.h,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: Colors.white, size: 24.sp),
@@ -469,9 +475,9 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
             hideBottomControls: false,
             showCropGrid: true,
             statusBarColor: Colors.black,
-            dimmedLayerColor: Colors.black.withOpacity(0.8),
+            dimmedLayerColor: Colors.black.withValues(alpha: 0.8),
             cropFrameColor: Colors.blue,
-            cropGridColor: Colors.white.withOpacity(0.5),
+            cropGridColor: Colors.white.withValues(alpha: 0.5),
             cropFrameStrokeWidth: 2,
             cropGridRowCount: 3,
             cropGridColumnCount: 3,

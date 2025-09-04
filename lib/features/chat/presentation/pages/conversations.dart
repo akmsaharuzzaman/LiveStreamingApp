@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../data/models/chat_models.dart';
 
 class Conversation extends StatelessWidget {
-  const Conversation({Key? key, required this.user}) : super(key: key);
+  const Conversation({super.key, required this.user});
 
   final ChatUser user;
 
@@ -45,7 +45,9 @@ class Conversation extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: isMe
-                            ? Theme.of(context).primaryColor.withOpacity(0.1)
+                            ? Theme.of(
+                                context,
+                              ).primaryColor.withValues(alpha: 0.1)
                             : Colors.grey[100],
                         borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(20.r),

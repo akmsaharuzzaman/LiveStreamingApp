@@ -27,11 +27,52 @@ class ReelsRepositoryImpl implements ReelsRepository {
   }
 
   @override
+  Future<List<ReelEntity>> getUserReels(
+    String userId, {
+    int page = 1,
+    int limit = 5,
+  }) async {
+    try {
+      log(
+        'Fetching user reels from API (userId: $userId, page: $page, limit: $limit)',
+      );
+      final apiResponse = await apiService.getUserReels(
+        userId: userId,
+        page: page,
+        limit: limit,
+      );
+      final entities = ReelMapper.apiModelsToEntities(apiResponse.result.data);
+      log('Successfully fetched ${entities.length} user reels from API');
+      return entities;
+    } catch (e) {
+      log('Error fetching user reels from API: $e');
+      log('Falling back to dummy data');
+      // Return dummy data as fallback
+      return _getDummyReels()
+          .where((reel) => reel.userInfo.id == userId)
+          .toList();
+    }
+  }
+
+  @override
   Future<bool> likeReel(String reelId) async {
     try {
       return await apiService.reactToReel(reelId: reelId, reactionType: 'like');
     } catch (e) {
       log('Error liking reel: $e');
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> reactToReel(String reelId, String reactionType) async {
+    try {
+      return await apiService.reactToReel(
+        reelId: reelId,
+        reactionType: reactionType,
+      );
+    } catch (e) {
+      log('Error reacting to reel: $e');
       return false;
     }
   }
@@ -138,10 +179,29 @@ class ReelsRepositoryImpl implements ReelsRepository {
     }
   }
 
+  @override
+  Future<bool> uploadReel(
+    String videoPath,
+    String videoLength, {
+    String? reelCaption,
+  }) async {
+    try {
+      return await apiService.uploadReel(
+        videoPath: videoPath,
+        videoLength: videoLength,
+        reelCaption: reelCaption,
+      );
+    } catch (e) {
+      log('Error uploading reel: $e');
+      return false;
+    }
+  }
+
   List<ReelEntity> _getDummyReels() {
     return [
       ReelEntity(
         id: 'dummy1',
+        reelCaption: 'Beautiful nature video',
         status: 'published',
         videoLength: 30,
         videoMaximumLength: 60,
@@ -153,11 +213,8 @@ class ReelsRepositoryImpl implements ReelsRepository {
         userInfo: ReelUserEntity(
           id: 'user1',
           name: 'Darshan Patil',
-          avatar: ReelUserAvatarEntity(
-            name: 'avatar1.jpg',
-            url:
-                'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
-          ),
+          avatar:
+              'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
         ),
         latestReactions: [],
         myReaction: ReelReactionEntity(
@@ -170,6 +227,7 @@ class ReelsRepositoryImpl implements ReelsRepository {
       ),
       ReelEntity(
         id: 'dummy2',
+        reelCaption: 'Family time with marshmallows',
         status: 'published',
         videoLength: 45,
         videoMaximumLength: 60,
@@ -181,16 +239,14 @@ class ReelsRepositoryImpl implements ReelsRepository {
         userInfo: ReelUserEntity(
           id: 'user2',
           name: 'Rahul',
-          avatar: ReelUserAvatarEntity(
-            name: 'avatar2.jpg',
-            url:
-                'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
-          ),
+          avatar:
+              'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
         ),
         latestReactions: [],
       ),
       ReelEntity(
         id: 'dummy3',
+        reelCaption: 'Sweet moments in nature',
         status: 'published',
         videoLength: 35,
         videoMaximumLength: 60,
@@ -202,11 +258,8 @@ class ReelsRepositoryImpl implements ReelsRepository {
         userInfo: ReelUserEntity(
           id: 'user3',
           name: 'Rahul',
-          avatar: ReelUserAvatarEntity(
-            name: 'avatar3.jpg',
-            url:
-                'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
-          ),
+          avatar:
+              'https://opt.toiimg.com/recuperator/img/toi/m-69257289/69257289.jpg',
         ),
         latestReactions: [],
       ),

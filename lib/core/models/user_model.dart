@@ -12,6 +12,7 @@ class UserStatsModel extends Equatable {
   final String userId;
   final int stars;
   final int diamonds;
+  final int coins;
   final int levels;
   final List<dynamic> gifts;
   final DateTime createdAt;
@@ -24,6 +25,7 @@ class UserStatsModel extends Equatable {
     required this.userId,
     required this.stars,
     required this.diamonds,
+    required this.coins,
     required this.levels,
     required this.gifts,
     required this.createdAt,
@@ -34,13 +36,14 @@ class UserStatsModel extends Equatable {
   factory UserStatsModel.fromJson(Map<String, dynamic> json) => UserStatsModel(
     id: json['_id'] as String,
     userId: json['userId'] as String,
-    stars: (json['stars'] as num).toInt(),
-    diamonds: (json['diamonds'] as num).toInt(),
-    levels: (json['levels'] as num).toInt(),
-    gifts: json['gifts'] as List<dynamic>,
+    stars: (json['stars'] as num? ?? 0).toInt(),
+    diamonds: (json['diamonds'] as num? ?? 0).toInt(),
+    coins: (json['coins'] as num? ?? 0).toInt(),
+    levels: (json['levels'] as num? ?? 0).toInt(),
+    gifts: json['gifts'] as List<dynamic>? ?? [],
     createdAt: DateTime.parse(json['createdAt'] as String),
     updatedAt: DateTime.parse(json['updatedAt'] as String),
-    version: (json['__v'] as num).toInt(),
+    version: (json['__v'] as num? ?? 0).toInt(),
   );
 
   Map<String, dynamic> toJson() => {
@@ -48,6 +51,7 @@ class UserStatsModel extends Equatable {
     'userId': userId,
     'stars': stars,
     'diamonds': diamonds,
+    'coins': coins,
     'levels': levels,
     'gifts': gifts,
     'createdAt': createdAt.toIso8601String(),
@@ -61,6 +65,7 @@ class UserStatsModel extends Equatable {
     userId,
     stars,
     diamonds,
+    coins,
     levels,
     gifts,
     createdAt,
@@ -122,6 +127,7 @@ class UserModel extends Equatable {
   final String? lastName;
   final String? uid;
   final String? avatar;
+  final String? coverPicture;
   final String userStateInApp;
   final List<dynamic> userPermissions;
   final bool isViewer;
@@ -153,6 +159,7 @@ class UserModel extends Equatable {
     this.lastName,
     this.uid,
     this.avatar,
+    this.coverPicture,
     required this.userStateInApp,
     required this.userPermissions,
     required this.isViewer,
@@ -193,6 +200,7 @@ class UserModel extends Equatable {
       lastName: lastName,
       uid: googleId,
       avatar: profilePictureUrl,
+      coverPicture: null, // Will be set later if user uploads a cover picture
       userStateInApp: 'Online',
       userPermissions: const [],
       isViewer: false,
@@ -220,6 +228,7 @@ class UserModel extends Equatable {
     String? lastName,
     String? uid,
     String? avatar,
+    String? coverPicture,
     String? userStateInApp,
     List<dynamic>? userPermissions,
     bool? isViewer,
@@ -244,6 +253,7 @@ class UserModel extends Equatable {
       lastName: lastName ?? this.lastName,
       uid: uid ?? this.uid,
       avatar: avatar ?? this.avatar,
+      coverPicture: coverPicture ?? this.coverPicture,
       userStateInApp: userStateInApp ?? this.userStateInApp,
       userPermissions: userPermissions ?? this.userPermissions,
       isViewer: isViewer ?? this.isViewer,
@@ -276,6 +286,7 @@ class UserModel extends Equatable {
     lastName,
     uid,
     avatar,
+    coverPicture,
     userStateInApp,
     userPermissions,
     isViewer,

@@ -1,7 +1,20 @@
 import 'dart:async';
-import 'package:dlstarlive/features/live/data/models/room_models.dart';
+import 'package:dlstarlive/core/network/models/ban_user_model.dart';
+import 'package:dlstarlive/core/network/models/broadcaster_model.dart';
+import 'package:dlstarlive/core/network/models/call_request_list_model.dart';
+import 'package:dlstarlive/core/network/models/call_request_model.dart';
+import 'package:dlstarlive/core/network/models/chat_model.dart';
+import 'package:dlstarlive/core/network/models/get_room_model.dart';
+import 'package:dlstarlive/core/network/models/gift_model.dart';
+import 'package:dlstarlive/core/network/models/joined_user_model.dart';
+import 'package:dlstarlive/core/network/models/left_user_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+
+import 'models/admin_details_model.dart';
+import 'models/mute_user_model.dart';
+
+enum RoomType { live, pk, audio, party }
 
 /// Comprehensive Socket Service for Live Streaming
 /// Handles all socket operations including room management and real-time events
@@ -11,31 +24,70 @@ class SocketService {
   bool _isConnected = false;
   String? _currentUserId;
   String? _currentRoomId;
-  // Stream controllers for different events
-  final StreamController<RoomListResponse> _roomListController =
-      StreamController<RoomListResponse>.broadcast();
-  final StreamController<String> _roomCreatedController =
-      StreamController<String>.broadcast();
-  final StreamController<String> _roomDeletedController =
-      StreamController<String>.broadcast();
-  final StreamController<Map<String, dynamic>> _userJoinedController =
+
+  // Stream controllers for the 11 new events
+  final StreamController<Map<String, dynamic>> _errorMessageController =
       StreamController<Map<String, dynamic>>.broadcast();
-  final StreamController<Map<String, dynamic>> _userLeftController =
-      StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<List<String>> _roomClosedController =
+      StreamController<List<String>>.broadcast();
+  final StreamController<JoinedUserModel> _userJoinedController =
+      StreamController<JoinedUserModel>.broadcast();
+  final StreamController<LeftUserModel> _userLeftController =
+      StreamController<LeftUserModel>.broadcast();
+  final StreamController<CallRequestModel> _joinCallRequestController =
+      StreamController<CallRequestModel>.broadcast();
+  final StreamController<List<CallRequestListModel>>
+  _joinCallRequestListController =
+      StreamController<List<CallRequestListModel>>.broadcast();
+  final StreamController<List<String>> _acceptCallRequestController =
+      StreamController<List<String>>.broadcast();
+  final StreamController<List<String>> _removeBroadcasterController =
+      StreamController<List<String>>.broadcast();
+  final StreamController<List<BroadcasterModel>> _broadcasterListController =
+      StreamController<List<BroadcasterModel>>.broadcast();
+  final StreamController<List<BroadcasterModel>> _broadcasterDetailsController =
+      StreamController<List<BroadcasterModel>>.broadcast();
+  final StreamController<List<String>> _roomListController =
+      StreamController<List<String>>.broadcast();
+  final StreamController<List<GetRoomModel>> _getRoomsController =
+      StreamController<List<GetRoomModel>>.broadcast();
+  final StreamController<ChatModel> _sentMessageController =
+      StreamController<ChatModel>.broadcast();
   final StreamController<bool> _connectionStatusController =
       StreamController<bool>.broadcast();
-  final StreamController<String> _errorController =
-      StreamController<String>.broadcast();
+  final StreamController<GiftModel> _sentGiftController =
+      StreamController<GiftModel>.broadcast();
+  final StreamController<BanUserModel> _bannedUserController =
+      StreamController<BanUserModel>.broadcast();
+  final StreamController<AdminDetailsModel> _adminDetailsController =
+      StreamController<AdminDetailsModel>.broadcast();
+  final StreamController<List<String>> _bannedListController =
+      StreamController<List<String>>.broadcast();
+  final StreamController<MuteUserModel> _muteUserController =
+      StreamController<MuteUserModel>.broadcast();
 
   // Constants
-  static const String _baseUrl = 'http://dlstarlive.com:8000';
+  static const String _baseUrl = 'http://31.97.222.97:8000';
 
-  // Event names
+  // Event names - Updated to match your new event structure
   static const String _createRoomEvent = 'create-room';
   static const String _deleteRoomEvent = 'delete-room';
   static const String _joinRoomEvent = 'join-room';
   static const String _leaveRoomEvent = 'leave-room';
   static const String _getRoomsEvent = 'get-rooms';
+  static const String _joinCallRequestEvent = 'join-call-request';
+  static const String _joinCallRequestListEvent = 'join-call-request-list';
+  static const String _sendMessageEvent = 'sent-message';
+  static const String _acceptCallRequestEvent = 'accept-call-request';
+  static const String _rejectCallRequestEvent = 'reject-call-request';
+  static const String _removeBroadcasterEvent = 'remove-broadcaster';
+  static const String _broadcasterListEvent = 'broadcaster-list';
+  static const String _broadcasterDetailsEvent = 'broadcaster-details';
+  static const String _sentGiftEvent = 'sent-gift';
+  static const String _banUserEvent = 'ban-user';
+  static const String _makeAdminEvent = 'make-admin';
+  static const String _bannedListEvent = 'banned-list';
+  static const String _muteUserEvent = 'mute-user';
 
   /// Singleton instance
   static SocketService get instance {
@@ -45,15 +97,34 @@ class SocketService {
 
   SocketService._internal();
 
-  /// Stream getters for listening to events
-  Stream<RoomListResponse> get roomListStream => _roomListController.stream;
-  Stream<String> get roomCreatedStream => _roomCreatedController.stream;
-  Stream<String> get roomDeletedStream => _roomDeletedController.stream;
-  Stream<Map<String, dynamic>> get userJoinedStream =>
-      _userJoinedController.stream;
-  Stream<Map<String, dynamic>> get userLeftStream => _userLeftController.stream;
+  /// Stream getters for listening to the 11 events
+  Stream<Map<String, dynamic>> get errorMessageStream =>
+      _errorMessageController.stream;
+  Stream<List<String>> get roomClosedStream => _roomClosedController.stream;
+  Stream<JoinedUserModel> get userJoinedStream => _userJoinedController.stream;
+  Stream<LeftUserModel> get userLeftStream => _userLeftController.stream;
+  Stream<CallRequestModel> get joinCallRequestStream =>
+      _joinCallRequestController.stream;
+  Stream<List<BroadcasterModel>> get broadcasterDetailsStream =>
+      _broadcasterDetailsController.stream;
+  Stream<List<CallRequestListModel>> get joinCallRequestListStream =>
+      _joinCallRequestListController.stream;
+  Stream<List<String>> get acceptCallRequestStream =>
+      _acceptCallRequestController.stream;
+  Stream<List<String>> get removeBroadcasterStream =>
+      _removeBroadcasterController.stream;
+  Stream<List<BroadcasterModel>> get broadcasterListStream =>
+      _broadcasterListController.stream;
+  Stream<List<String>> get roomListStream => _roomListController.stream;
+  Stream<List<GetRoomModel>> get getRoomsStream => _getRoomsController.stream;
   Stream<bool> get connectionStatusStream => _connectionStatusController.stream;
-  Stream<String> get errorStream => _errorController.stream;
+  Stream<ChatModel> get sentMessageStream => _sentMessageController.stream;
+  Stream<GiftModel> get sentGiftStream => _sentGiftController.stream;
+  Stream<AdminDetailsModel> get adminDetailsStream =>
+      _adminDetailsController.stream;
+  Stream<BanUserModel> get bannedUserStream => _bannedUserController.stream;
+  Stream<List<String>> get bannedListStream => _bannedListController.stream;
+  Stream<MuteUserModel> get muteUserStream => _muteUserController.stream;
 
   /// Getters
   bool get isConnected => _isConnected;
@@ -114,7 +185,10 @@ class SocketService {
         if (kDebugMode) {
           print('❌ Socket connection error: $error');
         }
-        _errorController.add('Connection failed: $error');
+        _errorMessageController.add({
+          'status': 'error',
+          'message': 'Connection failed: $error',
+        });
         if (!completer.isCompleted) {
           completer.complete(false);
         }
@@ -129,7 +203,10 @@ class SocketService {
           if (kDebugMode) {
             print('⏰ Socket connection timeout');
           }
-          _errorController.add('Connection timeout');
+          _errorMessageController.add({
+            'status': 'error',
+            'message': 'Connection timeout',
+          });
           return false;
         },
       );
@@ -137,15 +214,47 @@ class SocketService {
       if (kDebugMode) {
         print('💥 Socket connection exception: $e');
       }
-      _errorController.add('Connection exception: $e');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Connection exception: $e',
+      });
       return false;
     }
   }
 
+  /// Clear existing socket listeners to prevent duplicates
+  void _clearSocketListeners() {
+    if (_socket == null) return;
+
+    debugPrint('🧹 Clearing existing socket listeners');
+
+    // Clear all event listeners
+    _socket!.off('error-message');
+    _socket!.off('room-closed');
+    _socket!.off('user-joined');
+    _socket!.off('user-left');
+    _socket!.off('join-call-request');
+    _socket!.off('join-call-request-list');
+    _socket!.off('accept-call-request');
+    _socket!.off('remove-broadcaster');
+    _socket!.off('broadcaster-list');
+    _socket!.off('room-list');
+    _socket!.off('get-rooms');
+    _socket!.off('sent-message');
+    _socket!.off('sent-gift');
+    _socket!.off('broadcaster-details');
+    _socket!.off('ban-user');
+    _socket!.off('make-admin');
+    _socket!.off('banned-list');
+  }
+
   /// Setup socket event listeners
   void _setupSocketListeners() {
-    print('🔧 Setting up socket listeners');
+    debugPrint('🔧 Setting up socket listeners');
     if (_socket == null) return;
+
+    // Clear any existing listeners to prevent duplicates
+    _clearSocketListeners();
 
     // Connection events
     _socket!.onDisconnect((_) {
@@ -168,25 +277,28 @@ class SocketService {
       if (kDebugMode) {
         print('❌ Socket reconnection error: $error');
       }
-      _errorController.add('Reconnection failed: $error');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Reconnection failed: $error',
+      });
     });
 
-    // Room events
-    _socket!.on('room-created', (data) {
+    // The 11 new events
+    _socket!.on('error-message', (data) {
       if (kDebugMode) {
-        print('🏠 Room created: $data');
+        print('❌ Error message: $data');
       }
-      if (data is String) {
-        _roomCreatedController.add(data);
+      if (data is Map<String, dynamic>) {
+        _errorMessageController.add(data);
       }
     });
 
-    _socket!.on('room-deleted', (data) {
+    _socket!.on('room-closed', (data) {
       if (kDebugMode) {
-        print('🗑️ Room deleted: $data');
+        print('� Room closed: $data');
       }
-      if (data is String) {
-        _roomDeletedController.add(data);
+      if (data is List) {
+        _roomClosedController.add(List<String>.from(data));
       }
     });
 
@@ -195,7 +307,7 @@ class SocketService {
         print('👋 User joined: $data');
       }
       if (data is Map<String, dynamic>) {
-        _userJoinedController.add(data);
+        _userJoinedController.add(JoinedUserModel.fromJson(data));
       }
     });
 
@@ -204,70 +316,163 @@ class SocketService {
         print('👋 User left: $data');
       }
       if (data is Map<String, dynamic>) {
-        _userLeftController.add(data);
+        _userLeftController.add(LeftUserModel.fromJson(data));
       }
     });
+
+    _socket!.on('join-call-request', (data) {
+      if (kDebugMode) {
+        print('� Join call request: $data');
+      }
+      if (data is Map<String, dynamic>) {
+        _joinCallRequestController.add(CallRequestModel.fromJson(data));
+      }
+    });
+
+    _socket!.on('join-call-request-list', (data) {
+      if (kDebugMode) {
+        print('📞 Join call request list: $data');
+      }
+      if (data is List) {
+        _joinCallRequestListController.add(
+          CallRequestListModel.fromListJson(data),
+        );
+      }
+    });
+
+    _socket!.on('accept-call-request', (data) {
+      if (kDebugMode) {
+        print('✅ Accept call request: $data');
+      }
+      if (data is List) {
+        _acceptCallRequestController.add(List<String>.from(data));
+      }
+    });
+
+    _socket!.on('remove-broadcaster', (data) {
+      if (kDebugMode) {
+        print('🚫 Remove broadcaster: $data');
+      }
+      if (data is List) {
+        _removeBroadcasterController.add(List<String>.from(data));
+      }
+    });
+
+    _socket!.on('broadcaster-list', (data) {
+      if (kDebugMode) {
+        print('📺 Broadcaster list: $data');
+      }
+      if (data is List) {
+        List<BroadcasterModel> broadcasters = BroadcasterModel.fromListJson(
+          data,
+        );
+        // Remove duplicates based on ID
+        Set<String> seenIds = {};
+        broadcasters = broadcasters
+            .where((broadcaster) => seenIds.add(broadcaster.id))
+            .toList();
+        _broadcasterListController.add(broadcasters);
+      }
+    });
+
+    _socket!.on('broadcaster-details', (data) {
+      if (kDebugMode) {
+        print('📺 Broadcaster details List: $data');
+      }
+      if (data is List) {
+        _broadcasterDetailsController.add(BroadcasterModel.fromListJson(data));
+      }
+    });
+
     _socket!.on('room-list', (data) {
       if (kDebugMode) {
-        print('📋 Rooms list received: $data');
+        print('📋 Room list: $data');
       }
-
-      try {
-        if (data is Map<String, dynamic>) {
-          // Parse the new room list format
-          final roomListResponse = RoomListResponse.fromJson(data);
-          _roomListController.add(roomListResponse);
-        } else {
-          // Handle legacy format (fallback)
-          if (kDebugMode) {
-            print('⚠️ Received legacy room list format');
-          }
-          final emptyResponse = RoomListResponse(rooms: {});
-          _roomListController.add(emptyResponse);
-        }
-      } catch (e) {
-        if (kDebugMode) {
-          print('❌ Error parsing room list: $e');
-        }
-        _errorController.add('Failed to parse room list: $e');
-        // Send empty response on error
-        final emptyResponse = RoomListResponse(rooms: {});
-        _roomListController.add(emptyResponse);
+      if (data is List) {
+        _roomListController.add(List<String>.from(data));
       }
     });
 
-    // Error events
-    _socket!.on('error', (error) {
+    _socket!.on('get-rooms', (data) {
       if (kDebugMode) {
-        print('❌ Socket error: $error');
+        print('� Get rooms response: $data');
       }
-      _errorController.add('Socket error: $error');
-    });
-
-    // Custom events for live streaming
-    _socket!.on('stream-started', (data) {
-      if (kDebugMode) {
-        print('🎥 Stream started: $data');
+      if (data is List) {
+        _getRoomsController.add(GetRoomModel.listFromJson(data));
       }
     });
 
-    _socket!.on('stream-ended', (data) {
+    _socket!.on('sent-message', (data) {
       if (kDebugMode) {
-        print('🛑 Stream ended: $data');
+        print('💬 Sent message response: $data');
+      }
+      if (data is Map<String, dynamic>) {
+        _sentMessageController.add(ChatModel.fromJson(data));
       }
     });
 
-    _socket!.on('viewer-count-updated', (data) {
+    // Sent Gift events
+    _socket!.on('sent-gift', (data) {
       if (kDebugMode) {
-        print('👥 Viewer count updated: $data');
+        print('🎁 Sent gift response: $data');
+      }
+      if (data is Map<String, dynamic>) {
+        _sentGiftController.add(GiftModel.fromJson(data));
+      }
+    });
+
+    //Ban User events
+    _socket!.on('ban-user', (data) {
+      if (kDebugMode) {
+        print('🚫 Ban user response: $data');
+      }
+      if (data is Map<String, dynamic>) {
+        _bannedUserController.add(BanUserModel.fromJson(data));
+      }
+    });
+
+    //Make admin
+    _socket!.on('make-admin', (data) {
+      if (kDebugMode) {
+        print('👑 Make admin response: $data');
+      }
+      if (data is Map<String, dynamic>) {
+        _adminDetailsController.add(AdminDetailsModel.fromJson(data));
+      }
+    });
+
+    //Banned List
+    _socket!.on('banned-list', (data) {
+      if (kDebugMode) {
+        print('🚫 Banned list response: $data');
+      }
+      if (data is List) {
+        _bannedListController.add(List<String>.from(data));
+      }
+    });
+
+    //Mute User
+    _socket!.on('mute-user', (data) {
+      if (kDebugMode) {
+        print('🔇 Mute user response: $data');
+      }
+      if (data is Map<String, dynamic>) {
+        _muteUserController.add(MuteUserModel.fromJson(data));
       }
     });
   }
 
   /// Create a new room
-  Future<bool> createRoom(String roomId) async {
+  Future<bool> createRoom(
+    String roomId,
+    String title,
+    RoomType roomType,
+  ) async {
     if (!_isConnected || _socket == null) {
-      _errorController.add('Socket not connected');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
       return false;
     }
 
@@ -276,14 +481,24 @@ class SocketService {
         print('🏠 Creating room: $roomId');
       }
 
-      _socket!.emit(_createRoomEvent, roomId);
+      _socket!.emit(_createRoomEvent, {
+        'roomId': roomId,
+        'title': title,
+        'roomType': roomType
+            .toString()
+            .split('.')
+            .last, // Convert enum to string
+      });
       _currentRoomId = roomId;
       return true;
     } catch (e) {
       if (kDebugMode) {
         print('❌ Error creating room: $e');
       }
-      _errorController.add('Failed to create room: $e');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to create room: $e',
+      });
       return false;
     }
   }
@@ -291,7 +506,10 @@ class SocketService {
   /// Delete a room (only host can delete)
   Future<bool> deleteRoom(String roomId) async {
     if (!_isConnected || _socket == null) {
-      _errorController.add('Socket not connected');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
       return false;
     }
 
@@ -300,7 +518,7 @@ class SocketService {
         print('🗑️ Deleting room: $roomId');
       }
 
-      _socket!.emit(_deleteRoomEvent, roomId);
+      _socket!.emit(_deleteRoomEvent, {'roomId': roomId});
 
       if (_currentRoomId == roomId) {
         _currentRoomId = null;
@@ -311,7 +529,10 @@ class SocketService {
       if (kDebugMode) {
         print('❌ Error deleting room: $e');
       }
-      _errorController.add('Failed to delete room: $e');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to delete room: $e',
+      });
       return false;
     }
   }
@@ -319,7 +540,10 @@ class SocketService {
   /// Join a room
   Future<bool> joinRoom(String roomId) async {
     if (!_isConnected || _socket == null) {
-      _errorController.add('Socket not connected');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
       return false;
     }
 
@@ -328,14 +552,17 @@ class SocketService {
         print('🚪 Joining room: $roomId');
       }
 
-      _socket!.emit(_joinRoomEvent, roomId);
+      _socket!.emit(_joinRoomEvent, {'roomId': roomId});
       _currentRoomId = roomId;
       return true;
     } catch (e) {
       if (kDebugMode) {
         print('❌ Error joining room: $e');
       }
-      _errorController.add('Failed to join room: $e');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to join room: $e',
+      });
       return false;
     }
   }
@@ -343,7 +570,10 @@ class SocketService {
   /// Leave a room
   Future<bool> leaveRoom(String roomId) async {
     if (!_isConnected || _socket == null) {
-      _errorController.add('Socket not connected');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
       return false;
     }
 
@@ -352,7 +582,7 @@ class SocketService {
         print('🚪 Leaving room: $roomId');
       }
 
-      _socket!.emit(_leaveRoomEvent, roomId);
+      _socket!.emit(_leaveRoomEvent, {'roomId': roomId});
 
       if (_currentRoomId == roomId) {
         _currentRoomId = null;
@@ -363,7 +593,10 @@ class SocketService {
       if (kDebugMode) {
         print('❌ Error leaving room: $e');
       }
-      _errorController.add('Failed to leave room: $e');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to leave room: $e',
+      });
       return false;
     }
   }
@@ -371,7 +604,10 @@ class SocketService {
   /// Get list of all rooms
   Future<bool> getRooms() async {
     if (!_isConnected || _socket == null) {
-      _errorController.add('Socket not connected');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
       return false;
     }
 
@@ -380,13 +616,266 @@ class SocketService {
         print('📋 Getting rooms list');
       }
 
-      _socket!.emit(_getRoomsEvent);
+      _socket!.emit(_getRoomsEvent, {});
       return true;
     } catch (e) {
       if (kDebugMode) {
         print('❌ Error getting rooms: $e');
       }
-      _errorController.add('Failed to get rooms: $e');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to get rooms: $e',
+      });
+      return false;
+    }
+  }
+
+  /// Join call request
+  Future<bool> joinCallRequest(String roomId) async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('📋 Getting rooms list');
+      }
+
+      _socket!.emit(_joinCallRequestEvent, {'roomId': roomId});
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error getting rooms: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to get rooms: $e',
+      });
+      return false;
+    }
+  }
+
+  /// Send Message
+  Future<bool> sendMessage(String roomId, String message) async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('💬 Sending message to room: $roomId');
+      }
+
+      _socket!.emit(_sendMessageEvent, {
+        'roomId': roomId,
+        'messageText': message,
+      });
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error sending message: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to send message: $e',
+      });
+      return false;
+    }
+  }
+
+  /// Get join call request list
+  Future<bool> getJoinCallRequestList() async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('📋 Getting join call request list');
+      }
+
+      _socket!.emit(_joinCallRequestListEvent, {'roomId': _currentRoomId});
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error getting join call request list: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to get join call request list: $e',
+      });
+      return false;
+    }
+  }
+
+  /// Accept call request
+  Future<bool> acceptCallRequest(String userId) async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('✅ Accepting call request from user: $userId');
+      }
+
+      _socket!.emit(_acceptCallRequestEvent, {
+        'roomId': _currentRoomId,
+        'targetId': userId,
+      });
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error accepting call request: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to accept call request: $e',
+      });
+      return false;
+    }
+  }
+
+  /// Reject call request
+  Future<bool> rejectCallRequest(String userId) async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('❌ Rejecting call request from user: $userId');
+      }
+
+      _socket!.emit(_rejectCallRequestEvent, {
+        'roomId': _currentRoomId,
+        'targetId': userId,
+      });
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error rejecting call request: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to reject call request: $e',
+      });
+      return false;
+    }
+  }
+
+  /// Remove broadcaster
+  Future<bool> removeBroadcaster(String userId) async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('🚫 Removing broadcaster: $userId');
+      }
+
+      _socket!.emit(_removeBroadcasterEvent, {
+        'roomId': _currentRoomId,
+        'targetId': userId,
+      });
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error removing broadcaster: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to remove broadcaster: $e',
+      });
+      return false;
+    }
+  }
+
+  ///Ban User
+  Future<bool> banUser(String userId) async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('🚫 Banning user: $userId');
+      }
+
+      _socket!.emit(_banUserEvent, {
+        'roomId': _currentRoomId,
+        'targetId': userId,
+      });
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error banning user: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to ban user: $e',
+      });
+      return false;
+    }
+  }
+
+  ///Mute User
+  Future<bool> muteUser(String userId) async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('🔇 Muting user: $userId');
+      }
+
+      _socket!.emit(_muteUserEvent, {
+        'roomId': _currentRoomId,
+        'targetId': userId,
+      });
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error muting user: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to mute user: $e',
+      });
       return false;
     }
   }
@@ -394,7 +883,10 @@ class SocketService {
   /// Send custom event
   void emit(String event, [dynamic data]) {
     if (!_isConnected || _socket == null) {
-      _errorController.add('Socket not connected');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
       return;
     }
 
@@ -412,14 +904,52 @@ class SocketService {
       if (kDebugMode) {
         print('❌ Error emitting event: $e');
       }
-      _errorController.add('Failed to emit event: $e');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to emit event: $e',
+      });
+    }
+  }
+
+  ///Make admin
+  Future<bool> makeAdmin(String userId) async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    try {
+      if (kDebugMode) {
+        print('👑 Making user admin: $userId');
+      }
+
+      _socket!.emit(_makeAdminEvent, {
+        'roomId': _currentRoomId,
+        'targetId': userId,
+      });
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error making admin: $e');
+      }
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Failed to make admin: $e',
+      });
+      return false;
     }
   }
 
   /// Listen to custom events
   void on(String event, Function(dynamic) callback) {
     if (_socket == null) {
-      _errorController.add('Socket not initialized');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Socket not initialized',
+      });
       return;
     }
 
@@ -469,14 +999,19 @@ class SocketService {
   void dispose() {
     disconnect();
 
-    // Close all stream controllers
-    _roomListController.close();
-    _roomCreatedController.close();
-    _roomDeletedController.close();
+    // Close all stream controllers for the 11 new events
+    _errorMessageController.close();
+    _roomClosedController.close();
     _userJoinedController.close();
     _userLeftController.close();
+    _joinCallRequestController.close();
+    _joinCallRequestListController.close();
+    _acceptCallRequestController.close();
+    _removeBroadcasterController.close();
+    _broadcasterListController.close();
+    _roomListController.close();
+    _getRoomsController.close();
     _connectionStatusController.close();
-    _errorController.close();
 
     _instance = null;
   }
@@ -489,36 +1024,14 @@ class SocketService {
   /// Reconnect if disconnected
   Future<bool> reconnect() async {
     if (_currentUserId == null) {
-      _errorController.add('No user ID available for reconnection');
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'No user ID available for reconnection',
+      });
       return false;
     }
 
     await disconnect();
     return await connect(_currentUserId!);
-  }
-
-  /// Helper method to get room IDs from the latest room list response
-  List<String> getAvailableRoomIds() {
-    // This would need to be implemented based on how you store the latest room list
-    // For now, returning empty list
-    return [];
-  }
-
-  /// Helper method to get room data by ID from the latest room list response
-  RoomData? getRoomData(String roomId) {
-    // This would need to be implemented based on how you store the latest room list
-    // For now, returning null
-    return null;
-  }
-
-  /// Helper method to check if user can join a specific room
-  bool canUserJoinRoom(String roomId, String userId) {
-    final roomData = getRoomData(roomId);
-    if (roomData == null) return false;
-
-    // User cannot join if they are banned
-    if (roomData.isUserBanned(userId)) return false;
-
-    return true;
   }
 }

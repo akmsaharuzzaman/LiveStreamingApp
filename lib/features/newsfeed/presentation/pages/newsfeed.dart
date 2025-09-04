@@ -10,7 +10,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:iconsax/iconsax.dart';
+// import 'package:iconsax/iconsax.dart';
 import '../../injection_container.dart';
 import '../bloc/newsfeed_bloc.dart';
 import '../widgets/create_post_container.dart';
@@ -102,6 +102,7 @@ class _NewsfeedPageState extends State<NewsfeedPage> {
                   floating: true,
                   actions: [
                     GestureDetector(
+                      behavior: HitTestBehavior.translucent,
                       onTap: () {
                         // Use try-catch for better error handling
                         try {
@@ -114,7 +115,7 @@ class _NewsfeedPageState extends State<NewsfeedPage> {
                       },
                       child: Row(
                         children: [
-                          Icon(Iconsax.instagram, size: 16.sp),
+                          SvgPicture.asset('assets/icons/instagram.svg', width: 24.sp, height: 24.sp),
                           SizedBox(width: 5.sp),
                           Text(
                             'Reels',

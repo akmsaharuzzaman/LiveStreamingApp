@@ -1,9 +1,11 @@
 class ReelEntity {
   final String id;
+  final String? reelCaption;
   final String status;
   final int videoLength;
   final int videoMaximumLength;
-  final String videoUrl;
+  final String
+  videoUrl; // Keeping as videoUrl for consistency in the domain layer
   final int reactions;
   final int comments;
   final String createdAt;
@@ -13,6 +15,7 @@ class ReelEntity {
 
   ReelEntity({
     required this.id,
+    this.reelCaption,
     required this.status,
     required this.videoLength,
     required this.videoMaximumLength,
@@ -31,27 +34,20 @@ class ReelEntity {
 
   // For backwards compatibility with UI
   String get userName => userInfo.name;
-  String get userAvatar => userInfo.avatar?.url ?? '';
+  String get userAvatar => userInfo.avatar ?? '';
   int get likeCount => reactions;
   int get commentCount => comments;
   bool get isLiked => hasUserReacted;
-  String get description => ''; // Not available in new API
+  String get description => reelCaption ?? ''; // Use reelCaption as description
   String get musicName => ''; // Not available in new API
 }
 
 class ReelUserEntity {
   final String id;
   final String name;
-  final ReelUserAvatarEntity? avatar;
+  final String? avatar; // Changed to direct string to match new API
 
   ReelUserEntity({required this.id, required this.name, this.avatar});
-}
-
-class ReelUserAvatarEntity {
-  final String name;
-  final String url;
-
-  ReelUserAvatarEntity({required this.name, required this.url});
 }
 
 class ReelReactionEntity {
@@ -100,6 +96,6 @@ class ReelCommentEntity {
   // For backwards compatibility with UI
   String get comment => article;
   String get userName => commentedByInfo.name;
-  String get userProfilePic => commentedByInfo.avatar?.url ?? '';
+  String get userProfilePic => commentedByInfo.avatar ?? '';
   DateTime get commentTime => DateTime.tryParse(createdAt) ?? DateTime.now();
 }

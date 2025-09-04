@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:dlstarlive/core/constants/app_constants.dart';
 import 'package:dlstarlive/core/network/api_service.dart';
 import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart';
@@ -472,6 +473,52 @@ class PostService {
           return ApiResult.success(data);
         } else {
           return ApiResult.failure(data['message'] ?? 'Failed to get comments');
+        }
+      } else {
+        return ApiResult.failure('Server error: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      return _handleDioError(e);
+    } catch (e) {
+      return ApiResult.failure('Unexpected error: $e');
+    }
+  }
+
+  /// Gets user posts by userId
+  ///
+  /// [userId] - The ID of the user to get posts for
+  /// [page] - Page number for pagination (default: 1)
+  /// [limit] - Number of posts per page (default: 10)
+  ///
+  /// Returns ApiResult with user posts data
+  Future<ApiResult<Map<String, dynamic>>> getUserPosts({
+    required String userId,
+    int page = 1,
+    int limit = 10,
+  }) async {
+    try {
+      // Get auth token
+      final token = await _authService.getToken();
+      if (token == null) {
+        return ApiResult.failure('Authentication required');
+      }
+
+      // Make API request
+      final response = await _apiService.dio.get(
+        ApiConstants.getUserPosts(userId, page, limit),
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 202) {
+        final data = response.data;
+        if (data['success'] == true) {
+          return ApiResult.success(data);
+        } else {
+          return ApiResult.failure(
+            data['message'] ?? 'Failed to get user posts',
+          );
         }
       } else {
         return ApiResult.failure('Server error: ${response.statusCode}');

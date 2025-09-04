@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
+import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:dlstarlive/core/network/socket_service.dart';
-import 'package:dlstarlive/features/live/data/models/room_models.dart';
+import 'package:dlstarlive/core/network/api_clients.dart';
+import 'package:dlstarlive/injection/injection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -10,8 +13,6 @@ import 'package:flutter_carousel_widget/flutter_carousel_widget.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:iconsax/iconsax.dart';
-
 import '../../data/models/category_model.dart';
 import '../../data/models/user_model.dart';
 import '../widgets/custom_networkimage.dart';
@@ -27,25 +28,20 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   final SocketService _socketService = SocketService.instance;
-  RoomListResponse? _availableRooms;
+  final GenericApiClient _genericApiClient = getIt<GenericApiClient>();
+  List<GetRoomModel>? _availableRooms;
 
   // Stream subscriptions for proper cleanup
   StreamSubscription? _connectionStatusSubscription;
-  StreamSubscription? _roomListSubscription;
+  StreamSubscription? _getRoomListSubscription;
   StreamSubscription? _errorSubscription;
 
   // Tab controller for horizontal sliding tabs
   late TabController _tabController;
 
-  List<String> imageUrls = [
-    // "assets/images/new_images/banner.png",
-    'assets/images/general/banners/banners1.jpg',
-    'assets/images/general/banners/banners1.jpg',
-    "assets/images/general/banners/banners2.jpg",
-    "assets/images/general/banners/banners3.jpg",
-    "assets/images/general/banners/banners4.jpg",
-    "assets/images/general/banners/banners5.jpg",
-  ];
+  // Banner URLs - will be populated from API
+  List<String> _bannerUrls = [];
+  bool _isBannersLoading = true;
 
   /// Initialize socket connection when entering live streaming page
   Future<void> _initializeSocket() async {
@@ -97,20 +93,101 @@ class _HomePageState extends State<HomePage>
             }
           }
         }); // Room list updates
-    _roomListSubscription = _socketService.roomListStream.listen((rooms) {
+    _getRoomListSubscription = _socketService.getRoomsStream.listen((rooms) {
       if (mounted) {
         setState(() {
           _availableRooms = rooms;
-          debugPrint("Available rooms: ${rooms.roomIds} from Frontend");
+          debugPrint(
+            "Available rooms: ${rooms.map((room) => room.roomId)} from Frontend",
+          );
         });
       }
-    }); // Error handling
-    _errorSubscription = _socketService.errorStream.listen((error) {
-      if (mounted) {
-        // _showSnackBar('❌ Error: $error', Colors.red);
-        debugPrint("Socket error: $error");
-      }
     });
+  }
+
+  /// Handle pull-to-refresh action
+  Future<void> _handleRefresh() async {
+    try {
+      debugPrint(
+        '🔄 Home page refresh triggered - fetching latest rooms and banners',
+      );
+
+      // Refresh both rooms and banners simultaneously
+      await Future.wait([
+        // Check if socket is connected and get rooms
+        () async {
+          if (!_socketService.isConnected) {
+            debugPrint('Socket not connected, attempting to reconnect...');
+            await _initializeSocket();
+          } else {
+            // If already connected, just get the rooms
+            await _socketService.getRooms();
+          }
+        }(),
+        // Refresh banners
+        _fetchBanners(),
+      ]);
+
+      // Add a small delay to ensure the refresh indicator shows
+      await Future.delayed(const Duration(milliseconds: 500));
+    } catch (e) {
+      debugPrint('Error during refresh: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to refresh content. Please try again.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Fetch banner images from API
+  Future<void> _fetchBanners() async {
+    try {
+      debugPrint('🎨 Fetching banners from API');
+
+      final response = await _genericApiClient.get<Map<String, dynamic>>(
+        '/api/admin/banners',
+      );
+
+      if (response.isSuccess && response.data != null) {
+        final data = response.data!;
+        if (data['success'] == true && data['result'] != null) {
+          final List<dynamic> bannerList = data['result'] as List<dynamic>;
+          final List<String> urls = bannerList.cast<String>();
+
+          if (mounted) {
+            setState(() {
+              _bannerUrls = urls;
+              _isBannersLoading = false;
+            });
+          }
+
+          debugPrint('✅ Loaded ${urls.length} banners from API');
+        } else {
+          throw Exception('API response indicates failure');
+        }
+      } else {
+        throw Exception('Failed to get banners: ${response.message}');
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching banners: $e');
+      // Use fallback banners if API fails
+      if (mounted) {
+        setState(() {
+          _isBannersLoading = false;
+        });
+      }
+      debugPrint('🔄 Using fallback banners');
+    }
+  }
+
+  /// Helper method to check if URL is a network URL
+  bool _isNetworkUrl(String url) {
+    return url.startsWith('http://') || url.startsWith('https://');
   }
 
   @override
@@ -119,7 +196,15 @@ class _HomePageState extends State<HomePage>
     _tabController = TabController(length: 4, vsync: this);
 
     _initializeSocket();
-    _setupSocketListeners();
+    _fetchBanners(); // Fetch banners from API
+
+    // Trigger refresh each time HomePage is created
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      debugPrint('🏠 HomePage created - triggering auto-refresh');
+      _handleRefresh();
+    });
+
+    // Removed duplicate _setupSocketListeners() call - it's already called in _initializeSocket()
     super.initState();
   }
 
@@ -127,7 +212,7 @@ class _HomePageState extends State<HomePage>
   void dispose() {
     // Cancel all stream subscriptions to prevent setState calls after disposal
     _connectionStatusSubscription?.cancel();
-    _roomListSubscription?.cancel();
+    _getRoomListSubscription?.cancel();
     _errorSubscription?.cancel();
 
     // Dispose tab controller
@@ -172,11 +257,11 @@ class _HomePageState extends State<HomePage>
                   labelColor: Colors.black,
                   unselectedLabelColor: Colors.black54,
                   labelStyle: TextStyle(
-                    fontSize: 12.sp,
+                    fontSize: 17.sp,
                     fontWeight: FontWeight.w600,
                   ),
                   unselectedLabelStyle: TextStyle(
-                    fontSize: 12.sp,
+                    fontSize: 16.sp,
                     fontWeight: FontWeight.w500,
                   ),
                   indicator: const UnderlineTabIndicator(
@@ -188,7 +273,7 @@ class _HomePageState extends State<HomePage>
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
                   dividerColor: Colors.transparent,
-                  labelPadding: EdgeInsets.symmetric(horizontal: 4.w),
+                  labelPadding: EdgeInsets.symmetric(horizontal: 0.w),
                   tabs: const [
                     Tab(text: 'Popular'),
                     Tab(text: 'Live'),
@@ -206,7 +291,11 @@ class _HomePageState extends State<HomePage>
               width: 22.sp,
             ),
             SizedBox(width: 12.sp),
-            Icon(Iconsax.notification, size: 22.sp, color: Colors.black),
+            Icon(
+              Icons.notifications_active_rounded,
+              size: 22.sp,
+              color: Colors.black,
+            ),
           ],
         ),
       ),
@@ -231,100 +320,146 @@ class _HomePageState extends State<HomePage>
 
   // Popular tab with current homepage content
   Widget _buildPopularTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: 7.sp),
-        const ListUserFollow(),
-        SizedBox(height: 12.sp),
-        Padding(
-          padding: EdgeInsets.only(right: 8.sp, left: 8.sp),
-          child: SizedBox(
-            height: 132.sp,
-            width: double.infinity,
-            child: FlutterCarousel(
-              options: FlutterCarouselOptions(
-                height: 132.sp,
-                autoPlay: true,
-                viewportFraction: 1.0,
-                enlargeCenterPage: false,
-                showIndicator: true,
-                indicatorMargin: 8,
-
-                slideIndicator: CircularSlideIndicator(
-                  slideIndicatorOptions: SlideIndicatorOptions(
-                    alignment: Alignment.bottomCenter,
-                    currentIndicatorColor: Colors.white,
-                    indicatorBackgroundColor: Colors.white.withOpacity(0.5),
-                    indicatorBorderColor: Colors.transparent,
-                    indicatorBorderWidth: 0.5,
-                    indicatorRadius: 3.8,
-                    itemSpacing: 15,
-                    padding: const EdgeInsets.only(top: 10.0),
-                    enableHalo: false,
-                    enableAnimation: true,
-                  ),
-                ),
-              ),
-              items: imageUrls.map((url) {
-                return Builder(
-                  builder: (BuildContext context) {
-                    return Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.symmetric(horizontal: 8.0),
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 7.sp),
+          const ListUserFollow(),
+          SizedBox(height: 12.sp),
+          //Banner Section
+          Padding(
+            padding: EdgeInsets.only(right: 8.sp, left: 8.sp),
+            child: SizedBox(
+              height: 132.sp,
+              width: double.infinity,
+              child: _isBannersLoading
+                  ? Container(
                       decoration: BoxDecoration(
                         color: Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(8.0),
                       ),
-                      child: ClipRRect(
+                      child: const Center(child: CircularProgressIndicator()),
+                    )
+                  : _bannerUrls.isEmpty
+                  ? Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(8.0),
-                        child: Image.asset(
-                          url,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Center(
-                              child: Icon(
-                                Icons.broken_image,
-                                size: 50,
-                                color: Colors.red,
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'No banners available',
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                        ),
+                      ),
+                    )
+                  : FlutterCarousel(
+                      options: FlutterCarouselOptions(
+                        height: 132.sp,
+                        autoPlay: true,
+                        viewportFraction: 1.0,
+                        enlargeCenterPage: false,
+                        showIndicator: true,
+                        indicatorMargin: 8,
+
+                        slideIndicator: CircularSlideIndicator(
+                          slideIndicatorOptions: SlideIndicatorOptions(
+                            alignment: Alignment.bottomCenter,
+                            currentIndicatorColor: Colors.white,
+                            indicatorBackgroundColor: Colors.white.withValues(
+                              alpha: 0.5,
+                            ),
+                            indicatorBorderColor: Colors.transparent,
+                            indicatorBorderWidth: 0.5,
+                            indicatorRadius: 3.8,
+                            itemSpacing: 15,
+                            padding: const EdgeInsets.only(top: 10.0),
+                            enableHalo: false,
+                            enableAnimation: true,
+                          ),
+                        ),
+                      ),
+                      items: _bannerUrls.map((url) {
+                        return Builder(
+                          builder: (BuildContext context) {
+                            return Container(
+                              width: double.infinity,
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 8.0,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8.0),
+                                child: _isNetworkUrl(url)
+                                    ? CachedNetworkImage(
+                                        imageUrl: url,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) =>
+                                            const Center(
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            ),
+                                        errorWidget: (context, url, error) =>
+                                            const Center(
+                                              child: Icon(
+                                                Icons.broken_image,
+                                                size: 50,
+                                                color: Colors.red,
+                                              ),
+                                            ),
+                                      )
+                                    : Image.asset(
+                                        url,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return const Center(
+                                                child: Icon(
+                                                  Icons.broken_image,
+                                                  size: 50,
+                                                  color: Colors.red,
+                                                ),
+                                              );
+                                            },
+                                      ),
                               ),
                             );
                           },
-                        ),
-                      ),
-                    );
-                  },
-                );
-              }).toList(),
+                        );
+                      }).toList(),
+                    ),
             ),
           ),
-        ),
-        // SizedBox(height: 18.sp),
-        // Padding(
-        //   padding: const EdgeInsets.symmetric(horizontal: 18.0),
-        //   child: Row(
-        //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        //     children: [
-        //       Image.asset(
-        //         'assets/images/general/top_sender.png',
-        //         height: MediaQuery.of(context).size.height * 0.08,
-        //       ),
-        //       Image.asset(
-        //         'assets/images/general/top_host.png',
-        //         height: MediaQuery.of(context).size.height * 0.08,
-        //       ),
-        //       Image.asset(
-        //         'assets/images/general/top_agency.png',
-        //         height: MediaQuery.of(context).size.height * 0.08,
-        //       ),
-        //     ],
-        //   ),
-        // ),
-        SizedBox(height: 18.sp),
-        ListLiveStream(
-          availableRooms: _availableRooms ?? RoomListResponse(rooms: {}),
-        ),
-      ],
+          // SizedBox(height: 18.sp),
+          // Padding(
+          //   padding: const EdgeInsets.symmetric(horizontal: 18.0),
+          //   child: Row(
+          //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //     children: [
+          //       Image.asset(
+          //         'assets/images/general/top_sender.png',
+          //         height: MediaQuery.of(context).size.height * 0.08,
+          //       ),
+          //       Image.asset(
+          //         'assets/images/general/top_host.png',
+          //         height: MediaQuery.of(context).size.height * 0.08,
+          //       ),
+          //       Image.asset(
+          //         'assets/images/general/top_agency.png',
+          //         height: MediaQuery.of(context).size.height * 0.08,
+          //       ),
+          //     ],
+          //   ),
+          // ),
+          SizedBox(height: 18.sp),
+          ListLiveStream(availableRooms: _availableRooms ?? []),
+        ],
+      ),
     );
   }
 
@@ -356,7 +491,7 @@ class _HomePageState extends State<HomePage>
 }
 
 class ListLiveStream extends StatelessWidget {
-  final RoomListResponse availableRooms;
+  final List<GetRoomModel> availableRooms;
   const ListLiveStream({super.key, required this.availableRooms});
 
   @override
@@ -374,33 +509,27 @@ class ListLiveStream extends StatelessWidget {
           childAspectRatio: 0.70,
         ),
         // itemCount: listLiveStreamFake.length,
-        itemCount: availableRooms.roomIds.length,
+        itemCount: availableRooms.length,
         itemBuilder: (context, index) {
           return LiveStreamCard(
-            liveStreamModel: availableRooms.roomDataList[index],
+            liveStreamModel: availableRooms[index],
             onTap: () {
-              debugPrint(
-                "Live joining Room ID: ${availableRooms.roomIds[index]}",
-              );
               // Navigate to the live stream screen with the room ID using the named route
               context.pushNamed(
                 'onGoingLive',
                 queryParameters: {
-                  'roomId': availableRooms.roomIds[index],
-                  'hostName': availableRooms
-                      .getRoomById(availableRooms.roomIds[index])!
-                      .hostDetails
-                      .name,
-                  'hostUserId': availableRooms
-                      .getRoomById(availableRooms.roomIds[index])!
-                      .hostDetails
-                      .uid,
+                  'roomId': availableRooms[index].roomId,
+                  'hostName':
+                      availableRooms[index].hostDetails?.name ?? 'Unknown Host',
+                  'hostUserId':
+                      availableRooms[index].hostDetails?.id ?? 'Unknown User',
                   'hostAvatar':
-                      availableRooms
-                          .getRoomById(availableRooms.roomIds[index])!
-                          .hostDetails
-                          .avatar ??
-                      '',
+                      availableRooms[index].hostDetails?.avatar ??
+                      'Unknown Avatar',
+                },
+                extra: {
+                  'existingViewers': availableRooms[index].membersDetails,
+                  'hostCoins': availableRooms[index].hostCoins,
                 },
               );
             },
@@ -416,18 +545,55 @@ class ListUserFollow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 90.sp,
-      width: double.infinity,
-      child: ListView.builder(
-        padding: EdgeInsets.symmetric(horizontal: 16.sp),
-        itemCount: listUserFake.length,
-        shrinkWrap: true,
-        scrollDirection: Axis.horizontal,
-        itemBuilder: ((context, index) {
-          return UserWidget(userModel: listUserFake[index]);
-        }),
-      ),
+    return Row(
+      children: [
+        SizedBox(
+          height: 90.sp,
+          width: MediaQuery.of(context).size.width * 0.80,
+          child: ListView.builder(
+            padding: EdgeInsets.symmetric(horizontal: 16.sp),
+            itemCount: listUserFake.length,
+            shrinkWrap: true,
+            scrollDirection: Axis.horizontal,
+            itemBuilder: ((context, index) {
+              return UserWidget(userModel: listUserFake[index]);
+            }),
+          ),
+        ),
+        Spacer(),
+        InkWell(
+          onTap: () {
+            // Navigate to the leaderboard page
+            // context.pushNamed('leaderBoard');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Leaderboard feature coming soon!'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          },
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.only(
+                  bottom: 8.sp,
+                  top: 8.sp,
+                  left: 8.sp,
+                  right: 8.sp,
+                ),
+
+                child: Image.asset(
+                  'assets/images/general/rank_icon.png',
+                  height: 40.sp,
+                  width: 40.sp,
+                ),
+              ),
+              SizedBox(height: 24.sp),
+            ],
+          ),
+        ),
+        SizedBox(width: 20.sp),
+      ],
     );
   }
 }
@@ -537,7 +703,7 @@ class UserWidget extends StatelessWidget {
 }
 
 class LiveStreamCard extends StatelessWidget {
-  final RoomData liveStreamModel;
+  final GetRoomModel liveStreamModel;
   final Function() onTap;
   const LiveStreamCard({
     super.key,
@@ -553,7 +719,7 @@ class LiveStreamCard extends StatelessWidget {
         children: [
           CustomNetworkImage(
             urlToImage:
-                liveStreamModel.hostDetails.avatar ??
+                liveStreamModel.hostDetails?.avatar ??
                 'https://cdn.dribbble.com/users/3245638/screenshots/15628559/media/21f20574f74b6d6f8e74f92bde7de2fd.png?compress=1&resize=400x300&vertical=top',
             height: 180.sp,
             shape: BoxShape.rectangle,
@@ -569,7 +735,7 @@ class LiveStreamCard extends StatelessWidget {
                   gradient: LinearGradient(
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(0.89),
+                      Colors.black.withValues(alpha: 0.89),
                     ],
                     end: Alignment.bottomCenter,
                     begin: Alignment.topCenter,
@@ -594,13 +760,13 @@ class LiveStreamCard extends StatelessWidget {
                                 vertical: 2.sp,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.45),
+                                color: Colors.black.withValues(alpha: 0.45),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    Iconsax.voice_cricle,
+                                    Icons.voice_chat,
                                     size: 17.sp,
                                     color: Colors.white,
                                   ),
@@ -640,7 +806,7 @@ class LiveStreamCard extends StatelessWidget {
                       ],
                     ),
                     Text(
-                      '${liveStreamModel.hostDetails.name} is live now',
+                      '${liveStreamModel.hostDetails?.name ?? 'Unknown Host'} is live now',
                       style: TextStyle(color: Colors.white, fontSize: 11.sp),
                     ),
                   ],
@@ -652,7 +818,7 @@ class LiveStreamCard extends StatelessWidget {
                 children: [
                   CustomNetworkImage(
                     urlToImage:
-                        liveStreamModel.hostDetails.avatar ??
+                        liveStreamModel.hostDetails?.avatar ??
                         'https://cdn.dribbble.com/users/3245638/screenshots/15628559/media/21f20574f74b6d6f8e74f92bde7de2fd.png?compress=1&resize=400x300&vertical=top',
                     height: 30.sp,
                     width: 30.sp,
@@ -664,7 +830,7 @@ class LiveStreamCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          liveStreamModel.hostDetails.name,
+                          liveStreamModel.hostDetails?.name ?? 'Unknown Host',
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.black,
@@ -673,7 +839,7 @@ class LiveStreamCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'ID: ${liveStreamModel.hostDetails.uid.substring(0, 6)}',
+                          'ID: ${liveStreamModel.hostDetails?.uid.substring(0, 6) ?? 'Unknown ID'}',
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.black,

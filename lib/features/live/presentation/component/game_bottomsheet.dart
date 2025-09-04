@@ -9,13 +9,18 @@ void showGameBottomSheet(
   BuildContext context, {
   String? userId,
   bool isHost = false,
+  Duration? streamDuration,
 }) {
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (context) {
-      return GameBottomSheet(userId: userId, isHost: isHost);
+      return GameBottomSheet(
+        userId: userId,
+        isHost: isHost,
+        streamDuration: streamDuration ?? Duration.zero,
+      );
     },
   );
 }
@@ -23,8 +28,14 @@ void showGameBottomSheet(
 class GameBottomSheet extends StatefulWidget {
   final String? userId;
   final bool isHost;
+  final Duration streamDuration;
 
-  const GameBottomSheet({super.key, this.userId, required this.isHost});
+  const GameBottomSheet({
+    super.key,
+    this.userId,
+    required this.isHost,
+    required this.streamDuration,
+  });
 
   @override
   State<GameBottomSheet> createState() => _GameBottomSheetState();
@@ -61,6 +72,14 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
     }
   }
 
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = twoDigits(duration.inHours);
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$hours:$minutes:$seconds';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -74,7 +93,12 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                 ? MediaQuery.of(context).size.height * .55
                 : MediaQuery.of(context).size.height * modalHight,
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1A2E),
+              // color: const Color(0xFF1A1A2E),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFEDE5FE), Color(0xFFFFFFFF)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(20.r),
                 topRight: Radius.circular(20.r),
@@ -102,12 +126,12 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                   ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF2A2A3E),
-                    borderRadius: BorderRadius.circular(20.r),
+                    borderRadius: BorderRadius.all(Radius.circular(10.r)),
                   ),
                   child: Column(
                     children: [
                       Text(
-                        'Stream Duration: 000:00:00',
+                        'Stream Duration: ${_formatDuration(widget.streamDuration)}',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16.sp,
@@ -173,7 +197,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
 
                 SizedBox(height: 12.h),
 
-                // Control Options Gridw
+                // Control Options Grid
                 if (widget.isHost)
                   Expanded(
                     child: Padding(
@@ -200,14 +224,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                               // Handle coin bag
                             },
                           ),
-                          _buildControlOption(
-                            iconPath: "assets/icons/sticker_grid_icon.png",
-                            label: 'Sticker',
-                            onTap: () {
-                              Navigator.pop(context);
-                              // Handle sticker
-                            },
-                          ),
+
                           _buildControlOption(
                             iconPath: "assets/icons/camera_flip_grid_icon.png",
                             label: 'Flip Camera',
@@ -216,36 +233,29 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                               // Handle flip camera
                             },
                           ),
-                          _buildControlOption(
-                            iconPath: "assets/icons/effect_grid_icon.png",
-                            label: 'Effect',
-                            onTap: () {
-                              Navigator.pop(context);
-                              // Handle effect
-                            },
-                          ),
-                          _buildControlOption(
-                            iconPath: "assets/icons/inbox_grid_icon.png",
-                            label: 'Inbox',
-                            onTap: () {
-                              Navigator.pop(context);
-                              // Handle inbox
-                            },
-                          ),
-                          _buildControlOption(
-                            iconPath: "assets/icons/flash_grid_icon.png",
-                            label: 'Flash on',
-                            onTap: () {
-                              Navigator.pop(context);
-                              // Handle flash
-                            },
-                          ),
+
                           _buildControlOption(
                             iconPath: "assets/icons/beauty_cam_grid_icon.png",
                             label: 'Beauty Camera',
                             onTap: () {
                               Navigator.pop(context);
                               // Handle beauty camera
+                            },
+                          ),
+                          _buildControlOption(
+                            iconPath: "assets/icons/music_grid_icon.png",
+                            label: 'Music',
+                            onTap: () {
+                              Navigator.pop(context);
+                              // Handle music
+                            },
+                          ),
+                          _buildControlOption(
+                            iconPath: "assets/icons/chat_clear_grid_icon.png",
+                            label: 'Chat Clear',
+                            onTap: () {
+                              Navigator.pop(context);
+                              // Handle chat clear
                             },
                           ),
                         ],
@@ -274,7 +284,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     blurRadius: 10,
                     offset: const Offset(0, -5),
                   ),
@@ -306,10 +316,10 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                     //       width: 40.w,
                     //       height: 40.h,
                     //       decoration: BoxDecoration(
-                    //         color: Colors.black.withOpacity(0.7),
+                    //         color: Colors.black.withValues(alpha:0.7),
                     //         borderRadius: BorderRadius.circular(20.r),
                     //         border: Border.all(
-                    //           color: Colors.white.withOpacity(0.3),
+                    //           color: Colors.white.withValues(alpha:0.3),
                     //           width: 1,
                     //         ),
                     //       ),
@@ -338,7 +348,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                             width: 40.w,
                             height: 4.h,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.5),
+                              color: Colors.white.withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(2.r),
                             ),
                           ),
@@ -370,20 +380,20 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
           children: [
             if (isLoading)
               SizedBox(
-                width: 32.sp,
-                height: 32.sp,
+                width: 32.w,
+                height: 32.h,
                 child: const CircularProgressIndicator(
                   color: Colors.blue,
                   strokeWidth: 2,
                 ),
               )
             else
-              Image.asset(icon, width: 32.sp, height: 32.sp),
+              Image.asset(icon, width: 32.w, height: 32.h),
             SizedBox(height: 8.h),
             Text(
               label,
               style: TextStyle(
-                color: Colors.white,
+                color: Color(0xFF202020),
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w400,
               ),
@@ -417,7 +427,7 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
           Text(
             label,
             style: TextStyle(
-              color: Colors.white,
+              color: Color(0xFF202020),
               fontSize: 16.sp,
               fontWeight: FontWeight.w400,
             ),

@@ -162,7 +162,7 @@ class _LocalGamePageState extends State<LocalGamePage> {
       return InAppWebView(
         initialUrlRequest: URLRequest(
           url: WebUri(
-            "${gameUrl!}/index.html?user_id=${widget.userId}&baseurl=http://147.93.103.135:8000/api/games",
+            "${gameUrl!}/index.html?user_id=${widget.userId}&baseurl=http://31.97.222.97:8000/api/games",
           ),
         ),
         // ignore: deprecated_member_use

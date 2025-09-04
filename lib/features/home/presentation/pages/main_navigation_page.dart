@@ -1,9 +1,12 @@
 import 'package:dlstarlive/features/home/presentation/pages/home_page.dart';
 import 'package:dlstarlive/features/newsfeed/presentation/pages/newsfeed.dart';
+import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_constants.dart';
-import '../../../live/presentation/pages/live_page.dart';
+import '../../../../core/auth/auth_bloc.dart';
+import '../../../../core/services/in_app_update_service.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 
@@ -17,12 +20,35 @@ class MainNavigationPage extends StatefulWidget {
 class _MainNavigationPageState extends State<MainNavigationPage> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    const HomePage(),
+  @override
+  void initState() {
+    super.initState();
+    // Check for optional app updates when main navigation loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForOptionalUpdates();
+    });
+  }
+
+  /// Check for optional updates (non-forced) when user is actively using the app
+  Future<void> _checkForOptionalUpdates() async {
+    try {
+      await InAppUpdateService.checkForOptionalUpdate(context);
+    } catch (e) {
+      debugPrint('Error checking for optional updates: $e');
+      // Silently fail for optional updates
+    }
+  }
+
+  List<Widget> get _pages => [
+    // Use a unique key to force HomePage to rebuild and refresh each time
+    HomePage(key: ValueKey('home_${DateTime.now().millisecondsSinceEpoch}')),
     const NewsfeedPage(),
-    const LivePage(),
+    const SizedBox(),
     const ChatPage(),
-    const ProfilePage(),
+    // Use a unique key to force ProfilePage to rebuild each time
+    ProfilePage(
+      key: ValueKey('profile_${DateTime.now().millisecondsSinceEpoch}'),
+    ),
   ];
   @override
   Widget build(BuildContext context) {
@@ -46,55 +72,96 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
           currentIndex: _currentIndex,
           onTap: (index) {
             setState(() {
+              if (index == 2) {
+                // Check if user is host before allowing live stream access
+                final authState = context.read<AuthBloc>().state;
+                if (authState is AuthAuthenticated) {
+                  final userRole = authState.user.userRole;
+                  if (userRole == 'host') {
+                    // User is host, allow access to live stream
+                    context.push(AppRoutes.live);
+                  } else {
+                    // User is not host, show restriction message
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('You must be a host to go live'),
+                        backgroundColor: Colors.red,
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                } else {
+                  // User not authenticated
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please log in to access live streaming'),
+                      backgroundColor: Colors.red,
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                }
+                return;
+              }
+
+              // If home tab is selected, force rebuild to refresh data
+              if (index == 0) {
+                _currentIndex = index;
+                // Force rebuild to refresh home data
+                return;
+              }
+
+              // If profile tab is selected, force rebuild to refresh profile data
+              if (index == 4) {
+                _currentIndex = index;
+                // Force rebuild to refresh profile data
+                return;
+              }
+
               _currentIndex = index;
             });
           },
           unselectedLabelStyle: const TextStyle(
-            color: Color(0xffFE82A7),
+            color: Color(0xff825CB3),
             fontWeight: FontWeight.w600,
           ),
           selectedLabelStyle: const TextStyle(
-            color: Color(0xffFE82A7),
+            color: Color(0xff825CB3),
             fontWeight: FontWeight.w600,
           ),
           backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xffFE82A7),
-          unselectedItemColor: const Color(0xffFE82A7),
+          selectedItemColor: const Color(0xff825CB3),
+          unselectedItemColor: const Color(0xff825CB3),
 
           items: [
             BottomNavigationBarItem(
-              icon: SvgPicture.asset(
-                UIConstants.homeIcon,
-                width: 24,
-                height: 24,
-              ),
-              activeIcon: SvgPicture.asset(
-                UIConstants.homeIcon,
+              icon: Image.asset(UIConstants.homeIcon, width: 24, height: 24),
+              activeIcon: Image.asset(
+                UIConstants.homeIconFill,
                 width: 24,
                 height: 24,
               ),
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: SvgPicture.asset(
+              icon: Image.asset(
                 UIConstants.newsfeedIcon,
                 width: 24,
                 height: 24,
               ),
-              activeIcon: SvgPicture.asset(
-                UIConstants.newsfeedIcon,
+              activeIcon: Image.asset(
+                UIConstants.newsfeedIconFill,
                 width: 24,
                 height: 24,
               ),
               label: 'Newsfeed',
             ),
             BottomNavigationBarItem(
-              icon: SvgPicture.asset(
+              icon: Image.asset(
                 UIConstants.liveStreamIcon,
                 width: 64,
                 height: 64,
               ),
-              activeIcon: SvgPicture.asset(
+              activeIcon: Image.asset(
                 UIConstants.liveStreamIcon,
                 width: 64,
                 height: 64,
@@ -102,26 +169,18 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               label: "",
             ),
             BottomNavigationBarItem(
-              icon: SvgPicture.asset(
-                UIConstants.chatIcon,
-                width: 24,
-                height: 24,
-              ),
-              activeIcon: SvgPicture.asset(
-                UIConstants.chatIcon,
+              icon: Image.asset(UIConstants.chatIcon, width: 24, height: 24),
+              activeIcon: Image.asset(
+                UIConstants.chatIconFill,
                 width: 24,
                 height: 24,
               ),
               label: 'Chat',
             ),
             BottomNavigationBarItem(
-              icon: SvgPicture.asset(
-                UIConstants.profileIcon,
-                width: 24,
-                height: 24,
-              ),
-              activeIcon: SvgPicture.asset(
-                UIConstants.profileIcon,
+              icon: Image.asset(UIConstants.profileIcon, width: 24, height: 24),
+              activeIcon: Image.asset(
+                UIConstants.profileIconFill,
                 width: 24,
                 height: 24,
               ),

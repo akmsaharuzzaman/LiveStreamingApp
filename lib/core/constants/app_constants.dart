@@ -13,7 +13,7 @@ class AppConstants {
 class DataConstants {
   // API Constants
   // static const String baseUrl = 'https://b8eff8466e05.ngrok-free.app';
-  static const String baseUrl = 'http://dlstarlive.com:8000';
+  static const String baseUrl = 'http://31.97.222.97:8000';
   static const Duration connectionTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);
 
@@ -167,6 +167,7 @@ class ApiConstants {
   // Version and health
   static const String version = '/version';
   static const String health = '/health';
+  static const String latestRelease = '/release/latest';
 
   // Headers
   static const String authHeader = 'Authorization';
@@ -193,6 +194,10 @@ class ApiConstants {
   static const String editPost = '/api/posts/edit';
   static String getAllPosts(int page, int limit) =>
       '/api/posts/?page=$page&limit=$limit';
+  static String getUserPosts(String userId, int page, int limit) =>
+      '/api/posts/users/$userId?page=$page&limit=$limit';
+  //! TODO: Update this endpoint to match your API
+  // '/api/posts/';
   static String deletePost(String postId) => '/api/posts/delete/$postId';
   static const String reactToPost = '/api/posts/react';
   static const String commentToPost = '/api/posts/comment';
@@ -200,6 +205,8 @@ class ApiConstants {
   // Reels endpoints
   static String getReels(int page, int limit) =>
       '/api/reels/?page=$page&limit=$limit';
+  static String getUserReels(String userId, int page, int limit) =>
+      '/api/reels/user/$userId?page=$page&limit=$limit';
   static const String reactToReel = '/api/reels/react/';
   static const String commentOnReel = '/api/reels/comment/';
   static String shareReel(String reelId) => '/api/reels/$reelId/share';
@@ -235,6 +242,7 @@ class UIConstants {
   static const String iconsPath = 'assets/icons/';
   static const String imagesPath = 'assets/images/';
   static const String logoImage = '${imagesPath}logo.png';
+  static const String generalPath = '${imagesPath}general/';
 
   // Image Icons and Logos
   //Placeholder images
@@ -244,9 +252,13 @@ class UIConstants {
   static const String appLogo = '${logoImage}google_logo.svg';
 
   //Icons
-  static const String homeIcon = '${iconsPath}home_icon.svg';
-  static const String profileIcon = '${iconsPath}profile_icon.svg';
-  static const String chatIcon = '${iconsPath}chat_icon.svg';
-  static const String liveStreamIcon = '${iconsPath}live_stream_icon.svg';
-  static const String newsfeedIcon = '${iconsPath}newsfeed_icon.svg';
+  static const String homeIcon = '${generalPath}home_icon.png';
+  static const String homeIconFill = '${generalPath}home_icon_fill.png';
+  static const String profileIcon = '${generalPath}profile_icon.png';
+  static const String profileIconFill = '${generalPath}profile_icon_fill.png';
+  static const String chatIcon = '${generalPath}message_icon.png';
+  static const String chatIconFill = '${generalPath}message_icon_fill.png';
+  static const String liveStreamIcon = '${generalPath}live_stream_icon.png';
+  static const String newsfeedIcon = '${generalPath}newsfeed_icon.png';
+  static const String newsfeedIconFill = '${generalPath}newsfeed_icon_fill.png';
 }

@@ -1,12 +1,14 @@
 import 'dart:developer';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/usecases/reels_usecases.dart';
+import '../../domain/entities/reel_entity.dart';
 import 'reels_event.dart';
 import 'reels_state.dart';
 
 class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
   final GetReelsUseCase getReelsUseCase;
   final LikeReelUseCase likeReelUseCase;
+  final ReactToReelUseCase reactToReelUseCase;
   final ShareReelUseCase shareReelUseCase;
   final AddCommentUseCase addCommentUseCase;
   final GetReelCommentsUseCase getReelCommentsUseCase;
@@ -20,6 +22,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
   ReelsBloc({
     required this.getReelsUseCase,
     required this.likeReelUseCase,
+    required this.reactToReelUseCase,
     required this.shareReelUseCase,
     required this.addCommentUseCase,
     required this.getReelCommentsUseCase,
@@ -32,6 +35,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     on<LoadMoreReels>(_onLoadMoreReels);
     on<RefreshReels>(_onRefreshReels);
     on<LikeReel>(_onLikeReel);
+    on<ReactToReel>(_onReactToReel);
     on<ShareReel>(_onShareReel);
     on<AddComment>(_onAddComment);
     on<GetReelComments>(_onGetReelComments);
@@ -106,10 +110,32 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
       final success = await likeReelUseCase(event.reelId);
       if (success) {
         log('Reel liked successfully: ${event.reelId}');
-        // Optionally update the local state here
+        // Update the local state
+        _updateReelReaction(event.reelId, 'like', emit);
       }
     } catch (e) {
       log('Error liking reel: $e');
+    }
+  }
+
+  Future<void> _onReactToReel(
+    ReactToReel event,
+    Emitter<ReelsState> emit,
+  ) async {
+    try {
+      final success = await reactToReelUseCase(
+        event.reelId,
+        event.reactionType,
+      );
+      if (success) {
+        log(
+          'Reel reacted successfully: ${event.reelId} with ${event.reactionType}',
+        );
+        // Update the local state
+        _updateReelReaction(event.reelId, event.reactionType, emit);
+      }
+    } catch (e) {
+      log('Error reacting to reel: $e');
     }
   }
 
@@ -129,6 +155,8 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
       final success = await addCommentUseCase(event.reelId, event.comment);
       if (success) {
         log('Comment added successfully: ${event.comment}');
+        // Update comment count in local state
+        _updateCommentCount(event.reelId, emit);
       }
     } catch (e) {
       log('Error adding comment: $e');
@@ -217,6 +245,105 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
       }
     } catch (e) {
       log('Error replying to comment: $e');
+    }
+  }
+
+  /// Helper method to update reel reaction in local state
+  void _updateReelReaction(
+    String reelId,
+    String reactionType,
+    Emitter<ReelsState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is ReelsLoaded) {
+      final updatedReels = currentState.reels.map((reel) {
+        if (reel.id == reelId) {
+          // Check if user already reacted
+          final hadPreviousReaction = reel.hasUserReacted;
+          final previousReactionType = reel.userReactionType;
+
+          if (hadPreviousReaction && previousReactionType == reactionType) {
+            // User is removing their reaction (toggle off)
+            return ReelEntity(
+              id: reel.id,
+              reelCaption: reel.reelCaption,
+              status: reel.status,
+              videoLength: reel.videoLength,
+              videoMaximumLength: reel.videoMaximumLength,
+              videoUrl: reel.videoUrl,
+              reactions: reel.reactions - 1, // Decrease reaction count
+              comments: reel.comments,
+              createdAt: reel.createdAt,
+              userInfo: reel.userInfo,
+              latestReactions: reel.latestReactions,
+              myReaction: null, // Remove user's reaction
+            );
+          } else {
+            // User is adding a new reaction or changing reaction type
+            int newReactionCount = reel.reactions;
+            if (hadPreviousReaction) {
+              // Changing reaction type (count stays same)
+              newReactionCount = reel.reactions;
+            } else {
+              // Adding new reaction
+              newReactionCount = reel.reactions + 1;
+            }
+
+            return ReelEntity(
+              id: reel.id,
+              reelCaption: reel.reelCaption,
+              status: reel.status,
+              videoLength: reel.videoLength,
+              videoMaximumLength: reel.videoMaximumLength,
+              videoUrl: reel.videoUrl,
+              reactions: newReactionCount,
+              comments: reel.comments,
+              createdAt: reel.createdAt,
+              userInfo: reel.userInfo,
+              latestReactions: reel.latestReactions,
+              myReaction: ReelReactionEntity(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                reactedBy:
+                    'currentUser', // You might want to get actual user ID
+                reactedTo: reelId,
+                reactionType: reactionType,
+                createdAt: DateTime.now().toIso8601String(),
+              ),
+            );
+          }
+        }
+        return reel;
+      }).toList();
+
+      emit(currentState.copyWith(reels: updatedReels));
+    }
+  }
+
+  /// Helper method to update comment count in local state
+  void _updateCommentCount(String reelId, Emitter<ReelsState> emit) {
+    final currentState = state;
+    if (currentState is ReelsLoaded) {
+      final updatedReels = currentState.reels.map((reel) {
+        if (reel.id == reelId) {
+          return ReelEntity(
+            id: reel.id,
+            reelCaption: reel.reelCaption,
+            status: reel.status,
+            videoLength: reel.videoLength,
+            videoMaximumLength: reel.videoMaximumLength,
+            videoUrl: reel.videoUrl,
+            reactions: reel.reactions,
+            comments: reel.comments + 1, // Increment comment count
+            createdAt: reel.createdAt,
+            userInfo: reel.userInfo,
+            latestReactions: reel.latestReactions,
+            myReaction: reel.myReaction,
+          );
+        }
+        return reel;
+      }).toList();
+
+      emit(currentState.copyWith(reels: updatedReels));
     }
   }
 }

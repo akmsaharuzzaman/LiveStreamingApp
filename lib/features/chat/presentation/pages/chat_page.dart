@@ -74,11 +74,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
             icon: Icon(Icons.more_vert, color: Colors.black87),
             onPressed: () {
               // Implement more options
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('More options not implemented yet'),
-                ),
-              );
+              context.push('/chat-settings');
             },
           ),
         ],

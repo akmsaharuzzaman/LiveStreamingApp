@@ -45,6 +45,49 @@ class ReelsApiService {
     }
   }
 
+  /// Fetch user-specific reels from API
+  Future<ReelsApiResponse> getUserReels({
+    required String userId,
+    int page = 1,
+    int limit = 10,
+  }) async {
+    try {
+      log(
+        'Fetching user reels from: ${ApiConstants.getUserReels(userId, page, limit)}',
+      );
+
+      final result = await _apiService.get(
+        ApiConstants.getUserReels(userId, page, limit),
+      );
+
+      log('API Result type: ${result.runtimeType}');
+      log('API Result: $result');
+
+      return result.when(
+        success: (data) {
+          log('Success data type: ${data.runtimeType}');
+          log('Success data: $data');
+
+          if (data is Map<String, dynamic>) {
+            return ReelsApiResponse.fromJson(data);
+          } else if (data is String) {
+            final Map<String, dynamic> jsonData = json.decode(data);
+            return ReelsApiResponse.fromJson(jsonData);
+          } else {
+            throw Exception('Unexpected response format: ${data.runtimeType}');
+          }
+        },
+        failure: (error) {
+          log('API Failure: $error');
+          throw Exception('Failed to load user reels: $error');
+        },
+      );
+    } catch (e) {
+      log('Exception in getUserReels: $e');
+      throw Exception('Error fetching user reels: $e');
+    }
+  }
+
   /// React to a reel
   Future<bool> reactToReel({
     required String reelId,
@@ -297,6 +340,40 @@ class ReelsApiService {
       );
     } catch (e) {
       log('Error replying to comment: $e');
+      return false;
+    }
+  }
+
+  /// Upload a new reel with proper video content type
+  Future<bool> uploadReel({
+    required String videoPath,
+    required String videoLength,
+    String? reelCaption,
+  }) async {
+    try {
+      log('Uploading reel: $videoPath with length: $videoLength');
+
+      // Use the new uploadVideoFile method with proper video MIME type
+      final result = await _apiService.uploadVideoFile<Map<String, dynamic>>(
+        ApiConstants.createReel,
+        videoPath,
+        fieldName: 'video',
+        data: {'videoLength': videoLength, 'reelCaption': reelCaption ?? ''},
+        fromJson: (data) => data is Map<String, dynamic> ? data : {},
+      );
+
+      return result.when(
+        success: (data) {
+          log('Successfully uploaded reel: $data');
+          return true;
+        },
+        failure: (error) {
+          log('Error uploading reel: $error');
+          return false;
+        },
+      );
+    } catch (e) {
+      log('Error uploading reel: $e');
       return false;
     }
   }

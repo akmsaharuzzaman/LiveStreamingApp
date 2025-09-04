@@ -1,24 +1,44 @@
 import 'dart:async';
-import 'dart:math';
+// import 'dart:math'; // removed unused import
+import 'package:flutter/foundation.dart';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
+import 'package:dlstarlive/core/network/api_service.dart';
+import 'package:dlstarlive/core/network/models/broadcaster_model.dart';
+import 'package:dlstarlive/core/network/models/call_request_list_model.dart';
+import 'package:dlstarlive/core/network/models/call_request_model.dart';
+import 'package:dlstarlive/core/network/models/chat_model.dart';
+import 'package:dlstarlive/core/network/models/gift_model.dart';
+import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:dlstarlive/core/network/socket_service.dart';
 import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:dlstarlive/features/live/presentation/component/agora_token_service.dart';
+import 'package:dlstarlive/features/live/presentation/component/gift_bottom_sheet.dart';
+import 'package:dlstarlive/features/live/presentation/component/send_message_buttonsheet.dart';
+import 'package:dlstarlive/features/live/presentation/widgets/call_overlay_widget.dart';
 import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/network/models/admin_details_model.dart';
+import '../../../../core/network/models/ban_user_model.dart';
+import '../../../../core/network/models/joined_user_model.dart';
+import '../../../../core/network/models/mute_user_model.dart';
+import '../../../../core/utils/app_utils.dart';
 import '../component/active_viwers.dart';
 import '../component/custom_live_button.dart';
 import '../component/diamond_star_status.dart';
 import '../component/end_stream_overlay.dart';
 import '../component/game_bottomsheet.dart';
 import '../component/host_info.dart';
+import '../component/menu_bottom_sheet.dart';
+import '../widgets/animated_layer.dart';
+import '../widgets/call_manage_bottom_sheet.dart';
 import '../widgets/live_chat_widget.dart';
 
 enum LiveScreenLeaveOptions { disconnect, muteCall, viewProfile }
@@ -28,12 +48,17 @@ class GoliveScreen extends StatefulWidget {
   final String? hostName;
   final String? hostUserId;
   final String? hostAvatar;
+  final List<HostDetails> existingViewers;
+  final int hostCoins;
+
   const GoliveScreen({
     super.key,
     this.roomId,
     this.hostName,
     this.hostUserId,
     this.hostAvatar,
+    this.existingViewers = const [],
+    this.hostCoins = 0,
   });
 
   @override
@@ -42,17 +67,50 @@ class GoliveScreen extends StatefulWidget {
 
 class _GoliveScreenState extends State<GoliveScreen> {
   final TextEditingController _titleController = TextEditingController();
+  final ApiService _apiService = ApiService.instance;
+
+  // Debug helper method to control logging based on debug mode
+  void _debugLog(String message) {
+    if (kDebugMode) {
+      // Only log in debug mode, and only essential messages
+      debugPrint(message);
+    }
+  }
 
   final SocketService _socketService = SocketService.instance;
   String? _currentRoomId;
   String? userId;
   bool isHost = true;
   String roomId = "default_channel";
+  List<JoinedUserModel> activeViewers = [];
+  List<CallRequestModel> callRequests = [];
+  List<CallRequestListModel> callDetailRequest = [];
+  List<String> callRequestsList = [];
+  List<String> broadcasterList = [];
+  List<BroadcasterModel> broadcasterModels = [];
+  List<BroadcasterModel> broadcasterDetails = [];
+  List<GiftModel> sentGifts = [];
+  // Banned users
+  List<String> bannedUsers = [];
+  // Banned user details
+  List<BanUserModel> bannedUserModels = [];
+  // Mute user details - store only the latest mute state
+  MuteUserModel? currentMuteState;
+  //Admin Details
+  List<AdminDetailsModel> adminModels = [];
 
   // Live stream timing
   DateTime? _streamStartTime;
   Timer? _durationTimer;
   Duration _streamDuration = Duration.zero;
+
+  // Daily bonus tracking - track last milestone called (50, 100, 150, etc.)
+  int _lastBonusMilestone = 0;
+
+  // Host activity tracking for viewers
+  Timer? _hostActivityTimer;
+  DateTime? _lastHostActivity;
+  bool _animationPlaying = false;
 
   // Stream subscriptions for proper cleanup
   StreamSubscription? _connectionStatusSubscription;
@@ -62,16 +120,198 @@ class _GoliveScreenState extends State<GoliveScreen> {
   StreamSubscription? _roomDeletedSubscription;
   StreamSubscription? _errorSubscription;
 
+  // Additional socket stream subscriptions
+  StreamSubscription? _userJoinedSubscription;
+  StreamSubscription? _userLeftSubscription;
+  StreamSubscription? _sentMessageSubscription;
+  StreamSubscription? _sentGiftSubscription;
+  StreamSubscription? _broadcasterListSubscription;
+  StreamSubscription? _bannedListSubscription;
+  StreamSubscription? _bannedUserSubscription;
+  StreamSubscription? _joinCallRequestSubscription;
+  StreamSubscription? _joinCallRequestListSubscription;
+
   // Chat messages
-  final List<ChatMessage> _chatMessages = [];
+  final List<ChatModel> _chatMessages = [];
 
   @override
   void initState() {
     super.initState();
+    _initializeExistingViewers();
     extractRoomId();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUidAndDispatchEvent();
     });
+  }
+
+  /// Debug method to print current diamond status
+  void _debugDiamondStatus() {
+    debugPrint("=== DIAMOND STATUS DEBUG ===");
+    debugPrint("🔍 Is host: $isHost");
+    debugPrint("🔍 Current user ID: $userId");
+    debugPrint("🏠 Widget host ID: ${widget.hostUserId}");
+    String? actualHostId = isHost ? userId : widget.hostUserId;
+    debugPrint("🏆 Actual host ID for calculation: $actualHostId");
+    debugPrint("📊 Total gifts received: ${sentGifts.length}");
+    debugPrint("👥 Active viewers count: ${activeViewers.length}");
+
+    for (var viewer in activeViewers) {
+      debugPrint(
+        "👤 ${viewer.name} (${viewer.id}): ${viewer.diamonds} diamonds",
+      );
+    }
+
+    debugPrint(
+      "🏆 Host total diamonds: ${GiftModel.totalDiamondsForHost(sentGifts, actualHostId)}",
+    );
+    debugPrint("=== END DEBUG ===");
+  }
+
+  /// Update diamonds for specific users when gifts are received
+  void _updateUserDiamonds(GiftModel gift) {
+    debugPrint(
+      "🎁 Processing gift: ${gift.gift.name} - ${gift.diamonds} diamonds",
+    );
+    debugPrint("🎯 Gift receiver IDs: ${gift.recieverIds}");
+    debugPrint("🏠 Widget host ID: ${widget.hostUserId}");
+    debugPrint("� Current user ID: $userId");
+    debugPrint("🔍 Is host: $isHost");
+    debugPrint("�👥 Current active viewers count: ${activeViewers.length}");
+
+    // Update diamonds for each receiver
+    for (String receiverId in gift.recieverIds) {
+      debugPrint("🔍 Checking receiver ID: $receiverId");
+
+      // Check if this receiver is the host (use different logic for host vs viewer)
+      String? actualHostId = isHost ? userId : widget.hostUserId;
+      if (receiverId == actualHostId) {
+        debugPrint("✅ Host ($receiverId) received ${gift.diamonds} diamonds");
+        debugPrint("🏆 Host is identified as: $actualHostId");
+      }
+
+      // Find user in activeViewers and update their diamonds
+      int userIndex = activeViewers.indexWhere((user) => user.id == receiverId);
+      if (userIndex != -1) {
+        int oldDiamonds = activeViewers[userIndex].diamonds;
+        activeViewers[userIndex] = activeViewers[userIndex].copyWith(
+          diamonds: activeViewers[userIndex].diamonds + gift.diamonds,
+        );
+        debugPrint(
+          "💎 Updated ${activeViewers[userIndex].name} diamonds: $oldDiamonds → ${activeViewers[userIndex].diamonds}",
+        );
+      } else {
+        debugPrint(
+          "⚠️ Receiver ID $receiverId not found in activeViewers list",
+        );
+        if (receiverId == actualHostId) {
+          debugPrint(
+            "📝 This is normal for host - host is not in activeViewers list",
+          );
+        }
+        // Print all active viewer IDs for debugging
+        debugPrint(
+          "📋 Active viewer IDs: ${activeViewers.map((v) => v.id).toList()}",
+        );
+      }
+    }
+
+    // Calculate total host diamonds for verification using correct host ID
+    String? hostIdForCalculation = isHost ? userId : widget.hostUserId;
+    int hostDiamonds = GiftModel.totalDiamondsForHost(
+      sentGifts,
+      hostIdForCalculation,
+    );
+    debugPrint(
+      "🏆 Total host diamonds (using $hostIdForCalculation): $hostDiamonds",
+    );
+  }
+
+  /// Convert HostDetails to JoinedUserModel and initialize existing viewers
+  void _initializeExistingViewers() {
+    if (widget.existingViewers.isNotEmpty) {
+      // First convert all existing viewers to JoinedUserModel
+      activeViewers = widget.existingViewers.map((hostDetail) {
+        return JoinedUserModel(
+          id: hostDetail.id,
+          avatar: hostDetail.avatar,
+          name: hostDetail.name,
+          uid: hostDetail.uid,
+          diamonds:
+              0, // Initialize with 0, will be updated when gifts are received
+        );
+      }).toList();
+
+      // Then check if host is in the list and remove if found
+      if (widget.hostUserId != null) {
+        activeViewers.removeWhere((viewer) => viewer.id == widget.hostUserId);
+        debugPrint(
+          "Host (${widget.hostUserId}) removed from active viewers list",
+        );
+      }
+
+      debugPrint(
+        "Initialized ${activeViewers.length} existing viewers (host excluded)",
+      );
+    }
+
+    // Note: Host coins initialization moved to _loadUidAndDispatchEvent after userId is set
+  }
+
+  /// Initialize host coins as synthetic gifts for display purposes
+  void _initializeHostCoins() {
+    if (widget.hostCoins > 0) {
+      debugPrint("💰 Initializing host coins: ${widget.hostCoins}");
+
+      // Create a synthetic gift model to represent existing host coins
+      // Use widget.hostUserId (always available) or userId if this user is the host
+      String? hostId = widget.hostUserId;
+
+      // If we don't have hostUserId from widget, but this user is the host, use userId
+      if (hostId == null && isHost && userId != null) {
+        hostId = userId;
+      }
+
+      debugPrint(
+        "🔍 Using host ID: $hostId (isHost: $isHost, userId: $userId, widget.hostUserId: ${widget.hostUserId})",
+      );
+
+      if (hostId != null && hostId.isNotEmpty) {
+        GiftModel syntheticGift = GiftModel(
+          avatar: widget.hostAvatar ?? "https://thispersondoesnotexist.com/",
+          name: widget.hostName ?? "Host",
+          recieverIds: [hostId],
+          diamonds: widget.hostCoins,
+          qty: 1,
+          gift: Gift(
+            id: "synthetic_initial_coins",
+            name: "Initial Coins",
+            category: "System",
+            diamonds: widget.hostCoins,
+            coinPrice: widget.hostCoins,
+            previewImage: "",
+            svgaImage: "",
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+            v: 0,
+          ),
+        );
+
+        sentGifts.add(syntheticGift);
+        debugPrint(
+          "✅ Added synthetic gift for host coins: ${widget.hostCoins} to host ID: $hostId",
+        );
+        debugPrint("🏆 Total gifts after initialization: ${sentGifts.length}");
+      } else {
+        debugPrint(
+          "⚠️ Could not initialize host coins - host ID is null or empty",
+        );
+        debugPrint("   widget.hostUserId: ${widget.hostUserId}");
+        debugPrint("   userId: $userId");
+        debugPrint("   isHost: $isHost");
+      }
+    } else {
+      debugPrint("💰 No host coins to initialize (${widget.hostCoins})");
+    }
   }
 
   void extractRoomId() {
@@ -94,7 +334,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
       // _showSnackBar('📡 Connecting to server...', Colors.blue);
       debugPrint('📡 Connecting to server...');
       await _initializeSocket();
-      _setupSocketListeners();
       // _showSnackBar('✅ Live stream ready!', Colors.green);
       debugPrint('✅ Live stream ready!');
     } catch (e) {
@@ -114,6 +353,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
         debugPrint("User ID set: $userId");
       });
 
+      // Initialize host coins after userId is set
+      if (widget.hostCoins > 0) {
+        _initializeHostCoins();
+      }
+
       // Initialize Agora and socket AFTER userId is loaded
       await initAgoraLoad();
     } else {
@@ -129,6 +373,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
       if (connected) {
         _setupSocketListeners();
+
+        // Initialize host activity monitoring for viewers
+        if (!isHost) {
+          _initHostActivityMonitoring();
+        }
 
         // If roomId is provided, join the room
         if (isHost) {
@@ -166,61 +415,261 @@ class _GoliveScreenState extends State<GoliveScreen> {
           }
         });
 
-    // Room events
-    _roomCreatedSubscription = _socketService.roomCreatedStream.listen((
-      roomId,
-    ) {
+    // User events
+    _userJoinedSubscription = _socketService.userJoinedStream.listen((data) {
       if (mounted) {
-        // _showSnackBar('🏠 Room created: $roomId', Colors.blue);
-        debugPrint("🏠 Room created: $roomId");
-        setState(() {
-          _currentRoomId = roomId;
-        });
-      }
-    });
+        // Don't add host to activeViewers list (use hostUserId from widget)
+        if (data.id != widget.hostUserId &&
+            !activeViewers.any((user) => user.id == data.id)) {
+          // Ensure new users start with 0 diamonds, but calculate existing diamonds from sentGifts
+          int existingDiamonds = GiftModel.totalDiamondsForUser(
+            sentGifts,
+            data.id,
+          );
 
-    _roomDeletedSubscription = _socketService.roomDeletedStream.listen((
-      roomId,
-    ) {
-      if (mounted) {
-        // _showSnackBar('🗑️ Room deleted: $roomId', Colors.orange);
-        debugPrint("🗑️ Room deleted: $roomId");
-        if (_currentRoomId == roomId) {
-          setState(() {
-            _currentRoomId = null;
-          });
+          JoinedUserModel userWithDiamonds = data.copyWith(
+            diamonds: existingDiamonds,
+          );
+          activeViewers.add(userWithDiamonds);
+
+          debugPrint("👤 User joined: ${data.name} - ${data.uid}");
+          debugPrint("💎 User's existing diamonds: $existingDiamonds");
         }
       }
     });
 
-    // User events
-    _socketService.userJoinedStream.listen((data) {
+    //Joined Call Requests List
+    _joinCallRequestSubscription = _socketService.joinCallRequestStream.listen((
+      data,
+    ) {
       if (mounted) {
-        final userName = data['userName'] ?? 'Unknown';
-        debugPrint("User joined: $userName , console from UI");
-        // _showSnackBar('👋 $userName joined the stream', Colors.green);
-        debugPrint("👋 $userName joined the stream");
+        if (!callRequests.any((user) => user.userId == data.userId)) {
+          callRequests.add(data);
+          _showSnackBar(
+            '📞 ${data.userDetails.name} wants to join the call',
+            Colors.blue,
+          );
+        }
+        debugPrint(
+          "User request to join call: ${data.userDetails.name} - ${data.userDetails.uid}",
+        );
+        // Update bottom sheet if it's open
+        _updateCallManageBottomSheet();
       }
     });
 
-    _socketService.userLeftStream.listen((data) {
+    _joinCallRequestListSubscription = _socketService.joinCallRequestListStream
+        .listen((data) {
+          if (mounted) {
+            callDetailRequest = data;
+            debugPrint("Call request list updated: $callDetailRequest");
+            // Update bottom sheet if it's open
+            _updateCallManageBottomSheet();
+          }
+        });
+
+    // Sent Messages
+    _sentMessageSubscription = _socketService.sentMessageStream.listen((data) {
       if (mounted) {
-        final userName = data['userName'] ?? 'Unknown';
-        // _showSnackBar('👋 $userName left the stream', Colors.orange);
-        debugPrint("👋 $userName left the stream");
-      }
-    }); // Room list updates
-    _socketService.roomListStream.listen((rooms) {
-      if (mounted) {
-        debugPrint("Available rooms: ${rooms.roomIds} from Frontend");
+        debugPrint("User sent a message: ${data.text}");
+        setState(() {
+          _chatMessages.add(data);
+        });
+        if (_chatMessages.length > 50) {
+          _chatMessages.removeAt(0);
+        }
       }
     });
 
-    // Error handling
-    _errorSubscription = _socketService.errorStream.listen((error) {
+    // Broadcaster List - in call
+    _broadcasterListSubscription = _socketService.broadcasterListStream.listen((
+      data,
+    ) {
       if (mounted) {
-        // _showSnackBar('❌ Error: $error', Colors.red);
-        debugPrint("Error from socket: $error");
+        // Now data is already List<BroadcasterModel> from socket
+        broadcasterModels = List.from(data);
+
+        // Extract IDs for backward compatibility with existing logic
+        broadcasterList = broadcasterModels.map((model) => model.id).toList();
+
+        // Check if current user is in broadcaster list before removing (for non-host logic)
+        bool wasUserInBroadcasterList = broadcasterList.contains(userId);
+
+        // Determine host ID: for hosts it's userId, for viewers it's widget.hostUserId
+        String? hostId = isHost ? userId : widget.hostUserId;
+
+        // Update host activity timestamp for viewers
+        if (!isHost && hostId != null && broadcasterList.contains(hostId)) {
+          _lastHostActivity = DateTime.now();
+        }
+
+        // CHECK FOR HOST DISCONNECTION - Exit live screen if host is no longer in broadcaster list
+        if (!isHost && hostId != null && !broadcasterList.contains(hostId)) {
+          _handleHostDisconnection("Host disconnected. Live session ended.");
+          return; // Early return to prevent further processing
+        }
+
+        // Remove ONLY the host from UI list (not current user if they're a caller)
+        if (hostId != null && broadcasterList.contains(hostId)) {
+          broadcasterList.remove(hostId);
+          broadcasterModels.removeWhere((model) => model.id == hostId);
+        }
+
+        debugPrint("Broadcaster(caller) list updated: $broadcasterList");
+        debugPrint("Host ID filtered out: $hostId");
+        debugPrint("Current userId: $userId");
+        debugPrint("IsHost: $isHost");
+        debugPrint(
+          "Broadcaster models updated: ${broadcasterModels.length} items",
+        );
+
+        // Handle non-host broadcaster status changes
+        if (!isHost) {
+          if (wasUserInBroadcasterList) {
+            // Notify user that they are now a broadcaster
+            _showSnackBar('🎤 You are now in Call', Colors.green);
+            _promoteToAudioCaller();
+          } else {
+            debugPrint("User is not a broadcaster");
+            _leaveAudioCaller();
+          }
+        }
+
+        // Update bottom sheet if it's open
+        _updateCallManageBottomSheet();
+      }
+    });
+
+    _userLeftSubscription = _socketService.userLeftStream.listen((data) {
+      if (mounted) {
+        activeViewers.removeWhere((user) => user.id == data.id);
+        broadcasterList.removeWhere((user) => user == data.id);
+        broadcasterDetails.removeWhere((user) => user.id == data.id);
+        broadcasterModels.removeWhere((model) => model.id == data.id);
+        debugPrint("User left: ${data.name} - ${data.id}");
+        debugPrint("Broadcaster list updated: $broadcasterList");
+      }
+    });
+
+    //Sent Gifts
+    _sentGiftSubscription = _socketService.sentGiftStream.listen((data) {
+      if (mounted) {
+        debugPrint("🎁 Gift received from socket: ${data.gift.name}");
+        debugPrint("💰 Gift diamonds: ${data.diamonds}");
+        debugPrint("🎯 Receivers: ${data.recieverIds}");
+        debugPrint("🔍 Is current user host? $isHost");
+        debugPrint("🔍 Current user ID: $userId");
+        debugPrint("🔍 Host user ID: ${widget.hostUserId}");
+
+        setState(() {
+          sentGifts.add(data);
+          // Update diamonds for users who received the gift
+          _updateUserDiamonds(data);
+        });
+
+        debugPrint("📊 Total gifts in list: ${sentGifts.length}");
+
+        // Calculate host diamonds separately for verification
+        int hostDiamonds = GiftModel.totalDiamondsForHost(
+          sentGifts,
+          widget.hostUserId,
+        );
+        debugPrint("🏆 Host total diamonds (calculated): $hostDiamonds");
+
+        // For host, also check using current userId
+        if (isHost && userId != null) {
+          int hostDiamondsFromUserId = GiftModel.totalDiamondsForUser(
+            sentGifts,
+            userId!,
+          );
+          debugPrint("🏆 Host diamonds using userId: $hostDiamondsFromUserId");
+        }
+
+        // Debug current status
+        _debugDiamondStatus();
+
+        // Force UI update
+        if (mounted) {
+          setState(() {
+            // Trigger rebuild to ensure DiamondStarStatus updates
+          });
+        }
+
+        sentGifts.isNotEmpty ? _playAnimation() : null;
+      }
+    });
+
+    //BannedUserList
+    _bannedListSubscription = _socketService.bannedListStream.listen((data) {
+      if (mounted) {
+        setState(() {
+          bannedUsers = List.from(data);
+        });
+        debugPrint("Banned user list updated: $bannedUsers");
+        if (bannedUsers.contains(userId)) {
+          _handleHostDisconnection("You have been banned from this room.");
+        }
+      }
+    });
+
+    //BannedUsers
+    _bannedUserSubscription = _socketService.bannedUserStream.listen((data) {
+      debugPrint("Banned user received:${data.targetId}");
+      if (mounted) {
+        setState(() {
+          bannedUserModels.add(data);
+          broadcasterList.removeWhere((user) => user == data.targetId);
+          activeViewers.removeWhere((user) => user.id == data.targetId);
+          bannedUsers.add(data.targetId);
+          adminModels.removeWhere((user) => user.id == data.targetId);
+          broadcasterDetails.removeWhere((user) => user.id == data.targetId);
+          broadcasterModels.removeWhere((user) => user.id == data.targetId);
+        });
+        if (data.targetId == userId) {
+          _handleHostDisconnection("You have been banned from this room.");
+        }
+        _showSnackBar(data.message, Colors.red);
+      }
+    });
+
+    //Mute user
+    _socketService.muteUserStream.listen((data) {
+      if (mounted) {
+        setState(() {
+          // Store only the latest mute state which contains all muted users
+          currentMuteState = data;
+        });
+        if (mounted) {
+          _showSnackBar(
+            "An ${data.lastUserIsMuted ? 'user is muted' : 'user is unmuted'} by admin",
+            Colors.red,
+          );
+        }
+        debugPrint(
+          "User muted: ${data.allMutedUsersList} - ${data.lastUserIsMuted}",
+        );
+
+        // Check if current user is muted and force mute them
+        if (_isCurrentUserMuted()) {
+          _forceMuteCurrentUser();
+        }
+      }
+    });
+
+    //AdminList
+    _socketService.adminDetailsStream.listen((data) {
+      if (mounted) {
+        setState(() {
+          adminModels.add(data);
+        });
+        debugPrint("Admin list updated: ${adminModels.length} admins");
+      }
+    });
+
+    // Room Closed - Host ended the live session
+    _socketService.roomClosedStream.listen((data) {
+      if (mounted) {
+        _handleHostDisconnection("Live session ended by host.");
       }
     });
 
@@ -238,11 +687,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
         debugPrint("🛑 Stream ended");
       }
     });
+  }
 
-    _socketService.on('viewer-count-updated', (data) {
-      final count = data['count'] ?? 0;
-      debugPrint('👥 Viewers: $count');
-    });
+  /// Update the CallManageBottomSheet with current data
+  void _updateCallManageBottomSheet() {
+    callManageBottomSheetKey.currentState?.updateData(
+      newCallers: callRequests,
+      newInCallList: broadcasterModels,
+    );
   }
 
   /// Create a new room (for hosts)
@@ -257,7 +709,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
     final dynamicRoomId = userId!;
     debugPrint('🏠 Creating room with dynamic name: $dynamicRoomId');
 
-    final success = await _socketService.createRoom(dynamicRoomId);
+    final success = await _socketService.createRoom(
+      dynamicRoomId,
+      "Demo Title",
+      RoomType.live,
+    );
 
     if (success) {
       setState(() {
@@ -299,6 +755,74 @@ class _GoliveScreenState extends State<GoliveScreen> {
     }
   }
 
+  //Sent/Send Message
+  void _emitMessageToSocket(String message) {
+    if (message.isNotEmpty && _currentRoomId != null) {
+      _socketService.sendMessage(_currentRoomId!, message);
+    }
+  }
+
+  // Make Admin
+  void _makeAdmin(String userId) {
+    _socketService.makeAdmin(userId);
+  }
+
+  // Remove Admin
+  void _removeAdmin(String userId) {
+    _socketService.makeAdmin(userId);
+  }
+
+  /// Ban User
+  void _banUser(String userId) {
+    _socketService.banUser(userId);
+  }
+
+  /// Mute User
+  void _muteUser(String userId) {
+    _socketService.muteUser(userId);
+  }
+
+  /// Check if current user is in the muted users list
+  bool _isCurrentUserMuted() {
+    if (userId == null || currentMuteState == null) return false;
+
+    // Check if current user is in the complete list of muted users
+    return currentMuteState!.allMutedUsersList.contains(userId);
+  }
+
+  /// Force mute current user when they are administratively muted
+  void _forceMuteCurrentUser() async {
+    if ((isHost || _isAudioCaller) && !_muted) {
+      try {
+        await _engine.muteLocalAudioStream(true);
+        setState(() {
+          _muted = true;
+        });
+        _showSnackBar('🔇 You have been muted by an admin', Colors.red);
+        debugPrint("Current user force muted by admin");
+      } catch (e) {
+        debugPrint('❌ Error force muting user: $e');
+      }
+    }
+  }
+
+  /// Check if current user is an admin
+  bool _isCurrentUserAdmin() {
+    if (userId == null) return false;
+
+    for (var adminModel in adminModels) {
+      if (adminModel.id == userId) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Check if current user is the host
+  bool _isCurrentUserHost() {
+    return isHost;
+  }
+
   /// Delete room (only host can delete)
   Future<void> _deleteRoom() async {
     if (_currentRoomId != null && userId != null) {
@@ -323,62 +847,94 @@ class _GoliveScreenState extends State<GoliveScreen> {
   /// Show snackbar message
   void _showSnackBar(String message, Color color) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: color,
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      // Remove current snackbar before showing a new one
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: color,
+            duration: const Duration(seconds: 2),
+          ),
+        );
     }
   }
 
-  /// Generate dummy chat message
-  void _generateDummyMessage() {
-    final random = Random();
-    final dummyUsers = [
-      'Habib',
-      'Nasim Replay',
-      'Nahid',
-      'Sarah',
-      'Ahmed',
-      'Fatima',
-      'Omar',
-      'Aisha',
-    ];
-    final dummyMessages = [
-      'how are you',
-      'fine and you',
-      'Joined the room',
-      'Hello everyone!',
-      'Great stream!',
-      'Love this content',
-      'Amazing performance',
-      'Keep it up!',
-      'Nice work',
-      'Awesome!',
-    ];
+  /// Handle host disconnection - Exit live screen with cleanup
+  void _handleHostDisconnection(String reason) {
+    if (!mounted) return;
 
-    final userName = dummyUsers[random.nextInt(dummyUsers.length)];
-    final message = dummyMessages[random.nextInt(dummyMessages.length)];
-    final level = random.nextInt(25) + 1; // Level 1-25
-    final isVip =
-        random.nextBool() && level > 10; // VIP more likely for higher levels
+    debugPrint("🚨 $reason - Exiting live screen...");
+    _showSnackBar('📱 $reason', Colors.red);
 
-    final newMessage = ChatMessage(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      userName: userName,
-      message: message,
-      timestamp: DateTime.now(),
-      level: level,
-      isVip: isVip,
+    // Perform basic cleanup
+    _stopStreamTimer();
+    _hostActivityTimer?.cancel();
+
+    // Small delay to show the message before navigating
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) {
+        Navigator.of(context).pop(); // Exit the live screen
+      }
+    });
+  }
+
+  /// Start monitoring for host disconnection when no video broadcasters are present
+  void _startHostDisconnectionMonitoring() {
+    // Don't start multiple timers
+    if (_hostActivityTimer != null) return;
+
+    debugPrint(
+      "🔍 No video broadcasters detected - starting 7 second countdown...",
     );
 
-    setState(() {
-      _chatMessages.add(newMessage);
-      // Keep only last 50 messages to prevent memory issues
-      if (_chatMessages.length > 50) {
-        _chatMessages.removeAt(0);
+    // Wait 7 seconds before considering host disconnected
+    _hostActivityTimer = Timer(const Duration(seconds: 7), () {
+      if (!mounted) return;
+
+      // Double check that there are still no video broadcasters
+      List<int> currentBroadcasters = [
+        if (_remoteUid != null) _remoteUid!,
+        ..._videoCallerUids,
+        if (_isAudioCaller && isCameraEnabled) 0,
+      ];
+
+      if (currentBroadcasters.isEmpty) {
+        debugPrint(
+          "🚨 No video broadcasters for 7 seconds - host disconnected",
+        );
+        _handleHostDisconnection("Host disconnected. Live session ended.");
+      } else {
+        debugPrint("✅ Video broadcasters detected - host reconnected");
+      }
+
+      _hostActivityTimer = null;
+    });
+  }
+
+  /// Initialize host activity monitoring for viewers
+  void _initHostActivityMonitoring() {
+    if (isHost) return; // Only for viewers
+
+    _lastHostActivity = DateTime.now();
+
+    // Check host activity every 5 seconds
+    _hostActivityTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      final now = DateTime.now();
+      final lastActivity = _lastHostActivity;
+
+      // If no activity detected for 13 seconds, consider host disconnected
+      if (lastActivity != null &&
+          now.difference(lastActivity).inSeconds >= 13) {
+        timer.cancel();
+        _handleHostDisconnection(
+          "Host appears to be inactive. Live session ended.",
+        );
       }
     });
   }
@@ -389,8 +945,49 @@ class _GoliveScreenState extends State<GoliveScreen> {
   bool _localUserJoined = false;
   final List<int> _remoteUsers = [];
   bool _muted = false;
-  int _viewerCount = 0;
   bool _isInitializingCamera = false;
+
+  // Audio caller feature variables
+  bool _isAudioCaller = false;
+  final List<int> _audioCallerUids = [];
+  final List<int> _videoCallerUids = []; // Track callers with video enabled
+  final int _maxAudioCallers = 3;
+  bool _isJoiningAsAudioCaller = false;
+  bool isCameraEnabled = false;
+
+  Future<void> _applyCameraPreference() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      // Debug: List all keys to verify SharedPreferences is working
+      Set<String> keys = prefs.getKeys();
+      debugPrint('🔍 All SharedPreferences keys: $keys');
+
+      bool isFrontCamera = prefs.getBool('is_front_camera') ?? true;
+
+      debugPrint(
+        '🔍 Reading camera preference from SharedPreferences (AFTER channel join):',
+      );
+      debugPrint('📱 Stored value: $isFrontCamera');
+      debugPrint(
+        '🔄 Applying camera preference: ${isFrontCamera ? 'Front' : 'Rear'} camera',
+      );
+
+      // If the saved preference is for rear camera, switch to it
+      if (!isFrontCamera) {
+        debugPrint('🔄 Switching to rear camera AFTER channel join...');
+        await _engine.switchCamera();
+        debugPrint(
+          '✅ Applied camera preference: Rear camera (AFTER channel join)',
+        );
+      } else {
+        debugPrint(
+          '✅ Applied camera preference: Front camera (default - AFTER channel join)',
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Error applying camera preference AFTER channel join: $e');
+    }
+  }
 
   Future<void> initAgora() async {
     try {
@@ -428,14 +1025,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
       }
 
       // Only initialize Agora AFTER permissions are confirmed
-      debugPrint('✅ Permissions granted, initializing Agora engine...');
-      // _showSnackBar('🎥 Initializing camera...', Colors.blue);
-      debugPrint('🎥 Initializing camera...');
+      _debugLog('✅ Permissions granted, initializing Agora engine...');
+      _debugLog('🎥 Initializing camera...');
 
       //create the engine
       _engine = createAgoraRtcEngine();
       await _engine.initialize(
         RtcEngineContext(
+          logConfig: LogConfig(
+            filePath: 'agora_rtc_engine.log',
+            level: LogLevel.logLevelNone,
+          ),
           appId: dotenv.env['AGORA_APP_ID'] ?? '',
           channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
         ),
@@ -444,6 +1044,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
       setState(() {
         _isInitializingCamera = false;
       });
+
+      // Load camera preference and apply it
+      // Moved this to after video initialization
+      // await _applyCameraPreference();
     } catch (e) {
       debugPrint('❌ Error in initAgora: $e');
       _showSnackBar('❌ Failed to initialize live streaming', Colors.red);
@@ -464,52 +1068,119 @@ class _GoliveScreenState extends State<GoliveScreen> {
             // Don't set _remoteUid here - it should only be set when a remote user joins
           });
 
+          // Apply camera preference AFTER successfully joining the channel
+          debugPrint('🔍 onJoinChannelSuccess - isHost: $isHost');
+          if (isHost) {
+            debugPrint(
+              '🔍 Calling _applyCameraPreference() from onJoinChannelSuccess',
+            );
+            _applyCameraPreference();
+          } else {
+            debugPrint('🔍 Not applying camera preference - user is not host');
+          }
+
           // Start timing the stream when successfully joined
           _startStreamTimer();
 
           // Show success message
           if (isHost) {
-            // _showSnackBar('🎥 Live stream started!', Colors.green);
-            debugPrint('🎥 Live stream started!');
+            _debugLog('🎥 Live stream started!');
           } else {
-            // _showSnackBar('📺 Connected to stream!', Colors.green);
-            debugPrint('📺 Connected to stream!');
+            _debugLog('📺 Connected to stream!');
           }
         },
         onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
-          debugPrint(
-            "remote user $remoteUid joined channel: ${connection.channelId}",
-          );
-          debugPrint("Current isHost: $isHost, _remoteUid before: $_remoteUid");
+          // Reduced logging: only log important events
+          _debugLog("User $remoteUid joined channel");
+
           setState(() {
-            _remoteUid = remoteUid;
+            // Only set _remoteUid for the first video user (host)
+            if (_remoteUid == null && !isHost) {
+              _remoteUid = remoteUid;
+            }
             _remoteUsers.add(remoteUid);
-            _viewerCount = _remoteUsers.length;
           });
-          debugPrint(
-            "_remoteUid after: $_remoteUid, total users: ${_remoteUsers.length}",
-          );
 
           // Update viewer count in Firestore
           if (isHost) {
             // _firestoreService.updateViewerCount(widget.streamId, _viewerCount);
           }
         },
+        onRemoteVideoStateChanged:
+            (
+              RtcConnection connection,
+              int remoteUid,
+              RemoteVideoState state,
+              RemoteVideoStateReason reason,
+              int elapsed,
+            ) {
+              // Reduced logging for video state changes
+
+              setState(() {
+                if (state == RemoteVideoState.remoteVideoStateStarting ||
+                    state == RemoteVideoState.remoteVideoStateDecoding) {
+                  // User enabled video
+                  if (!_videoCallerUids.contains(remoteUid) &&
+                      remoteUid != _remoteUid) {
+                    _videoCallerUids.add(remoteUid);
+                  }
+                } else if (state == RemoteVideoState.remoteVideoStateStopped) {
+                  // User disabled video
+                  _videoCallerUids.remove(remoteUid);
+
+                  // Add to audio callers if they're still broadcasting audio
+                  if (!_audioCallerUids.contains(remoteUid) &&
+                      remoteUid != _remoteUid &&
+                      _audioCallerUids.length < _maxAudioCallers) {
+                    _audioCallerUids.add(remoteUid);
+                  }
+                }
+              });
+            },
+        onRemoteAudioStateChanged:
+            (
+              RtcConnection connection,
+              int remoteUid,
+              RemoteAudioState state,
+              RemoteAudioStateReason reason,
+              int elapsed,
+            ) {
+              // Reduced logging for audio state changes
+
+              // Track audio-only users (audio callers)
+              if (state == RemoteAudioState.remoteAudioStateStarting ||
+                  state == RemoteAudioState.remoteAudioStateDecoding) {
+                setState(() {
+                  // Add to audio callers if not already present and not the host
+                  if (!_audioCallerUids.contains(remoteUid) &&
+                      remoteUid != _remoteUid &&
+                      _audioCallerUids.length < _maxAudioCallers) {
+                    _audioCallerUids.add(remoteUid);
+                  }
+                });
+              } else if (state == RemoteAudioState.remoteAudioStateStopped) {
+                setState(() {
+                  _audioCallerUids.remove(remoteUid);
+                });
+              }
+            },
         onUserOffline:
             (
               RtcConnection connection,
               int remoteUid,
               UserOfflineReasonType reason,
             ) {
-              debugPrint("remote user $remoteUid left channel");
+              _debugLog("User $remoteUid left channel");
               setState(() {
-                // Only set _remoteUid to null if it was the user who left
+                // Remove from both audio and video callers if they were callers
+                _audioCallerUids.remove(remoteUid);
+                _videoCallerUids.remove(remoteUid);
+
+                // Only set _remoteUid to null if it was the host who left
                 if (_remoteUid == remoteUid) {
                   _remoteUid = null;
                 }
                 _remoteUsers.remove(remoteUid);
-                _viewerCount = _remoteUsers.length;
-                generateActiveViewers(_viewerCount);
               });
 
               // Update viewer count in Firestore
@@ -536,7 +1207,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
     // Only start preview for broadcasters
     if (isHost) {
+      // Apply saved camera preference immediately for preview
+      await _applyCameraPreference();
       await _engine.startPreview();
+
+      // Camera preference will be applied AFTER joining channel successfully
+      // await _applyCameraPreference();
     }
 
     // For viewers, join channel immediately
@@ -568,6 +1244,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
         role: isHost ? 'publisher' : 'subscriber',
       );
       debugPrint('💲💲Token generation result new: ${result.token}');
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('agora_token', result.token);
       if (result.token.isNotEmpty) {
         final dynamicToken = result.token;
         debugPrint('✅ Token generated successfully : $dynamicToken');
@@ -610,12 +1288,208 @@ class _GoliveScreenState extends State<GoliveScreen> {
     );
   }
 
+  /// Promote viewer to audio caller (join audio call)
+  Future<void> _promoteToAudioCaller() async {
+    if (_isAudioCaller) {
+      _showSnackBar('🎤 You are already an audio caller', Colors.orange);
+      return;
+    }
+
+    if (_audioCallerUids.length >= _maxAudioCallers) {
+      _showSnackBar('🎤 Audio call is full ($_maxAudioCallers/3)', Colors.red);
+      return;
+    }
+
+    if (_isJoiningAsAudioCaller) {
+      _showSnackBar('🎤 Please wait, joining audio call...', Colors.blue);
+      return;
+    }
+
+    try {
+      setState(() {
+        _isJoiningAsAudioCaller = true;
+      });
+
+      _showSnackBar('🎤 Joining audio call...', Colors.blue);
+
+      // DON'T leave channel - just change role and settings
+      // This prevents video freezing for the user
+      await _switchToAudioCaller();
+
+      setState(() {
+        _isAudioCaller = true;
+        _muted = false; // Enable microphone for audio caller
+        _isJoiningAsAudioCaller = false;
+      });
+
+      _showSnackBar('🎤 Joined as audio caller!', Colors.green);
+      debugPrint("Successfully promoted to audio caller");
+    } catch (e) {
+      debugPrint('❌ Error promoting to audio caller: $e');
+      _showSnackBar('❌ Failed to join audio call', Colors.red);
+      setState(() {
+        _isJoiningAsAudioCaller = false;
+      });
+    }
+  }
+
+  /// Leave audio caller role and return to audience
+  Future<void> _leaveAudioCaller() async {
+    if (!_isAudioCaller) {
+      return;
+    }
+
+    try {
+      _showSnackBar('🎤 Leaving audio call...', Colors.blue);
+
+      // DON'T leave channel - just change role and settings
+      // This prevents video freezing for the user
+      await _switchToAudience();
+
+      setState(() {
+        _isAudioCaller = false;
+        _muted = true; // Mute as audience
+      });
+
+      _showSnackBar('👥 Returned to audience', Colors.green);
+      debugPrint("Successfully left audio caller role");
+    } catch (e) {
+      debugPrint('❌ Error leaving audio caller: $e');
+      _showSnackBar('❌ Failed to leave audio call', Colors.red);
+    }
+  }
+
+  /// Check if user can become audio caller
+  bool _canJoinAudioCall() {
+    return !isHost &&
+        !_isAudioCaller &&
+        _audioCallerUids.length < _maxAudioCallers &&
+        !_isJoiningAsAudioCaller;
+  }
+
+  /// Get audio caller count text
+  String _getAudioCallerText() {
+    return 'Join';
+  }
+
+  /// Switch Camera
+  // ignore: unused_element
+  Future<void> _turnOnOffCamera() async {
+    try {
+      if (_isInitializingCamera) {
+        debugPrint('Camera is still initializing, please wait...');
+        return;
+      }
+
+      if (!_isAudioCaller) {
+        _showSnackBar(
+          '🎤 Only audio callers can control camera',
+          Colors.orange,
+        );
+        return;
+      }
+
+      // Toggle camera state
+      setState(() {
+        isCameraEnabled = !isCameraEnabled;
+      });
+
+      await _engine.enableLocalVideo(isCameraEnabled);
+      await _engine.muteLocalVideoStream(!isCameraEnabled);
+
+      if (isCameraEnabled) {
+        debugPrint('📷 Camera turned on');
+        _showSnackBar(
+          '📷 Camera turned on - You are now visible!',
+          Colors.green,
+        );
+      } else {
+        debugPrint('📷 Camera turned off');
+        _showSnackBar('📷 Camera turned off - Audio only mode', Colors.orange);
+      }
+    } catch (e) {
+      debugPrint('❌ Error toggling camera: $e');
+      _showSnackBar('❌ Failed to toggle camera', Colors.red);
+      // Revert state on error
+      setState(() {
+        isCameraEnabled = !isCameraEnabled;
+      });
+    }
+  }
+
+  /// Optimized role switching without channel interruption
+  Future<void> _switchToAudioCaller() async {
+    try {
+      // Set role to broadcaster to enable audio publishing
+      await _engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
+
+      // Configure media settings for audio caller
+      await _engine.enableLocalAudio(true); // Enable audio publishing
+      await _engine.enableLocalVideo(false); // Start with video disabled
+      await _engine.muteLocalVideoStream(
+        true,
+      ); // Ensure video is muted initially
+      await _engine.muteLocalAudioStream(false); // Unmute microphone
+
+      // Reset camera state to false for audio callers
+      setState(() {
+        isCameraEnabled = false;
+      });
+
+      debugPrint(
+        "✅ Switched to audio caller role without channel interruption",
+      );
+    } catch (e) {
+      debugPrint("❌ Error switching to audio caller: $e");
+      rethrow;
+    }
+  }
+
+  /// Optimized role switching back to audience
+  Future<void> _switchToAudience() async {
+    try {
+      // Set role back to audience
+      await _engine.setClientRole(role: ClientRoleType.clientRoleAudience);
+
+      // Configure media settings for audience
+      await _engine.enableLocalAudio(false); // Disable audio publishing
+      await _engine.enableLocalVideo(false); // Keep video disabled for audience
+      await _engine.muteLocalAudioStream(true); // Mute microphone
+
+      // Reset camera state
+      setState(() {
+        isCameraEnabled = false;
+      });
+
+      debugPrint(
+        "✅ Switched back to audience role without channel interruption",
+      );
+    } catch (e) {
+      debugPrint("❌ Error switching to audience: $e");
+      rethrow;
+    }
+  }
+
   // Toggle microphone
   void _toggleMute() async {
-    await _engine.muteLocalAudioStream(!_muted);
-    setState(() {
-      _muted = !_muted;
-    });
+    if (isHost || _isAudioCaller) {
+      // Allow users to unmute themselves even if they were admin muted
+      await _engine.muteLocalAudioStream(!_muted);
+      setState(() {
+        _muted = !_muted;
+      });
+
+      if (_muted) {
+        _showSnackBar('🔇 Microphone muted', Colors.orange);
+      } else {
+        _showSnackBar('🎤 Microphone unmuted', Colors.green);
+      }
+    } else {
+      _showSnackBar(
+        '🎤 Only hosts and audio callers can use microphone',
+        Colors.orange,
+      );
+    }
   }
 
   // Start stream timer
@@ -626,6 +1500,16 @@ class _GoliveScreenState extends State<GoliveScreen> {
         setState(() {
           _streamDuration = DateTime.now().difference(_streamStartTime!);
         });
+
+        // Check for 50-minute milestones for hosts only (50, 100, 150, etc.)
+        if (isHost && _streamDuration.inMinutes >= 50) {
+          int currentMilestone = (_streamDuration.inMinutes ~/ 50) * 50;
+
+          // Only call API if we've reached a new milestone
+          if (currentMilestone > _lastBonusMilestone) {
+            _callDailyBonusAPI();
+          }
+        }
       }
     });
   }
@@ -645,11 +1529,157 @@ class _GoliveScreenState extends State<GoliveScreen> {
     return "$hours:$minutes:$seconds";
   }
 
+  // Play animation for two seconds
+  void _playAnimation() {
+    setState(() {
+      _animationPlaying = true;
+    });
+
+    // Stop the animation after 2 seconds
+    Future.delayed(const Duration(seconds: 7), () {
+      setState(() {
+        _animationPlaying = false;
+      });
+    });
+  }
+
+  // Call daily bonus API for every 50 minute milestone (50, 100, 150, etc.)
+  Future<void> _callDailyBonusAPI() async {
+    if (!isHost) return;
+
+    final totalMinutes = _streamDuration.inMinutes;
+    final currentMilestone = (totalMinutes ~/ 50) * 50;
+
+    // Don't call if we've already processed this milestone
+    if (currentMilestone <= _lastBonusMilestone) return;
+
+    try {
+      debugPrint(
+        "🏆 Calling daily bonus API for $totalMinutes minutes of streaming (milestone: ${currentMilestone}m)",
+      );
+
+      final response = await _apiService.post<Map<String, dynamic>>(
+        '/api/auth/daily-bonus',
+        data: {'totalTime': totalMinutes, 'type': 'live'},
+      );
+
+      response.fold(
+        (data) {
+          debugPrint("✅ Daily bonus API call successful: $data");
+
+          // Check if response is successful and has result data
+          if (data['success'] == true && data['result'] != null) {
+            final result = data['result'] as Map<String, dynamic>;
+            final int bonusDiamonds = result['diamonds'] ?? 0;
+
+            if (bonusDiamonds > 0) {
+              debugPrint("💎 Received daily bonus: $bonusDiamonds diamonds");
+
+              // Create a synthetic gift model to represent the daily bonus
+              final bonusGift = GiftModel(
+                avatar:
+                    "https://cdn-icons-png.flaticon.com/512/2583/2583788.png", // Bonus icon
+                name: "System Bonus",
+                recieverIds: [userId!], // Host receives the bonus
+                diamonds: bonusDiamonds,
+                qty: 1,
+                gift: Gift(
+                  id: "daily_bonus_${DateTime.now().millisecondsSinceEpoch}",
+                  name: "Daily Streaming Bonus",
+                  category: "Bonus",
+                  diamonds: bonusDiamonds,
+                  coinPrice: bonusDiamonds,
+                  previewImage:
+                      "https://cdn-icons-png.flaticon.com/512/2583/2583788.png",
+                  svgaImage: "",
+                  createdAt: DateTime.now(),
+                  updatedAt: DateTime.now(),
+                  v: 0,
+                ),
+              );
+
+              // Add the bonus gift to sentGifts and update UI like a received gift
+              setState(() {
+                sentGifts.add(bonusGift);
+                _updateUserDiamonds(bonusGift);
+                _lastBonusMilestone = currentMilestone;
+              });
+
+              // Trigger gift animation
+              _playAnimation();
+
+              _showSnackBar(
+                '🎉 Daily streaming bonus earned: $bonusDiamonds diamonds! (${currentMilestone}m milestone)',
+                Colors.green,
+              );
+              debugPrint("🎁 Daily bonus added as gift to host");
+            } else {
+              _showSnackBar(
+                '🎉 Daily streaming bonus earned! (${currentMilestone}m milestone)',
+                Colors.green,
+              );
+              setState(() {
+                _lastBonusMilestone = currentMilestone;
+              });
+            }
+          } else {
+            _showSnackBar(
+              '🎉 Daily streaming bonus earned! (${currentMilestone}m milestone)',
+              Colors.green,
+            );
+            setState(() {
+              _lastBonusMilestone = currentMilestone;
+            });
+          }
+        },
+        (error) {
+          debugPrint("❌ Daily bonus API call failed: $error");
+          // Update milestone even on error to prevent continuous retries
+          setState(() {
+            _lastBonusMilestone = currentMilestone;
+          });
+
+          // Check if it's a "maximum bonus reached" error
+          if (error.contains("maximum bonus") || error.contains("reached")) {
+            _showSnackBar(
+              '⚠️ Daily bonus limit reached (${currentMilestone}m)',
+              Colors.orange,
+            );
+          } else {
+            _showSnackBar(
+              '⚠️ Bonus reward processing... (${currentMilestone}m)',
+              Colors.orange,
+            );
+          }
+        },
+      );
+    } catch (e) {
+      debugPrint("❌ Exception calling daily bonus API: $e");
+      // Update milestone even on exception to prevent continuous retries
+      setState(() {
+        _lastBonusMilestone = currentMilestone;
+      });
+      _showSnackBar(
+        '❌ Failed to process bonus (${currentMilestone}m)',
+        Colors.red,
+      );
+    }
+  }
+
   // End live stream
   void _endLiveStream() async {
     try {
       // Stop the stream timer
       _stopStreamTimer();
+
+      // Reset audio caller state
+      setState(() {
+        _isAudioCaller = false;
+        _audioCallerUids.clear();
+        _videoCallerUids.clear();
+        _isJoiningAsAudioCaller = false;
+        isCameraEnabled = false;
+      });
 
       if (isHost) {
         // If host, delete the room
@@ -662,12 +1692,32 @@ class _GoliveScreenState extends State<GoliveScreen> {
         if (mounted) {
           final state = context.read<AuthBloc>().state;
           if (state is AuthAuthenticated) {
+            // Call daily bonus API if stream duration is valid and we haven't called for current milestone
+            if (_streamDuration.inMinutes > 0) {
+              int currentMilestone = (_streamDuration.inMinutes ~/ 50) * 50;
+              if (currentMilestone > _lastBonusMilestone &&
+                  currentMilestone >= 50) {
+                await _callDailyBonusAPI();
+              }
+            }
+
+            // Calculate total earned diamonds/coins
+            int earnedDiamonds = GiftModel.totalDiamondsForHost(
+              sentGifts,
+              userId, // Use userId for host
+            );
+
+            debugPrint(
+              "🏆 Host ending live stream - Total earned diamonds: $earnedDiamonds",
+            );
+            debugPrint("📊 Total gifts received: ${sentGifts.length}");
+
             context.go(
               AppRoutes.liveSummary,
               extra: {
                 'userName': state.user.name,
                 'userId': state.user.id.substring(0, 6),
-                'earnedPoints': 0,
+                'earnedPoints': earnedDiamonds, // Pass actual earned diamonds
                 'newFollowers': 0,
                 'totalDuration': _formatDuration(_streamDuration),
                 'userAvatar': state.user.avatar,
@@ -719,246 +1769,720 @@ class _GoliveScreenState extends State<GoliveScreen> {
                 children: [
                   _buildVideoView(),
 
+                  if (_animationPlaying) AnimatedLayer(gifts: sentGifts),
+
                   // * This contaimer holds the livestream options,
                   SafeArea(
                     child: Container(
                       margin: EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 30,
+                        horizontal: 20.w,
+                        vertical: 30.h,
                       ),
-                      child: Column(
-                        spacing: 15,
-                        children: [
-                          // this is the top row
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              if (isHost)
-                                HostInfo(
-                                  imageUrl:
-                                      state.user.avatar ??
-                                      "https://thispersondoesnotexist.com/",
-                                  name: state.user.name,
-                                  id: state.user.id.substring(0, 4),
-                                )
-                              else
-                                HostInfo(
-                                  imageUrl:
-                                      widget.hostAvatar ??
-                                      "https://thispersondoesnotexist.com/",
-                                  name: widget.hostName ?? "Host",
-                                  id:
-                                      widget.hostUserId?.substring(0, 4) ??
-                                      "Host",
-                                ),
-
-                              // *show the viwers
-                              ActiveViewers(activeUserList: activeViewers),
-
-                              // * to show the leave button
-                              (isHost)
-                                  ? GestureDetector(
-                                      onTap: () {
-                                        EndStreamOverlay.show(
-                                          context,
-                                          onKeepStream: () {
-                                            debugPrint("Keep stream pressed");
-                                          },
-                                          onEndStream: () {
-                                            _endLiveStream();
-                                            debugPrint("End stream pressed");
-                                          },
-                                        );
-                                      },
-                                      child: Image.asset(
-                                        "assets/icons/live_exit_icon.png",
-                                        height: 40,
-                                        width: 40,
-                                      ),
-                                    )
-                                  : InkWell(
-                                      onTap: () {
-                                        _endLiveStream();
-                                        debugPrint("Disconnect pressed");
-                                      },
-                                      child: Image.asset(
-                                        "assets/icons/live_exit_icon.png",
-                                        height: 40,
-                                        width: 40,
-                                      ),
-                                    ),
-                            ],
-                          ),
-
-                          //  this is the second row
-                          DiamondStarStatus(
-                            diamonCount: "100.0k",
-                            starCount: "2",
-                          ),
-
-                          Spacer(),
-
-                          // Chat widget - positioned at bottom left
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: LiveChatWidget(messages: _chatMessages),
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          // the bottom buttons
-                          if (isHost)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/chat_icon.png",
-                                  onTap: () {
-                                    _generateDummyMessage();
-                                    // _showSnackBar(
-                                    //   '💬 Message added to chat!',
-                                    //   Colors.green,
-                                    // );
-                                  },
-                                ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/call_icon.png",
-                                  onTap: () {
-                                    _showSnackBar(
-                                      '📞 Not implemented yet! Comming soon!',
-                                      Colors.green,
-                                    );
-                                    // showCallBottomSheet(context);
-                                  },
-                                ),
-                                CustomLiveButton(
-                                  iconPath: _muted
-                                      ? "assets/icons/mute_icon.png"
-                                      : "assets/icons/mute_icon.png",
-                                  onTap: () {
-                                    !isHost
-                                        ? _showSnackBar(
-                                            '🎤 You cannot mute yourself as host',
-                                            Colors.orange,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            physics: NeverScrollableScrollPhysics(),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight,
+                              ),
+                              child: IntrinsicHeight(
+                                child: Column(
+                                  children: [
+                                    // this is the top row
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        if (isHost)
+                                          HostInfo(
+                                            imageUrl:
+                                                state.user.avatar ??
+                                                "https://thispersondoesnotexist.com/",
+                                            name: state.user.name,
+                                            id: state.user.id.substring(0, 4),
+                                            hostUserId: state.user.id,
+                                            currentUserId: state.user.id,
                                           )
-                                        : _toggleMute();
-                                  },
-                                ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/gift_icon.png",
-                                  onTap: () {
-                                    _showSnackBar(
-                                      '🎁 Not implemented yet',
-                                      Colors.green,
-                                    );
-                                    // showGiftBottomSheet(context);
-                                  },
-                                ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/pk_icon.png",
-                                  onTap: () {
-                                    _showSnackBar(
-                                      '🎶 Not implemented yet',
-                                      Colors.green,
-                                    );
-                                    // showMusicBottomSheet(context);
-                                  },
-                                ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/music_icon.png",
-                                  onTap: () {
-                                    _showSnackBar(
-                                      '🎶 Not implemented yet',
-                                      Colors.green,
-                                    );
-                                    // showMusicBottomSheet(context);
-                                  },
-                                ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/threedot_icon.png",
-                                  onTap: () {
-                                    showGameBottomSheet(
-                                      context,
-                                      userId: userId,
-                                      isHost: isHost,
-                                    );
-                                  },
-                                ),
-                              ],
-                            )
-                          else
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                InkWell(
-                                  onTap: () {
-                                    _showSnackBar(
-                                      '💬 Not implemented yet',
-                                      Colors.green,
-                                    );
-                                    // showChatBottomSheet(context);
-                                  },
-                                  child: Stack(
-                                    children: [
-                                      Image.asset(
-                                        "assets/icons/message_icon.png",
-                                        height: 40,
-                                        width: 170,
-                                      ),
-                                      Positioned(
-                                        left: 10,
-                                        top: 0,
-                                        bottom: 0,
-                                        child: Row(
-                                          children: [
-                                            Image.asset(
-                                              "assets/icons/message_user_icon.png",
-                                              height: 25,
-                                              width: 25,
-                                            ),
-                                            SizedBox(width: 5),
-                                            Text(
-                                              'Say Hi..',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 18.sp,
+                                        else
+                                          HostInfo(
+                                            imageUrl:
+                                                widget.hostAvatar ??
+                                                "https://thispersondoesnotexist.com/",
+                                            name: widget.hostName ?? "Host",
+                                            id:
+                                                widget.hostUserId?.substring(
+                                                  0,
+                                                  4,
+                                                ) ??
+                                                "Host",
+                                            hostUserId: widget.hostUserId ?? "",
+                                            currentUserId: state.user.id,
+                                          ),
+                                        Spacer(),
+                                        // *show the viwers
+                                        ActiveViewers(
+                                          activeUserList: activeViewers,
+                                        ),
+
+                                        // * to show the leave button
+                                        (isHost)
+                                            ? GestureDetector(
+                                                onTap: () {
+                                                  EndStreamOverlay.show(
+                                                    context,
+                                                    onKeepStream: () {
+                                                      debugPrint(
+                                                        "Keep stream pressed",
+                                                      );
+                                                    },
+                                                    onEndStream: () {
+                                                      _endLiveStream();
+                                                      debugPrint(
+                                                        "End stream pressed",
+                                                      );
+                                                    },
+                                                  );
+                                                },
+                                                child: Image.asset(
+                                                  "assets/icons/live_exit_icon.png",
+                                                  height: 50.h,
+                                                  // width: 40.w,
+                                                ),
+                                              )
+                                            : InkWell(
+                                                onTap: () {
+                                                  _endLiveStream();
+                                                  debugPrint(
+                                                    "Disconnect pressed",
+                                                  );
+                                                },
+                                                child: Image.asset(
+                                                  "assets/icons/live_exit_icon.png",
+                                                  height: 50.h,
+                                                ),
                                               ),
-                                            ),
-                                          ],
+                                      ],
+                                    ),
+                                    SizedBox(height: 10.h),
+
+                                    //  this is the second row TODO:  diamond and star count display
+                                    DiamondStarStatus(
+                                      diamonCount: AppUtils.formatNumber(
+                                        GiftModel.totalDiamondsForHost(
+                                          sentGifts,
+                                          isHost
+                                              ? userId
+                                              : widget
+                                                    .hostUserId, // Use userId for host, widget.hostUserId for viewers
                                         ),
                                       ),
-                                    ],
-                                  ),
+                                      starCount: AppUtils.formatNumber(0),
+                                    ),
+
+                                    Spacer(),
+
+                                    // Chat widget - positioned at bottom left
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: LiveChatWidget(
+                                        messages: _chatMessages,
+                                      ),
+                                    ),
+
+                                    SizedBox(height: 10.h),
+
+                                    // the bottom buttons
+                                    if (isHost)
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceAround,
+                                        children: [
+                                          InkWell(
+                                            onTap: () {
+                                              showSendMessageBottomSheet(
+                                                context,
+                                                onSendMessage: (message) {
+                                                  print("Send message pressed");
+                                                  _emitMessageToSocket(message);
+                                                },
+                                              );
+                                            },
+                                            child: Stack(
+                                              children: [
+                                                Image.asset(
+                                                  "assets/icons/message_icon.png",
+                                                  height: 40.h,
+                                                ),
+                                                Positioned(
+                                                  left: 10.w,
+                                                  top: 0,
+                                                  bottom: 0,
+                                                  child: Row(
+                                                    children: [
+                                                      Image.asset(
+                                                        "assets/icons/message_user_icon.png",
+                                                        height: 20.h,
+                                                      ),
+                                                      SizedBox(width: 5.w),
+                                                      Text(
+                                                        'Say Hello!',
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 18.sp,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          CustomLiveButton(
+                                            iconPath:
+                                                "assets/icons/gift_user_icon.png",
+                                            onTap: () {
+                                              // _showSnackBar(
+                                              //   '🎁 Not implemented yet',
+                                              //   Colors.green,
+                                              // );
+                                              showGiftBottomSheet(
+                                                context,
+                                                activeViewers: activeViewers,
+                                                roomId:
+                                                    _currentRoomId ?? roomId,
+                                                hostUserId: isHost
+                                                    ? userId
+                                                    : widget.hostUserId,
+                                                hostName: isHost
+                                                    ? state.user.name
+                                                    : widget.hostName,
+                                                hostAvatar: isHost
+                                                    ? state.user.avatar
+                                                    : widget.hostAvatar,
+                                              );
+                                            },
+                                          ),
+                                          CustomLiveButton(
+                                            iconPath:
+                                                "assets/icons/pk_icon.png",
+                                            onTap: () {
+                                              _playAnimation();
+                                              _showSnackBar(
+                                                '🎶 Not implemented yet',
+                                                Colors.green,
+                                              );
+                                              // showMusicBottomSheet(context);
+                                            },
+                                          ),
+                                          CustomLiveButton(
+                                            iconPath: _muted
+                                                ? "assets/icons/mute_icon.png"
+                                                : "assets/icons/unmute_icon.png",
+                                            onTap: () {
+                                              _toggleMute();
+                                            },
+                                          ),
+                                          CustomLiveButton(
+                                            iconPath:
+                                                "assets/icons/call_icon.png",
+                                            onTap: () {
+                                              if (_audioCallerUids.isNotEmpty) {
+                                                _showSnackBar(
+                                                  '🎤 ${_audioCallerUids.length} audio caller${_audioCallerUids.length > 1 ? 's' : ''} connected',
+                                                  Colors.green,
+                                                );
+                                              } else {
+                                                _showSnackBar(
+                                                  '📞 Waiting for audio callers to join...',
+                                                  Colors.blue,
+                                                );
+                                              }
+                                              showModalBottomSheet(
+                                                context: context,
+                                                isScrollControlled: true,
+                                                backgroundColor:
+                                                    Colors.transparent,
+                                                builder: (context) => CallManageBottomSheet(
+                                                  key: callManageBottomSheetKey,
+                                                  onAcceptCall: (userId) {
+                                                    debugPrint(
+                                                      "Accepting call request from $userId",
+                                                    );
+                                                    _socketService
+                                                        .acceptCallRequest(
+                                                          userId,
+                                                        );
+                                                    callRequests.removeWhere(
+                                                      (call) =>
+                                                          call.userId == userId,
+                                                    );
+                                                    // Update the bottom sheet with new data
+                                                    _updateCallManageBottomSheet();
+                                                  },
+                                                  onRejectCall: (userId) {
+                                                    debugPrint(
+                                                      "Rejecting call request from $userId",
+                                                    );
+                                                    _socketService
+                                                        .rejectCallRequest(
+                                                          userId,
+                                                        );
+                                                    // Update the bottom sheet with new data
+                                                    _updateCallManageBottomSheet();
+                                                  },
+                                                  onKickUser: (userId) {
+                                                    _socketService
+                                                        .removeBroadcaster(
+                                                          userId,
+                                                        );
+                                                    debugPrint(
+                                                      "Kicking user $userId from call",
+                                                    );
+                                                    // Update the bottom sheet with new data
+                                                    _updateCallManageBottomSheet();
+                                                  },
+                                                  callers: callRequests,
+                                                  inCallList: broadcasterModels,
+                                                ),
+                                              );
+                                            },
+                                          ),
+
+                                          CustomLiveButton(
+                                            iconPath:
+                                                "assets/icons/menu_icon.png",
+                                            onTap: () {
+                                              showGameBottomSheet(
+                                                context,
+                                                userId: userId,
+                                                isHost: isHost,
+                                                streamDuration: _streamDuration,
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      )
+                                    else
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceAround,
+                                        children: [
+                                          InkWell(
+                                            onTap: () {
+                                              // _showSnackBar(
+                                              //   '💬 Not implemented yet',
+                                              //   Colors.green,
+                                              // );
+                                              showSendMessageBottomSheet(
+                                                context,
+                                                onSendMessage: (message) {
+                                                  print("Send message pressed");
+                                                  _emitMessageToSocket(message);
+                                                },
+                                              );
+                                            },
+                                            child: Stack(
+                                              children: [
+                                                Image.asset(
+                                                  "assets/icons/message_icon.png",
+                                                  height: 40.h,
+                                                ),
+                                                Positioned(
+                                                  left: 10,
+                                                  top: 0,
+                                                  bottom: 0,
+                                                  child: Row(
+                                                    children: [
+                                                      Image.asset(
+                                                        "assets/icons/message_user_icon.png",
+                                                        height: 20.h,
+                                                      ),
+                                                      SizedBox(width: 5.w),
+                                                      Text(
+                                                        'Say Hello!',
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 18.sp,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+
+                                          CustomLiveButton(
+                                            iconPath:
+                                                "assets/icons/gift_user_icon.png",
+                                            onTap: () {
+                                              showGiftBottomSheet(
+                                                context,
+                                                activeViewers: activeViewers,
+                                                roomId:
+                                                    _currentRoomId ?? roomId,
+                                                hostUserId: isHost
+                                                    ? userId
+                                                    : widget.hostUserId,
+                                                hostName: isHost
+                                                    ? state.user.name
+                                                    : widget.hostName,
+                                                hostAvatar: isHost
+                                                    ? state.user.avatar
+                                                    : widget.hostAvatar,
+                                              );
+                                            },
+                                            height: 40.h,
+                                          ),
+
+                                          CustomLiveButton(
+                                            iconPath:
+                                                "assets/icons/game_user_icon.png",
+                                            onTap: () {
+                                              showGameBottomSheet(
+                                                context,
+                                                userId: userId,
+                                                streamDuration: _streamDuration,
+                                              );
+                                            },
+                                            height: 40.h,
+                                          ),
+                                          CustomLiveButton(
+                                            iconPath:
+                                                "assets/icons/share_user_icon.png",
+                                            onTap: () {},
+                                            height: 40.h,
+                                          ),
+                                          CustomLiveButton(
+                                            iconPath:
+                                                "assets/icons/menu_icon.png",
+                                            onTap: () {
+                                              showMenuBottomSheet(
+                                                context,
+                                                userId: userId,
+                                                isHost: isHost,
+                                                isMuted: _muted,
+                                                isAdminMuted:
+                                                    _isCurrentUserMuted(),
+                                                onToggleMute: _toggleMute,
+                                              );
+                                            },
+                                            height: 40.h,
+                                          ),
+                                        ],
+                                      ),
+                                  ],
                                 ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/gift_user_icon.png",
-                                  onTap: () {},
-                                ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/game_user_icon.png",
-                                  onTap: () {
-                                    showGameBottomSheet(
-                                      context,
-                                      userId: userId,
-                                    );
-                                  },
-                                ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/share_user_icon.png",
-                                  onTap: () {},
-                                ),
-                                CustomLiveButton(
-                                  iconPath: "assets/icons/menu_icon.png",
-                                  onTap: () {},
-                                ),
-                              ],
+                              ),
                             ),
-                        ],
+                          );
+                        },
                       ),
                     ),
                   ),
 
-                  // _buildBottomControls(),
+                  if (!isHost)
+                    Positioned(
+                      bottom: 140.h,
+                      right: 30.w,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Caller Widget
+                          ...broadcasterModels.map((broadcaster) {
+                            // Check if broadcaster is the current user
+                            WhoAmI checkRole(String broadcasterId) {
+                              // Get current user ID from AuthBloc for reliability
+                              final authState = context.read<AuthBloc>().state;
+                              final currentUserId =
+                                  authState is AuthAuthenticated
+                                  ? authState.user.id
+                                  : userId;
+
+                              if (_isCurrentUserAdmin()) {
+                                return WhoAmI.admin;
+                              } else if (_isCurrentUserHost()) {
+                                return WhoAmI.host;
+                              } else if (broadcaster.id == currentUserId) {
+                                return WhoAmI.myself;
+                              } else {
+                                return WhoAmI.user;
+                              }
+                            }
+
+                            return CallOverlayWidget(
+                              whoAmI: checkRole(broadcaster.id),
+                              userId: broadcaster.id,
+                              userName: broadcaster.name,
+                              userImage: broadcaster.avatar.isNotEmpty
+                                  ? broadcaster.avatar
+                                  : null, // null will show placeholder
+                              onDisconnect: () {
+                                _socketService.removeBroadcaster(
+                                  broadcaster.id,
+                                );
+                              },
+                              onMute: () {
+                                _muteUser(broadcaster.id);
+                              },
+                              onManage: () {
+                                // No-op here; bottom sheet handles actions
+                                debugPrint(
+                                  "Open manage for: ${broadcaster.id}",
+                                );
+                              },
+                              onSetAdmin: (id) {
+                                _makeAdmin(id);
+                                _showSnackBar('👑 Set as admin', Colors.green);
+                              },
+                              onRemoveAdmin: (id) {
+                                _removeAdmin(id);
+                                _showSnackBar(
+                                  '👤 Admin removed',
+                                  Colors.orange,
+                                );
+                              },
+                              adminModels: adminModels,
+                              onMuteUser: (id) {
+                                _muteUser(id);
+                                _showSnackBar('🔇 User muted', Colors.orange);
+                              },
+                              onKickOut: (id) {
+                                _banUser(id);
+                                _showSnackBar('👢 User kicked out', Colors.red);
+                              },
+                              onBanUser: (id) {
+                                _banUser(id);
+                                _showSnackBar(
+                                  '⛔ User added to blocklist',
+                                  Colors.red,
+                                );
+                              },
+                            );
+                          }),
+                          SizedBox(height: 80.h),
+                          // Audio caller status indicator
+                          if (broadcasterList.isNotEmpty)
+                            Container(
+                              margin: EdgeInsets.only(bottom: 10.h),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12.w,
+                                vertical: 6.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(15.r),
+                              ),
+                              child: Text(
+                                '🎤 ${broadcasterList.length}/$_maxAudioCallers',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+
+                          // Camera toggle button
+                          // if (_isAudioCaller)
+                          //   GestureDetector(
+                          //     onTap: () {
+                          //       _turnOnOffCamera();
+                          //       debugPrint("Camera toggled");
+                          //     },
+                          //     child: Container(
+                          //       height: 40.h,
+                          //       width: 40.w,
+                          //       alignment: Alignment.center,
+                          //       decoration: BoxDecoration(
+                          //         borderRadius: BorderRadius.all(
+                          //           Radius.circular(8.r),
+                          //         ),
+                          //         color: isCameraEnabled
+                          //             ? Colors.orange
+                          //             : Colors.grey,
+                          //       ),
+                          //       child: Icon(
+                          //         isCameraEnabled
+                          //             ? Icons.videocam
+                          //             : Icons.videocam_off,
+                          //         color: Colors.white,
+                          //         size: 24.sp,
+                          //       ),
+                          //     ),
+                          //   ),
+                          // SizedBox(height: 10.h),
+                          // Main call button
+                          GestureDetector(
+                            onTap: () {
+                              if (_isJoiningAsAudioCaller) {
+                                _showSnackBar(
+                                  '🎤 Please wait...',
+                                  Colors.orange,
+                                );
+                                return;
+                              }
+
+                              if (_isAudioCaller) {
+                                _socketService.removeBroadcaster(userId ?? '');
+                                debugPrint("Leaving audio caller");
+                              } else {
+                                _socketService.joinCallRequest(
+                                  _currentRoomId ?? roomId,
+                                );
+                                _showSnackBar(
+                                  '🎤 Please wait for accept call...',
+                                  Colors.orange,
+                                );
+                                debugPrint("Join call request sent");
+                              }
+                            },
+                            child: Container(
+                              height: 80.h,
+                              width: 80.w,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(8.r),
+                                ),
+                                color: _isJoiningAsAudioCaller
+                                    ? Colors.grey
+                                    : _isAudioCaller
+                                    ? Colors.orange
+                                    : _canJoinAudioCall()
+                                    ? Color(0xFFFEB86F)
+                                    : Color(0xFFFEB86F),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+
+                                children: [
+                                  _isJoiningAsAudioCaller
+                                      ? SizedBox(
+                                          width: 40.w,
+                                          height: 40.h,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 3,
+                                          ),
+                                        )
+                                      : _isAudioCaller
+                                      ? SvgPicture.asset(
+                                          "assets/icons/join_call_icon.svg",
+                                          height: 40.h,
+                                          width: 40.w,
+                                        )
+                                      : SvgPicture.asset(
+                                          "assets/icons/join_call_icon.svg",
+                                          height: 40.h,
+                                          width: 40.w,
+                                        ),
+                                  Text(
+                                    _isJoiningAsAudioCaller
+                                        ? 'Joining'
+                                        : _isAudioCaller
+                                        ? 'Leave'
+                                        : _canJoinAudioCall()
+                                        ? _getAudioCallerText()
+                                        : 'Call Full',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18.sp,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Positioned(
+                      bottom: 140.h,
+                      right: 30.w,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Caller Widget
+                          ...broadcasterModels.map((broadcaster) {
+                            // Check if broadcaster is the current user (for host section)
+                            WhoAmI checkHostRole(String broadcasterId) {
+                              // Get current user ID from AuthBloc for reliability
+                              final authState = context.read<AuthBloc>().state;
+                              final currentUserId =
+                                  authState is AuthAuthenticated
+                                  ? authState.user.id
+                                  : userId;
+
+                              if (_isCurrentUserAdmin()) {
+                                return WhoAmI.admin;
+                              } else if (_isCurrentUserHost()) {
+                                return WhoAmI.host;
+                              } else if (broadcaster.id == currentUserId) {
+                                return WhoAmI.myself;
+                              } else {
+                                return WhoAmI.user;
+                              }
+                            }
+
+                            return CallOverlayWidget(
+                              whoAmI: checkHostRole(broadcaster.id),
+                              userId: broadcaster.id,
+                              userName: broadcaster.name,
+                              userImage: broadcaster.avatar.isNotEmpty
+                                  ? broadcaster.avatar
+                                  : null, // null will show placeholder
+                              onDisconnect: () {
+                                _socketService.removeBroadcaster(
+                                  broadcaster.id,
+                                );
+                              },
+                              onMute: () {
+                                _muteUser(broadcaster.id);
+                              },
+                              onManage: () {
+                                // No-op; actions are fired from bottom sheet
+                                debugPrint(
+                                  "Open manage for: ${broadcaster.id}",
+                                );
+                              },
+                              onSetAdmin: (id) {
+                                _makeAdmin(id);
+                                _showSnackBar('👑 Set as admin', Colors.green);
+                              },
+                              onRemoveAdmin: (id) {
+                                _removeAdmin(id);
+                                _showSnackBar(
+                                  '👤 Admin removed',
+                                  Colors.orange,
+                                );
+                              },
+                              adminModels: adminModels,
+                              onMuteUser: (id) {
+                                _muteUser(id);
+                                _showSnackBar('🔇 User muted', Colors.orange);
+                              },
+                              onKickOut: (id) {
+                                _banUser(id);
+                                _showSnackBar('👢 User kicked out', Colors.red);
+                              },
+                              onBanUser: (id) {
+                                _banUser(id);
+                                _showSnackBar(
+                                  '⛔ User added to blocklist',
+                                  Colors.red,
+                                );
+                              },
+                            );
+                          }),
+                          SizedBox(height: 180.h),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             );
@@ -968,35 +2492,33 @@ class _GoliveScreenState extends State<GoliveScreen> {
     );
   }
 
-  // Main video view
+  // Main video view with multi-broadcaster support
   Widget _buildVideoView() {
-    debugPrint(
-      "Building video view - isHost: $isHost, _localUserJoined: $_localUserJoined, _remoteUid: $_remoteUid, _isInitializingCamera: $_isInitializingCamera",
-    );
+    // Removed spammy debug print that was called on every rebuild
 
     // Show loading indicator during camera initialization
     if (_isInitializingCamera) {
       return Container(
         color: Colors.black,
-        child: const Center(
+        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-              SizedBox(height: 20),
-              Text(
-                '🎥 Initializing camera...',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                'Please wait while we set up your stream',
-                style: TextStyle(color: Colors.grey, fontSize: 14),
-              ),
+              // SizedBox(height: 20.h),
+              // Text(
+              //   '🎥 Initializing camera...',
+              //   style: TextStyle(
+              //     color: Colors.white,
+              //     fontSize: 18.sp,
+              //     fontWeight: FontWeight.w500,
+              //   ),
+              // ),
+              // SizedBox(height: 10.h),
+              // Text(
+              //   'Please wait while we set up your stream',
+              //   style: TextStyle(color: Colors.grey, fontSize: 14),
+              // ),
             ],
           ),
         ),
@@ -1004,75 +2526,129 @@ class _GoliveScreenState extends State<GoliveScreen> {
     }
 
     if (isHost) {
-      // Show local video for broadcaster
-      return _localUserJoined
-          ? AgoraVideoView(
-              controller: VideoViewController(
-                rtcEngine: _engine,
-                canvas: const VideoCanvas(uid: 0),
-              ),
-            )
-          : Container(
-              color: Colors.black,
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(color: Colors.white),
-                    SizedBox(height: 20),
-                    Text(
-                      '📡 Connecting to stream...',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
+      // Host view with multi-broadcaster layout
+      return _buildHostMultiView();
     } else {
-      // Show remote video for viewers
-      return _remoteVideo();
+      // Audience view with multi-broadcaster layout
+      return _buildAudienceMultiView();
     }
   }
 
-  Widget _remoteVideo() {
-    if (_remoteUid != null) {
-      return AgoraVideoView(
-        controller: VideoViewController.remote(
-          rtcEngine: _engine,
-          canvas: VideoCanvas(uid: _remoteUid),
-          connection: RtcConnection(channelId: roomId), // Use dynamic roomId
-        ),
-      );
-    } else {
+  /// Build multi-broadcaster view for host
+  Widget _buildHostMultiView() {
+    // Get all video broadcasters (video callers)
+    List<int> allVideoBroadcasters = [
+      if (_localUserJoined) 0, // Host's own video (UID 0)
+      ..._videoCallerUids, // Video callers
+    ];
+
+    if (allVideoBroadcasters.isEmpty || !_localUserJoined) {
       return Container(
         color: Colors.black,
-        child: const Center(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Colors.white),
+              // SizedBox(height: 20.h),
+              // Text(
+              //   '📡 Connecting to stream...',
+              //   style: TextStyle(
+              //     color: Colors.white,
+              //     fontSize: 18.sp,
+              //     fontWeight: FontWeight.w500,
+              //   ),
+              // ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return _buildMultiVideoLayout(allVideoBroadcasters, isHostView: true);
+  }
+
+  /// Build multi-broadcaster view for audience
+  Widget _buildAudienceMultiView() {
+    // Get all video broadcasters
+    List<int> allVideoBroadcasters = [
+      if (_remoteUid != null) _remoteUid!, // Host video
+      ..._videoCallerUids, // Video callers
+      if (_isAudioCaller && isCameraEnabled)
+        0, // Own video if audio caller with camera on
+    ];
+
+    if (allVideoBroadcasters.isEmpty) {
+      // Start host disconnection monitoring when no video broadcasters are present
+      if (!isHost) {
+        _startHostDisconnectionMonitoring(); //TODO: Implement host disconnection monitoring
+      }
+
+      return Container(
+        color: Colors.black,
+        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-              SizedBox(height: 20),
-              Text(
-                '📡 Waiting for broadcaster...',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                'The stream will start soon',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 14),
-              ),
+              // SizedBox(height: 20.h),
+              // Text(
+              //   'Host is disconnected',
+              //   textAlign: TextAlign.center,
+              //   style: TextStyle(
+              //     color: Colors.white,
+              //     fontSize: 18.sp,
+              //     fontWeight: FontWeight.w500,
+              //   ),
+              // ),
+              // SizedBox(height: 10.h),
+              // Text(
+              //   'Please wait...',
+              //   textAlign: TextAlign.center,
+              //   style: TextStyle(color: Colors.grey, fontSize: 14),
+              // ),
             ],
           ),
+        ),
+      );
+    } else {
+      // Cancel host disconnection monitoring if video broadcasters are present
+      if (_hostActivityTimer != null) {
+        _hostActivityTimer?.cancel();
+        _hostActivityTimer = null;
+      }
+    }
+
+    return _buildMultiVideoLayout(allVideoBroadcasters, isHostView: false);
+  }
+
+  /// Build dynamic multi-video layout based on number of broadcasters
+  Widget _buildMultiVideoLayout(
+    List<int> broadcasterUids, {
+    required bool isHostView,
+  }) {
+    // Since only host shows video and others are audio-only callers,
+    // always show single video view (host's video in full screen)
+    return _buildSingleVideoView(broadcasterUids[0], isHostView: isHostView);
+  }
+
+  /// Single broadcaster view
+  Widget _buildSingleVideoView(int uid, {required bool isHostView}) {
+    if (uid == 0) {
+      // Local video (host or audio caller with camera)
+      return AgoraVideoView(
+        controller: VideoViewController(
+          rtcEngine: _engine,
+          canvas: const VideoCanvas(uid: 0),
+        ),
+      );
+    } else {
+      // Remote video
+      return AgoraVideoView(
+        controller: VideoViewController.remote(
+          rtcEngine: _engine,
+          canvas: VideoCanvas(uid: uid),
+          connection: RtcConnection(channelId: roomId),
         ),
       );
     }
@@ -1088,8 +2664,22 @@ class _GoliveScreenState extends State<GoliveScreen> {
     _roomDeletedSubscription?.cancel();
     _errorSubscription?.cancel();
 
+    // Cancel additional socket stream subscriptions
+    _userJoinedSubscription?.cancel();
+    _userLeftSubscription?.cancel();
+    _sentMessageSubscription?.cancel();
+    _sentGiftSubscription?.cancel();
+    _broadcasterListSubscription?.cancel();
+    _bannedListSubscription?.cancel();
+    _bannedUserSubscription?.cancel();
+    _joinCallRequestSubscription?.cancel();
+    _joinCallRequestListSubscription?.cancel();
+
     // Stop the duration timer
     _stopStreamTimer();
+
+    // Stop host activity timer
+    _hostActivityTimer?.cancel();
 
     // Dispose other resources
     _titleController.dispose();
@@ -1100,17 +2690,5 @@ class _GoliveScreenState extends State<GoliveScreen> {
   Future<void> _dispose() async {
     await _engine.leaveChannel();
     await _engine.release();
-  }
-}
-
-const List<Map<String, String>> activeViewers = [];
-
-void generateActiveViewers(int count) {
-  activeViewers.clear();
-  for (int i = 0; i < count; i++) {
-    activeViewers.add({
-      'dp': 'https://thispersondoesnotexist.com/',
-      'follower': '${(i + 1) * 100}K',
-    });
   }
 }

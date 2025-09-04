@@ -84,4 +84,24 @@ class AppUtils {
         return failure.isNotEmpty ? failure : 'Something went wrong.';
     }
   }
+
+  static String formatNumber(num number) {
+    String formatted;
+
+    if (number >= 1000000) {
+      formatted = '${(number / 1000000).toStringAsFixed(2)}M';
+    } else if (number >= 1000) {
+      formatted =
+          '${(number / 1000).toStringAsFixed(number % 1000 >= 100 ? 2 : 0)}K';
+    } else {
+      formatted = number.toStringAsFixed(0);
+    }
+
+    // Remove trailing .00 for whole numbers
+    if (formatted.endsWith('.00K') || formatted.endsWith('.00M')) {
+      formatted = formatted.replaceAll('.00', '');
+    }
+
+    return formatted;
+  }
 }

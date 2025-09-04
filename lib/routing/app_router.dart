@@ -1,14 +1,19 @@
 import 'package:dlstarlive/features/chat/presentation/pages/chat_page.dart';
 import 'package:dlstarlive/features/chat/presentation/pages/chat_detail_page.dart';
+import 'package:dlstarlive/features/chat/presentation/pages/chat_settings.dart';
 import 'package:dlstarlive/features/live/presentation/pages/golive_screen.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_page.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_summary_screen.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/view_user_profile.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/friends_list_page.dart';
 import 'package:dlstarlive/features/reels/presentation/pages/reels.dart';
+import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/home/presentation/pages/main_navigation_page.dart';
+import '../features/newsfeed/presentation/pages/newsfeed.dart';
+import '../features/profile/presentation/pages/store_page.dart';
+import '../features/reels/presentation/pages/video_editor_screen.dart';
 import '../features/settings/presentation/pages/settings_page.dart';
 import '../features/auth/presentation/pages/splash_screen.dart';
 import '../features/auth/presentation/pages/login_page.dart';
@@ -22,6 +27,7 @@ class AppRoutes {
   static const String register = '/register';
   static const String home = '/';
   static const String settings = '/settings';
+  static const String editVideo = '/edit-video';
   static const String profileCompletion = '/profile-completion';
   static const String profileUpdate = '/profile-update';
   static const String viewProfile = '/view-profile';
@@ -32,6 +38,9 @@ class AppRoutes {
   static const String chatDetail = '/chat-details';
   static const String chats = '/chats';
   static const String friendsList = '/friends-list';
+  static const String chatSettings = '/chat-settings';
+  static const String newsfeed = '/newsfeed';
+  static const String store = '/store';
 }
 
 final GoRouter appRouter = GoRouter(
@@ -58,9 +67,19 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const MainNavigationPage(),
     ),
     GoRoute(
+      path: AppRoutes.newsfeed,
+      name: 'newsfeed',
+      builder: (context, state) => const NewsfeedPage(),
+    ),
+    GoRoute(
       path: AppRoutes.settings,
       name: 'settings',
       builder: (context, state) => const SettingsPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.editVideo,
+      name: 'editVideo',
+      builder: (context, state) => const VideoEditorScreen(),
     ),
     GoRoute(
       path: AppRoutes.profileCompletion,
@@ -71,6 +90,11 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.profileUpdate,
       name: 'profileUpdate',
       builder: (context, state) => const ProfileUpdatePage(),
+    ),
+    GoRoute(
+      path: AppRoutes.chatSettings,
+      name: 'chatSettings',
+      builder: (context, state) => const InboxSettings(),
     ),
     GoRoute(
       path: AppRoutes.viewProfile,
@@ -103,11 +127,19 @@ final GoRouter appRouter = GoRouter(
         final hostName = state.uri.queryParameters['hostName'] ?? '';
         final hostUserId = state.uri.queryParameters['hostUserId'] ?? '';
         final hostAvatar = state.uri.queryParameters['hostAvatar'] ?? '';
+        final existingViewers =
+            (state.extra as Map<String, dynamic>?)?['existingViewers']
+                as List<HostDetails>? ??
+            [];
+        final hostCoins =
+            (state.extra as Map<String, dynamic>?)?['hostCoins'] as int? ?? 0;
         return GoliveScreen(
           roomId: roomId,
           hostName: hostName,
           hostUserId: hostUserId,
           hostAvatar: hostAvatar,
+          existingViewers: existingViewers,
+          hostCoins: hostCoins,
         );
       },
     ),
@@ -139,10 +171,15 @@ final GoRouter appRouter = GoRouter(
       path: '${AppRoutes.friendsList}/:userId',
       name: 'friendsList',
       builder: (context, state) {
-        final userId = state.pathParameters['userId'] ?? '';
+        final String? userId = state.pathParameters['userId'];
         final title = state.uri.queryParameters['title'] ?? 'Friends';
         return FriendsListPage(userId: userId, title: title);
       },
+    ),
+    GoRoute(
+      path: AppRoutes.store,
+      name: 'store',
+      builder: (context, state) => const StorePage(),
     ),
   ],
   errorBuilder: (context, state) => Scaffold(

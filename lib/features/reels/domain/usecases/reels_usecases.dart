@@ -11,6 +11,20 @@ class GetReelsUseCase {
   }
 }
 
+class GetUserReelsUseCase {
+  final ReelsRepository repository;
+
+  GetUserReelsUseCase(this.repository);
+
+  Future<List<ReelEntity>> call(
+    String userId, {
+    int page = 1,
+    int limit = 5,
+  }) async {
+    return await repository.getUserReels(userId, page: page, limit: limit);
+  }
+}
+
 class LikeReelUseCase {
   final ReelsRepository repository;
 
@@ -18,6 +32,16 @@ class LikeReelUseCase {
 
   Future<bool> call(String reelId) async {
     return await repository.likeReel(reelId);
+  }
+}
+
+class ReactToReelUseCase {
+  final ReelsRepository repository;
+
+  ReactToReelUseCase(this.repository);
+
+  Future<bool> call(String reelId, String reactionType) async {
+    return await repository.reactToReel(reelId, reactionType);
   }
 }
 

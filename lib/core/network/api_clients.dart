@@ -4,6 +4,7 @@ import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
 import 'api_service.dart';
+import 'models/gift_model.dart';
 
 /// Authentication API client
 @lazySingleton
@@ -90,10 +91,8 @@ class AuthApiClient {
         receiveTimeout: const Duration(minutes: 2),
       ),
     );
-    print('Google Auth Response: $response');
 
     return response.fold((data) {
-      print('Google Auth Response: $data');
       // Handle success case - try both token formats for compatibility
       final token = data['access_token'] as String? ?? data['token'] as String?;
       if (token != null) {
@@ -202,6 +201,7 @@ class AuthApiClient {
     String? name,
     String? firstName,
     File? avatarFile,
+    File? coverPictureFile,
     String? gender,
   }) async {
     // Create form data map
@@ -217,15 +217,19 @@ class AuthApiClient {
       formData['gender'] = gender;
     }
 
-    // If we have an avatar file, we need to use file upload
-    if (avatarFile != null) {
+    // If we have file(s) to upload, we need to use file upload
+    if (avatarFile != null || coverPictureFile != null) {
       try {
+        // Create custom FormData with multiple files
         final response = await _apiService
-            .customFileUpload<Map<String, dynamic>>(
+            .customMultiFileUpload<Map<String, dynamic>>(
               endpoint: ApiConstants.userProfileUpdateEndpoint,
-              filePath: avatarFile.path,
               method: 'PUT', // Use PUT method for profile updates
-              fieldName: 'avatar',
+              files: {
+                if (avatarFile != null) 'avatar': avatarFile.path,
+                if (coverPictureFile != null)
+                  'coverPicture': coverPictureFile.path,
+              },
               data: formData,
             );
 
@@ -325,14 +329,15 @@ class UserApiClient {
 
   /// Delete user account
   Future<ApiResponse<bool>> deleteAccount() async {
-    final response = await _apiService.delete<bool>(
+    final response = await _apiService.delete<Map<String, dynamic>>(
       ApiConstants.userProfileEndpoint,
     );
 
-    return response.fold(
-      (data) => ApiResponse.success(data: data),
-      (error) => ApiResponse.failure(message: error),
-    );
+    return response.fold((data) {
+      // Check if the response indicates success
+      final success = data['success'] as bool? ?? false;
+      return ApiResponse.success(data: success);
+    }, (error) => ApiResponse.failure(message: error));
   }
 
   /// Follow a user
@@ -450,6 +455,65 @@ class FileUploadApiClient {
     ];
 
     return allowedTypes.contains(extension);
+  }
+}
+
+/// Gift API client
+@lazySingleton
+class GiftApiClient {
+  final ApiService _apiService;
+
+  GiftApiClient(this._apiService);
+
+  /// Get all available gifts
+  Future<ApiResponse<List<Gift>>> getAllGifts({
+    String? sortBy,
+    String? sortOrder,
+  }) async {
+    Map<String, dynamic>? queryParams;
+    if (sortBy != null || sortOrder != null) {
+      queryParams = {};
+      if (sortBy != null) queryParams['sortBy'] = sortBy;
+      if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
+    }
+
+    final response = await _apiService.get<Map<String, dynamic>>(
+      '/api/admin/gift',
+      queryParameters: queryParams,
+    );
+
+    return response.fold((data) {
+      final result = data['result'] as List<dynamic>;
+      final gifts = result.map((json) => Gift.fromJson(json)).toList();
+      return ApiResponse.success(data: gifts);
+    }, (error) => ApiResponse.failure(message: error));
+  }
+
+  /// Send gift to a user
+  Future<ApiResponse<Map<String, dynamic>>> sendGift({
+    required List<String> userIds,
+    required String roomId,
+    required String giftId,
+    required int qty,
+  }) async {
+    print(
+      'Sending gift: userIds=$userIds, roomId=$roomId, giftId=$giftId, qty=$qty',
+    );
+    final response = await _apiService.put<Map<String, dynamic>>(
+      '/api/auth/user/gift',
+      data: {'userId': userIds, 'roomId': roomId, 'giftId': giftId, 'qty': qty},
+    );
+
+    return response.fold(
+      (data) {
+        print('Gift sent successfully: $data');
+        return ApiResponse.success(data: data);
+      },
+      (error) {
+        print('Gift send failed: $error');
+        return ApiResponse.failure(message: error);
+      },
+    );
   }
 }
 

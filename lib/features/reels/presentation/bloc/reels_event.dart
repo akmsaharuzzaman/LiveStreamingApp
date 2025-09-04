@@ -22,6 +22,16 @@ class LikeReel extends ReelsEvent {
   List<Object> get props => [reelId];
 }
 
+class ReactToReel extends ReelsEvent {
+  final String reelId;
+  final String reactionType;
+
+  const ReactToReel(this.reelId, this.reactionType);
+
+  @override
+  List<Object> get props => [reelId, reactionType];
+}
+
 class ShareReel extends ReelsEvent {
   final String reelId;
 
