@@ -330,8 +330,8 @@ class CongratulationsPage extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF8B5CF6), // Purple
-              Color(0xFF7C3AED), // Darker purple
+              Color(0xFF7D299D), // Purple
+              Color(0xFF7D299D), // Darker purple
             ],
           ),
         ),
@@ -369,17 +369,12 @@ class CongratulationsPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // Success Icon
-                    Container(
+                    SizedBox(
                       width: 100.w,
                       height: 100.w,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF22C55E), // Green
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 50.sp,
+
+                      child: Image.asset(
+                        "assets/images/general/congratulation_icon.png",
                       ),
                     ),
 
@@ -481,8 +476,8 @@ class WelcomePage extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF8B5CF6), // Purple
-              Color(0xFF7C3AED), // Darker purple
+              Color(0xFF7D299D), // Purple
+              Color(0xFF7D299D), // Darker purple
             ],
           ),
         ),
@@ -521,23 +516,13 @@ class WelcomePage extends StatelessWidget {
                   children: [
                     // Wings Image
                     Container(
-                      width: 300.w,
-                      height: 150.h,
+                      width: 390.w,
+                      height: 222.h,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20.r),
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFFFFD700), // Gold
-                            Color(0xFFFFA500), // Orange
-                          ],
-                        ),
                       ),
-                      child: Center(
-                        child: Icon(
-                          Icons.star,
-                          size: 60.sp,
-                          color: Colors.white,
-                        ),
+                      child: Image.asset(
+                        "assets/images/general/welcome_banner.png",
                       ),
                     ),
 
@@ -551,10 +536,8 @@ class WelcomePage extends StatelessWidget {
                         color: Colors.white,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
-                        Icons.verified_user,
-                        color: const Color(0xFF22C55E),
-                        size: 40.sp,
+                      child: Image.asset(
+                        "assets/images/general/welcome_icon.png",
                       ),
                     ),
 
@@ -596,7 +579,7 @@ class WelcomePage extends StatelessWidget {
                         child: ElevatedButton(
                           onPressed: onFinish,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1E40AF),
+                            backgroundColor: const Color(0xFF082A7B),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(25.r),
                             ),
