@@ -708,7 +708,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                 'Store',
                 context,
                 onTap: () {
-                  // context.push(AppRoutes.store);
+                  context.push(AppRoutes.store);
                 },
               ),
               _buildFeatureIcon(
