@@ -68,9 +68,11 @@ class _HostInfoState extends State<HostInfo> {
         });
       }
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -221,22 +223,28 @@ class _HostInfoState extends State<HostInfo> {
                 // Make the name/id column horizontally scrollable if overflow occurs
                 Expanded(
                   child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                    Text(
-                      widget.name,
-                      style: TextStyle(fontSize: 16.sp, color: Colors.white),
-                      overflow: TextOverflow.visible,
+                    scrollDirection: Axis.horizontal,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.name,
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            color: Colors.white,
+                          ),
+                          overflow: TextOverflow.visible,
+                        ),
+                        Text(
+                          "ID: ${widget.id}",
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: Colors.white,
+                          ),
+                          overflow: TextOverflow.visible,
+                        ),
+                      ],
                     ),
-                    Text(
-                      "ID: ${widget.id}",
-                      style: TextStyle(fontSize: 12.sp, color: Colors.white),
-                      overflow: TextOverflow.visible,
-                    ),
-                    ],
-                  ),
                   ),
                 ),
                 SizedBox(width: 6.w),
