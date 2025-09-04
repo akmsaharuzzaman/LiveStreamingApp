@@ -2,6 +2,8 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:dlstarlive/core/network/models/chat_model.dart';
+import 'package:dlstarlive/features/profile/presentation/pages/view_user_profile.dart';
+import 'package:dlstarlive/features/profile/presentation/widgets/user_profile_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -189,16 +191,25 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: IntrinsicWidth(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth:
-                  MediaQuery.of(context).size.width * 0.8, // Max 80% width
-              minHeight: 40.h,
+      child: GestureDetector(
+        onTap: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            builder: (context) => UserProfileBottomSheet(userId: message.id),
+          );
+        },
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: IntrinsicWidth(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth:
+                    MediaQuery.of(context).size.width * 0.8, // Max 80% width
+                minHeight: 40.h,
+              ),
+              child: content,
             ),
-            child: content,
           ),
         ),
       ),
