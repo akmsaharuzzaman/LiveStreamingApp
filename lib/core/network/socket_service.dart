@@ -363,7 +363,15 @@ class SocketService {
         print('📺 Broadcaster list: $data');
       }
       if (data is List) {
-        _broadcasterListController.add(BroadcasterModel.fromListJson(data));
+        List<BroadcasterModel> broadcasters = BroadcasterModel.fromListJson(
+          data,
+        );
+        // Remove duplicates based on ID
+        Set<String> seenIds = {};
+        broadcasters = broadcasters
+            .where((broadcaster) => seenIds.add(broadcaster.id))
+            .toList();
+        _broadcasterListController.add(broadcasters);
       }
     });
 
@@ -903,7 +911,7 @@ class SocketService {
     }
   }
 
-  ///Make admin 
+  ///Make admin
   Future<bool> makeAdmin(String userId) async {
     if (!_isConnected || _socket == null) {
       _errorMessageController.add({
@@ -934,8 +942,6 @@ class SocketService {
       return false;
     }
   }
-
-
 
   /// Listen to custom events
   void on(String event, Function(dynamic) callback) {
