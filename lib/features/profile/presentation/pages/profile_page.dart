@@ -24,6 +24,7 @@ import '../../../reels/presentation/utils/reel_mapper.dart';
 import 'top_up_page.dart';
 import 'level_page.dart';
 import 'bag_page.dart';
+import 'helping_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -747,6 +748,14 @@ class _ProfileContentState extends State<_ProfileContent> {
                 "assets/images/general/helping_icon.png",
                 'Helping',
                 context,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => HelpingPage(user: widget.user),
+                    ),
+                  );
+                },
               ),
               _buildFeatureIcon(
                 "assets/images/general/fan_club_icon.png",
