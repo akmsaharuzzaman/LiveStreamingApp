@@ -22,6 +22,7 @@ import '../../../reels/data/models/reel_response_model.dart';
 import '../../../reels/data/models/reel_api_response_model.dart';
 import '../../../reels/presentation/utils/reel_mapper.dart';
 import 'top_up_page.dart';
+import 'level_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -714,6 +715,12 @@ class _ProfileContentState extends State<_ProfileContent> {
                 "assets/images/general/my_level_icon.png",
                 'My Level',
                 context,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LevelPage()),
+                  );
+                },
               ),
               _buildFeatureIcon(
                 "assets/images/general/my_agency_icon.png",
