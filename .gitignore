@@ -56,3 +56,5 @@ android/app/upload-keystore.jks
 
 DeepAR Flutter Fork.md
 /assets/effects/
+android/app/src/main/assets/
+android/app/libs/deepar.aar
