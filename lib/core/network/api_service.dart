@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http_parser/http_parser.dart';
 import '../constants/app_constants.dart';
 import '../errors/exceptions.dart';
+import 'models/agency_models.dart';
 
 /// API Result wrapper for handling success and failure states
 abstract class ApiResult<T> {
@@ -1186,4 +1187,89 @@ class ApiService {
 
   /// Get current Dio instance (for advanced usage)
   Dio get dio => _dio;
+
+  // ========================================
+  // AGENCY API METHODS
+  // ========================================
+
+  /// Get agency status for current user
+  Future<ApiResult<AgencyStatusResponse>> getAgencyStatus() async {
+    try {
+      final response = await _dio.get('/api/auth/agency-join');
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 202) {
+        final agencyResponse = AgencyStatusResponse.fromJson(response.data);
+        return ApiResult.success(agencyResponse);
+      } else {
+        return ApiResult.failure('Failed to get agency status');
+      }
+    } catch (e) {
+      debugPrint('❌ Error getting agency status: $e');
+      return ApiResult.failure('Failed to get agency status: $e');
+    }
+  }
+
+  /// Get list of all agencies (when status is 'list')
+  Future<ApiResult<AgencyListResponse>> getAgencyList({
+    int page = 1,
+    int limit = 10,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/api/power-shared/agency-all',
+        queryParameters: {'page': page, 'limit': limit},
+      );
+
+      if (response.statusCode == 200) {
+        final agencyListResponse = AgencyListResponse.fromJson(response.data);
+        return ApiResult.success(agencyListResponse);
+      } else {
+        return ApiResult.failure('Failed to get agency list');
+      }
+    } catch (e) {
+      debugPrint('❌ Error getting agency list: $e');
+      return ApiResult.failure('Failed to get agency list: $e');
+    }
+  }
+
+  /// Join an agency
+  Future<ApiResult<SimpleApiResponse>> joinAgency(String agencyId) async {
+    try {
+      final request = AgencyJoinRequest(agencyId: agencyId);
+
+      final response = await _dio.post(
+        '/api/auth/agency-join',
+        data: request.toJson(),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final apiResponse = SimpleApiResponse.fromJson(response.data);
+        return ApiResult.success(apiResponse);
+      } else {
+        return ApiResult.failure('Failed to join agency');
+      }
+    } catch (e) {
+      debugPrint('❌ Error joining agency: $e');
+      return ApiResult.failure('Failed to join agency: $e');
+    }
+  }
+
+  /// Cancel agency join request
+  Future<ApiResult<SimpleApiResponse>> cancelAgencyRequest() async {
+    try {
+      final response = await _dio.delete('/api/auth/agency-join');
+
+      if (response.statusCode == 200) {
+        final apiResponse = SimpleApiResponse.fromJson(response.data);
+        return ApiResult.success(apiResponse);
+      } else {
+        return ApiResult.failure('Failed to cancel agency request');
+      }
+    } catch (e) {
+      debugPrint('❌ Error cancelling agency request: $e');
+      return ApiResult.failure('Failed to cancel agency request: $e');
+    }
+  }
 }
