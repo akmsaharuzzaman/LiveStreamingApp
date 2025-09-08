@@ -249,7 +249,7 @@ class _MyAgencyPageState extends State<MyAgencyPage> {
           ),
         ),
       ),
-      body: _buildBody(),
+      body: Center(child: _buildBody()),
     );
   }
 
@@ -322,51 +322,135 @@ class _MyAgencyPageState extends State<MyAgencyPage> {
   }
 
   Widget _buildMemberState() {
-    return Padding(
-      padding: EdgeInsets.all(20.w),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.business, size: 80.sp, color: Colors.green),
-          SizedBox(height: 20.h),
-          Text(
-            'You are a member of',
-            style: TextStyle(fontSize: 18.sp, color: Colors.grey[600]),
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF7D299D), // Purple
+              Color(0xFF7D299D), // Darker purple
+            ],
           ),
-          SizedBox(height: 10.h),
-          Text(
-            _currentAgencyDetails?.name ?? 'Unknown Agency',
-            style: TextStyle(
-              fontSize: 24.sp,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          SizedBox(height: 10.h),
-          Text(
-            'Host Count: ${_currentAgencyDetails?.hostCount ?? 0}',
-            style: TextStyle(fontSize: 16.sp, color: Colors.grey[600]),
-          ),
-          SizedBox(height: 40.h),
-          ElevatedButton(
-            onPressed: () => context.pop(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF082A7B),
-              padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 15.h),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(25.r),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Icon(
+                        Icons.arrow_back_ios,
+                        color: Colors.white,
+                        size: 20.sp,
+                      ),
+                    ),
+                    SizedBox(width: 15.w),
+                    Text(
+                      'Agency',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            child: Text(
-              'Continue',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w500,
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Wings Image
+                    Container(
+                      width: 390.w,
+                      height: 222.h,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: Image.asset(
+                        "assets/images/general/welcome_banner.png",
+                      ),
+                    ),
+
+                    SizedBox(height: 30.h),
+
+                    // Shield Icon
+                    Container(
+                      width: 80.w,
+                      height: 80.w,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Image.asset(
+                        "assets/images/general/welcome_icon.png",
+                      ),
+                    ),
+
+                    SizedBox(height: 30.h),
+
+                    // Welcome Text
+                    Text(
+                      'Welcome to DLStar!',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+
+                    SizedBox(height: 20.h),
+
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 40.w),
+                      child: Text(
+                        'We\'re thrilled to have your agency join the DLStar family. Together, let\'s grow, innovate, and succeed!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 60.h),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 40.w),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 50.h,
+                        child: ElevatedButton(
+                          onPressed: () => context.pop(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF082A7B),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25.r),
+                            ),
+                          ),
+                          child: Text(
+                            'Continue',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -454,60 +538,27 @@ class _MyAgencyPageState extends State<MyAgencyPage> {
   }
 
   Widget _buildCongratsState() {
-    return Padding(
-      padding: EdgeInsets.all(20.w),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.celebration, size: 100.sp, color: Colors.amber),
-          SizedBox(height: 30.h),
-          Text(
-            'Congratulations!',
-            style: TextStyle(
-              fontSize: 28.sp,
-              fontWeight: FontWeight.bold,
-              color: Colors.green,
-            ),
-          ),
-          SizedBox(height: 20.h),
-          Text(
-            'You have been accepted to',
-            style: TextStyle(fontSize: 18.sp, color: Colors.grey[600]),
-          ),
-          SizedBox(height: 10.h),
-          Text(
-            _currentAgencyDetails?.name ?? 'Unknown Agency',
-            style: TextStyle(
-              fontSize: 24.sp,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          SizedBox(height: 10.h),
-          Text(
-            'Host Count: ${_currentAgencyDetails?.hostCount ?? 0}',
-            style: TextStyle(fontSize: 16.sp, color: Colors.grey[600]),
-          ),
-          SizedBox(height: 40.h),
-          ElevatedButton(
-            onPressed: _handleCongratsAcknowledge,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF082A7B),
-              padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 15.h),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(25.r),
-              ),
-            ),
-            child: Text(
-              'Let\'s Enjoy!',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
+    return CongratulationsPage(
+      agencyName: _currentAgencyDetails?.name ?? 'Unknown Agency',
+      onContinue: () => _showWelcomePage(),
+    );
+  }
+
+  void _showWelcomePage() {
+    setState(() {
+      _pageState = AgencyPageState
+          .member; // Change to member state after congratulations
+    });
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => CongratePage(
+          agencyName: _currentAgencyDetails?.name ?? 'Unknown Agency',
+          onFinish: () {
+            Navigator.of(context).pop(); // Go back to the main agency page
+            _checkAgencyStatus(); // Refresh the status
+          },
+        ),
       ),
     );
   }
@@ -562,38 +613,49 @@ class _MyAgencyPageState extends State<MyAgencyPage> {
     return Row(
       children: [
         Expanded(
-          child: Container(
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                fillColor: const Color(0xFFF5F5F5),
-                filled: true,
-                hintText: 'Search agency ID',
-                hintStyle: TextStyle(color: Colors.grey[600], fontSize: 14.sp),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.r),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.r),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.r),
-                  borderSide: const BorderSide(color: Color(0xFF082A7B)),
-                ),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 15.w,
-                  vertical: 15.h,
-                ),
-                suffixIcon: Icon(
-                  Icons.search,
-                  color: Colors.grey[600],
-                  size: 20.sp,
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              fillColor: const Color(0xFFF5F5F5),
+              filled: true,
+              hintText: 'Search agency ID',
+              hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14.sp),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.r),
+                borderSide: BorderSide(
+                  color: const Color(0xFF888686),
+                  width: 1.w,
                 ),
               ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.r),
+                borderSide: BorderSide(
+                  color: const Color(0xFF888686),
+                  width: 1.w,
+                ),
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.r),
+                borderSide: BorderSide(
+                  color: const Color(0xFF888686),
+                  width: 1.w,
+                ),
+              ),
+              contentPadding: EdgeInsets.all(16.w),
             ),
+            style: TextStyle(fontSize: 14.sp, color: Colors.black87),
           ),
+        ),
+        SizedBox(width: 10.w),
+        Container(
+          width: 52.w,
+          height: 52.w,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(8.r),
+            border: Border.all(color: const Color(0xFF888686)),
+          ),
+          child: Icon(Icons.search, color: Colors.grey[600], size: 24.sp),
         ),
       ],
     );
@@ -602,41 +664,25 @@ class _MyAgencyPageState extends State<MyAgencyPage> {
   Widget _buildAgencyCard(Agency agency) {
     return Container(
       margin: EdgeInsets.only(bottom: 15.h),
-      padding: EdgeInsets.all(15.w),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFEEEAA2), // Yellow background like in old version
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey[200]!),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Row(
         children: [
           // Agency Avatar
           Container(
-            width: 50.w,
-            height: 50.h,
+            width: 60.w,
+            height: 60.w,
             decoration: BoxDecoration(
-              color: const Color(0xFF082A7B),
+              color: Colors.black87,
               borderRadius: BorderRadius.circular(8.r),
             ),
-            child: Center(
-              child: Text(
-                agency.name.isNotEmpty ? agency.name[0].toUpperCase() : 'A',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+            child: Icon(Icons.business, color: Colors.white, size: 30.sp),
           ),
-          SizedBox(width: 15.w),
+
+          SizedBox(width: 16.w),
 
           // Agency Info
           Expanded(
@@ -654,21 +700,7 @@ class _MyAgencyPageState extends State<MyAgencyPage> {
                 SizedBox(height: 4.h),
                 Text(
                   'ID: ${agency.userId}',
-                  style: TextStyle(fontSize: 12.sp, color: Colors.grey[600]),
-                ),
-                SizedBox(height: 4.h),
-                Row(
-                  children: [
-                    Icon(Icons.people, size: 14.sp, color: Colors.grey[600]),
-                    SizedBox(width: 4.w),
-                    Text(
-                      '${agency.diamonds} diamonds',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
+                  style: TextStyle(fontSize: 14.sp, color: Colors.black54),
                 ),
               ],
             ),
@@ -678,11 +710,11 @@ class _MyAgencyPageState extends State<MyAgencyPage> {
           ElevatedButton(
             onPressed: _isProcessing ? null : () => _joinAgency(agency.id),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF082A7B),
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+              backgroundColor: const Color(0xFF082A7B), // Blue color
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20.r),
               ),
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
             ),
             child: _isProcessing
                 ? SizedBox(
@@ -703,6 +735,295 @@ class _MyAgencyPageState extends State<MyAgencyPage> {
                   ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Congratulations Page
+class CongratulationsPage extends StatelessWidget {
+  final String agencyName;
+  final VoidCallback onContinue;
+
+  const CongratulationsPage({
+    super.key,
+    required this.agencyName,
+    required this.onContinue,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF7D299D), // Purple
+              Color(0xFF7D299D), // Darker purple
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Icon(
+                        Icons.arrow_back_ios,
+                        color: Colors.white,
+                        size: 20.sp,
+                      ),
+                    ),
+                    SizedBox(width: 15.w),
+                    Text(
+                      'Agency',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Success Icon
+                    SizedBox(
+                      width: 100.w,
+                      height: 100.w,
+                      child: Image.asset(
+                        "assets/images/general/congratulation_icon.png",
+                      ),
+                    ),
+
+                    SizedBox(height: 30.h),
+
+                    // Congratulations Text
+                    Text(
+                      'Congratulations!',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 28.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+
+                    SizedBox(height: 80.h),
+
+                    // Bottom Card
+                    Container(
+                      margin: EdgeInsets.symmetric(horizontal: 20.w),
+                      padding: EdgeInsets.all(30.w),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Approved!',
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+
+                          SizedBox(height: 20.h),
+
+                          Text(
+                            'Delighted to have you with us.\nLet\'s grow together through collaboration\nand shared success!',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              color: Colors.black54,
+                              height: 1.5,
+                            ),
+                          ),
+
+                          SizedBox(height: 30.h),
+
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50.h,
+                            child: ElevatedButton(
+                              onPressed: onContinue,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1E40AF),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(25.r),
+                                ),
+                              ),
+                              child: Text(
+                                'Best Of Luck!',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Welcome Page
+class CongratePage extends StatelessWidget {
+  final String agencyName;
+  final VoidCallback onFinish;
+
+  const CongratePage({
+    super.key,
+    required this.agencyName,
+    required this.onFinish,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF7D299D), // Purple
+              Color(0xFF7D299D), // Darker purple
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Icon(
+                        Icons.arrow_back_ios,
+                        color: Colors.white,
+                        size: 20.sp,
+                      ),
+                    ),
+                    SizedBox(width: 15.w),
+                    Text(
+                      'Agency',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Success Icon
+                    SizedBox(
+                      width: 100.w,
+                      height: 100.w,
+                      child: Image.asset(
+                        "assets/images/general/congratulation_icon.png",
+                      ),
+                    ),
+                    SizedBox(height: 30.h),
+                    // Congratulations Text
+                    Text(
+                      'Congratulations!',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 28.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 80.h),
+                    // Bottom Card
+                    Container(
+                      margin: EdgeInsets.symmetric(horizontal: 20.w),
+                      padding: EdgeInsets.all(30.w),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Approved!',
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          SizedBox(height: 20.h),
+                          Text(
+                            'Delighted to have you with us.\nLet\'s grow together through collaboration\nand shared success!',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              color: Colors.black54,
+                              height: 1.5,
+                            ),
+                          ),
+                          SizedBox(height: 30.h),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50.h,
+                            child: ElevatedButton(
+                              onPressed: () {},
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1E40AF),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(25.r),
+                                ),
+                              ),
+                              child: Text(
+                                'Best Of Luck!',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
