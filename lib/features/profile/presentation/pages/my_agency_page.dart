@@ -2,25 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/models/user_model.dart';
+import '../../../../core/network/api_service.dart';
+import '../../../../core/network/models/agency_models.dart';
 
-// Agency model
-class AgencyModel {
-  final String id;
-  final String name;
-  final String agencyId;
-  final String? avatar;
-  final AgencyStatus status;
-
-  AgencyModel({
-    required this.id,
-    required this.name,
-    required this.agencyId,
-    this.avatar,
-    required this.status,
-  });
-}
-
-enum AgencyStatus { available, waiting, approved }
+enum AgencyPageState { loading, list, member, pending, congrats, error }
 
 class MyAgencyPage extends StatefulWidget {
   final UserModel user;
@@ -33,16 +18,24 @@ class MyAgencyPage extends StatefulWidget {
 
 class _MyAgencyPageState extends State<MyAgencyPage> {
   final TextEditingController _searchController = TextEditingController();
-  List<AgencyModel> agencies = [
-    AgencyModel(
-      id: '1',
-      name: 'BD Agency',
-      agencyId: 'ID:123456',
-      avatar: null, // Will use default avatar
-      status: AgencyStatus.available,
-    ),
-    // Add more sample agencies as needed
-  ];
+  final ApiService _apiService = ApiService.instance;
+
+  AgencyPageState _pageState = AgencyPageState.loading;
+  List<Agency> _agencies = [];
+  AgencyDetails? _currentAgencyDetails;
+  String? _errorMessage;
+  bool _isProcessing = false;
+
+  // Pagination
+  int _currentPage = 1;
+  bool _hasMoreData = false;
+  bool _isLoadingMore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAgencyStatus();
+  }
 
   @override
   void dispose() {
@@ -50,51 +43,187 @@ class _MyAgencyPageState extends State<MyAgencyPage> {
     super.dispose();
   }
 
-  void _joinAgency(AgencyModel agency) {
+  /// Check current user's agency status
+  Future<void> _checkAgencyStatus() async {
     setState(() {
-      // Update the agency status to waiting
-      final index = agencies.indexWhere((a) => a.id == agency.id);
-      if (index != -1) {
-        agencies[index] = AgencyModel(
-          id: agency.id,
-          name: agency.name,
-          agencyId: agency.agencyId,
-          avatar: agency.avatar,
-          status: AgencyStatus.waiting,
-        );
-      }
+      _pageState = AgencyPageState.loading;
     });
 
-    // Simulate approval after 2 seconds
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        _showCongratulationsPage(agency);
-      }
-    });
-  }
+    final result = await _apiService.getAgencyStatus();
 
-  void _showCongratulationsPage(AgencyModel agency) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CongratulationsPage(
-          agency: agency,
-          onContinue: () => _showWelcomePage(agency),
-        ),
-      ),
+    result.when(
+      success: (response) {
+        if (response.success) {
+          switch (response.result.status) {
+            case 'list':
+              setState(() {
+                _pageState = AgencyPageState.member;
+              });
+              _loadAgencyList();
+              break;
+            case 'member':
+              setState(() {
+                _pageState = AgencyPageState.member;
+                _currentAgencyDetails = response.result.agencyDetails;
+              });
+              break;
+            case 'pending':
+              setState(() {
+                _pageState = AgencyPageState.pending;
+                _currentAgencyDetails = response.result.agencyDetails;
+              });
+              break;
+            case 'congrats':
+              setState(() {
+                _pageState = AgencyPageState.congrats;
+                _currentAgencyDetails = response.result.agencyDetails;
+              });
+              break;
+          }
+        } else {
+          setState(() {
+            _pageState = AgencyPageState.error;
+            _errorMessage = 'Failed to get agency status';
+          });
+        }
+      },
+      failure: (error) {
+        setState(() {
+          _pageState = AgencyPageState.error;
+          _errorMessage = error;
+        });
+      },
     );
   }
 
-  void _showWelcomePage(AgencyModel agency) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => WelcomePage(
-          agency: agency,
-          onFinish: () {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          },
-        ),
+  /// Load agency list when status is 'list'
+  Future<void> _loadAgencyList({bool refresh = false}) async {
+    if (refresh) {
+      _currentPage = 1;
+      _agencies.clear();
+    }
+
+    final result = await _apiService.getAgencyList(
+      page: _currentPage,
+      limit: 10,
+    );
+
+    result.when(
+      success: (response) {
+        if (response.success) {
+          setState(() {
+            if (refresh) {
+              _agencies = response.result.data;
+            } else {
+              _agencies.addAll(response.result.data);
+            }
+            _hasMoreData =
+                response.result.pagination.page <
+                response.result.pagination.totalPage;
+            _currentPage++;
+            _isLoadingMore = false;
+          });
+        } else {
+          setState(() {
+            _errorMessage = response.message;
+            _pageState = AgencyPageState.error;
+          });
+        }
+      },
+      failure: (error) {
+        setState(() {
+          _errorMessage = error;
+          _pageState = AgencyPageState.error;
+          _isLoadingMore = false;
+        });
+      },
+    );
+  }
+
+  /// Join an agency
+  Future<void> _joinAgency(String agencyId) async {
+    if (_isProcessing) return;
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    final result = await _apiService.joinAgency(agencyId);
+
+    result.when(
+      success: (response) {
+        if (response.success) {
+          _showSnackBar('Join request sent successfully!', Colors.green);
+          // Refresh status to check new state
+          _checkAgencyStatus();
+        } else {
+          _showSnackBar(
+            response.message ?? 'Failed to join agency',
+            Colors.red,
+          );
+        }
+        setState(() {
+          _isProcessing = false;
+        });
+      },
+      failure: (error) {
+        _showSnackBar(error, Colors.red);
+        setState(() {
+          _isProcessing = false;
+        });
+      },
+    );
+  }
+
+  /// Cancel agency join request
+  Future<void> _cancelAgencyRequest() async {
+    if (_isProcessing) return;
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    final result = await _apiService.cancelAgencyRequest();
+
+    result.when(
+      success: (response) {
+        if (response.success) {
+          _showSnackBar('Request cancelled successfully!', Colors.green);
+          // Refresh status to check new state
+          _checkAgencyStatus();
+        } else {
+          _showSnackBar(
+            response.message ?? 'Failed to cancel request',
+            Colors.red,
+          );
+        }
+        setState(() {
+          _isProcessing = false;
+        });
+      },
+      failure: (error) {
+        _showSnackBar(error, Colors.red);
+        setState(() {
+          _isProcessing = false;
+        });
+      },
+    );
+  }
+
+  /// Show congratulations and move to member status
+  void _handleCongratsAcknowledge() {
+    setState(() {
+      _pageState = AgencyPageState.member;
+    });
+  }
+
+  /// Show snackbar message
+  void _showSnackBar(String message, Color backgroundColor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -120,28 +249,311 @@ class _MyAgencyPageState extends State<MyAgencyPage> {
           ),
         ),
       ),
-      body: Padding(
-        padding: EdgeInsets.all(20.w),
-        child: Column(
-          children: [
-            // Search Section
-            _buildSearchSection(),
+      body: _buildBody(),
+    );
+  }
 
-            SizedBox(height: 20.h),
+  Widget _buildBody() {
+    switch (_pageState) {
+      case AgencyPageState.loading:
+        return _buildLoadingState();
+      case AgencyPageState.list:
+        return _buildAgencyListState();
+      case AgencyPageState.member:
+        return _buildMemberState();
+      case AgencyPageState.pending:
+        return _buildPendingState();
+      case AgencyPageState.congrats:
+        return _buildCongratsState();
+      case AgencyPageState.error:
+        return _buildErrorState();
+    }
+  }
 
-            // Agency List
-            Expanded(
-              child: agencies.isEmpty
-                  ? const Center(child: Text('No agencies found'))
-                  : ListView.builder(
-                      itemCount: agencies.length,
+  Widget _buildLoadingState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('Loading agency information...'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAgencyListState() {
+    return Padding(
+      padding: EdgeInsets.all(20.w),
+      child: Column(
+        children: [
+          // Search Section
+          _buildSearchSection(),
+          SizedBox(height: 20.h),
+
+          // Agency List
+          Expanded(
+            child: _agencies.isEmpty
+                ? const Center(child: Text('No agencies found'))
+                : RefreshIndicator(
+                    onRefresh: () => _loadAgencyList(refresh: true),
+                    child: ListView.builder(
+                      itemCount: _agencies.length + (_hasMoreData ? 1 : 0),
                       itemBuilder: (context, index) {
-                        return _buildAgencyCard(agencies[index]);
+                        if (index == _agencies.length) {
+                          // Load more indicator
+                          if (!_isLoadingMore && _hasMoreData) {
+                            Future.microtask(() => _loadAgencyList());
+                          }
+                          return const Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+                        return _buildAgencyCard(_agencies[index]);
                       },
                     ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMemberState() {
+    return Padding(
+      padding: EdgeInsets.all(20.w),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.business, size: 80.sp, color: Colors.green),
+          SizedBox(height: 20.h),
+          Text(
+            'You are a member of',
+            style: TextStyle(fontSize: 18.sp, color: Colors.grey[600]),
+          ),
+          SizedBox(height: 10.h),
+          Text(
+            _currentAgencyDetails?.name ?? 'Unknown Agency',
+            style: TextStyle(
+              fontSize: 24.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
             ),
-          ],
-        ),
+          ),
+          SizedBox(height: 10.h),
+          Text(
+            'Host Count: ${_currentAgencyDetails?.hostCount ?? 0}',
+            style: TextStyle(fontSize: 16.sp, color: Colors.grey[600]),
+          ),
+          SizedBox(height: 40.h),
+          ElevatedButton(
+            onPressed: () => context.pop(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF082A7B),
+              padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 15.h),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(25.r),
+              ),
+            ),
+            child: Text(
+              'Continue',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPendingState() {
+    return Padding(
+      padding: EdgeInsets.all(20.w),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.pending_actions, size: 80.sp, color: Colors.orange),
+          SizedBox(height: 20.h),
+          Text(
+            'Request Pending',
+            style: TextStyle(
+              fontSize: 24.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          SizedBox(height: 10.h),
+          Text(
+            'Your request to join',
+            style: TextStyle(fontSize: 18.sp, color: Colors.grey[600]),
+          ),
+          SizedBox(height: 5.h),
+          Text(
+            _currentAgencyDetails?.name ?? 'Unknown Agency',
+            style: TextStyle(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+          SizedBox(height: 5.h),
+          Text(
+            'is under review',
+            style: TextStyle(fontSize: 18.sp, color: Colors.grey[600]),
+          ),
+          SizedBox(height: 40.h),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isProcessing ? null : _cancelAgencyRequest,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    padding: EdgeInsets.symmetric(vertical: 15.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25.r),
+                    ),
+                  ),
+                  child: _isProcessing
+                      ? SizedBox(
+                          height: 20.h,
+                          width: 20.w,
+                          child: const CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          'Cancel Request',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 20.h),
+          TextButton(
+            onPressed: () => context.pop(),
+            child: Text(
+              'Go Back',
+              style: TextStyle(color: Colors.grey[600], fontSize: 14.sp),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCongratsState() {
+    return Padding(
+      padding: EdgeInsets.all(20.w),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.celebration, size: 100.sp, color: Colors.amber),
+          SizedBox(height: 30.h),
+          Text(
+            'Congratulations!',
+            style: TextStyle(
+              fontSize: 28.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.green,
+            ),
+          ),
+          SizedBox(height: 20.h),
+          Text(
+            'You have been accepted to',
+            style: TextStyle(fontSize: 18.sp, color: Colors.grey[600]),
+          ),
+          SizedBox(height: 10.h),
+          Text(
+            _currentAgencyDetails?.name ?? 'Unknown Agency',
+            style: TextStyle(
+              fontSize: 24.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          SizedBox(height: 10.h),
+          Text(
+            'Host Count: ${_currentAgencyDetails?.hostCount ?? 0}',
+            style: TextStyle(fontSize: 16.sp, color: Colors.grey[600]),
+          ),
+          SizedBox(height: 40.h),
+          ElevatedButton(
+            onPressed: _handleCongratsAcknowledge,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF082A7B),
+              padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 15.h),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(25.r),
+              ),
+            ),
+            child: Text(
+              'Let\'s Enjoy!',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Padding(
+      padding: EdgeInsets.all(20.w),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 80.sp, color: Colors.red),
+          SizedBox(height: 20.h),
+          Text(
+            'Something went wrong',
+            style: TextStyle(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          SizedBox(height: 10.h),
+          Text(
+            _errorMessage ?? 'Unknown error occurred',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16.sp, color: Colors.grey[600]),
+          ),
+          SizedBox(height: 30.h),
+          ElevatedButton(
+            onPressed: _checkAgencyStatus,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF082A7B),
+              padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 15.h),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(25.r),
+              ),
+            ),
+            child: Text(
+              'Retry',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -151,78 +563,80 @@ class _MyAgencyPageState extends State<MyAgencyPage> {
       children: [
         Expanded(
           child: Container(
-            // decoration: BoxDecoration(
-            //   color: const Color(0xFFF5F5F5),
-            //   borderRadius: BorderRadius.circular(8.r),
-            //   border: Border.all(color: Colors.grey[300]!),
-            // ),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                fillColor: Color(0xFFF5F5F5),
+                fillColor: const Color(0xFFF5F5F5),
+                filled: true,
                 hintText: 'Search agency ID',
-                hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14.sp),
-                focusedBorder: OutlineInputBorder(
+                hintStyle: TextStyle(color: Colors.grey[600], fontSize: 14.sp),
+                border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8.r),
-                  borderSide: BorderSide(color: Color(0xFF888686), width: 1.w),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8.r),
-                  borderSide: BorderSide(color: Color(0xFF888686), width: 1.w),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
                 ),
-
-                border: OutlineInputBorder(
+                focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8.r),
-                  borderSide: BorderSide(color: Color(0xFF888686), width: 1.w),
+                  borderSide: const BorderSide(color: Color(0xFF082A7B)),
                 ),
-                contentPadding: EdgeInsets.all(16.w),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 15.w,
+                  vertical: 15.h,
+                ),
+                suffixIcon: Icon(
+                  Icons.search,
+                  color: Colors.grey[600],
+                  size: 20.sp,
+                ),
               ),
-              style: TextStyle(fontSize: 14.sp, color: Colors.black87),
             ),
           ),
-        ),
-        SizedBox(width: 10.w),
-        Container(
-          width: 52.w,
-          height: 52.w,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(8.r),
-            border: Border.all(color: Color(0xFF888686)),
-          ),
-          child: Icon(Icons.search, color: Colors.grey[600], size: 24.sp),
         ),
       ],
     );
   }
 
-  Widget _buildAgencyCard(AgencyModel agency) {
+  Widget _buildAgencyCard(Agency agency) {
     return Container(
       margin: EdgeInsets.only(bottom: 15.h),
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(15.w),
       decoration: BoxDecoration(
-        color: const Color(0xFFEEEAA2), // Yellow background like in screenshot
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           // Agency Avatar
           Container(
-            width: 60.w,
-            height: 60.w,
+            width: 50.w,
+            height: 50.h,
             decoration: BoxDecoration(
-              color: Colors.black87,
+              color: const Color(0xFF082A7B),
               borderRadius: BorderRadius.circular(8.r),
             ),
-            child: agency.avatar != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(8.r),
-                    child: Image.network(agency.avatar!, fit: BoxFit.cover),
-                  )
-                : Icon(Icons.business, color: Colors.white, size: 30.sp),
+            child: Center(
+              child: Text(
+                agency.name.isNotEmpty ? agency.name[0].toUpperCase() : 'A',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ),
-
-          SizedBox(width: 16.w),
+          SizedBox(width: 15.w),
 
           // Agency Info
           Expanded(
@@ -239,368 +653,56 @@ class _MyAgencyPageState extends State<MyAgencyPage> {
                 ),
                 SizedBox(height: 4.h),
                 Text(
-                  agency.agencyId,
-                  style: TextStyle(fontSize: 14.sp, color: Colors.black54),
+                  'ID: ${agency.userId}',
+                  style: TextStyle(fontSize: 12.sp, color: Colors.grey[600]),
+                ),
+                SizedBox(height: 4.h),
+                Row(
+                  children: [
+                    Icon(Icons.people, size: 14.sp, color: Colors.grey[600]),
+                    SizedBox(width: 4.w),
+                    Text(
+                      '${agency.diamonds} diamonds',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
 
-          // Action Button
-          _buildActionButton(agency),
+          // Join Button
+          ElevatedButton(
+            onPressed: _isProcessing ? null : () => _joinAgency(agency.id),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF082A7B),
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20.r),
+              ),
+            ),
+            child: _isProcessing
+                ? SizedBox(
+                    height: 16.h,
+                    width: 16.w,
+                    child: const CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : Text(
+                    'Join',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+          ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton(AgencyModel agency) {
-    switch (agency.status) {
-      case AgencyStatus.available:
-        return ElevatedButton(
-          onPressed: () => _joinAgency(agency),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF082A7B), // Blue color
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20.r),
-            ),
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
-          ),
-          child: Text(
-            'Join',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        );
-      case AgencyStatus.waiting:
-        return Container(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E40AF),
-            borderRadius: BorderRadius.circular(20.r),
-          ),
-          child: Text(
-            'Waiting',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        );
-      case AgencyStatus.approved:
-        return Container(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
-          decoration: BoxDecoration(
-            color: Colors.green,
-            borderRadius: BorderRadius.circular(20.r),
-          ),
-          child: Text(
-            'Joined',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        );
-    }
-  }
-}
-
-// Congratulations Page
-class CongratulationsPage extends StatelessWidget {
-  final AgencyModel agency;
-  final VoidCallback onContinue;
-
-  const CongratulationsPage({
-    super.key,
-    required this.agency,
-    required this.onContinue,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF7D299D), // Purple
-              Color(0xFF7D299D), // Darker purple
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Icon(
-                        Icons.arrow_back_ios,
-                        color: Colors.white,
-                        size: 20.sp,
-                      ),
-                    ),
-                    SizedBox(width: 15.w),
-                    Text(
-                      'Agency',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Success Icon
-                    SizedBox(
-                      width: 100.w,
-                      height: 100.w,
-
-                      child: Image.asset(
-                        "assets/images/general/congratulation_icon.png",
-                      ),
-                    ),
-
-                    SizedBox(height: 30.h),
-
-                    // Congratulations Text
-                    Text(
-                      'Congratulations!',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    SizedBox(height: 80.h),
-
-                    // Bottom Card
-                    Container(
-                      margin: EdgeInsets.symmetric(horizontal: 20.w),
-                      padding: EdgeInsets.all(30.w),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20.r),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            'Approved!',
-                            style: TextStyle(
-                              fontSize: 24.sp,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-
-                          SizedBox(height: 20.h),
-
-                          Text(
-                            'Delighted to have you with us.\nLet\'s grow together through collaboration\nand shared success!',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              color: Colors.black54,
-                              height: 1.5,
-                            ),
-                          ),
-
-                          SizedBox(height: 30.h),
-
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50.h,
-                            child: ElevatedButton(
-                              onPressed: onContinue,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF1E40AF),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25.r),
-                                ),
-                              ),
-                              child: Text(
-                                'Best Of Luck!',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// Welcome Page
-class WelcomePage extends StatelessWidget {
-  final AgencyModel agency;
-  final VoidCallback onFinish;
-
-  const WelcomePage({super.key, required this.agency, required this.onFinish});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF7D299D), // Purple
-              Color(0xFF7D299D), // Darker purple
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Icon(
-                        Icons.arrow_back_ios,
-                        color: Colors.white,
-                        size: 20.sp,
-                      ),
-                    ),
-                    SizedBox(width: 15.w),
-                    Text(
-                      'Agency',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Wings Image
-                    Container(
-                      width: 390.w,
-                      height: 222.h,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20.r),
-                      ),
-                      child: Image.asset(
-                        "assets/images/general/welcome_banner.png",
-                      ),
-                    ),
-
-                    SizedBox(height: 30.h),
-
-                    // Shield Icon
-                    Container(
-                      width: 80.w,
-                      height: 80.w,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Image.asset(
-                        "assets/images/general/welcome_icon.png",
-                      ),
-                    ),
-
-                    SizedBox(height: 30.h),
-
-                    // Welcome Text
-                    Text(
-                      'Welcome to DLStar!',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    SizedBox(height: 20.h),
-
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 40.w),
-                      child: Text(
-                        'We\'re thrilled to have your agency join the DLStar family. Together, let\'s grow, innovate, and succeed!',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16.sp,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 60.h),
-
-                    // Finish Button
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 40.w),
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: 50.h,
-                        child: ElevatedButton(
-                          onPressed: onFinish,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF082A7B),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25.r),
-                            ),
-                          ),
-                          child: Text(
-                            'Let\'s Enjoy',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
