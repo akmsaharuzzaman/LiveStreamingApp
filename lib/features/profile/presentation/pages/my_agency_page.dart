@@ -57,7 +57,7 @@ class _MyAgencyPageState extends State<MyAgencyPage> {
           switch (response.result.status) {
             case 'list':
               setState(() {
-                _pageState = AgencyPageState.member;
+                _pageState = AgencyPageState.list;
               });
               _loadAgencyList();
               break;
@@ -230,27 +230,7 @@ class _MyAgencyPageState extends State<MyAgencyPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        leading: GestureDetector(
-          onTap: () => context.pop(),
-          child: Icon(Icons.arrow_back_ios, color: Colors.black87, size: 20.sp),
-        ),
-        title: Text(
-          'Agency',
-          style: TextStyle(
-            color: Colors.black87,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-      body: Center(child: _buildBody()),
-    );
+    return Scaffold(backgroundColor: Colors.white, body: _buildBody());
   }
 
   Widget _buildBody() {
@@ -271,52 +251,135 @@ class _MyAgencyPageState extends State<MyAgencyPage> {
   }
 
   Widget _buildLoadingState() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 16),
-          Text('Loading agency information...'),
-        ],
+    return Scaffold(
+      body: Container(
+        color: Colors.white,
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom Header
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => context.pop(),
+                      child: Icon(
+                        Icons.arrow_back_ios,
+                        color: Colors.black87,
+                        size: 20.sp,
+                      ),
+                    ),
+                    SizedBox(width: 15.w),
+                    Text(
+                      'Agency',
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Loading agency information...'),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildAgencyListState() {
-    return Padding(
-      padding: EdgeInsets.all(20.w),
-      child: Column(
-        children: [
-          // Search Section
-          _buildSearchSection(),
-          SizedBox(height: 20.h),
-
-          // Agency List
-          Expanded(
-            child: _agencies.isEmpty
-                ? const Center(child: Text('No agencies found'))
-                : RefreshIndicator(
-                    onRefresh: () => _loadAgencyList(refresh: true),
-                    child: ListView.builder(
-                      itemCount: _agencies.length + (_hasMoreData ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index == _agencies.length) {
-                          // Load more indicator
-                          if (!_isLoadingMore && _hasMoreData) {
-                            Future.microtask(() => _loadAgencyList());
-                          }
-                          return const Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: Center(child: CircularProgressIndicator()),
-                          );
-                        }
-                        return _buildAgencyCard(_agencies[index]);
-                      },
+    return Scaffold(
+      body: Container(
+        color: Colors.white,
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom Header
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => context.pop(),
+                      child: Icon(
+                        Icons.arrow_back_ios,
+                        color: Colors.black87,
+                        size: 20.sp,
+                      ),
                     ),
+                    SizedBox(width: 15.w),
+                    Text(
+                      'Agency',
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.all(20.w),
+                  child: Column(
+                    children: [
+                      // Search Section
+                      _buildSearchSection(),
+                      SizedBox(height: 20.h),
+
+                      // Agency List
+                      Expanded(
+                        child: _agencies.isEmpty
+                            ? const Center(child: Text('No agencies found'))
+                            : RefreshIndicator(
+                                onRefresh: () => _loadAgencyList(refresh: true),
+                                child: ListView.builder(
+                                  itemCount:
+                                      _agencies.length + (_hasMoreData ? 1 : 0),
+                                  itemBuilder: (context, index) {
+                                    if (index == _agencies.length) {
+                                      // Load more indicator
+                                      if (!_isLoadingMore && _hasMoreData) {
+                                        Future.microtask(
+                                          () => _loadAgencyList(),
+                                        );
+                                      }
+                                      return const Padding(
+                                        padding: EdgeInsets.all(16.0),
+                                        child: Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      );
+                                    }
+                                    return _buildAgencyCard(_agencies[index]);
+                                  },
+                                ),
+                              ),
+                      ),
+                    ],
                   ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -456,83 +519,137 @@ class _MyAgencyPageState extends State<MyAgencyPage> {
   }
 
   Widget _buildPendingState() {
-    return Padding(
-      padding: EdgeInsets.all(20.w),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.pending_actions, size: 80.sp, color: Colors.orange),
-          SizedBox(height: 20.h),
-          Text(
-            'Request Pending',
-            style: TextStyle(
-              fontSize: 24.sp,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          SizedBox(height: 10.h),
-          Text(
-            'Your request to join',
-            style: TextStyle(fontSize: 18.sp, color: Colors.grey[600]),
-          ),
-          SizedBox(height: 5.h),
-          Text(
-            _currentAgencyDetails?.name ?? 'Unknown Agency',
-            style: TextStyle(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-          SizedBox(height: 5.h),
-          Text(
-            'is under review',
-            style: TextStyle(fontSize: 18.sp, color: Colors.grey[600]),
-          ),
-          SizedBox(height: 40.h),
-          Row(
+    return Scaffold(
+      body: Container(
+        color: Colors.white,
+        child: SafeArea(
+          child: Column(
             children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _isProcessing ? null : _cancelAgencyRequest,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    padding: EdgeInsets.symmetric(vertical: 15.h),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25.r),
+              // Custom Header
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => context.pop(),
+                      child: Icon(
+                        Icons.arrow_back_ios,
+                        color: Colors.black87,
+                        size: 20.sp,
+                      ),
                     ),
-                  ),
-                  child: _isProcessing
-                      ? SizedBox(
-                          height: 20.h,
-                          width: 20.w,
-                          child: const CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
+                    SizedBox(width: 15.w),
+                    Text(
+                      'Agency',
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.all(20.w),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.pending_actions,
+                        size: 80.sp,
+                        color: Colors.orange,
+                      ),
+                      SizedBox(height: 20.h),
+                      Text(
+                        'Request Pending',
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      SizedBox(height: 10.h),
+                      Text(
+                        'Your request to join',
+                        style: TextStyle(
+                          fontSize: 18.sp,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      SizedBox(height: 5.h),
+                      Text(
+                        _currentAgencyDetails?.name ?? 'Unknown Agency',
+                        style: TextStyle(
+                          fontSize: 20.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      SizedBox(height: 5.h),
+                      Text(
+                        'is under review',
+                        style: TextStyle(
+                          fontSize: 18.sp,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      SizedBox(height: 40.h),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _isProcessing
+                                  ? null
+                                  : _cancelAgencyRequest,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                padding: EdgeInsets.symmetric(vertical: 15.h),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(25.r),
+                                ),
+                              ),
+                              child: _isProcessing
+                                  ? SizedBox(
+                                      height: 20.h,
+                                      width: 20.w,
+                                      child: const CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      'Cancel Request',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                            ),
                           ),
-                        )
-                      : Text(
-                          'Cancel Request',
+                        ],
+                      ),
+                      SizedBox(height: 20.h),
+                      TextButton(
+                        onPressed: () => context.pop(),
+                        child: Text(
+                          'Go Back',
                           style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[600],
+                            fontSize: 14.sp,
                           ),
                         ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 20.h),
-          TextButton(
-            onPressed: () => context.pop(),
-            child: Text(
-              'Go Back',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14.sp),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -564,47 +681,92 @@ class _MyAgencyPageState extends State<MyAgencyPage> {
   }
 
   Widget _buildErrorState() {
-    return Padding(
-      padding: EdgeInsets.all(20.w),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 80.sp, color: Colors.red),
-          SizedBox(height: 20.h),
-          Text(
-            'Something went wrong',
-            style: TextStyle(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          SizedBox(height: 10.h),
-          Text(
-            _errorMessage ?? 'Unknown error occurred',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16.sp, color: Colors.grey[600]),
-          ),
-          SizedBox(height: 30.h),
-          ElevatedButton(
-            onPressed: _checkAgencyStatus,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF082A7B),
-              padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 15.h),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(25.r),
+    return Scaffold(
+      body: Container(
+        color: Colors.white,
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom Header
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => context.pop(),
+                      child: Icon(
+                        Icons.arrow_back_ios,
+                        color: Colors.black87,
+                        size: 20.sp,
+                      ),
+                    ),
+                    SizedBox(width: 15.w),
+                    Text(
+                      'Agency',
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            child: Text(
-              'Retry',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w500,
+
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.all(20.w),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 80.sp, color: Colors.red),
+                      SizedBox(height: 20.h),
+                      Text(
+                        'Something went wrong',
+                        style: TextStyle(
+                          fontSize: 20.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      SizedBox(height: 10.h),
+                      Text(
+                        _errorMessage ?? 'Unknown error occurred',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      SizedBox(height: 30.h),
+                      ElevatedButton(
+                        onPressed: _checkAgencyStatus,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF082A7B),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 40.w,
+                            vertical: 15.h,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(25.r),
+                          ),
+                        ),
+                        child: Text(
+                          'Retry',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -998,7 +1160,7 @@ class CongratePage extends StatelessWidget {
                             width: double.infinity,
                             height: 50.h,
                             child: ElevatedButton(
-                              onPressed: () {},
+                              onPressed: onFinish,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF1E40AF),
                                 shape: RoundedRectangleBorder(
