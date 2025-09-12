@@ -50,13 +50,9 @@ class SelectItemEvent extends StoreEvent {
 /// Purchase an item
 class PurchaseItemEvent extends StoreEvent {
   final String itemId;
-  final int price;
 
-  const PurchaseItemEvent({
-    required this.itemId,
-    required this.price,
-  });
+  const PurchaseItemEvent({required this.itemId});
 
   @override
-  List<Object?> get props => [itemId, price];
+  List<Object?> get props => [itemId];
 }

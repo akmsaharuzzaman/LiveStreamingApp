@@ -41,18 +41,18 @@ class StoreCategoriesLoaded extends StoreState {
   StoreCategory get selectedCategory => categories[selectedCategoryIndex];
 
   /// Get the currently selected item (if any)
-  StoreItem? get selectedItem => 
+  StoreItem? get selectedItem =>
       currentItems.isNotEmpty ? currentItems[selectedItemIndex] : null;
 
   @override
   List<Object?> get props => [
-        categories,
-        selectedCategoryIndex,
-        currentItems,
-        selectedItemIndex,
-        itemsLoading,
-        pagination,
-      ];
+    categories,
+    selectedCategoryIndex,
+    currentItems,
+    selectedItemIndex,
+    itemsLoading,
+    pagination,
+  ];
 
   /// Copy with method for state updates
   StoreCategoriesLoaded copyWith({
@@ -65,7 +65,8 @@ class StoreCategoriesLoaded extends StoreState {
   }) {
     return StoreCategoriesLoaded(
       categories: categories ?? this.categories,
-      selectedCategoryIndex: selectedCategoryIndex ?? this.selectedCategoryIndex,
+      selectedCategoryIndex:
+          selectedCategoryIndex ?? this.selectedCategoryIndex,
       currentItems: currentItems ?? this.currentItems,
       selectedItemIndex: selectedItemIndex ?? this.selectedItemIndex,
       itemsLoading: itemsLoading ?? this.itemsLoading,
@@ -114,11 +115,11 @@ class StorePurchaseLoading extends StoreState {
 
   @override
   List<Object?> get props => [
-        categories,
-        selectedCategoryIndex,
-        currentItems,
-        selectedItemIndex,
-      ];
+    categories,
+    selectedCategoryIndex,
+    currentItems,
+    selectedItemIndex,
+  ];
 }
 
 /// Purchase success state
@@ -139,10 +140,10 @@ class StorePurchaseSuccess extends StoreState {
 
   @override
   List<Object?> get props => [
-        message,
-        categories,
-        selectedCategoryIndex,
-        currentItems,
-        selectedItemIndex,
-      ];
+    message,
+    categories,
+    selectedCategoryIndex,
+    currentItems,
+    selectedItemIndex,
+  ];
 }

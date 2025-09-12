@@ -11,7 +11,7 @@ void main() {
         "isPremium": false,
         "createdAt": "2023-01-01T00:00:00.000Z",
         "updatedAt": "2023-01-01T00:00:00.000Z",
-        "__v": 0
+        "__v": 0,
       };
 
       final category = StoreCategory.fromJson(json);
@@ -33,15 +33,15 @@ void main() {
           {
             "categoryName": "sunglasses",
             "svgaFile": "sunglasses_model.svga",
-            "_id": "507f1f77bcf86cd799439013"
-          }
+            "_id": "507f1f77bcf86cd799439013",
+          },
         ],
         "deleteStatus": false,
         "totalSold": 0,
         "expireAt": "2024-01-01T00:00:00.000Z",
         "createdAt": "2023-01-01T00:00:00.000Z",
         "updatedAt": "2023-01-01T00:00:00.000Z",
-        "__v": 0
+        "__v": 0,
       };
 
       final item = StoreItem.fromJson(json);

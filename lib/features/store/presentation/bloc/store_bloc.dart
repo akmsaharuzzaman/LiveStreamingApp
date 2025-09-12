@@ -29,13 +29,15 @@ class StoreBloc extends Bloc<StoreEvent, StoreState> {
       success: (response) {
         if (response.success && response.result.isNotEmpty) {
           final categories = response.result;
-          emit(StoreCategoriesLoaded(
-            categories: categories,
-            selectedCategoryIndex: 0,
-            currentItems: const [],
-            selectedItemIndex: 0,
-            itemsLoading: false,
-          ));
+          emit(
+            StoreCategoriesLoaded(
+              categories: categories,
+              selectedCategoryIndex: 0,
+              currentItems: const [],
+              selectedItemIndex: 0,
+              itemsLoading: false,
+            ),
+          );
 
           // Automatically load items for the first category
           add(LoadCategoryItemsEvent(categoryId: categories.first.id));
@@ -55,7 +57,7 @@ class StoreBloc extends Bloc<StoreEvent, StoreState> {
     Emitter<StoreState> emit,
   ) async {
     final currentState = state;
-    
+
     if (currentState is StoreCategoriesLoaded) {
       // Update state to show items loading
       emit(currentState.copyWith(itemsLoading: true));
@@ -65,26 +67,32 @@ class StoreBloc extends Bloc<StoreEvent, StoreState> {
       result.when(
         success: (response) {
           if (response.success) {
-            emit(currentState.copyWith(
-              currentItems: response.result.items,
-              selectedItemIndex: 0,
-              itemsLoading: false,
-              pagination: response.result.pagination,
-            ));
+            emit(
+              currentState.copyWith(
+                currentItems: response.result.items,
+                selectedItemIndex: 0,
+                itemsLoading: false,
+                pagination: response.result.pagination,
+              ),
+            );
           } else {
-            emit(currentState.copyWith(
-              currentItems: const [],
-              selectedItemIndex: 0,
-              itemsLoading: false,
-            ));
+            emit(
+              currentState.copyWith(
+                currentItems: const [],
+                selectedItemIndex: 0,
+                itemsLoading: false,
+              ),
+            );
           }
         },
         failure: (error) {
-          emit(currentState.copyWith(
-            currentItems: const [],
-            selectedItemIndex: 0,
-            itemsLoading: false,
-          ));
+          emit(
+            currentState.copyWith(
+              currentItems: const [],
+              selectedItemIndex: 0,
+              itemsLoading: false,
+            ),
+          );
           emit(StoreError(message: error));
         },
       );
@@ -97,15 +105,17 @@ class StoreBloc extends Bloc<StoreEvent, StoreState> {
     Emitter<StoreState> emit,
   ) async {
     final currentState = state;
-    
+
     if (currentState is StoreCategoriesLoaded) {
       // Update selected category index
-      emit(currentState.copyWith(
-        selectedCategoryIndex: event.categoryIndex,
-        currentItems: const [], // Clear current items
-        selectedItemIndex: 0,
-        itemsLoading: true,
-      ));
+      emit(
+        currentState.copyWith(
+          selectedCategoryIndex: event.categoryIndex,
+          currentItems: const [], // Clear current items
+          selectedItemIndex: 0,
+          itemsLoading: true,
+        ),
+      );
 
       // Load items for the newly selected category
       add(LoadCategoryItemsEvent(categoryId: event.categoryId));
@@ -118,7 +128,7 @@ class StoreBloc extends Bloc<StoreEvent, StoreState> {
     Emitter<StoreState> emit,
   ) async {
     final currentState = state;
-    
+
     if (currentState is StoreCategoriesLoaded) {
       emit(currentState.copyWith(selectedItemIndex: event.itemIndex));
     }
@@ -130,56 +140,63 @@ class StoreBloc extends Bloc<StoreEvent, StoreState> {
     Emitter<StoreState> emit,
   ) async {
     final currentState = state;
-    
+
     if (currentState is StoreCategoriesLoaded) {
-      emit(StorePurchaseLoading(
-        categories: currentState.categories,
-        selectedCategoryIndex: currentState.selectedCategoryIndex,
-        currentItems: currentState.currentItems,
-        selectedItemIndex: currentState.selectedItemIndex,
-      ));
+      emit(
+        StorePurchaseLoading(
+          categories: currentState.categories,
+          selectedCategoryIndex: currentState.selectedCategoryIndex,
+          currentItems: currentState.currentItems,
+          selectedItemIndex: currentState.selectedItemIndex,
+        ),
+      );
 
       final result = await _storeApiService.purchaseItem(
         itemId: event.itemId,
-        price: event.price,
       );
 
       result.when(
         success: (response) {
-          emit(StorePurchaseSuccess(
-            message: 'Item purchased successfully!',
-            categories: currentState.categories,
-            selectedCategoryIndex: currentState.selectedCategoryIndex,
-            currentItems: currentState.currentItems,
-            selectedItemIndex: currentState.selectedItemIndex,
-          ));
+          emit(
+            StorePurchaseSuccess(
+              message: 'Item purchased successfully!',
+              categories: currentState.categories,
+              selectedCategoryIndex: currentState.selectedCategoryIndex,
+              currentItems: currentState.currentItems,
+              selectedItemIndex: currentState.selectedItemIndex,
+            ),
+          );
 
           // Return to normal state after showing success
           Future.delayed(const Duration(seconds: 2), () {
             if (!isClosed) {
-              emit(StoreCategoriesLoaded(
-                categories: currentState.categories,
-                selectedCategoryIndex: currentState.selectedCategoryIndex,
-                currentItems: currentState.currentItems,
-                selectedItemIndex: currentState.selectedItemIndex,
-                itemsLoading: false,
-              ));
+              emit(
+                StoreCategoriesLoaded(
+                  categories: currentState.categories,
+                  selectedCategoryIndex: currentState.selectedCategoryIndex,
+                  currentItems: currentState.currentItems,
+                  selectedItemIndex: currentState.selectedItemIndex,
+                  itemsLoading: false,
+                ),
+              );
             }
           });
         },
         failure: (error) {
           emit(StoreError(message: error));
-          
+
           // Return to normal state after showing error
           Future.delayed(const Duration(seconds: 2), () {
             if (!isClosed) {
-              emit(StoreCategoriesLoaded(
-                categories: currentState.categories,
-                selectedCategoryIndex: currentState.selectedCategoryIndex,
-                currentItems: currentState.currentItems,
-                selectedItemIndex: currentState.selectedItemIndex,
-                itemsLoading: false,
-              ));
+              emit(
+                StoreCategoriesLoaded(
+                  categories: currentState.categories,
+                  selectedCategoryIndex: currentState.selectedCategoryIndex,
+                  currentItems: currentState.currentItems,
+                  selectedItemIndex: currentState.selectedItemIndex,
+                  itemsLoading: false,
+                ),
+              );
             }
           });
         },

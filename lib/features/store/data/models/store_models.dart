@@ -30,7 +30,14 @@ class StoreCategory extends Equatable {
   Map<String, dynamic> toJson() => _$StoreCategoryToJson(this);
 
   @override
-  List<Object?> get props => [id, title, isPremium, createdAt, updatedAt, version];
+  List<Object?> get props => [
+    id,
+    title,
+    isPremium,
+    createdAt,
+    updatedAt,
+    version,
+  ];
 }
 
 /// Store Categories Response model
@@ -39,10 +46,7 @@ class StoreCategoriesResponse extends Equatable {
   final bool success;
   final List<StoreCategory> result;
 
-  const StoreCategoriesResponse({
-    required this.success,
-    required this.result,
-  });
+  const StoreCategoriesResponse({required this.success, required this.result});
 
   factory StoreCategoriesResponse.fromJson(Map<String, dynamic> json) =>
       _$StoreCategoriesResponseFromJson(json);
@@ -117,27 +121,28 @@ class StoreItem extends Equatable {
   Map<String, dynamic> toJson() => _$StoreItemToJson(this);
 
   /// Get the primary asset URL (first bundle file's svgaFile)
-  String? get asset => bundleFiles.isNotEmpty ? bundleFiles.first.svgaFile : null;
+  String? get asset =>
+      bundleFiles.isNotEmpty ? bundleFiles.first.svgaFile : null;
 
   /// Check if the item has an animated asset (SVGA files are animated)
   bool get isAnimated => bundleFiles.isNotEmpty;
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        validity,
-        categoryId,
-        isPremium,
-        price,
-        bundleFiles,
-        deleteStatus,
-        totalSold,
-        expireAt,
-        createdAt,
-        updatedAt,
-        version,
-      ];
+    id,
+    name,
+    validity,
+    categoryId,
+    isPremium,
+    price,
+    bundleFiles,
+    deleteStatus,
+    totalSold,
+    expireAt,
+    createdAt,
+    updatedAt,
+    version,
+  ];
 }
 
 /// Pagination model for store items response
@@ -170,10 +175,7 @@ class StoreItemsResult extends Equatable {
   final StorePagination pagination;
   final List<StoreItem> items;
 
-  const StoreItemsResult({
-    required this.pagination,
-    required this.items,
-  });
+  const StoreItemsResult({required this.pagination, required this.items});
 
   factory StoreItemsResult.fromJson(Map<String, dynamic> json) =>
       _$StoreItemsResultFromJson(json);
@@ -190,10 +192,7 @@ class StoreItemsResponse extends Equatable {
   final bool success;
   final StoreItemsResult result;
 
-  const StoreItemsResponse({
-    required this.success,
-    required this.result,
-  });
+  const StoreItemsResponse({required this.success, required this.result});
 
   factory StoreItemsResponse.fromJson(Map<String, dynamic> json) =>
       _$StoreItemsResponseFromJson(json);

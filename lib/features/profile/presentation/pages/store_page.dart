@@ -74,7 +74,7 @@ class _StorePageContent extends StatelessWidget {
           } else if (state is StoreError) {
             return _ErrorWidget(message: state.message);
           }
-          
+
           return const _LoadingWidget();
         },
       ),
@@ -104,7 +104,7 @@ class _LoadingWidget extends StatelessWidget {
 
 class _ErrorWidget extends StatelessWidget {
   final String message;
-  
+
   const _ErrorWidget({required this.message});
 
   @override
@@ -117,19 +117,12 @@ class _ErrorWidget extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 64.sp,
-                  color: Colors.red,
-                ),
+                Icon(Icons.error_outline, size: 64.sp, color: Colors.red),
                 SizedBox(height: 16.h),
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    color: Colors.red,
-                  ),
+                  style: TextStyle(fontSize: 16.sp, color: Colors.red),
                 ),
                 SizedBox(height: 16.h),
                 ElevatedButton(
@@ -157,10 +150,7 @@ class _StoreContent extends StatelessWidget {
   final StoreCategoriesLoaded state;
   final bool showPurchaseLoading;
 
-  const _StoreContent({
-    required this.state,
-    this.showPurchaseLoading = false,
-  });
+  const _StoreContent({required this.state, this.showPurchaseLoading = false});
 
   @override
   Widget build(BuildContext context) {
@@ -185,7 +175,7 @@ class _StoreContent extends StatelessWidget {
 
   Widget _buildShowcaseSection(BuildContext context) {
     final selectedItem = state.selectedItem;
-    
+
     return Stack(
       children: [
         Container(
@@ -243,16 +233,13 @@ class _StoreContent extends StatelessWidget {
 
   Widget _buildPurchaseSection(BuildContext context) {
     final selectedItem = state.selectedItem;
-    
+
     if (selectedItem == null) {
       return Container(
         margin: EdgeInsets.symmetric(horizontal: 20.w),
         child: const Text(
           'Select an item to see purchase options',
-          style: TextStyle(
-            color: Colors.grey,
-            fontSize: 16,
-          ),
+          style: TextStyle(color: Colors.grey, fontSize: 16),
         ),
       );
     }
@@ -279,19 +266,13 @@ class _StoreContent extends StatelessWidget {
                 // Subtitle
                 Text(
                   'Purchase with coin',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 16),
                 ),
                 if (selectedItem.validity > 0) ...[
                   SizedBox(height: 4.h),
                   Text(
                     'Validity: ${selectedItem.validity} days',
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.grey[500], fontSize: 14),
                   ),
                 ],
               ],
@@ -321,7 +302,9 @@ class _StoreContent extends StatelessWidget {
                         height: 20.h,
                         child: const CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : const Text(
@@ -348,10 +331,12 @@ class _StoreContent extends StatelessWidget {
           state.categories.length,
           (index) => GestureDetector(
             onTap: () {
-              context.read<StoreBloc>().add(SelectCategoryEvent(
-                categoryIndex: index,
-                categoryId: state.categories[index].id,
-              ));
+              context.read<StoreBloc>().add(
+                SelectCategoryEvent(
+                  categoryIndex: index,
+                  categoryId: state.categories[index].id,
+                ),
+              );
             },
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
@@ -407,10 +392,7 @@ class _StoreContent extends StatelessWidget {
             SizedBox(height: 16.h),
             Text(
               'No items available in this category',
-              style: TextStyle(
-                fontSize: 16.sp,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 16.sp, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -594,18 +576,14 @@ class _StoreContent extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: Colors.grey[600]),
-              ),
+              child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
-                context.read<StoreBloc>().add(PurchaseItemEvent(
-                  itemId: item.id,
-                  price: item.price,
-                ));
+                context.read<StoreBloc>().add(
+                  PurchaseItemEvent(itemId: item.id),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF6B9D),
@@ -626,9 +604,7 @@ class _StoreContent extends StatelessWidget {
 Widget _buildAppBar(BuildContext context) {
   return Container(
     height: 100.h,
-    decoration: const BoxDecoration(
-      color: Color(0xFF1A1A1A),
-    ),
+    decoration: const BoxDecoration(color: Color(0xFF1A1A1A)),
     child: SafeArea(
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 20.w),
@@ -678,7 +654,7 @@ Widget _buildStoreAssetWidget(StoreItem item, {bool isShowcase = false}) {
           child: CircularProgressIndicator(
             value: loadingProgress.expectedTotalBytes != null
                 ? loadingProgress.cumulativeBytesLoaded /
-                    loadingProgress.expectedTotalBytes!
+                      loadingProgress.expectedTotalBytes!
                 : null,
             valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFF6B9D)),
           ),

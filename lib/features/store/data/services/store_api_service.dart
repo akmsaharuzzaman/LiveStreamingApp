@@ -25,7 +25,9 @@ class StoreApiService {
   }
 
   /// Get items for a specific category
-  Future<ApiResult<StoreItemsResponse>> getCategoryItems(String categoryId) async {
+  Future<ApiResult<StoreItemsResponse>> getCategoryItems(
+    String categoryId,
+  ) async {
     try {
       final result = await _apiService.get<StoreItemsResponse>(
         '/api/store/items/category/$categoryId',
@@ -40,18 +42,14 @@ class StoreApiService {
     }
   }
 
-  /// Purchase an item (if needed in the future)
+  /// Purchase an item
   Future<ApiResult<Map<String, dynamic>>> purchaseItem({
     required String itemId,
-    required int price,
   }) async {
     try {
       final result = await _apiService.post<Map<String, dynamic>>(
-        '/api/store/purchase',
-        data: {
-          'itemId': itemId,
-          'price': price,
-        },
+        '/api/store/bucket',
+        data: {'itemId': itemId},
       );
 
       return result;
