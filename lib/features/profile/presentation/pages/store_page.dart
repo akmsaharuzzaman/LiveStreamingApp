@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svga/flutter_svga.dart';
 import 'package:go_router/go_router.dart';
 import '../../../store/presentation/bloc/store_bloc.dart';
 import '../../../store/presentation/bloc/store_event.dart';
@@ -479,7 +480,7 @@ class _StoreContent extends StatelessWidget {
                       child: SizedBox(
                         width: 60.w,
                         height: 60.h,
-                        child: _buildStoreAssetWidget(item),
+                        child: _buildStoreAssetWidget(item, thumbnail: true),
                       ),
                     ),
                     if (item.isAnimated)
@@ -657,7 +658,11 @@ Widget _buildAppBar(BuildContext context) {
 }
 
 // Helper function to render store assets
-Widget _buildStoreAssetWidget(StoreItem item, {bool isShowcase = false}) {
+Widget _buildStoreAssetWidget(
+  StoreItem item, {
+  bool isShowcase = false,
+  bool thumbnail = false,
+}) {
   if (item.asset == null || item.asset!.isEmpty) {
     return Icon(
       Icons.shopping_bag_outlined,
@@ -667,7 +672,9 @@ Widget _buildStoreAssetWidget(StoreItem item, {bool isShowcase = false}) {
   }
 
   // If it's a URL, use NetworkImage
-  if (item.asset!.startsWith('http')) {
+  if (item.asset!.startsWith('http') && !thumbnail) {
+    return SVGAEasyPlayer(resUrl: item.asset!, fit: BoxFit.contain);
+  } else {
     return Image.network(
       item.asset!,
       fit: BoxFit.contain,
