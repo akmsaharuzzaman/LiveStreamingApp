@@ -45,8 +45,6 @@ class BagPage extends StatelessWidget {
               ),
             ),
             SizedBox(height: 10.h),
-            _buildVipStatus(),
-            SizedBox(height: 20.h),
             // Categories and Items Section
             Expanded(
               child: BlocConsumer<BagBloc, BagState>(
@@ -185,30 +183,6 @@ class BagPage extends StatelessWidget {
     return Container(
       color: Colors.grey[300],
       child: Icon(Icons.person, size: 50.sp, color: Colors.grey[600]),
-    );
-  }
-
-  Widget _buildVipStatus() {
-    // Get user role or default to VIP
-    final userRole = user.userRole.toUpperCase();
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
-      ),
-      alignment: Alignment.centerLeft,
-      child: Text(
-        userRole,
-        style: TextStyle(
-          color: Colors.black,
-          fontSize: 16.sp,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.2,
-        ),
-      ),
     );
   }
 
