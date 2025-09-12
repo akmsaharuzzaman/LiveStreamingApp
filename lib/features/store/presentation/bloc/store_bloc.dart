@@ -166,39 +166,9 @@ class StoreBloc extends Bloc<StoreEvent, StoreState> {
               selectedItemIndex: currentState.selectedItemIndex,
             ),
           );
-
-          // Return to normal state after showing success
-          Future.delayed(const Duration(seconds: 2), () {
-            if (!isClosed) {
-              emit(
-                StoreCategoriesLoaded(
-                  categories: currentState.categories,
-                  selectedCategoryIndex: currentState.selectedCategoryIndex,
-                  currentItems: currentState.currentItems,
-                  selectedItemIndex: currentState.selectedItemIndex,
-                  itemsLoading: false,
-                ),
-              );
-            }
-          });
         },
         failure: (error) {
           emit(StoreError(message: error));
-
-          // Return to normal state after showing error
-          Future.delayed(const Duration(seconds: 2), () {
-            if (!isClosed) {
-              emit(
-                StoreCategoriesLoaded(
-                  categories: currentState.categories,
-                  selectedCategoryIndex: currentState.selectedCategoryIndex,
-                  currentItems: currentState.currentItems,
-                  selectedItemIndex: currentState.selectedItemIndex,
-                  itemsLoading: false,
-                ),
-              );
-            }
-          });
         },
       );
     }

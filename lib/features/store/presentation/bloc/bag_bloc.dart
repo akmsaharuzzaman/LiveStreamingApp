@@ -29,7 +29,19 @@ class BagBloc extends Bloc<BagEvent, BagState> {
 
     result.when(
       success: (response) {
-        emit(BagCategoriesLoaded(categories: response.result));
+        final categories = response.result;
+        if (categories.isNotEmpty) {
+          // Automatically select the first category
+          emit(BagCategoriesLoaded(
+            categories: categories,
+            selectedCategoryId: categories.first.id,
+            selectedCategoryTitle: categories.first.title,
+          ));
+          // Load items for the first category
+          add(LoadBagItems(categoryId: categories.first.id));
+        } else {
+          emit(BagCategoriesLoaded(categories: categories));
+        }
       },
       failure: (error) {
         emit(BagError(message: error));

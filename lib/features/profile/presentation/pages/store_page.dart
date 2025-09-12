@@ -41,8 +41,20 @@ class _StorePageContent extends StatelessWidget {
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
               ),
             );
+            
+            // Return to normal state after showing success message
+            Future.delayed(const Duration(seconds: 2), () {
+              if (context.mounted) {
+                context.read<StoreBloc>().add(
+                  LoadCategoryItemsEvent(
+                    categoryId: state.categories[state.selectedCategoryIndex].id,
+                  ),
+                );
+              }
+            });
           }
         },
         builder: (context, state) {
@@ -70,6 +82,16 @@ class _StorePageContent extends StatelessWidget {
                 itemsLoading: false,
               ),
               showPurchaseLoading: true,
+            );
+          } else if (state is StorePurchaseSuccess) {
+            return _StoreContent(
+              state: StoreCategoriesLoaded(
+                categories: state.categories,
+                selectedCategoryIndex: state.selectedCategoryIndex,
+                currentItems: state.currentItems,
+                selectedItemIndex: state.selectedItemIndex,
+                itemsLoading: false,
+              ),
             );
           } else if (state is StoreError) {
             return _ErrorWidget(message: state.message);
