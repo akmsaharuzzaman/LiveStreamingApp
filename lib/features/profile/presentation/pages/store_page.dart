@@ -1,127 +1,198 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../store/presentation/bloc/store_bloc.dart';
+import '../../../store/presentation/bloc/store_event.dart';
+import '../../../store/presentation/bloc/store_state.dart';
+import '../../../store/data/models/store_models.dart';
+import '../../../../injection/injection.dart';
 
-class StorePage extends StatefulWidget {
+class StorePage extends StatelessWidget {
   const StorePage({super.key});
 
   @override
-  State<StorePage> createState() => _StorePageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => getIt<StoreBloc>()..add(const LoadCategoriesEvent()),
+      child: const _StorePageContent(),
+    );
+  }
 }
 
-class _StorePageState extends State<StorePage> {
-  int selectedTabIndex = 0;
-  int selectedItemIndex = 0;
-  final List<String> tabNames = ['Frame', 'Room Entry', 'Party Theme'];
-
-  // Lightweight item model for the store
-  // asset supports static images and animated GIFs (Image.asset renders GIFs natively)
-  // If you later introduce Lottie/Rive, add nullable fields and render accordingly in _buildStoreAssetWidget.
-  static const _altAsset = 'assets/images/general/profile_frame.png';
-  static const _carEntryGif2 = 'assets/images/general/car_entry2.gif';
-
-  List<_StoreItem> get _frameItems => [
-    _StoreItem(name: 'Noble Blaze', price: 1000, asset: _altAsset),
-    _StoreItem(name: 'Magnificent D.', price: 1300, asset: _carEntryGif2),
-    _StoreItem(name: 'Grand regal H.', price: 1300, asset: _carEntryGif2),
-    _StoreItem(name: 'Noble Blaze', price: 1000, asset: _carEntryGif2),
-    _StoreItem(name: 'Magnificent D.', price: 1300, asset: _carEntryGif2),
-    _StoreItem(name: 'Grand regal H.', price: 1300, asset: _carEntryGif2),
-    _StoreItem(name: 'Elite Frame', price: 1500, asset: _altAsset),
-    _StoreItem(name: 'Royal Frame', price: 1800, asset: _carEntryGif2),
-    _StoreItem(name: 'Diamond Frame', price: 2000, asset: _carEntryGif2),
-  ];
-
-  List<_StoreItem> get _roomEntryItems => [
-    _StoreItem(name: 'Golden Car', price: 1000, asset: _altAsset),
-    _StoreItem(name: 'Geen Car', price: 1300, asset: _carEntryGif2),
-    _StoreItem(name: 'Ferari Car', price: 1300, asset: _carEntryGif2),
-    _StoreItem(name: 'Gaming Car', price: 1000, asset: _carEntryGif2),
-    _StoreItem(name: 'Entry Car', price: 1300, asset: _carEntryGif2),
-    _StoreItem(name: 'Flower', price: 1300, asset: _carEntryGif2),
-    _StoreItem(name: 'Temple', price: 1200, asset: _altAsset),
-    _StoreItem(name: 'Princess', price: 1500, asset: _carEntryGif2),
-    _StoreItem(name: 'Regal Entry', price: 1700, asset: _carEntryGif2),
-  ];
-
-  // Party themes use icons primarily; asset is optional and can be a GIF if added later
-  final List<IconData> _partyThemeIcons = const [
-    Icons.celebration,
-    Icons.cake,
-    Icons.star,
-    Icons.favorite,
-    Icons.music_note,
-    Icons.local_fire_department,
-    Icons.diamond,
-    Icons.flash_on,
-    Icons.auto_awesome,
-  ];
-
-  List<_StoreItem> get _partyThemeItems => List.generate(
-    9,
-    (i) => _StoreItem(
-      name: [
-        'Celebrate',
-        'Birthday',
-        'Starry',
-        'Romance',
-        'Music',
-        'Blaze',
-        'Diamond',
-        'Flash',
-        'Awesome',
-      ][i],
-      price: 1000 + (i % 3) * 300,
-      icon: _partyThemeIcons[i],
-    ),
-  );
-
-  List<_StoreItem> get _itemsForCurrentTab {
-    switch (selectedTabIndex) {
-      case 0:
-        return _frameItems;
-      case 1:
-        return _roomEntryItems;
-      case 2:
-      default:
-        return _partyThemeItems;
-    }
-  }
-
-  _StoreItem get _selectedItem => _itemsForCurrentTab[selectedItemIndex];
+class _StorePageContent extends StatelessWidget {
+  const _StorePageContent();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // White background as shown in design
-      body: Column(
-        children: [
-          // Showcase Section
-          _buildShowcaseSection(),
-          SizedBox(height: 20.h),
-
-          // Purchase Section
-          _buildPurchaseSection(),
-          SizedBox(height: 20.h),
-
-          // Tabs Section
-          _buildTabsSection(),
-
-          // Content Grid
-          Expanded(child: _buildContentGrid()),
-        ],
+      backgroundColor: Colors.white,
+      body: BlocConsumer<StoreBloc, StoreState>(
+        listener: (context, state) {
+          if (state is StoreError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
+            );
+          } else if (state is StorePurchaseSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        },
+        builder: (context, state) {
+          if (state is StoreCategoriesLoading) {
+            return const _LoadingWidget();
+          } else if (state is StoreCategoriesLoaded) {
+            return _StoreContent(state: state);
+          } else if (state is StoreItemsLoading) {
+            return _StoreContent(
+              state: StoreCategoriesLoaded(
+                categories: state.categories,
+                selectedCategoryIndex: state.selectedCategoryIndex,
+                currentItems: const [],
+                selectedItemIndex: 0,
+                itemsLoading: true,
+              ),
+            );
+          } else if (state is StorePurchaseLoading) {
+            return _StoreContent(
+              state: StoreCategoriesLoaded(
+                categories: state.categories,
+                selectedCategoryIndex: state.selectedCategoryIndex,
+                currentItems: state.currentItems,
+                selectedItemIndex: state.selectedItemIndex,
+                itemsLoading: false,
+              ),
+              showPurchaseLoading: true,
+            );
+          } else if (state is StoreError) {
+            return _ErrorWidget(message: state.message);
+          }
+          
+          return const _LoadingWidget();
+        },
       ),
     );
   }
+}
 
-  Widget _buildShowcaseSection() {
+class _LoadingWidget extends StatelessWidget {
+  const _LoadingWidget();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _buildAppBar(context),
+        const Expanded(
+          child: Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF6B9D)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ErrorWidget extends StatelessWidget {
+  final String message;
+  
+  const _ErrorWidget({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _buildAppBar(context),
+        Expanded(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 64.sp,
+                  color: Colors.red,
+                ),
+                SizedBox(height: 16.h),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    color: Colors.red,
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                ElevatedButton(
+                  onPressed: () {
+                    context.read<StoreBloc>().add(const LoadCategoriesEvent());
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF6B9D),
+                  ),
+                  child: const Text(
+                    'Retry',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StoreContent extends StatelessWidget {
+  final StoreCategoriesLoaded state;
+  final bool showPurchaseLoading;
+
+  const _StoreContent({
+    required this.state,
+    this.showPurchaseLoading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Showcase Section
+        _buildShowcaseSection(context),
+        SizedBox(height: 20.h),
+
+        // Purchase Section
+        _buildPurchaseSection(context),
+        SizedBox(height: 20.h),
+
+        // Tabs Section
+        _buildTabsSection(context),
+
+        // Content Grid
+        Expanded(child: _buildContentGrid(context)),
+      ],
+    );
+  }
+
+  Widget _buildShowcaseSection(BuildContext context) {
+    final selectedItem = state.selectedItem;
+    
     return Stack(
       children: [
         Container(
           height: 280.h,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12.r),
-            color: const Color(0xFF1A1A1A), // Dark showcase area as in design
+            color: const Color(0xFF1A1A1A),
           ),
           child: Stack(
             children: [
@@ -131,22 +202,33 @@ class _StorePageState extends State<StorePage> {
                 fit: BoxFit.cover,
                 width: double.infinity,
                 height: double.infinity,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12.r),
+                      color: const Color(0xFF1A1A1A),
+                    ),
+                  );
+                },
               ),
-              // Selected item preview layered on top of the pedestal
+              // Selected item preview
               Center(
                 child: SizedBox(
                   width: 220.w,
                   height: 180.h,
-                  child: _buildStoreAssetWidget(
-                    _selectedItem,
-                    isShowcase: true,
-                  ),
+                  child: selectedItem != null
+                      ? _buildStoreAssetWidget(selectedItem, isShowcase: true)
+                      : Icon(
+                          Icons.shopping_bag_outlined,
+                          size: 120.sp,
+                          color: Colors.white.withOpacity(0.5),
+                        ),
                 ),
               ),
             ],
           ),
         ),
-        //Navigation back button
+        // Navigation back button
         Positioned(
           top: 40.h,
           left: 20.w,
@@ -159,58 +241,97 @@ class _StorePageState extends State<StorePage> {
     );
   }
 
-  Widget _buildPurchaseSection() {
-    final item = _selectedItem;
+  Widget _buildPurchaseSection(BuildContext context) {
+    final selectedItem = state.selectedItem;
+    
+    if (selectedItem == null) {
+      return Container(
+        margin: EdgeInsets.symmetric(horizontal: 20.w),
+        child: const Text(
+          'Select an item to see purchase options',
+          style: TextStyle(
+            color: Colors.grey,
+            fontSize: 16,
+          ),
+        ),
+      );
+    }
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 20.w),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            children: [
-              // Title
-              Text(
-                item.name,
-                style: const TextStyle(
-                  color: Colors.black, // Black text on white background
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title
+                Text(
+                  selectedItem.name,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-
-              SizedBox(height: 8.h),
-
-              // Subtitle
-              Text(
-                'Purchase with coin',
-                style: TextStyle(
-                  color: Colors.grey[600], // Grey text
-                  fontSize: 16,
+                SizedBox(height: 8.h),
+                // Subtitle
+                Text(
+                  'Purchase with coin',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 16,
+                  ),
                 ),
-              ),
-            ],
+                if (selectedItem.validity > 0) ...[
+                  SizedBox(height: 4.h),
+                  Text(
+                    'Validity: ${selectedItem.validity} days',
+                    style: TextStyle(
+                      color: Colors.grey[500],
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
+          SizedBox(width: 16.w),
           // Buy Button
           GestureDetector(
-            onTap: () => _showPurchaseDialog(item.name, item.price),
+            onTap: showPurchaseLoading
+                ? null
+                : () => _showPurchaseDialog(context, selectedItem),
             child: Container(
               width: 120.w,
               height: 40.h,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF6B9D), Color(0xFFFF8BA0)],
+                gradient: LinearGradient(
+                  colors: showPurchaseLoading
+                      ? [Colors.grey, Colors.grey]
+                      : [const Color(0xFFFF6B9D), const Color(0xFFFF8BA0)],
                 ),
                 borderRadius: BorderRadius.circular(20.r),
               ),
-              child: const Center(
-                child: Text(
-                  'Buy',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+              child: Center(
+                child: showPurchaseLoading
+                    ? SizedBox(
+                        width: 20.w,
+                        height: 20.h,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text(
+                        'Buy',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
           ),
@@ -219,18 +340,18 @@ class _StorePageState extends State<StorePage> {
     );
   }
 
-  Widget _buildTabsSection() {
+  Widget _buildTabsSection(BuildContext context) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 10.w),
       child: Row(
         children: List.generate(
-          tabNames.length,
+          state.categories.length,
           (index) => GestureDetector(
             onTap: () {
-              setState(() {
-                selectedTabIndex = index;
-                selectedItemIndex = 0; // reset selection to first item
-              });
+              context.read<StoreBloc>().add(SelectCategoryEvent(
+                categoryIndex: index,
+                categoryId: state.categories[index].id,
+              ));
             },
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
@@ -238,7 +359,7 @@ class _StorePageState extends State<StorePage> {
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
-                    color: selectedTabIndex == index
+                    color: state.selectedCategoryIndex == index
                         ? const Color(0xFFFF6B9D)
                         : Colors.transparent,
                     width: 2,
@@ -246,14 +367,13 @@ class _StorePageState extends State<StorePage> {
                 ),
               ),
               child: Text(
-                tabNames[index],
+                state.categories[index].title,
                 style: TextStyle(
-                  color: selectedTabIndex == index
+                  color: state.selectedCategoryIndex == index
                       ? const Color(0xFFFF6B9D)
-                      : Colors
-                            .grey[600], // Changed from grey[400] to grey[600] for better contrast on white
+                      : Colors.grey[600],
                   fontSize: 16,
-                  fontWeight: selectedTabIndex == index
+                  fontWeight: state.selectedCategoryIndex == index
                       ? FontWeight.w600
                       : FontWeight.w400,
                 ),
@@ -265,7 +385,38 @@ class _StorePageState extends State<StorePage> {
     );
   }
 
-  Widget _buildContentGrid() {
+  Widget _buildContentGrid(BuildContext context) {
+    if (state.itemsLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF6B9D)),
+        ),
+      );
+    }
+
+    if (state.currentItems.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.inventory_2_outlined,
+              size: 64.sp,
+              color: Colors.grey[400],
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'No items available in this category',
+              style: TextStyle(
+                fontSize: 16.sp,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       margin: EdgeInsets.all(20.w),
       child: GridView.builder(
@@ -275,32 +426,29 @@ class _StorePageState extends State<StorePage> {
           crossAxisSpacing: 16.w,
           childAspectRatio: 0.8,
         ),
-        itemCount: _itemsForCurrentTab.length,
+        itemCount: state.currentItems.length,
         itemBuilder: (context, index) {
-          return _buildStoreItem(index, _itemsForCurrentTab[index]);
+          return _buildStoreItem(context, index, state.currentItems[index]);
         },
       ),
     );
   }
 
-  Widget _buildStoreItem(int index, _StoreItem item) {
-    final isSelected = index == selectedItemIndex;
-    final isPartyTheme = selectedTabIndex == 2;
+  Widget _buildStoreItem(BuildContext context, int index, StoreItem item) {
+    final isSelected = index == state.selectedItemIndex;
 
     return GestureDetector(
       onTap: () {
-        setState(() {
-          selectedItemIndex = index; // select & preview on showcase
-        });
+        context.read<StoreBloc>().add(SelectItemEvent(itemIndex: index));
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white, // Changed from dark grey to white
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
             color: isSelected ? const Color(0xFFFF6B9D) : Colors.grey[300]!,
             width: isSelected ? 2 : 1,
-          ), // Light grey border
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.grey[200]!,
@@ -311,30 +459,23 @@ class _StorePageState extends State<StorePage> {
         ),
         child: Column(
           children: [
-            // Item Image/Icon
+            // Item Image
             Expanded(
               flex: 3,
               child: Container(
                 margin: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8.r),
-                  color:
-                      Colors.grey[100], // Light grey background instead of dark
+                  color: Colors.grey[100],
                 ),
                 child: Stack(
                   children: [
                     Center(
-                      child: isPartyTheme
-                          ? Icon(
-                              item.icon ?? Icons.celebration,
-                              size: 40.sp,
-                              color: const Color(0xFFFF6B9D),
-                            )
-                          : SizedBox(
-                              width: 60.w,
-                              height: 60.h,
-                              child: _buildStoreAssetWidget(item),
-                            ),
+                      child: SizedBox(
+                        width: 60.w,
+                        height: 60.h,
+                        child: _buildStoreAssetWidget(item),
+                      ),
                     ),
                     if (item.isAnimated)
                       Positioned(
@@ -344,6 +485,16 @@ class _StorePageState extends State<StorePage> {
                           Icons.play_circle_fill,
                           size: 18.sp,
                           color: const Color(0x99000000),
+                        ),
+                      ),
+                    if (item.isPremium)
+                      Positioned(
+                        top: 4,
+                        left: 4,
+                        child: Icon(
+                          Icons.star,
+                          size: 18.sp,
+                          color: const Color(0xFFFFD700),
                         ),
                       ),
                   ],
@@ -362,7 +513,7 @@ class _StorePageState extends State<StorePage> {
                     Text(
                       item.name,
                       style: TextStyle(
-                        color: Colors.black, // Black text instead of white
+                        color: Colors.black,
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w500,
                       ),
@@ -370,9 +521,7 @@ class _StorePageState extends State<StorePage> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-
                     SizedBox(height: 4.h),
-
                     // Price
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -403,22 +552,22 @@ class _StorePageState extends State<StorePage> {
     );
   }
 
-  void _showPurchaseDialog(String itemName, int price) {
+  void _showPurchaseDialog(BuildContext context, StoreItem item) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
-          backgroundColor: Colors.white, // White background instead of dark
+          backgroundColor: Colors.white,
           title: Text(
-            'Purchase $itemName',
-            style: const TextStyle(color: Colors.black), // Black text
+            'Purchase ${item.name}',
+            style: const TextStyle(color: Colors.black),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Do you want to purchase this item for $price coins?',
-                style: TextStyle(color: Colors.grey[600]), // Dark grey text
+                'Do you want to purchase this item for ${item.price} coins?',
+                style: TextStyle(color: Colors.grey[600]),
               ),
               SizedBox(height: 20.h),
               Row(
@@ -431,7 +580,7 @@ class _StorePageState extends State<StorePage> {
                   ),
                   SizedBox(width: 8.w),
                   Text(
-                    '$price',
+                    '${item.price}',
                     style: const TextStyle(
                       color: Color(0xFFFFD700),
                       fontSize: 20,
@@ -444,16 +593,19 @@ class _StorePageState extends State<StorePage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(
                 'Cancel',
                 style: TextStyle(color: Colors.grey[600]),
-              ), // Darker grey for better contrast
+              ),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.of(context).pop();
-                _handlePurchase(itemName, price);
+                Navigator.of(dialogContext).pop();
+                context.read<StoreBloc>().add(PurchaseItemEvent(
+                  itemId: item.id,
+                  price: item.price,
+                ));
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF6B9D),
@@ -468,52 +620,84 @@ class _StorePageState extends State<StorePage> {
       },
     );
   }
+}
 
-  void _handlePurchase(String itemName, int price) {
-    // TODO: Implement actual purchase logic here
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Successfully purchased $itemName for $price coins!'),
-        backgroundColor: const Color(0xFF4CAF50),
+// Helper function to build app bar
+Widget _buildAppBar(BuildContext context) {
+  return Container(
+    height: 100.h,
+    decoration: const BoxDecoration(
+      color: Color(0xFF1A1A1A),
+    ),
+    child: SafeArea(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20.w),
+        child: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+              onPressed: () => context.pop(),
+            ),
+            const Expanded(
+              child: Text(
+                'Store',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            SizedBox(width: 48.w), // Balance the back button
+          ],
+        ),
       ),
-    );
-  }
+    ),
+  );
 }
 
-// Simple value type for store catalog entries
-class _StoreItem {
-  final String name;
-  final int price;
-  final String? asset; // supports png/jpg/gif
-  final IconData? icon; // used for party theme placeholder
-
-  const _StoreItem({
-    required this.name,
-    required this.price,
-    this.asset,
-    this.icon,
-  });
-
-  bool get isAnimated =>
-      (asset != null && asset!.toLowerCase().endsWith('.gif'));
-}
-
-// Renders a store asset robustly with fallback and GIF support
-Widget _buildStoreAssetWidget(_StoreItem item, {bool isShowcase = false}) {
+// Helper function to render store assets
+Widget _buildStoreAssetWidget(StoreItem item, {bool isShowcase = false}) {
   if (item.asset == null || item.asset!.isEmpty) {
     return Icon(
-      item.icon ?? Icons.emoji_objects,
+      Icons.shopping_bag_outlined,
       size: isShowcase ? 120.sp : 40.sp,
       color: const Color(0xFFFF6B9D),
     );
   }
 
+  // If it's a URL, use NetworkImage
+  if (item.asset!.startsWith('http')) {
+    return Image.network(
+      item.asset!,
+      fit: BoxFit.contain,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Center(
+          child: CircularProgressIndicator(
+            value: loadingProgress.expectedTotalBytes != null
+                ? loadingProgress.cumulativeBytesLoaded /
+                    loadingProgress.expectedTotalBytes!
+                : null,
+            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFF6B9D)),
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) => Icon(
+        Icons.broken_image,
+        size: isShowcase ? 120.sp : 40.sp,
+        color: Colors.grey[400],
+      ),
+    );
+  }
+
+  // If it's a local asset
   return Image.asset(
     item.asset!,
     fit: BoxFit.contain,
-    // Image.asset plays GIFs automatically; errorBuilder provides a graceful fallback
     errorBuilder: (context, error, stackTrace) => Icon(
-      item.icon ?? Icons.broken_image,
+      Icons.broken_image,
       size: isShowcase ? 120.sp : 40.sp,
       color: Colors.grey[400],
     ),
