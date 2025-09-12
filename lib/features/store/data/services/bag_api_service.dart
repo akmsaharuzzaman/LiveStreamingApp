@@ -18,7 +18,9 @@ class BagApiService {
   }
 
   /// Get bag items by category
-  Future<ApiResult<BagItemsResponse>> getBagItemsByCategory(String categoryId) async {
+  Future<ApiResult<BagItemsResponse>> getBagItemsByCategory(
+    String categoryId,
+  ) async {
     return await _apiService.get<BagItemsResponse>(
       '/api/store/bucket/category/$categoryId',
       fromJson: (json) => BagItemsResponse.fromJson(json),

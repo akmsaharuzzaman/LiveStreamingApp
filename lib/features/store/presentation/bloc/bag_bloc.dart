@@ -32,11 +32,13 @@ class BagBloc extends Bloc<BagEvent, BagState> {
         final categories = response.result;
         if (categories.isNotEmpty) {
           // Automatically select the first category
-          emit(BagCategoriesLoaded(
-            categories: categories,
-            selectedCategoryId: categories.first.id,
-            selectedCategoryTitle: categories.first.title,
-          ));
+          emit(
+            BagCategoriesLoaded(
+              categories: categories,
+              selectedCategoryId: categories.first.id,
+              selectedCategoryTitle: categories.first.title,
+            ),
+          );
           // Load items for the first category
           add(LoadBagItems(categoryId: categories.first.id));
         } else {
@@ -54,14 +56,16 @@ class BagBloc extends Bloc<BagEvent, BagState> {
     Emitter<BagState> emit,
   ) async {
     final currentState = state;
-    
+
     if (currentState is BagCategoriesLoaded) {
       // Update the selected category
-      emit(currentState.copyWith(
-        selectedCategoryId: event.categoryId,
-        selectedCategoryTitle: event.categoryTitle,
-      ));
-      
+      emit(
+        currentState.copyWith(
+          selectedCategoryId: event.categoryId,
+          selectedCategoryTitle: event.categoryTitle,
+        ),
+      );
+
       // Load items for this category
       add(LoadBagItems(categoryId: event.categoryId));
     }
@@ -72,25 +76,31 @@ class BagBloc extends Bloc<BagEvent, BagState> {
     Emitter<BagState> emit,
   ) async {
     final currentState = state;
-    
-    if (currentState is BagCategoriesLoaded) {
-      emit(BagItemsLoading(
-        categories: currentState.categories,
-        selectedCategoryId: event.categoryId,
-        selectedCategoryTitle: currentState.selectedCategoryTitle ?? '',
-      ));
 
-      final result = await _bagApiService.getBagItemsByCategory(event.categoryId);
+    if (currentState is BagCategoriesLoaded) {
+      emit(
+        BagItemsLoading(
+          categories: currentState.categories,
+          selectedCategoryId: event.categoryId,
+          selectedCategoryTitle: currentState.selectedCategoryTitle ?? '',
+        ),
+      );
+
+      final result = await _bagApiService.getBagItemsByCategory(
+        event.categoryId,
+      );
 
       result.when(
         success: (response) {
-          emit(BagItemsLoaded(
-            categories: currentState.categories,
-            selectedCategoryId: event.categoryId,
-            selectedCategoryTitle: currentState.selectedCategoryTitle ?? '',
-            bagItems: response.result.buckets,
-            pagination: response.result.pagination,
-          ));
+          emit(
+            BagItemsLoaded(
+              categories: currentState.categories,
+              selectedCategoryId: event.categoryId,
+              selectedCategoryTitle: currentState.selectedCategoryTitle ?? '',
+              bagItems: response.result.buckets,
+              pagination: response.result.pagination,
+            ),
+          );
         },
         failure: (error) {
           emit(BagError(message: error));
@@ -104,32 +114,36 @@ class BagBloc extends Bloc<BagEvent, BagState> {
     Emitter<BagState> emit,
   ) async {
     final currentState = state;
-    
+
     if (currentState is BagCategoriesLoaded) {
       List<BagItem>? currentBagItems;
       if (currentState is BagItemsLoaded) {
         currentBagItems = (currentState as BagItemsLoaded).bagItems;
       }
-      
-      emit(BagPurchasing(
-        categories: currentState.categories,
-        selectedCategoryId: currentState.selectedCategoryId,
-        selectedCategoryTitle: currentState.selectedCategoryTitle,
-        bagItems: currentBagItems,
-      ));
+
+      emit(
+        BagPurchasing(
+          categories: currentState.categories,
+          selectedCategoryId: currentState.selectedCategoryId,
+          selectedCategoryTitle: currentState.selectedCategoryTitle,
+          bagItems: currentBagItems,
+        ),
+      );
 
       final result = await _bagApiService.purchaseItem(event.itemId);
 
       result.when(
         success: (response) {
-          emit(BagPurchaseSuccess(
-            categories: currentState.categories,
-            selectedCategoryId: currentState.selectedCategoryId,
-            selectedCategoryTitle: currentState.selectedCategoryTitle,
-            bagItems: currentBagItems,
-            message: 'Item purchased successfully!',
-          ));
-          
+          emit(
+            BagPurchaseSuccess(
+              categories: currentState.categories,
+              selectedCategoryId: currentState.selectedCategoryId,
+              selectedCategoryTitle: currentState.selectedCategoryTitle,
+              bagItems: currentBagItems,
+              message: 'Item purchased successfully!',
+            ),
+          );
+
           // Refresh bag items if a category is selected
           if (currentState.selectedCategoryId != null) {
             add(LoadBagItems(categoryId: currentState.selectedCategoryId!));
@@ -142,20 +156,19 @@ class BagBloc extends Bloc<BagEvent, BagState> {
     }
   }
 
-  Future<void> _onUseItem(
-    UseItem event,
-    Emitter<BagState> emit,
-  ) async {
+  Future<void> _onUseItem(UseItem event, Emitter<BagState> emit) async {
     final currentState = state;
-    
+
     if (currentState is BagItemsLoaded) {
-      emit(BagUsingItem(
-        categories: currentState.categories,
-        selectedCategoryId: currentState.selectedCategoryId,
-        selectedCategoryTitle: currentState.selectedCategoryTitle,
-        bagItems: currentState.bagItems,
-        pagination: currentState.pagination,
-      ));
+      emit(
+        BagUsingItem(
+          categories: currentState.categories,
+          selectedCategoryId: currentState.selectedCategoryId,
+          selectedCategoryTitle: currentState.selectedCategoryTitle,
+          bagItems: currentState.bagItems,
+          pagination: currentState.pagination,
+        ),
+      );
 
       final result = await _bagApiService.useItem(event.bucketId);
 
@@ -176,7 +189,7 @@ class BagBloc extends Bloc<BagEvent, BagState> {
     Emitter<BagState> emit,
   ) async {
     final currentState = state;
-    
+
     if (currentState is BagItemsLoaded) {
       add(LoadBagItems(categoryId: currentState.selectedCategoryId));
     }

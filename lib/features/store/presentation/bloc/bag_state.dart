@@ -34,10 +34,10 @@ class BagCategoriesLoaded extends BagState {
 
   @override
   List<Object?> get props => [
-        categories,
-        selectedCategoryId,
-        selectedCategoryTitle,
-      ];
+    categories,
+    selectedCategoryId,
+    selectedCategoryTitle,
+  ];
 
   BagCategoriesLoaded copyWith({
     List<StoreCategory>? categories,
@@ -47,7 +47,8 @@ class BagCategoriesLoaded extends BagState {
     return BagCategoriesLoaded(
       categories: categories ?? this.categories,
       selectedCategoryId: selectedCategoryId ?? this.selectedCategoryId,
-      selectedCategoryTitle: selectedCategoryTitle ?? this.selectedCategoryTitle,
+      selectedCategoryTitle:
+          selectedCategoryTitle ?? this.selectedCategoryTitle,
     );
   }
 }
@@ -66,10 +67,10 @@ class BagItemsLoading extends BagState {
 
   @override
   List<Object?> get props => [
-        categories,
-        selectedCategoryId,
-        selectedCategoryTitle,
-      ];
+    categories,
+    selectedCategoryId,
+    selectedCategoryTitle,
+  ];
 }
 
 /// Bag items loaded successfully
@@ -90,12 +91,12 @@ class BagItemsLoaded extends BagState {
 
   @override
   List<Object?> get props => [
-        categories,
-        selectedCategoryId,
-        selectedCategoryTitle,
-        bagItems,
-        pagination,
-      ];
+    categories,
+    selectedCategoryId,
+    selectedCategoryTitle,
+    bagItems,
+    pagination,
+  ];
 
   BagItemsLoaded copyWith({
     List<StoreCategory>? categories,
@@ -107,7 +108,8 @@ class BagItemsLoaded extends BagState {
     return BagItemsLoaded(
       categories: categories ?? this.categories,
       selectedCategoryId: selectedCategoryId ?? this.selectedCategoryId,
-      selectedCategoryTitle: selectedCategoryTitle ?? this.selectedCategoryTitle,
+      selectedCategoryTitle:
+          selectedCategoryTitle ?? this.selectedCategoryTitle,
       bagItems: bagItems ?? this.bagItems,
       pagination: pagination ?? this.pagination,
     );
@@ -130,11 +132,11 @@ class BagPurchasing extends BagState {
 
   @override
   List<Object?> get props => [
-        categories,
-        selectedCategoryId,
-        selectedCategoryTitle,
-        bagItems,
-      ];
+    categories,
+    selectedCategoryId,
+    selectedCategoryTitle,
+    bagItems,
+  ];
 }
 
 /// Purchase successful
@@ -155,12 +157,12 @@ class BagPurchaseSuccess extends BagState {
 
   @override
   List<Object?> get props => [
-        categories,
-        selectedCategoryId,
-        selectedCategoryTitle,
-        bagItems,
-        message,
-      ];
+    categories,
+    selectedCategoryId,
+    selectedCategoryTitle,
+    bagItems,
+    message,
+  ];
 }
 
 /// Using item
@@ -181,12 +183,12 @@ class BagUsingItem extends BagState {
 
   @override
   List<Object?> get props => [
-        categories,
-        selectedCategoryId,
-        selectedCategoryTitle,
-        bagItems,
-        pagination,
-      ];
+    categories,
+    selectedCategoryId,
+    selectedCategoryTitle,
+    bagItems,
+    pagination,
+  ];
 }
 
 /// Error state

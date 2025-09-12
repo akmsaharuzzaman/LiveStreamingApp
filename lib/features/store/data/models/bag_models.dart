@@ -37,16 +37,16 @@ class BagItem extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        itemId,
-        ownerId,
-        categoryId,
-        useStatus,
-        expireAt,
-        createdAt,
-        updatedAt,
-        version,
-      ];
+    id,
+    itemId,
+    ownerId,
+    categoryId,
+    useStatus,
+    expireAt,
+    createdAt,
+    updatedAt,
+    version,
+  ];
 }
 
 /// Bag Item Details - nested item information
@@ -93,21 +93,21 @@ class BagItemDetails extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        validity,
-        categoryId,
-        isPremium,
-        price,
-        svgaFile,
-        deleteStatus,
-        totalSold,
-        bundleFiles,
-        expireAt,
-        createdAt,
-        updatedAt,
-        version,
-      ];
+    id,
+    name,
+    validity,
+    categoryId,
+    isPremium,
+    price,
+    svgaFile,
+    deleteStatus,
+    totalSold,
+    bundleFiles,
+    expireAt,
+    createdAt,
+    updatedAt,
+    version,
+  ];
 }
 
 /// Bag Category Details - nested category information
@@ -168,10 +168,7 @@ class BagItemsResult extends Equatable {
   final BagPagination pagination;
   final List<BagItem> buckets;
 
-  const BagItemsResult({
-    required this.pagination,
-    required this.buckets,
-  });
+  const BagItemsResult({required this.pagination, required this.buckets});
 
   factory BagItemsResult.fromJson(Map<String, dynamic> json) =>
       _$BagItemsResultFromJson(json);
@@ -188,10 +185,7 @@ class BagItemsResponse extends Equatable {
   final bool success;
   final BagItemsResult result;
 
-  const BagItemsResponse({
-    required this.success,
-    required this.result,
-  });
+  const BagItemsResponse({required this.success, required this.result});
 
   factory BagItemsResponse.fromJson(Map<String, dynamic> json) =>
       _$BagItemsResponseFromJson(json);
@@ -207,9 +201,7 @@ class BagItemsResponse extends Equatable {
 class PurchaseItemRequest extends Equatable {
   final String itemId;
 
-  const PurchaseItemRequest({
-    required this.itemId,
-  });
+  const PurchaseItemRequest({required this.itemId});
 
   factory PurchaseItemRequest.fromJson(Map<String, dynamic> json) =>
       _$PurchaseItemRequestFromJson(json);
@@ -225,9 +217,7 @@ class PurchaseItemRequest extends Equatable {
 class UseItemRequest extends Equatable {
   final String bucketId;
 
-  const UseItemRequest({
-    required this.bucketId,
-  });
+  const UseItemRequest({required this.bucketId});
 
   factory UseItemRequest.fromJson(Map<String, dynamic> json) =>
       _$UseItemRequestFromJson(json);

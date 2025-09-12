@@ -90,7 +90,9 @@ class BagPage extends StatelessWidget {
                           SizedBox(height: 16.h),
                           ElevatedButton(
                             onPressed: () {
-                              context.read<BagBloc>().add(const LoadBagCategories());
+                              context.read<BagBloc>().add(
+                                const LoadBagCategories(),
+                              );
                             },
                             child: const Text('Retry'),
                           ),
@@ -248,25 +250,30 @@ class BagPage extends StatelessWidget {
     return Column(
       children: [
         // Categories Tab Bar
-        if (categories.isNotEmpty) _buildCategoriesTabBar(context, categories, selectedCategoryId),
-        
+        if (categories.isNotEmpty)
+          _buildCategoriesTabBar(context, categories, selectedCategoryId),
+
         SizedBox(height: 16.h),
-        
+
         // Items Grid
         Expanded(
           child: isLoadingItems
               ? const Center(child: CircularProgressIndicator())
               : bagItems != null && bagItems.isNotEmpty
-                  ? _buildBagItemsGrid(context, bagItems, isPurchasing, isUsingItem)
-                  : selectedCategoryId != null
-                      ? _buildEmptyBag()
-                      : _buildSelectCategoryPrompt(),
+              ? _buildBagItemsGrid(context, bagItems, isPurchasing, isUsingItem)
+              : selectedCategoryId != null
+              ? _buildEmptyBag()
+              : _buildSelectCategoryPrompt(),
         ),
       ],
     );
   }
 
-  Widget _buildCategoriesTabBar(BuildContext context, List<StoreCategory> categories, String? selectedCategoryId) {
+  Widget _buildCategoriesTabBar(
+    BuildContext context,
+    List<StoreCategory> categories,
+    String? selectedCategoryId,
+  ) {
     return Container(
       height: 50.h,
       child: ListView.builder(
@@ -276,13 +283,15 @@ class BagPage extends StatelessWidget {
         itemBuilder: (context, index) {
           final category = categories[index];
           final isSelected = selectedCategoryId == category.id;
-          
+
           return GestureDetector(
             onTap: () {
-              context.read<BagBloc>().add(SelectBagCategory(
-                categoryId: category.id,
-                categoryTitle: category.title,
-              ));
+              context.read<BagBloc>().add(
+                SelectBagCategory(
+                  categoryId: category.id,
+                  categoryTitle: category.title,
+                ),
+              );
             },
             child: Container(
               margin: EdgeInsets.only(right: 12.w),
@@ -316,7 +325,12 @@ class BagPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBagItemsGrid(BuildContext context, List<BagItem> bagItems, bool isPurchasing, bool isUsingItem) {
+  Widget _buildBagItemsGrid(
+    BuildContext context,
+    List<BagItem> bagItems,
+    bool isPurchasing,
+    bool isUsingItem,
+  ) {
     return GridView.builder(
       padding: EdgeInsets.all(16.w),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -333,10 +347,15 @@ class BagPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBagItemCard(BuildContext context, BagItem bagItem, bool isPurchasing, bool isUsingItem) {
+  Widget _buildBagItemCard(
+    BuildContext context,
+    BagItem bagItem,
+    bool isPurchasing,
+    bool isUsingItem,
+  ) {
     final item = bagItem.itemId;
     final isSelected = bagItem.useStatus;
-    
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12.r),
@@ -373,7 +392,7 @@ class BagPage extends StatelessWidget {
                     : _buildPlaceholderImage(),
               ),
             ),
-            
+
             // Item Details
             Expanded(
               flex: 2,
@@ -393,9 +412,9 @@ class BagPage extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    
+
                     SizedBox(height: 4.h),
-                    
+
                     Text(
                       '${item.validity} days',
                       style: TextStyle(
@@ -403,21 +422,27 @@ class BagPage extends StatelessWidget {
                         color: Colors.grey[600],
                       ),
                     ),
-                    
+
                     Spacer(),
-                    
+
                     // Use/Selected Button
                     SizedBox(
                       width: double.infinity,
                       height: 28.h,
                       child: ElevatedButton(
-                        onPressed: isUsingItem ? null : () {
-                          if (!isSelected) {
-                            context.read<BagBloc>().add(UseItem(bucketId: bagItem.id));
-                          }
-                        },
+                        onPressed: isUsingItem
+                            ? null
+                            : () {
+                                if (!isSelected) {
+                                  context.read<BagBloc>().add(
+                                    UseItem(bucketId: bagItem.id),
+                                  );
+                                }
+                              },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isSelected ? Colors.green : Color(0xFF9D64B0),
+                          backgroundColor: isSelected
+                              ? Colors.green
+                              : Color(0xFF9D64B0),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(6.r),
                           ),
@@ -429,7 +454,9 @@ class BagPage extends StatelessWidget {
                                 width: 16.w,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               )
                             : Text(
@@ -446,13 +473,9 @@ class BagPage extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // Selected Indicator
-            if (isSelected)
-              Container(
-                height: 4.h,
-                color: Colors.green,
-              ),
+            if (isSelected) Container(height: 4.h, color: Colors.green),
           ],
         ),
       ),
@@ -462,11 +485,7 @@ class BagPage extends StatelessWidget {
   Widget _buildPlaceholderImage() {
     return Container(
       color: Colors.grey[200],
-      child: Icon(
-        Icons.image,
-        size: 40.sp,
-        color: Colors.grey[400],
-      ),
+      child: Icon(Icons.image, size: 40.sp, color: Colors.grey[400]),
     );
   }
 
@@ -492,10 +511,7 @@ class BagPage extends StatelessWidget {
           SizedBox(height: 8.h),
           Text(
             'Purchase items from the store to see them here',
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 14.sp, color: Colors.grey[500]),
             textAlign: TextAlign.center,
           ),
         ],
@@ -508,11 +524,7 @@ class BagPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.category_outlined,
-            size: 64.sp,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.category_outlined, size: 64.sp, color: Colors.grey[400]),
           SizedBox(height: 16.h),
           Text(
             'Select a category',
@@ -525,10 +537,7 @@ class BagPage extends StatelessWidget {
           SizedBox(height: 8.h),
           Text(
             'Choose a category above to view your items',
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 14.sp, color: Colors.grey[500]),
             textAlign: TextAlign.center,
           ),
         ],

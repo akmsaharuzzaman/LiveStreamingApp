@@ -44,13 +44,14 @@ class _StorePageContent extends StatelessWidget {
                 duration: const Duration(seconds: 2),
               ),
             );
-            
+
             // Return to normal state after showing success message
             Future.delayed(const Duration(seconds: 2), () {
               if (context.mounted) {
                 context.read<StoreBloc>().add(
                   LoadCategoryItemsEvent(
-                    categoryId: state.categories[state.selectedCategoryIndex].id,
+                    categoryId:
+                        state.categories[state.selectedCategoryIndex].id,
                   ),
                 );
               }

@@ -151,9 +151,7 @@ class StoreBloc extends Bloc<StoreEvent, StoreState> {
         ),
       );
 
-      final result = await _storeApiService.purchaseItem(
-        itemId: event.itemId,
-      );
+      final result = await _storeApiService.purchaseItem(itemId: event.itemId);
 
       result.when(
         success: (response) {
