@@ -2,12 +2,10 @@ import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:deepar_flutter_perfect/deepar_flutter_perfect.dart';
-import 'dart:io';
-import 'dart:async';
 
 class LivePage extends StatefulWidget {
   const LivePage({super.key});
@@ -25,37 +23,31 @@ class _LivePageState extends State<LivePage> {
   final TextEditingController _passwordController = TextEditingController();
 
   // Camera related variables
+  late RtcEngine _engine;
+  bool _isCameraInitialized = false;
   bool _isFrontCamera = true;
   bool _isInitializingCamera = false;
-
-  // DeepAR related variables
-  final DeepArControllerPerfect _deepArController = DeepArControllerPerfect();
-  bool _isDeepArInitialized = false;
-  String? _currentEffect;
-
-  // Available effects list
-  final List<String> _availableEffects = [
-    'assets/effects/flower_face.deepar',
-    'assets/effects/Fire_Effect.deepar',
-    'assets/effects/Neon_Devil_Horns.deepar',
-    'assets/effects/MakeupLook.deepar',
-    'assets/effects/viking_helmet.deepar',
-    'assets/effects/Pixel_Hearts.deepar',
-  ];
 
   @override
   void initState() {
     super.initState();
-    _initializeWithPermissions();
+    _initializeCamera();
   }
 
-  Future<void> _initializeWithPermissions() async {
+  Future<void> _initializeCamera() async {
     try {
       setState(() {
         _isInitializingCamera = true;
       });
 
-      // First, ensure we have permissions before initializing anything
+      // Load camera preference from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      _isFrontCamera = prefs.getBool('is_front_camera') ?? true;
+      debugPrint(
+        '🔍 Loaded camera preference: ${_isFrontCamera ? 'Front' : 'Rear'} camera',
+      );
+
+      // Check permissions
       bool hasPermissions = await PermissionHelper.hasLiveStreamPermissions();
       if (!hasPermissions) {
         bool granted = await PermissionHelper.requestLiveStreamPermissions();
@@ -67,68 +59,35 @@ class _LivePageState extends State<LivePage> {
         }
       }
 
-      // Load camera preference
-      final prefs = await SharedPreferences.getInstance();
-      _isFrontCamera = prefs.getBool('is_front_camera') ?? true;
-      debugPrint(
-        '🔍 Loaded camera preference: ${_isFrontCamera ? 'Front' : 'Rear'} camera',
+      // Initialize Agora engine
+      _engine = createAgoraRtcEngine();
+      await _engine.initialize(
+        RtcEngineContext(
+          appId: dotenv.env['AGORA_APP_ID'] ?? '',
+          channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
+        ),
       );
+      // Apply the saved camera preference after preview starts
+      if (!_isFrontCamera) {
+        await _engine.switchCamera();
+        debugPrint('🔄 Applied saved camera preference: Rear camera');
+      } else {
+        debugPrint('🔄 Applied saved camera preference: Front camera');
+      }
 
-      // Initialize only DeepAR after permissions are granted
-      await _initializeDeepAR();
-    } catch (e) {
-      debugPrint('Error during initialization: $e');
+      await _engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
+      await _engine.enableVideo();
+      await _engine.startPreview();
+
       setState(() {
+        _isCameraInitialized = true;
         _isInitializingCamera = false;
       });
-    }
-  }
 
-  Future<void> _initializeDeepAR() async {
-    try {
-      final androidKey = dotenv.env['DEEPAR_ANDROID_LICENSE_KEY'] ?? '';
-      final iosKey = dotenv.env['DEEPAR_IOS_LICENSE_KEY'] ?? '';
-
-      final result = await _deepArController.initialize(
-        androidLicenseKey: androidKey,
-        iosLicenseKey: iosKey,
-        resolution: Resolution.medium,
-      );
-
-      if (result.success) {
-        debugPrint("DeepAR initialized successfully: ${result.message}");
-
-        if (Platform.isIOS) {
-          Timer.periodic(Duration(milliseconds: 500), (timer) {
-            if (_deepArController.isInitialized) {
-              debugPrint('iOS DeepAR view fully initialized');
-              setState(() {
-                _isDeepArInitialized = true;
-                _isInitializingCamera = false;
-              });
-              timer.cancel();
-            } else if (timer.tick > 20) {
-              debugPrint('Timeout waiting for iOS DeepAR view initialization');
-              setState(() {
-                _isInitializingCamera = false;
-              });
-              timer.cancel();
-            }
-          });
-        } else {
-          setState(() {
-            _isDeepArInitialized = true;
-            _isInitializingCamera = false;
-          });
-        }
-      } else {
-        debugPrint("DeepAR initialization failed: ${result.message}");
-        setState(() {
-          _isInitializingCamera = false;
-        });
-      }
+      // Don't save preference here since we're just applying the loaded one
+      // await _saveCameraPreference(_isFrontCamera);
     } catch (e) {
-      debugPrint('Error initializing DeepAR: $e');
+      debugPrint('Error initializing camera: $e');
       setState(() {
         _isInitializingCamera = false;
       });
@@ -136,35 +95,19 @@ class _LivePageState extends State<LivePage> {
   }
 
   Future<void> _flipCamera() async {
-    if (!_isDeepArInitialized) return;
-
-    try {
-      // DeepAR camera flip - the SDK should handle this internally
-      debugPrint('🔄 Flipping camera in DeepAR mode');
-
-      // Try to call DeepAR's flip camera method if it exists
-      // According to docs, some versions have flipCamera() method
+    if (_isCameraInitialized) {
       try {
-        // This might not be available in all versions, so we wrap in try-catch
-        await _deepArController.flipCamera();
-        debugPrint('✅ DeepAR flip camera called successfully');
+        await _engine.switchCamera();
+        setState(() {
+          _isFrontCamera = !_isFrontCamera;
+        });
+        debugPrint('Camera flipped to ${_isFrontCamera ? 'front' : 'back'}');
+
+        // Save camera preference
+        await _saveCameraPreference(_isFrontCamera);
       } catch (e) {
-        debugPrint('⚠️ DeepAR flipCamera method not available: $e');
-        // If DeepAR doesn't have flipCamera, just update our state
+        debugPrint('Error flipping camera: $e');
       }
-
-      // Toggle camera preference for consistency with go live screen
-      setState(() {
-        _isFrontCamera = !_isFrontCamera;
-      });
-
-      // Save camera preference for go live screen
-      await _saveCameraPreference(_isFrontCamera);
-      debugPrint(
-        'Camera preference updated to ${_isFrontCamera ? 'front' : 'back'}',
-      );
-    } catch (e) {
-      debugPrint('Error flipping camera: $e');
     }
   }
 
@@ -190,60 +133,6 @@ class _LivePageState extends State<LivePage> {
     }
   }
 
-  Future<void> _switchDeepArEffect(String effectPath) async {
-    if (!_isDeepArInitialized) return;
-
-    try {
-      await _deepArController.switchEffect(effectPath);
-      setState(() {
-        _currentEffect = effectPath;
-      });
-      debugPrint('Switched to effect: $effectPath');
-    } catch (e) {
-      debugPrint('Error switching DeepAR effect: $e');
-    }
-  }
-
-  Future<void> _clearDeepArEffect() async {
-    if (!_isDeepArInitialized) return;
-
-    try {
-      // Clear the UI state
-      setState(() {
-        _currentEffect = null;
-      });
-      debugPrint('DeepAR effect cleared from UI state');
-    } catch (e) {
-      debugPrint('Error clearing DeepAR effect: $e');
-      setState(() {
-        _currentEffect = null;
-      });
-    }
-  }
-
-  Widget _buildDeepArPreview() {
-    if (!_isDeepArInitialized || !_deepArController.isInitialized) {
-      return Container(
-        color: Colors.black,
-        child: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(color: Colors.white),
-              SizedBox(height: 16),
-              Text(
-                'Initializing AR Camera...',
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return DeepArPreviewPerfect(_deepArController);
-  }
-
   Widget _buildCameraPreview() {
     if (_isInitializingCamera) {
       return Container(
@@ -254,8 +143,24 @@ class _LivePageState extends State<LivePage> {
       );
     }
 
-    // Always show DeepAR preview
-    return _buildDeepArPreview();
+    if (!_isCameraInitialized) {
+      return Container(
+        color: Colors.black,
+        child: Center(
+          child: Text(
+            'Camera not available',
+            style: TextStyle(color: Colors.white, fontSize: 16.sp),
+          ),
+        ),
+      );
+    }
+
+    return AgoraVideoView(
+      controller: VideoViewController(
+        rtcEngine: _engine,
+        canvas: const VideoCanvas(uid: 0),
+      ),
+    );
   }
 
   @override
@@ -605,51 +510,11 @@ class _LivePageState extends State<LivePage> {
                         ),
                         _buildActionButton(
                           icon: "assets/icons/beauty_icon.png",
-                          label: 'Beauty AR',
-                          onTap:
-                              () {}, // Just a label now, no toggle functionality
+                          label: 'Beauty',
+                          onTap: () {},
                         ),
                       ],
                     ),
-
-                    // AR Effects Row (always show when DeepAR is initialized)
-                    if (_isDeepArInitialized) ...[
-                      SizedBox(height: 20.h),
-                      Container(
-                        height: 80.h,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount:
-                              _availableEffects.length +
-                              1, // +1 for clear effect
-                          itemBuilder: (context, index) {
-                            if (index == 0) {
-                              // Clear effect button
-                              return _buildEffectButton(
-                                effectPath: "",
-                                isSelected: _currentEffect == null,
-                                label: "Clear",
-                                onTap: _clearDeepArEffect,
-                              );
-                            }
-
-                            final effectPath = _availableEffects[index - 1];
-                            final effectName = effectPath
-                                .split('/')
-                                .last
-                                .split('.')
-                                .first;
-
-                            return _buildEffectButton(
-                              effectPath: effectPath,
-                              isSelected: _currentEffect == effectPath,
-                              label: effectName,
-                              onTap: () => _switchDeepArEffect(effectPath),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
 
                     SizedBox(height: 30.h),
                   ],
@@ -791,66 +656,14 @@ class _LivePageState extends State<LivePage> {
     );
   }
 
-  Widget _buildEffectButton({
-    required String effectPath,
-    required bool isSelected,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 80.w,
-        margin: EdgeInsets.only(right: 12.w),
-        child: Column(
-          children: [
-            Container(
-              width: 60.w,
-              height: 60.h,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? const Color(0xFFFF85A3)
-                    : Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(
-                  color: isSelected
-                      ? const Color(0xFFFF85A3)
-                      : Colors.white.withValues(alpha: 0.3),
-                  width: 2.w,
-                ),
-              ),
-              child: Icon(
-                effectPath.isEmpty
-                    ? Icons.clear
-                    : Icons.face_retouching_natural,
-                color: Colors.white,
-                size: 24.sp,
-              ),
-            ),
-            SizedBox(height: 4.h),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 10.sp,
-                fontWeight: FontWeight.w400,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   void dispose() {
     _titleController.dispose();
     _passwordController.dispose();
-
-    // DeepAR controller will be cleaned up automatically
+    if (_isCameraInitialized) {
+      _engine.leaveChannel();
+      _engine.release();
+    }
     super.dispose();
   }
 }
