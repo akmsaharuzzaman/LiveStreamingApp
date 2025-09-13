@@ -192,7 +192,7 @@ class BagPage extends StatelessWidget {
     List<BagItem>? bagItems;
     bool isLoadingItems = false;
     bool isPurchasing = false;
-    bool isUsingItem = false;
+    String? usingItemId; // Track which specific item is being used
 
     if (state is BagCategoriesLoaded) {
       categories = state.categories;
@@ -218,7 +218,7 @@ class BagPage extends StatelessWidget {
       categories = state.categories;
       selectedCategoryId = state.selectedCategoryId;
       bagItems = state.bagItems;
-      isUsingItem = true;
+      usingItemId = state.usingItemId; // Get the specific item ID being used
     }
 
     return Column(
@@ -234,7 +234,13 @@ class BagPage extends StatelessWidget {
           child: isLoadingItems
               ? const Center(child: CircularProgressIndicator())
               : bagItems != null && bagItems.isNotEmpty
-              ? _buildBagItemsGrid(context, bagItems, isPurchasing, isUsingItem)
+              ? _buildBagItemsGrid(
+                  context,
+                  bagItems,
+                  isPurchasing,
+                  state is BagUsingItem,
+                  usingItemId,
+                )
               : selectedCategoryId != null
               ? _buildEmptyBag()
               : _buildSelectCategoryPrompt(),
@@ -304,6 +310,7 @@ class BagPage extends StatelessWidget {
     List<BagItem> bagItems,
     bool isPurchasing,
     bool isUsingItem,
+    String? usingItemId,
   ) {
     return GridView.builder(
       padding: EdgeInsets.all(16.w),
@@ -316,7 +323,14 @@ class BagPage extends StatelessWidget {
       itemCount: bagItems.length,
       itemBuilder: (context, index) {
         final bagItem = bagItems[index];
-        return _buildBagItemCard(context, bagItem, isPurchasing, isUsingItem);
+        final isThisItemUsing =
+            usingItemId != null && usingItemId == bagItem.id;
+        return _buildBagItemCard(
+          context,
+          bagItem,
+          isPurchasing,
+          isThisItemUsing,
+        );
       },
     );
   }

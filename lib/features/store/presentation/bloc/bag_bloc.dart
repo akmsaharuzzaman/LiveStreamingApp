@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 
 import '../../data/models/bag_models.dart';
+import '../../data/models/store_models.dart';
 import '../../data/services/bag_api_service.dart';
 import 'bag_event.dart';
 import 'bag_state.dart';
@@ -57,10 +58,21 @@ class BagBloc extends Bloc<BagEvent, BagState> {
   ) async {
     final currentState = state;
 
-    if (currentState is BagCategoriesLoaded) {
+    if (currentState is BagCategoriesLoaded || currentState is BagItemsLoaded) {
+      List<StoreCategory> categories;
+
+      if (currentState is BagCategoriesLoaded) {
+        categories = currentState.categories;
+      } else if (currentState is BagItemsLoaded) {
+        categories = currentState.categories;
+      } else {
+        return;
+      }
+
       // Update the selected category
       emit(
-        currentState.copyWith(
+        BagCategoriesLoaded(
+          categories: categories,
           selectedCategoryId: event.categoryId,
           selectedCategoryTitle: event.categoryTitle,
         ),
@@ -77,12 +89,25 @@ class BagBloc extends Bloc<BagEvent, BagState> {
   ) async {
     final currentState = state;
 
-    if (currentState is BagCategoriesLoaded) {
+    if (currentState is BagCategoriesLoaded || currentState is BagItemsLoaded) {
+      List<StoreCategory> categories;
+      String selectedCategoryTitle = '';
+
+      if (currentState is BagCategoriesLoaded) {
+        categories = currentState.categories;
+        selectedCategoryTitle = currentState.selectedCategoryTitle ?? '';
+      } else if (currentState is BagItemsLoaded) {
+        categories = currentState.categories;
+        selectedCategoryTitle = currentState.selectedCategoryTitle;
+      } else {
+        return;
+      }
+
       emit(
         BagItemsLoading(
-          categories: currentState.categories,
+          categories: categories,
           selectedCategoryId: event.categoryId,
-          selectedCategoryTitle: currentState.selectedCategoryTitle ?? '',
+          selectedCategoryTitle: selectedCategoryTitle,
         ),
       );
 
@@ -94,9 +119,9 @@ class BagBloc extends Bloc<BagEvent, BagState> {
         success: (response) {
           emit(
             BagItemsLoaded(
-              categories: currentState.categories,
+              categories: categories,
               selectedCategoryId: event.categoryId,
-              selectedCategoryTitle: currentState.selectedCategoryTitle ?? '',
+              selectedCategoryTitle: selectedCategoryTitle,
               bagItems: response.result.buckets,
               pagination: response.result.pagination,
             ),
@@ -167,6 +192,7 @@ class BagBloc extends Bloc<BagEvent, BagState> {
           selectedCategoryTitle: currentState.selectedCategoryTitle,
           bagItems: currentState.bagItems,
           pagination: currentState.pagination,
+          usingItemId: event.bucketId, // Pass the specific item ID
         ),
       );
 
@@ -178,6 +204,18 @@ class BagBloc extends Bloc<BagEvent, BagState> {
           add(LoadBagItems(categoryId: currentState.selectedCategoryId));
         },
         failure: (error) {
+          // Return to the previous state on error
+          emit(
+            BagItemsLoaded(
+              categories: currentState.categories,
+              selectedCategoryId: currentState.selectedCategoryId,
+              selectedCategoryTitle: currentState.selectedCategoryTitle,
+              bagItems: currentState.bagItems,
+              pagination: currentState.pagination,
+            ),
+          );
+
+          // Then emit error (this will be handled by the UI listener)
           emit(BagError(message: error));
         },
       );

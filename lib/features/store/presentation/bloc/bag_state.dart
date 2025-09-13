@@ -172,6 +172,7 @@ class BagUsingItem extends BagState {
   final String selectedCategoryTitle;
   final List<BagItem> bagItems;
   final BagPagination pagination;
+  final String usingItemId; // Add specific item ID being used
 
   const BagUsingItem({
     required this.categories,
@@ -179,6 +180,7 @@ class BagUsingItem extends BagState {
     required this.selectedCategoryTitle,
     required this.bagItems,
     required this.pagination,
+    required this.usingItemId,
   });
 
   @override
@@ -188,6 +190,7 @@ class BagUsingItem extends BagState {
     selectedCategoryTitle,
     bagItems,
     pagination,
+    usingItemId,
   ];
 }
 
