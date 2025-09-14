@@ -8,7 +8,7 @@ class BonusStatus extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       decoration: BoxDecoration(
         color: const Color(0xff111111).withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(100),
@@ -39,9 +39,7 @@ class BonusStatus extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(width: 5),
           const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18),
-          const SizedBox(width: 5),
         ],
       ),
     );

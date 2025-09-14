@@ -108,6 +108,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
   // Daily bonus tracking - track last milestone called (50, 100, 150, etc.)
   int _lastBonusMilestone = 0;
 
+  // Total bonus diamonds earned from API calls
+  int _totalBonusDiamonds = 0;
+
   // Host activity tracking for viewers
   Timer? _hostActivityTimer;
   DateTime? _lastHostActivity;
@@ -229,18 +232,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   /// Calculate total bonus diamonds earned from daily streaming bonuses (50-minute milestones)
   int _calculateTotalBonusDiamonds() {
-    if (!isHost) return 0;
-
-    // Filter gifts that are system bonuses (daily streaming bonuses)
-    int totalBonus = sentGifts
-        .where(
-          (gift) =>
-              gift.name == "System Bonus" && gift.gift.category == "Bonus",
-        )
-        .fold(0, (sum, gift) => sum + gift.diamonds);
-
-    debugPrint("🎉 Total bonus diamonds calculated: $totalBonus");
-    return totalBonus;
+    return _totalBonusDiamonds;
   }
 
   /// Convert HostDetails to JoinedUserModel and initialize existing viewers
@@ -1620,6 +1612,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                 sentGifts.add(bonusGift);
                 _updateUserDiamonds(bonusGift);
                 _lastBonusMilestone = currentMilestone;
+                _totalBonusDiamonds +=
+                    bonusDiamonds; // Track total bonus diamonds
               });
 
               // Trigger gift animation
@@ -1884,23 +1878,30 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                     SizedBox(height: 10.h),
 
                                     //  this is the second row TODO:  diamond and star count display
-                                    DiamondStarStatus(
-                                      diamonCount: AppUtils.formatNumber(
-                                        GiftModel.totalDiamondsForHost(
-                                          sentGifts,
-                                          isHost
-                                              ? userId
-                                              : widget
-                                                    .hostUserId, // Use userId for host, widget.hostUserId for viewers
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        DiamondStarStatus(
+                                          diamonCount: AppUtils.formatNumber(
+                                            GiftModel.totalDiamondsForHost(
+                                              sentGifts,
+                                              isHost
+                                                  ? userId
+                                                  : widget
+                                                        .hostUserId, // Use userId for host, widget.hostUserId for viewers
+                                            ),
+                                          ),
+                                          starCount: AppUtils.formatNumber(0),
                                         ),
-                                      ),
-                                      starCount: AppUtils.formatNumber(0),
-                                    ),
-                                    //add another widget to show the bonus
-                                    BonusStatus(
-                                      bonusCount: AppUtils.formatNumber(
-                                        _calculateTotalBonusDiamonds(),
-                                      ),
+                                        SizedBox(height: 5.h),
+                                        //add another widget to show the bonus
+                                        BonusStatus(
+                                          bonusCount: AppUtils.formatNumber(
+                                            _calculateTotalBonusDiamonds(),
+                                          ),
+                                        ),
+                                      ],
                                     ),
 
                                     Spacer(),
