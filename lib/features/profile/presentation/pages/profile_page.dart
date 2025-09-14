@@ -776,7 +776,14 @@ class _ProfileContentState extends State<_ProfileContent> {
               _buildFeatureIcon(
                 "assets/images/general/live_record_icon.png",
                 'Live Record',
+
                 context,
+                onTap: () {
+                  context.push(
+                    AppRoutes.liveHistory,
+                    extra: {'user': widget.user},
+                  );
+                },
               ),
             ],
           ),

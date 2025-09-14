@@ -306,8 +306,8 @@ class _HomePageState extends State<HomePage>
           children: [
             // Popular Tab - Current homepage content
             _buildPopularTab(),
-            // Live Tab - Dummy content
-            _buildDummyTab('Live', Icons.live_tv),
+            // Live Tab - Live stream grid only
+            _buildLiveTab(),
             // Party Tab - Dummy content
             _buildDummyTab('Party', Icons.party_mode),
             // PK Tab - Dummy content
@@ -463,6 +463,20 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  // Live tab with only live stream grid
+  Widget _buildLiveTab() {
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 18.sp),
+          ListLiveStream(availableRooms: _availableRooms ?? []),
+        ],
+      ),
+    );
+  }
+
   // Dummy tab content for other tabs
   Widget _buildDummyTab(String title, IconData icon) {
     return Center(
@@ -496,6 +510,33 @@ class ListLiveStream extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (availableRooms.isEmpty) {
+      return Expanded(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.live_tv, size: 80.sp, color: Colors.grey.shade400),
+              SizedBox(height: 20.h),
+              Text(
+                'No Live Streams Available',
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                'No one has started live streaming yet',
+                style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade500),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Expanded(
       child: GridView.builder(
         padding: EdgeInsets.symmetric(
