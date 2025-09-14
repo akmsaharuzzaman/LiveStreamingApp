@@ -31,6 +31,7 @@ import '../../../../core/network/models/joined_user_model.dart';
 import '../../../../core/network/models/mute_user_model.dart';
 import '../../../../core/utils/app_utils.dart';
 import '../component/active_viwers.dart';
+import '../component/bonus_status.dart';
 import '../component/custom_live_button.dart';
 import '../component/diamond_star_status.dart';
 import '../component/end_stream_overlay.dart';
@@ -224,6 +225,22 @@ class _GoliveScreenState extends State<GoliveScreen> {
     debugPrint(
       "🏆 Total host diamonds (using $hostIdForCalculation): $hostDiamonds",
     );
+  }
+
+  /// Calculate total bonus diamonds earned from daily streaming bonuses (50-minute milestones)
+  int _calculateTotalBonusDiamonds() {
+    if (!isHost) return 0;
+
+    // Filter gifts that are system bonuses (daily streaming bonuses)
+    int totalBonus = sentGifts
+        .where(
+          (gift) =>
+              gift.name == "System Bonus" && gift.gift.category == "Bonus",
+        )
+        .fold(0, (sum, gift) => sum + gift.diamonds);
+
+    debugPrint("🎉 Total bonus diamonds calculated: $totalBonus");
+    return totalBonus;
   }
 
   /// Convert HostDetails to JoinedUserModel and initialize existing viewers
@@ -1878,6 +1895,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                         ),
                                       ),
                                       starCount: AppUtils.formatNumber(0),
+                                    ),
+                                    //add another widget to show the bonus
+                                    BonusStatus(
+                                      bonusCount: AppUtils.formatNumber(
+                                        _calculateTotalBonusDiamonds(),
+                                      ),
                                     ),
 
                                     Spacer(),
