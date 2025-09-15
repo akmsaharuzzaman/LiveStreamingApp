@@ -483,10 +483,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
         debugPrint("User sent a message: ${data.text}");
         setState(() {
           _chatMessages.add(data);
+          if (_chatMessages.length > 50) {
+            _chatMessages.removeAt(0);
+          }
         });
-        if (_chatMessages.length > 50) {
-          _chatMessages.removeAt(0);
-        }
       }
     });
 

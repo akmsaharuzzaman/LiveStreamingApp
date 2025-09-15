@@ -13,7 +13,6 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_svg: ^2.2.0
   google_fonts: ^6.3.1
-  # iconsax: ^0.0.8
   flutter_screenutil: ^5.9.3
   flutter_carousel_widget: ^3.1.0
 
@@ -40,8 +39,8 @@ dependencies:
 
   # Utility Libraries
   dartz: ^0.10.1
-  device_info_plus: ^11.5.0
-  package_info_plus: ^8.3.1
+  device_info_plus: ^12.1.0
+  package_info_plus: ^9.0.0
   intl: any
 
   # File & Media Pickers
@@ -73,7 +72,7 @@ dependencies:
   # deepar_flutter: ^0.0.5
 
   # Media Viewers & Editors
-  share_plus: ^11.1.0
+  share_plus: ^12.0.0
   video_editor: ^3.0.0
   easy_video_editor: ^0.1.2
   chewie: ^1.12.1

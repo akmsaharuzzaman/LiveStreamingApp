@@ -20,11 +20,27 @@ class LiveChatWidget extends StatefulWidget {
 class _LiveChatWidgetState extends State<LiveChatWidget> {
   final ScrollController _scrollController = ScrollController();
   final Map<String, Color> _userColorCache = {};
+  int _lastMessageCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastMessageCount = widget.messages.length;
+    // If there are already messages, ensure we start scrolled to bottom
+    if (_lastMessageCount > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        }
+      });
+    }
+  }
 
   @override
   void didUpdateWidget(LiveChatWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.messages.length != oldWidget.messages.length) {
+    // Detect growth even if the same List instance was mutated
+    if (widget.messages.length > _lastMessageCount) {
       // Auto-scroll to bottom when new message is added
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scrollController.hasClients) {
@@ -36,6 +52,7 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
         }
       });
     }
+    _lastMessageCount = widget.messages.length;
   }
 
   @override
@@ -126,10 +143,8 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Badges (Level, VIP, etc.)
-        // ...message.id.map((badge) => _buildBadge(badge)),
-        // _buildBadge("vip"),
-        if (message.avatar != null) const SizedBox(width: 6),
+        // Spacing before name/message
+        const SizedBox(width: 6),
 
         const SizedBox(width: 8),
 
@@ -216,38 +231,5 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
     );
   }
 
-  Widget _buildBadge(String badge) {
-    Widget badgeContent;
-
-    switch (badge) {
-      case 'level':
-        badgeContent = Image.asset(
-          'assets/images/general/level_badge.png',
-          height: 22.h,
-        );
-        break;
-
-      case 'vip':
-        badgeContent = Image.asset(
-          'assets/images/general/vip_badge.png',
-          height: 22.h,
-        );
-        break;
-
-      case 'svip':
-        badgeContent = Image.asset(
-          'assets/images/general/svip_badge.png',
-          height: 22.h,
-        );
-        break;
-
-      default:
-        badgeContent = Image.asset(
-          'assets/images/general/vip_badge.png',
-          height: 22.h,
-        );
-    }
-
-    return badgeContent;
-  }
+  // Badge builder removed (unused in current design)
 }
