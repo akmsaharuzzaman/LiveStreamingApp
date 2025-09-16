@@ -20,6 +20,8 @@ import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/register_page.dart';
 import '../features/profile/presentation/pages/profile_completion_page.dart';
 import '../features/profile/presentation/pages/profile_update_page.dart';
+import '../features/profile/presentation/pages/live_record_page.dart';
+import '../core/models/user_model.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -41,6 +43,7 @@ class AppRoutes {
   static const String chatSettings = '/chat-settings';
   static const String newsfeed = '/newsfeed';
   static const String store = '/store';
+  static const String liveHistory = '/live-history';
 }
 
 final GoRouter appRouter = GoRouter(
@@ -180,6 +183,15 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.store,
       name: 'store',
       builder: (context, state) => const StorePage(),
+    ),
+    GoRoute(
+      path: AppRoutes.liveHistory,
+      name: 'liveHistory',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        final user = extra?['user'] as UserModel?;
+        return LiveRecordPage(user: user);
+      },
     ),
   ],
   errorBuilder: (context, state) => Scaffold(

@@ -41,6 +41,14 @@ import 'package:dlstarlive/features/home/presentation/bloc/counter_bloc.dart'
     as _i208;
 import 'package:dlstarlive/features/profile/data/services/friends_api_service.dart'
     as _i608;
+import 'package:dlstarlive/features/store/data/services/bag_api_service.dart'
+    as _i439;
+import 'package:dlstarlive/features/store/data/services/store_api_service.dart'
+    as _i394;
+import 'package:dlstarlive/features/store/presentation/bloc/bag_bloc.dart'
+    as _i761;
+import 'package:dlstarlive/features/store/presentation/bloc/store_bloc.dart'
+    as _i291;
 import 'package:firebase_auth/firebase_auth.dart' as _i59;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:google_sign_in/google_sign_in.dart' as _i116;
@@ -88,10 +96,20 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i608.FriendsApiService>(
       () => _i608.FriendsApiService(gh<_i10.ApiService>()),
     );
+    gh.factory<_i394.StoreApiService>(
+      () => _i394.StoreApiService(gh<_i10.ApiService>()),
+    );
+    gh.factory<_i439.BagApiService>(
+      () => _i439.BagApiService(gh<_i10.ApiService>()),
+    );
     gh.lazySingleton<_i207.ApiService>(() => _i207.ApiService(gh<_i361.Dio>()));
+    gh.factory<_i291.StoreBloc>(
+      () => _i291.StoreBloc(gh<_i394.StoreApiService>()),
+    );
     gh.factory<_i618.CounterLocalDataSource>(
       () => _i618.CounterLocalDataSourceImpl(gh<_i460.SharedPreferences>()),
     );
+    gh.factory<_i761.BagBloc>(() => _i761.BagBloc(gh<_i439.BagApiService>()));
     gh.lazySingleton<_i622.AuthApiClient>(
       () => _i622.AuthApiClient(
         gh<_i10.ApiService>(),

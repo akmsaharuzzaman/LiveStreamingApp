@@ -387,15 +387,66 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
   }
 
   Widget _buildAchievements() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Image.asset('assets/images/general/level_frame.png', height: 20.h),
-        Image.asset('assets/images/general/coin_frame.png', height: 20.h),
-        Image.asset('assets/images/general/mc_frame.png', height: 20.h),
-        Image.asset('assets/images/general/svip_frame.png', height: 20.h),
-        Image.asset('assets/images/general/id_frame.png', height: 20.h),
-      ],
+    if (userProfile == null) {
+      return const SizedBox.shrink();
+    }
+
+    // Collect role-based badges
+    List<Widget> badges = [];
+
+    // Age Badge
+    if (userProfile!.userRole == 'age') {
+      badges.add(Image.asset('assets/images/general/age_tag.png', height: 20.h));
+    }
+    
+    // Coin Badge  
+    if (userProfile!.userRole == 'coin') {
+      badges.add(Image.asset('assets/images/general/coin_tag.png', height: 20.h));
+    }
+
+    // VIP Badge
+    if (userProfile!.userRole == 'vip') {
+      badges.add(Image.asset('assets/images/general/vip_tag.png', height: 20.h));
+    }
+
+    // SVIP Badge
+    if (userProfile!.userRole == 'svip') {
+      badges.add(Image.asset('assets/images/general/svip_tag.png', height: 20.h));
+    }
+
+    // Host Badge
+    if (userProfile!.userRole == 'host') {
+      badges.add(Image.asset('assets/images/general/host_tag.png', height: 20.h));
+    }
+
+    // Agent Badge
+    if (userProfile!.userRole == 'agent') {
+      badges.add(Image.asset('assets/images/general/agent_tag.png', height: 20.h));
+    }
+
+    // Re Seller Badge
+    if (userProfile!.userRole == 're_seller') {
+      badges.add(Image.asset('assets/images/general/re_seller_tag.png', height: 20.h));
+    }
+
+    // Admin Badge
+    if (userProfile!.userRole == 'admin') {
+      badges.add(Image.asset('assets/images/general/super_admin_frame.png', height: 20.h));
+    }
+
+    // If no specific role badges, show default level badge
+    if (badges.isEmpty) {
+      badges.add(Image.asset('assets/images/general/level_frame.png', height: 20.h));
+    }
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 40.w),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 4.w,
+        runSpacing: 8.h,
+        children: badges,
+      ),
     );
   }
 

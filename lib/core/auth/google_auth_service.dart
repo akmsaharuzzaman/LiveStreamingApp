@@ -40,7 +40,7 @@ class GoogleAuthServiceImpl implements GoogleAuthService {
       _isGoogleSignInInitialized = true;
 
       // Try to restore previous session
-      await _attemptSilentSignIn();
+      // await _attemptSilentSignIn();
     } catch (e) {
       throw Exception('Failed to initialize Google Sign-In: ${e.toString()}');
     }

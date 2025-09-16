@@ -23,7 +23,7 @@ void main() async {
   await WakelockService().enable();
 
   try {
-    // Initialize dependency injection asynchronously for SharedPreferences
+    // Initialize dependency injection asynchronously for SharedPreference s
     await configureDependencies();
     runApp(const MyApp());
   } catch (e) {

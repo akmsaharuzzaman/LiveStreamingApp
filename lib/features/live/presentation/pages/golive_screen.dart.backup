@@ -31,7 +31,6 @@ import '../../../../core/network/models/joined_user_model.dart';
 import '../../../../core/network/models/mute_user_model.dart';
 import '../../../../core/utils/app_utils.dart';
 import '../component/active_viwers.dart';
-import '../component/bonus_status.dart';
 import '../component/custom_live_button.dart';
 import '../component/diamond_star_status.dart';
 import '../component/end_stream_overlay.dart';
@@ -107,9 +106,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   // Daily bonus tracking - track last milestone called (50, 100, 150, etc.)
   int _lastBonusMilestone = 0;
-
-  // Total bonus diamonds earned from API calls
-  int _totalBonusDiamonds = 0;
 
   // Host activity tracking for viewers
   Timer? _hostActivityTimer;
@@ -228,11 +224,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
     debugPrint(
       "🏆 Total host diamonds (using $hostIdForCalculation): $hostDiamonds",
     );
-  }
-
-  /// Calculate total bonus diamonds earned from daily streaming bonuses (50-minute milestones)
-  int _calculateTotalBonusDiamonds() {
-    return _totalBonusDiamonds;
   }
 
   /// Convert HostDetails to JoinedUserModel and initialize existing viewers
@@ -483,10 +474,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
         debugPrint("User sent a message: ${data.text}");
         setState(() {
           _chatMessages.add(data);
-          if (_chatMessages.length > 50) {
-            _chatMessages.removeAt(0);
-          }
         });
+        if (_chatMessages.length > 50) {
+          _chatMessages.removeAt(0);
+        }
       }
     });
 
@@ -1612,8 +1603,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
                 sentGifts.add(bonusGift);
                 _updateUserDiamonds(bonusGift);
                 _lastBonusMilestone = currentMilestone;
-                _totalBonusDiamonds +=
-                    bonusDiamonds; // Track total bonus diamonds
               });
 
               // Trigger gift animation
@@ -1878,30 +1867,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                     SizedBox(height: 10.h),
 
                                     //  this is the second row TODO:  diamond and star count display
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        DiamondStarStatus(
-                                          diamonCount: AppUtils.formatNumber(
-                                            GiftModel.totalDiamondsForHost(
-                                              sentGifts,
-                                              isHost
-                                                  ? userId
-                                                  : widget
-                                                        .hostUserId, // Use userId for host, widget.hostUserId for viewers
-                                            ),
-                                          ),
-                                          starCount: AppUtils.formatNumber(0),
+                                    DiamondStarStatus(
+                                      diamonCount: AppUtils.formatNumber(
+                                        GiftModel.totalDiamondsForHost(
+                                          sentGifts,
+                                          isHost
+                                              ? userId
+                                              : widget
+                                                    .hostUserId, // Use userId for host, widget.hostUserId for viewers
                                         ),
-                                        SizedBox(height: 5.h),
-                                        //add another widget to show the bonus
-                                        BonusStatus(
-                                          bonusCount: AppUtils.formatNumber(
-                                            _calculateTotalBonusDiamonds(),
-                                          ),
-                                        ),
-                                      ],
+                                      ),
+                                      starCount: AppUtils.formatNumber(0),
                                     ),
 
                                     Spacer(),

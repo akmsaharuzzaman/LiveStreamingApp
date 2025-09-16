@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/models/user_model.dart';
+import '../../../../injection/injection.dart';
+import '../../../store/data/models/bag_models.dart';
+import '../../../store/data/models/store_models.dart';
+import '../../../store/presentation/bloc/bag_bloc.dart';
+import '../../../store/presentation/bloc/bag_event.dart';
+import '../../../store/presentation/bloc/bag_state.dart';
 
 class BagPage extends StatelessWidget {
   final UserModel user;
@@ -10,43 +17,93 @@ class BagPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          Container(
-            height: 280.h,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.topRight,
-                colors: [
-                  Color(0xFF9D64B0), // Purple
-                  Color(0xFFFE82A7), // Pink
-                ],
+    return BlocProvider(
+      create: (context) => getIt<BagBloc>()..add(const LoadBagCategories()),
+      child: Scaffold(
+        body: Column(
+          children: [
+            Container(
+              height: 280.h,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.topRight,
+                  colors: [
+                    Color(0xFF9D64B0), // Purple
+                    Color(0xFFFE82A7), // Pink
+                  ],
+                ),
+              ),
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    _buildHeader(context),
+                    SizedBox(height: 20.h),
+                    _buildUserProfile(),
+                  ],
+                ),
               ),
             ),
-            child: SafeArea(
-              child: Column(
-                children: [
-                  _buildHeader(context),
-
-                  // Header
-                  SizedBox(height: 20.h),
-
-                  // User Profile with Frame
-                  _buildUserProfile(),
-                ],
+            SizedBox(height: 10.h),
+            // Categories and Items Section
+            Expanded(
+              child: BlocConsumer<BagBloc, BagState>(
+                listener: (context, state) {
+                  if (state is BagError) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.message),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  } else if (state is BagPurchaseSuccess) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.message),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                },
+                builder: (context, state) {
+                  if (state is BagCategoriesLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (state is BagCategoriesLoaded ||
+                      state is BagItemsLoading ||
+                      state is BagItemsLoaded ||
+                      state is BagPurchasing ||
+                      state is BagPurchaseSuccess ||
+                      state is BagUsingItem) {
+                    return _buildCategoriesAndItems(context, state);
+                  } else if (state is BagError) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Error: ${state.message}',
+                            style: TextStyle(fontSize: 16.sp),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 16.h),
+                          ElevatedButton(
+                            onPressed: () {
+                              context.read<BagBloc>().add(
+                                const LoadBagCategories(),
+                              );
+                            },
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return const Center(child: CircularProgressIndicator());
+                },
               ),
             ),
-          ),
-
-          SizedBox(height: 10.h),
-
-          // VIP Status
-          _buildVipStatus(),
-
-          // Content area (can be expanded later)
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -129,26 +186,349 @@ class BagPage extends StatelessWidget {
     );
   }
 
-  Widget _buildVipStatus() {
-    // Get user role or default to VIP
-    final userRole = user.userRole.toUpperCase();
+  Widget _buildCategoriesAndItems(BuildContext context, BagState state) {
+    List<StoreCategory> categories = [];
+    String? selectedCategoryId;
+    List<BagItem>? bagItems;
+    bool isLoadingItems = false;
+    bool isPurchasing = false;
+    String? usingItemId; // Track which specific item is being used
+
+    if (state is BagCategoriesLoaded) {
+      categories = state.categories;
+      selectedCategoryId = state.selectedCategoryId;
+    } else if (state is BagItemsLoading) {
+      categories = state.categories;
+      selectedCategoryId = state.selectedCategoryId;
+      isLoadingItems = true;
+    } else if (state is BagItemsLoaded) {
+      categories = state.categories;
+      selectedCategoryId = state.selectedCategoryId;
+      bagItems = state.bagItems;
+    } else if (state is BagPurchasing) {
+      categories = state.categories;
+      selectedCategoryId = state.selectedCategoryId;
+      bagItems = state.bagItems;
+      isPurchasing = true;
+    } else if (state is BagPurchaseSuccess) {
+      categories = state.categories;
+      selectedCategoryId = state.selectedCategoryId;
+      bagItems = state.bagItems;
+    } else if (state is BagUsingItem) {
+      categories = state.categories;
+      selectedCategoryId = state.selectedCategoryId;
+      bagItems = state.bagItems;
+      usingItemId = state.usingItemId; // Get the specific item ID being used
+    }
+
+    return Column(
+      children: [
+        // Categories Tab Bar
+        if (categories.isNotEmpty)
+          _buildCategoriesTabBar(context, categories, selectedCategoryId),
+
+        SizedBox(height: 16.h),
+
+        // Items Grid
+        Expanded(
+          child: isLoadingItems
+              ? const Center(child: CircularProgressIndicator())
+              : bagItems != null && bagItems.isNotEmpty
+              ? _buildBagItemsGrid(
+                  context,
+                  bagItems,
+                  isPurchasing,
+                  state is BagUsingItem,
+                  usingItemId,
+                )
+              : selectedCategoryId != null
+              ? _buildEmptyBag()
+              : _buildSelectCategoryPrompt(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategoriesTabBar(
+    BuildContext context,
+    List<StoreCategory> categories,
+    String? selectedCategoryId,
+  ) {
+    return Container(
+      height: 50.h,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        itemCount: categories.length,
+        itemBuilder: (context, index) {
+          final category = categories[index];
+          final isSelected = selectedCategoryId == category.id;
+
+          return GestureDetector(
+            onTap: () {
+              context.read<BagBloc>().add(
+                SelectBagCategory(
+                  categoryId: category.id,
+                  categoryTitle: category.title,
+                ),
+              );
+            },
+            child: Container(
+              margin: EdgeInsets.only(right: 12.w),
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+              decoration: BoxDecoration(
+                gradient: isSelected
+                    ? LinearGradient(
+                        colors: [Color(0xFF9D64B0), Color(0xFFFE82A7)],
+                      )
+                    : null,
+                color: isSelected ? null : Colors.grey[200],
+                borderRadius: BorderRadius.circular(25.r),
+                border: Border.all(
+                  color: isSelected ? Colors.transparent : Colors.grey[300]!,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  category.title,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black87,
+                    fontSize: 14.sp,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBagItemsGrid(
+    BuildContext context,
+    List<BagItem> bagItems,
+    bool isPurchasing,
+    bool isUsingItem,
+    String? usingItemId,
+  ) {
+    return GridView.builder(
+      padding: EdgeInsets.all(16.w),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.75,
+        crossAxisSpacing: 16.w,
+        mainAxisSpacing: 16.h,
+      ),
+      itemCount: bagItems.length,
+      itemBuilder: (context, index) {
+        final bagItem = bagItems[index];
+        final isThisItemUsing =
+            usingItemId != null && usingItemId == bagItem.id;
+        return _buildBagItemCard(
+          context,
+          bagItem,
+          isPurchasing,
+          isThisItemUsing,
+        );
+      },
+    );
+  }
+
+  Widget _buildBagItemCard(
+    BuildContext context,
+    BagItem bagItem,
+    bool isPurchasing,
+    bool isUsingItem,
+  ) {
+    final item = bagItem.itemId;
+    final isSelected = bagItem.useStatus;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
-      ),
-      alignment: Alignment.centerLeft,
-      child: Text(
-        userRole,
-        style: TextStyle(
-          color: Colors.black,
-          fontSize: 16.sp,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.2,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: isSelected ? Colors.green : Colors.grey[300]!,
+          width: isSelected ? 2.w : 1.w,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12.r),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Item Image
+            Expanded(
+              flex: 3,
+              child: Container(
+                color: Colors.grey[100],
+                child: item.svgaFile != null && item.svgaFile!.isNotEmpty
+                    ? Image.network(
+                        item.svgaFile!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return _buildPlaceholderImage();
+                        },
+                      )
+                    : _buildPlaceholderImage(),
+              ),
+            ),
+
+            // Item Details
+            Expanded(
+              flex: 2,
+              child: Container(
+                color: Colors.white,
+                padding: EdgeInsets.all(8.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.name,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    SizedBox(height: 4.h),
+
+                    Text(
+                      '${item.validity} days',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+
+                    Spacer(),
+
+                    // Use/Selected Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 28.h,
+                      child: ElevatedButton(
+                        onPressed: isUsingItem
+                            ? null
+                            : () {
+                                if (!isSelected) {
+                                  context.read<BagBloc>().add(
+                                    UseItem(bucketId: bagItem.id),
+                                  );
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isSelected
+                              ? Colors.green
+                              : Color(0xFF9D64B0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6.r),
+                          ),
+                          padding: EdgeInsets.zero,
+                        ),
+                        child: isUsingItem
+                            ? SizedBox(
+                                height: 16.h,
+                                width: 16.w,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : Text(
+                                isSelected ? 'Using' : 'Use',
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Selected Indicator
+            if (isSelected) Container(height: 4.h, color: Colors.green),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholderImage() {
+    return Container(
+      color: Colors.grey[200],
+      child: Icon(Icons.image, size: 40.sp, color: Colors.grey[400]),
+    );
+  }
+
+  Widget _buildEmptyBag() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.shopping_bag_outlined,
+            size: 64.sp,
+            color: Colors.grey[400],
+          ),
+          SizedBox(height: 16.h),
+          Text(
+            'No items in this category',
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[600],
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            'Purchase items from the store to see them here',
+            style: TextStyle(fontSize: 14.sp, color: Colors.grey[500]),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectCategoryPrompt() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.category_outlined, size: 64.sp, color: Colors.grey[400]),
+          SizedBox(height: 16.h),
+          Text(
+            'Select a category',
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[600],
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            'Choose a category above to view your items',
+            style: TextStyle(fontSize: 14.sp, color: Colors.grey[500]),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
