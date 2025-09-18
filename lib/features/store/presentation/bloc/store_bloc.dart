@@ -155,6 +155,7 @@ class StoreBloc extends Bloc<StoreEvent, StoreState> {
 
       result.when(
         success: (response) {
+          // First emit purchase success state to show the success message
           emit(
             StorePurchaseSuccess(
               message: 'Item purchased successfully!',
@@ -162,6 +163,17 @@ class StoreBloc extends Bloc<StoreEvent, StoreState> {
               selectedCategoryIndex: currentState.selectedCategoryIndex,
               currentItems: currentState.currentItems,
               selectedItemIndex: currentState.selectedItemIndex,
+            ),
+          );
+          
+          // Then immediately emit StoreCategoriesLoaded state to ensure UI is interactive
+          emit(
+            StoreCategoriesLoaded(
+              categories: currentState.categories,
+              selectedCategoryIndex: currentState.selectedCategoryIndex,
+              currentItems: currentState.currentItems,
+              selectedItemIndex: currentState.selectedItemIndex,
+              itemsLoading: false,
             ),
           );
         },
