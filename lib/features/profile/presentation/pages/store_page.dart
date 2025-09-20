@@ -45,18 +45,8 @@ class _StorePageContent extends StatelessWidget {
                 duration: const Duration(seconds: 2),
               ),
             );
-
-            // Return to normal state after showing success message
-            Future.delayed(const Duration(seconds: 2), () {
-              if (context.mounted) {
-                context.read<StoreBloc>().add(
-                  LoadCategoryItemsEvent(
-                    categoryId:
-                        state.categories[state.selectedCategoryIndex].id,
-                  ),
-                );
-              }
-            });
+            // The state will automatically transition to StoreCategoriesLoaded
+            // in the bloc, so we don't need to do anything else here
           }
         },
         builder: (context, state) {
@@ -86,6 +76,7 @@ class _StorePageContent extends StatelessWidget {
               showPurchaseLoading: true,
             );
           } else if (state is StorePurchaseSuccess) {
+            // Convert to StoreCategoriesLoaded state to ensure all buttons work
             return _StoreContent(
               state: StoreCategoriesLoaded(
                 categories: state.categories,
