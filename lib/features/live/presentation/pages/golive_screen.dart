@@ -113,7 +113,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   // Configurable interval for bonus API calls (in minutes) - for debugging
   // Set to 1 for testing, 50 for production
-  static const int _bonusIntervalMinutes = 1;
+  static const int _bonusIntervalMinutes = 50;
+
+  // Flag to prevent multiple API calls for the same milestone
+  bool _isCallingBonusAPI = false;
 
   // Host activity tracking for viewers
   Timer? _hostActivityTimer;
@@ -1515,7 +1518,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
         });
 
         // Check for bonus milestones for hosts only
-        if (isHost && _streamDuration.inMinutes >= _bonusIntervalMinutes) {
+        if (isHost &&
+            _streamDuration.inMinutes >= _bonusIntervalMinutes &&
+            !_isCallingBonusAPI) {
           int currentMilestone =
               (_streamDuration.inMinutes ~/ _bonusIntervalMinutes) *
               _bonusIntervalMinutes;
@@ -1562,6 +1567,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
   Future<void> _callDailyBonusAPI({bool isStreamEnd = false}) async {
     if (!isHost) return;
 
+    // Prevent multiple simultaneous API calls (except for stream end)
+    if (!isStreamEnd && _isCallingBonusAPI) {
+      debugPrint("⏳ Bonus API call already in progress, skipping...");
+      return;
+    }
+
     final totalMinutes = _streamDuration.inMinutes;
     int currentMilestone;
 
@@ -1577,6 +1588,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
           currentMilestone < _bonusIntervalMinutes) {
         return;
       }
+    }
+
+    // Set flag to prevent multiple calls (except for stream end)
+    if (!isStreamEnd) {
+      _isCallingBonusAPI = true;
+      debugPrint("🔒 Setting bonus API flag to prevent duplicate calls");
     }
 
     try {
@@ -1705,6 +1722,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
             : '❌ Failed to process bonus (${currentMilestone}m)',
         Colors.red,
       );
+    } finally {
+      // Always reset the flag when API call completes (except for stream end)
+      if (!isStreamEnd) {
+        _isCallingBonusAPI = false;
+        debugPrint("🔓 Resetting bonus API flag");
+      }
     }
   }
 
