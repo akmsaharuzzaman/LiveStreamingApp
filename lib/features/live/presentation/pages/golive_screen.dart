@@ -1882,6 +1882,15 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                         // *show the viwers
                                         ActiveViewers(
                                           activeUserList: activeViewers,
+                                          hostUserId: isHost
+                                              ? userId
+                                              : widget.hostUserId,
+                                          hostName: isHost
+                                              ? state.user.name
+                                              : widget.hostName,
+                                          hostAvatar: isHost
+                                              ? state.user.avatar
+                                              : widget.hostAvatar,
                                         ),
 
                                         // * to show the leave button
