@@ -105,11 +105,15 @@ class _GoliveScreenState extends State<GoliveScreen> {
   Timer? _durationTimer;
   Duration _streamDuration = Duration.zero;
 
-  // Daily bonus tracking - track last milestone called (50, 100, 150, etc.)
+  // Daily bonus tracking - track last milestone called (configurable interval)
   int _lastBonusMilestone = 0;
 
   // Total bonus diamonds earned from API calls
   int _totalBonusDiamonds = 0;
+
+  // Configurable interval for bonus API calls (in minutes) - for debugging
+  // Set to 1 for testing, 50 for production
+  static const int _bonusIntervalMinutes = 1;
 
   // Host activity tracking for viewers
   Timer? _hostActivityTimer;
@@ -230,7 +234,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     );
   }
 
-  /// Calculate total bonus diamonds earned from daily streaming bonuses (50-minute milestones)
+  /// Calculate total bonus diamonds earned from daily streaming bonuses (configurable intervals)
   int _calculateTotalBonusDiamonds() {
     return _totalBonusDiamonds;
   }
@@ -1510,9 +1514,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
           _streamDuration = DateTime.now().difference(_streamStartTime!);
         });
 
-        // Check for 50-minute milestones for hosts only (50, 100, 150, etc.)
-        if (isHost && _streamDuration.inMinutes >= 50) {
-          int currentMilestone = (_streamDuration.inMinutes ~/ 50) * 50;
+        // Check for bonus milestones for hosts only
+        if (isHost && _streamDuration.inMinutes >= _bonusIntervalMinutes) {
+          int currentMilestone =
+              (_streamDuration.inMinutes ~/ _bonusIntervalMinutes) *
+              _bonusIntervalMinutes;
 
           // Only call API if we've reached a new milestone
           if (currentMilestone > _lastBonusMilestone) {
@@ -1552,24 +1558,35 @@ class _GoliveScreenState extends State<GoliveScreen> {
     });
   }
 
-  // Call daily bonus API for every 50 minute milestone (50, 100, 150, etc.)
-  Future<void> _callDailyBonusAPI() async {
+  // Call daily bonus API for every milestone interval or on stream end
+  Future<void> _callDailyBonusAPI({bool isStreamEnd = false}) async {
     if (!isHost) return;
 
     final totalMinutes = _streamDuration.inMinutes;
-    final currentMilestone = (totalMinutes ~/ 50) * 50;
+    int currentMilestone;
 
-    // Don't call if we've already processed this milestone
-    if (currentMilestone <= _lastBonusMilestone) return;
+    if (isStreamEnd) {
+      // On stream end, ALWAYS call API regardless of duration
+      currentMilestone = totalMinutes; // Use exact duration for final call
+    } else {
+      // During stream, call at configured intervals
+      currentMilestone =
+          (totalMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
+      // Don't call if we've already processed this milestone or if not at minimum milestone
+      if (currentMilestone <= _lastBonusMilestone ||
+          currentMilestone < _bonusIntervalMinutes) {
+        return;
+      }
+    }
 
     try {
       debugPrint(
-        "🏆 Calling daily bonus API for $totalMinutes minutes of streaming (milestone: ${currentMilestone}m)",
+        "🏆 Calling daily bonus API for $totalMinutes minutes of streaming ${isStreamEnd ? '(final call)' : '(milestone: ${currentMilestone}m)'}",
       );
 
       final response = await _apiService.post<Map<String, dynamic>>(
         '/api/auth/daily-bonus',
-        data: {'totalTime': totalMinutes, 'type': 'live'},
+        data: {'totalTime': totalMinutes, 'type': 'video'},
       );
 
       response.fold(
@@ -1579,86 +1596,96 @@ class _GoliveScreenState extends State<GoliveScreen> {
           // Check if response is successful and has result data
           if (data['success'] == true && data['result'] != null) {
             final result = data['result'] as Map<String, dynamic>;
-            final int bonusDiamonds = result['diamonds'] ?? 0;
+            final int bonusDiamonds =
+                result['bonus'] ??
+                0; // Fixed: use 'bonus' instead of 'diamonds'
 
             if (bonusDiamonds > 0) {
               debugPrint("💎 Received daily bonus: $bonusDiamonds diamonds");
 
-              // Create a synthetic gift model to represent the daily bonus
-              final bonusGift = GiftModel(
-                avatar:
-                    "https://cdn-icons-png.flaticon.com/512/2583/2583788.png", // Bonus icon
-                name: "System Bonus",
-                recieverIds: [userId!], // Host receives the bonus
-                diamonds: bonusDiamonds,
-                qty: 1,
-                gift: Gift(
-                  id: "daily_bonus_${DateTime.now().millisecondsSinceEpoch}",
-                  name: "Daily Streaming Bonus",
-                  category: "Bonus",
-                  diamonds: bonusDiamonds,
-                  coinPrice: bonusDiamonds,
-                  previewImage:
-                      "https://cdn-icons-png.flaticon.com/512/2583/2583788.png",
-                  svgaImage: "",
-                  createdAt: DateTime.now(),
-                  updatedAt: DateTime.now(),
-                  v: 0,
-                ),
-              );
-
-              // Add the bonus gift to sentGifts and update UI like a received gift
+              // Track total bonus diamonds
               setState(() {
-                sentGifts.add(bonusGift);
-                _updateUserDiamonds(bonusGift);
-                _lastBonusMilestone = currentMilestone;
-                _totalBonusDiamonds +=
-                    bonusDiamonds; // Track total bonus diamonds
+                if (!isStreamEnd) {
+                  _lastBonusMilestone = currentMilestone;
+                }
+                _totalBonusDiamonds += bonusDiamonds;
               });
 
-              // Trigger gift animation
-              _playAnimation();
+              // Show appropriate message
+              if (isStreamEnd) {
+                _showSnackBar(
+                  '🎉 Final streaming bonus earned: $bonusDiamonds diamonds! (Total: ${totalMinutes}m)',
+                  Colors.green,
+                );
+              } else {
+                _showSnackBar(
+                  '🎉 Daily streaming bonus earned: $bonusDiamonds diamonds! (${currentMilestone}m milestone)',
+                  Colors.green,
+                );
+              }
 
-              _showSnackBar(
-                '🎉 Daily streaming bonus earned: $bonusDiamonds diamonds! (${currentMilestone}m milestone)',
-                Colors.green,
-              );
-              debugPrint("🎁 Daily bonus added as gift to host");
+              debugPrint("💰 Total bonus diamonds now: $_totalBonusDiamonds");
             } else {
-              _showSnackBar(
-                '🎉 Daily streaming bonus earned! (${currentMilestone}m milestone)',
-                Colors.green,
-              );
               setState(() {
-                _lastBonusMilestone = currentMilestone;
+                if (!isStreamEnd) {
+                  _lastBonusMilestone = currentMilestone;
+                }
               });
+
+              if (isStreamEnd) {
+                _showSnackBar(
+                  '🎉 Stream completed! (Total: ${totalMinutes}m)',
+                  Colors.green,
+                );
+              } else {
+                _showSnackBar(
+                  '🎉 Milestone reached! (${currentMilestone}m)',
+                  Colors.green,
+                );
+              }
             }
           } else {
-            _showSnackBar(
-              '🎉 Daily streaming bonus earned! (${currentMilestone}m milestone)',
-              Colors.green,
-            );
             setState(() {
-              _lastBonusMilestone = currentMilestone;
+              if (!isStreamEnd) {
+                _lastBonusMilestone = currentMilestone;
+              }
             });
+
+            if (isStreamEnd) {
+              _showSnackBar(
+                '🎉 Stream completed! (Total: ${totalMinutes}m)',
+                Colors.green,
+              );
+            } else {
+              _showSnackBar(
+                '🎉 Milestone reached! (${currentMilestone}m)',
+                Colors.green,
+              );
+            }
           }
         },
         (error) {
           debugPrint("❌ Daily bonus API call failed: $error");
           // Update milestone even on error to prevent continuous retries
           setState(() {
-            _lastBonusMilestone = currentMilestone;
+            if (!isStreamEnd) {
+              _lastBonusMilestone = currentMilestone;
+            }
           });
 
           // Check if it's a "maximum bonus reached" error
           if (error.contains("maximum bonus") || error.contains("reached")) {
             _showSnackBar(
-              '⚠️ Daily bonus limit reached (${currentMilestone}m)',
+              isStreamEnd
+                  ? '⚠️ Daily bonus limit reached (Total: ${totalMinutes}m)'
+                  : '⚠️ Daily bonus limit reached (${currentMilestone}m)',
               Colors.orange,
             );
           } else {
             _showSnackBar(
-              '⚠️ Bonus reward processing... (${currentMilestone}m)',
+              isStreamEnd
+                  ? '⚠️ Processing final bonus... (Total: ${totalMinutes}m)'
+                  : '⚠️ Bonus reward processing... (${currentMilestone}m)',
               Colors.orange,
             );
           }
@@ -1668,10 +1695,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
       debugPrint("❌ Exception calling daily bonus API: $e");
       // Update milestone even on exception to prevent continuous retries
       setState(() {
-        _lastBonusMilestone = currentMilestone;
+        if (!isStreamEnd) {
+          _lastBonusMilestone = currentMilestone;
+        }
       });
       _showSnackBar(
-        '❌ Failed to process bonus (${currentMilestone}m)',
+        isStreamEnd
+            ? '❌ Failed to process final bonus (Total: ${totalMinutes}m)'
+            : '❌ Failed to process bonus (${currentMilestone}m)',
         Colors.red,
       );
     }
@@ -1703,14 +1734,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
         if (mounted) {
           final state = context.read<AuthBloc>().state;
           if (state is AuthAuthenticated) {
-            // Call daily bonus API if stream duration is valid and we haven't called for current milestone
-            if (_streamDuration.inMinutes > 0) {
-              int currentMilestone = (_streamDuration.inMinutes ~/ 50) * 50;
-              if (currentMilestone > _lastBonusMilestone &&
-                  currentMilestone >= 50) {
-                await _callDailyBonusAPI();
-              }
-            }
+            // Always call daily bonus API on stream end
+            await _callDailyBonusAPI(isStreamEnd: true);
 
             // Calculate total earned diamonds/coins
             int earnedDiamonds = GiftModel.totalDiamondsForHost(
