@@ -118,6 +118,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
   // Flag to prevent multiple API calls for the same milestone
   bool _isCallingBonusAPI = false;
 
+  //Live inactivity timeout duration
+  static const int _inactivityTimeoutSeconds = 14;
+
   // Host activity tracking for viewers
   Timer? _hostActivityTimer;
   DateTime? _lastHostActivity;
@@ -901,11 +904,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
     if (_hostActivityTimer != null) return;
 
     debugPrint(
-      "🔍 No video broadcasters detected - starting 7 second countdown...",
+      "🔍 No video broadcasters detected - starting $_inactivityTimeoutSeconds second countdown...",
     );
 
-    // Wait 7 seconds before considering host disconnected
-    _hostActivityTimer = Timer(const Duration(seconds: 7), () {
+    // Wait for inactivity timeout before considering host disconnected
+    _hostActivityTimer = Timer(const Duration(seconds: _inactivityTimeoutSeconds), () {
       if (!mounted) return;
 
       // Double check that there are still no video broadcasters
@@ -917,7 +920,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
       if (currentBroadcasters.isEmpty) {
         debugPrint(
-          "🚨 No video broadcasters for 7 seconds - host disconnected",
+          "🚨 No video broadcasters for $_inactivityTimeoutSeconds seconds - host disconnected",
         );
         _handleHostDisconnection("Host disconnected. Live session ended.");
       } else {
@@ -1555,8 +1558,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
       _animationPlaying = true;
     });
 
-    // Stop the animation after 2 seconds
-    Future.delayed(const Duration(seconds: 7), () {
+    // Stop the animation after inactivity timeout
+    Future.delayed(const Duration(seconds: _inactivityTimeoutSeconds), () {
       setState(() {
         _animationPlaying = false;
       });
