@@ -136,6 +136,9 @@ final GoRouter appRouter = GoRouter(
             [];
         final hostCoins =
             (state.extra as Map<String, dynamic>?)?['hostCoins'] as int? ?? 0;
+        final roomData =
+            (state.extra as Map<String, dynamic>?)?['roomData']
+                as GetRoomModel?;
         return GoliveScreen(
           roomId: roomId,
           hostName: hostName,
@@ -143,6 +146,7 @@ final GoRouter appRouter = GoRouter(
           hostAvatar: hostAvatar,
           existingViewers: existingViewers,
           hostCoins: hostCoins,
+          roomData: roomData, // Pass the complete room data
         );
       },
     ),

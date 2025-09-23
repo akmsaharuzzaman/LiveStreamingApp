@@ -4,6 +4,7 @@ class ChatModel {
   final String uid;
   final String id;
   final String text;
+  final Map<String, dynamic>? equipedStoreItems;
 
   ChatModel({
     required this.name,
@@ -11,6 +12,7 @@ class ChatModel {
     required this.uid,
     required this.id,
     required this.text,
+    this.equipedStoreItems,
   });
 
   factory ChatModel.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class ChatModel {
       uid: json['uid'] as String,
       id: json['_id'] as String,
       text: json['text'] as String,
+      equipedStoreItems: json['equipedStoreItems'] as Map<String, dynamic>?,
     );
   }
 }

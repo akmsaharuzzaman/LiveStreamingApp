@@ -153,7 +153,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeFromRoomData(); // Initialize from existing room data
+      _initializeFromRoomData(); // Initialize from existing room data
     _initializeExistingViewers();
     extractRoomId();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -165,48 +165,53 @@ class _GoliveScreenState extends State<GoliveScreen> {
   void _initializeFromRoomData() {
     if (widget.roomData != null) {
       final roomData = widget.roomData!;
-      
+
       // Initialize duration and start time based on existing duration
       if (roomData.duration > 0) {
-        _streamStartTime = DateTime.now().subtract(Duration(seconds: roomData.duration));
+        _streamStartTime = DateTime.now().subtract(
+          Duration(seconds: roomData.duration),
+        );
         _streamDuration = Duration(seconds: roomData.duration);
-        debugPrint("🕒 Initialized stream with existing duration: ${roomData.duration}s");
+        debugPrint(
+          "🕒 Initialized stream with existing duration: ${roomData.duration}s",
+        );
       }
-      
+
       // Initialize bonus data
       _totalBonusDiamonds = roomData.hostBonus;
-      
+
       // Calculate last milestone based on existing duration to prevent duplicate API calls
       if (roomData.duration > 0) {
         int existingMinutes = (roomData.duration / 60).floor();
-        _lastBonusMilestone = (existingMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
-        debugPrint("🎯 Set last milestone to: $_lastBonusMilestone minutes based on duration: $existingMinutes minutes");
+        _lastBonusMilestone =
+            (existingMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
+        debugPrint(
+          "🎯 Set last milestone to: $_lastBonusMilestone minutes based on duration: $existingMinutes minutes",
+        );
       }
-      
-      debugPrint("💰 Initialized with existing bonus: ${roomData.hostBonus} diamonds");
-      
+
+      debugPrint(
+        "💰 Initialized with existing bonus: ${roomData.hostBonus} diamonds",
+      );
+
       // Initialize chat messages if any
+
       if (roomData.messages.isNotEmpty) {
         _chatMessages.clear();
         for (var messageData in roomData.messages) {
           if (messageData is Map<String, dynamic>) {
             try {
-              final chatMessage = ChatModel(
-                id: messageData['_id'] ?? '',
-                name: messageData['name'] ?? 'Unknown',
-                text: messageData['text'] ?? '',
-                avatar: messageData['avatar'] ?? '',
-                uid: messageData['uid'] ?? '',
-              );
+              final chatMessage = ChatModel.fromJson(messageData);
               _chatMessages.add(chatMessage);
             } catch (e) {
               debugPrint("❌ Error parsing message: $e");
+              debugPrint("❌ Message data: $messageData");
             }
           }
         }
         debugPrint("💬 Loaded ${_chatMessages.length} existing messages");
       }
-      
+
       // Initialize broadcasters
       if (roomData.broadcastersDetails.isNotEmpty) {
         broadcasterModels.clear();
@@ -219,9 +224,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
           );
           broadcasterModels.add(broadcasterModel);
         }
-        debugPrint("🎤 Loaded ${broadcasterModels.length} existing broadcasters");
+        debugPrint(
+          "🎤 Loaded ${broadcasterModels.length} existing broadcasters",
+        );
       }
-      
+
       // Initialize call requests
       if (roomData.callRequests.isNotEmpty) {
         callRequests.clear();
@@ -241,7 +248,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
         }
         debugPrint("📞 Loaded ${callRequests.length} existing call requests");
       }
-      
+
       // Initialize members as active viewers (excluding host)
       if (roomData.membersDetails.isNotEmpty) {
         activeViewers.clear();
@@ -258,15 +265,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
             activeViewers.add(viewer);
           }
         }
-        debugPrint("👥 Loaded ${activeViewers.length} existing members as viewers");
+        debugPrint(
+          "👥 Loaded ${activeViewers.length} existing members as viewers",
+        );
       }
-      
+
       // Set room ID if not already set
       if (_currentRoomId == null && roomData.roomId.isNotEmpty) {
         _currentRoomId = roomData.roomId;
         debugPrint("🏠 Set room ID from existing data: ${roomData.roomId}");
       }
-      
+
       debugPrint("✅ Successfully initialized from existing room data");
     }
   }
@@ -1021,27 +1030,30 @@ class _GoliveScreenState extends State<GoliveScreen> {
     );
 
     // Wait for inactivity timeout before considering host disconnected
-    _hostActivityTimer = Timer(const Duration(seconds: _inactivityTimeoutSeconds), () {
-      if (!mounted) return;
+    _hostActivityTimer = Timer(
+      const Duration(seconds: _inactivityTimeoutSeconds),
+      () {
+        if (!mounted) return;
 
-      // Double check that there are still no video broadcasters
-      List<int> currentBroadcasters = [
-        if (_remoteUid != null) _remoteUid!,
-        ..._videoCallerUids,
-        if (_isAudioCaller && isCameraEnabled) 0,
-      ];
+        // Double check that there are still no video broadcasters
+        List<int> currentBroadcasters = [
+          if (_remoteUid != null) _remoteUid!,
+          ..._videoCallerUids,
+          if (_isAudioCaller && isCameraEnabled) 0,
+        ];
 
-      if (currentBroadcasters.isEmpty) {
-        debugPrint(
-          "🚨 No video broadcasters for $_inactivityTimeoutSeconds seconds - host disconnected",
-        );
-        _handleHostDisconnection("Host disconnected. Live session ended.");
-      } else {
-        debugPrint("✅ Video broadcasters detected - host reconnected");
-      }
+        if (currentBroadcasters.isEmpty) {
+          debugPrint(
+            "🚨 No video broadcasters for $_inactivityTimeoutSeconds seconds - host disconnected",
+          );
+          _handleHostDisconnection("Host disconnected. Live session ended.");
+        } else {
+          debugPrint("✅ Video broadcasters detected - host reconnected");
+        }
 
-      _hostActivityTimer = null;
-    });
+        _hostActivityTimer = null;
+      },
+    );
   }
 
   /// Initialize host activity monitoring for viewers
@@ -1630,7 +1642,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     if (_streamStartTime == null) {
       _streamStartTime = DateTime.now();
     }
-    
+
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted && _streamStartTime != null) {
         setState(() {
