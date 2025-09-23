@@ -153,7 +153,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   @override
   void initState() {
     super.initState();
-      _initializeFromRoomData(); // Initialize from existing room data
+    _initializeFromRoomData(); // Initialize from existing room data
     _initializeExistingViewers();
     extractRoomId();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1091,6 +1091,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
   bool _muted = false;
   bool _isInitializingCamera = false;
 
+  // Video state management to prevent white screen
+  bool _isVideoReady = false;
+  bool _isLocalVideoReady = false;
+  bool _isRemoteVideoReady = false;
+  bool _isVideoConnecting = false;
+
   // Audio caller feature variables
   bool _isAudioCaller = false;
   final List<int> _audioCallerUids = [];
@@ -1209,6 +1215,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
           );
           setState(() {
             _localUserJoined = true;
+            _isVideoConnecting = true; // Start video connection process
             // Don't set _remoteUid here - it should only be set when a remote user joins
           });
 
@@ -1219,6 +1226,18 @@ class _GoliveScreenState extends State<GoliveScreen> {
               '🔍 Calling _applyCameraPreference() from onJoinChannelSuccess',
             );
             _applyCameraPreference();
+
+            // For hosts, local video should be ready after camera setup
+            Future.delayed(Duration(milliseconds: 500), () {
+              if (mounted) {
+                setState(() {
+                  _isLocalVideoReady = true;
+                  _isVideoReady = true;
+                  _isVideoConnecting = false;
+                });
+                debugPrint('✅ Local video ready for host');
+              }
+            });
           } else {
             debugPrint('🔍 Not applying camera preference - user is not host');
           }
@@ -1258,7 +1277,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
               RemoteVideoStateReason reason,
               int elapsed,
             ) {
-              // Reduced logging for video state changes
+              // Track remote video state for better user experience
+              debugPrint(
+                '📹 Remote video state changed: $state for UID: $remoteUid',
+              );
 
               setState(() {
                 if (state == RemoteVideoState.remoteVideoStateStarting ||
@@ -1267,6 +1289,16 @@ class _GoliveScreenState extends State<GoliveScreen> {
                   if (!_videoCallerUids.contains(remoteUid) &&
                       remoteUid != _remoteUid) {
                     _videoCallerUids.add(remoteUid);
+                  }
+
+                  // Mark remote video as ready when decoding starts
+                  if (state == RemoteVideoState.remoteVideoStateDecoding) {
+                    if (remoteUid == _remoteUid && !isHost) {
+                      _isRemoteVideoReady = true;
+                      _isVideoReady = true;
+                      _isVideoConnecting = false;
+                      debugPrint('✅ Remote video ready for viewer');
+                    }
                   }
                 } else if (state == RemoteVideoState.remoteVideoStateStopped) {
                   // User disabled video
@@ -1347,16 +1379,28 @@ class _GoliveScreenState extends State<GoliveScreen> {
           ? ClientRoleType.clientRoleBroadcaster
           : ClientRoleType.clientRoleAudience,
     );
+
+    // Optimize video settings for better performance and stability
     await _engine.enableVideo();
+    await _engine.setVideoEncoderConfiguration(
+      const VideoEncoderConfiguration(
+        dimensions: VideoDimensions(width: 640, height: 360),
+        frameRate: 15,
+        bitrate: 400,
+      ),
+    );
 
-    // Only start preview for broadcasters
+    // Only start preview for broadcasters with error handling
     if (isHost) {
-      // Apply saved camera preference immediately for preview
-      await _applyCameraPreference();
-      await _engine.startPreview();
-
-      // Camera preference will be applied AFTER joining channel successfully
-      // await _applyCameraPreference();
+      try {
+        // Apply saved camera preference immediately for preview
+        await _applyCameraPreference();
+        await _engine.startPreview();
+        debugPrint('✅ Video preview started successfully');
+      } catch (e) {
+        debugPrint('⚠️ Preview start failed: $e');
+        // Continue without preview - video will start when joining channel
+      }
     }
 
     // For viewers, join channel immediately
@@ -2707,33 +2751,22 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   // Main video view with multi-broadcaster support
   Widget _buildVideoView() {
-    // Removed spammy debug print that was called on every rebuild
-
     // Show loading indicator during camera initialization
     if (_isInitializingCamera) {
       return Container(
         color: Colors.black,
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-              // SizedBox(height: 20.h),
-              // Text(
-              //   '🎥 Initializing camera...',
-              //   style: TextStyle(
-              //     color: Colors.white,
-              //     fontSize: 18.sp,
-              //     fontWeight: FontWeight.w500,
-              //   ),
-              // ),
-              // SizedBox(height: 10.h),
-              // Text(
-              //   'Please wait while we set up your stream',
-              //   style: TextStyle(color: Colors.grey, fontSize: 14),
-              // ),
-            ],
-          ),
+          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+        ),
+      );
+    }
+
+    // Show connecting indicator while video is establishing
+    if (_isVideoConnecting && !_isVideoReady) {
+      return Container(
+        color: Colors.black,
+        child: Center(
+          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
         ),
       );
     }
@@ -2845,24 +2878,56 @@ class _GoliveScreenState extends State<GoliveScreen> {
     return _buildSingleVideoView(broadcasterUids[0], isHostView: isHostView);
   }
 
-  /// Single broadcaster view
+  /// Single broadcaster view with video readiness checks
   Widget _buildSingleVideoView(int uid, {required bool isHostView}) {
     if (uid == 0) {
       // Local video (host or audio caller with camera)
-      return AgoraVideoView(
-        controller: VideoViewController(
-          rtcEngine: _engine,
-          canvas: const VideoCanvas(uid: 0),
-        ),
+      return Stack(
+        children: [
+          // Video view
+          AgoraVideoView(
+            controller: VideoViewController(
+              rtcEngine: _engine,
+              canvas: const VideoCanvas(uid: 0),
+            ),
+          ),
+          // Show loading overlay if local video is not ready
+          if (!_isLocalVideoReady && isHost)
+            Container(
+              color: Colors.black.withOpacity(0.8),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              ),
+            ),
+        ],
       );
     } else {
-      // Remote video
-      return AgoraVideoView(
-        controller: VideoViewController.remote(
-          rtcEngine: _engine,
-          canvas: VideoCanvas(uid: uid),
-          connection: RtcConnection(channelId: roomId),
-        ),
+      // Remote video with loading state
+      return Stack(
+        children: [
+          // Video view
+          AgoraVideoView(
+            controller: VideoViewController.remote(
+              rtcEngine: _engine,
+              canvas: VideoCanvas(uid: uid),
+              connection: RtcConnection(channelId: roomId),
+            ),
+          ),
+          // Show loading overlay if remote video is not ready
+          if (!_isRemoteVideoReady && !isHost)
+            Container(
+              color: Colors.black.withOpacity(0.8),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              ),
+            ),
+        ],
       );
     }
   }
