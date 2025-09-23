@@ -51,6 +51,7 @@ class GoliveScreen extends StatefulWidget {
   final String? hostAvatar;
   final List<HostDetails> existingViewers;
   final int hostCoins;
+  final GetRoomModel? roomData; // Add room data to load initial state
 
   const GoliveScreen({
     super.key,
@@ -60,6 +61,7 @@ class GoliveScreen extends StatefulWidget {
     this.hostAvatar,
     this.existingViewers = const [],
     this.hostCoins = 0,
+    this.roomData, // Optional room data for existing rooms
   });
 
   @override
@@ -151,11 +153,122 @@ class _GoliveScreenState extends State<GoliveScreen> {
   @override
   void initState() {
     super.initState();
+    _initializeFromRoomData(); // Initialize from existing room data
     _initializeExistingViewers();
     extractRoomId();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUidAndDispatchEvent();
     });
+  }
+
+  /// Initialize state from existing room data (when joining existing live)
+  void _initializeFromRoomData() {
+    if (widget.roomData != null) {
+      final roomData = widget.roomData!;
+      
+      // Initialize duration and start time based on existing duration
+      if (roomData.duration > 0) {
+        _streamStartTime = DateTime.now().subtract(Duration(seconds: roomData.duration));
+        _streamDuration = Duration(seconds: roomData.duration);
+        debugPrint("🕒 Initialized stream with existing duration: ${roomData.duration}s");
+      }
+      
+      // Initialize bonus data
+      _totalBonusDiamonds = roomData.hostBonus;
+      
+      // Calculate last milestone based on existing duration to prevent duplicate API calls
+      if (roomData.duration > 0) {
+        int existingMinutes = (roomData.duration / 60).floor();
+        _lastBonusMilestone = (existingMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
+        debugPrint("🎯 Set last milestone to: $_lastBonusMilestone minutes based on duration: $existingMinutes minutes");
+      }
+      
+      debugPrint("💰 Initialized with existing bonus: ${roomData.hostBonus} diamonds");
+      
+      // Initialize chat messages if any
+      if (roomData.messages.isNotEmpty) {
+        _chatMessages.clear();
+        for (var messageData in roomData.messages) {
+          if (messageData is Map<String, dynamic>) {
+            try {
+              final chatMessage = ChatModel(
+                id: messageData['_id'] ?? '',
+                name: messageData['name'] ?? 'Unknown',
+                text: messageData['text'] ?? '',
+                avatar: messageData['avatar'] ?? '',
+                uid: messageData['uid'] ?? '',
+              );
+              _chatMessages.add(chatMessage);
+            } catch (e) {
+              debugPrint("❌ Error parsing message: $e");
+            }
+          }
+        }
+        debugPrint("💬 Loaded ${_chatMessages.length} existing messages");
+      }
+      
+      // Initialize broadcasters
+      if (roomData.broadcastersDetails.isNotEmpty) {
+        broadcasterModels.clear();
+        for (var broadcaster in roomData.broadcastersDetails) {
+          final broadcasterModel = BroadcasterModel(
+            id: broadcaster.id,
+            name: broadcaster.name,
+            avatar: broadcaster.avatar,
+            uid: broadcaster.uid,
+          );
+          broadcasterModels.add(broadcasterModel);
+        }
+        debugPrint("🎤 Loaded ${broadcasterModels.length} existing broadcasters");
+      }
+      
+      // Initialize call requests
+      if (roomData.callRequests.isNotEmpty) {
+        callRequests.clear();
+        for (var request in roomData.callRequests) {
+          final userDetails = UserDetails(
+            id: request.id,
+            avatar: request.avatar,
+            name: request.name,
+            uid: request.uid,
+          );
+          final callRequest = CallRequestModel(
+            userId: request.id,
+            userDetails: userDetails,
+            roomId: roomData.roomId,
+          );
+          callRequests.add(callRequest);
+        }
+        debugPrint("📞 Loaded ${callRequests.length} existing call requests");
+      }
+      
+      // Initialize members as active viewers (excluding host)
+      if (roomData.membersDetails.isNotEmpty) {
+        activeViewers.clear();
+        for (var member in roomData.membersDetails) {
+          // Don't add host to viewers list
+          if (member.id != roomData.hostId) {
+            final viewer = JoinedUserModel(
+              id: member.id,
+              avatar: member.avatar,
+              name: member.name,
+              uid: member.uid,
+              diamonds: 0, // Initialize with 0, will be updated from gifts
+            );
+            activeViewers.add(viewer);
+          }
+        }
+        debugPrint("👥 Loaded ${activeViewers.length} existing members as viewers");
+      }
+      
+      // Set room ID if not already set
+      if (_currentRoomId == null && roomData.roomId.isNotEmpty) {
+        _currentRoomId = roomData.roomId;
+        debugPrint("🏠 Set room ID from existing data: ${roomData.roomId}");
+      }
+      
+      debugPrint("✅ Successfully initialized from existing room data");
+    }
   }
 
   /// Debug method to print current diamond status
@@ -1513,7 +1626,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   // Start stream timer
   void _startStreamTimer() {
-    _streamStartTime = DateTime.now();
+    // Only set start time if not already set (for existing streams)
+    if (_streamStartTime == null) {
+      _streamStartTime = DateTime.now();
+    }
+    
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted && _streamStartTime != null) {
         setState(() {
