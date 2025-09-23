@@ -99,7 +99,7 @@ dev_dependencies:
   # Code Generation
   build_runner: ^2.7.0
   injectable_generator: ^2.8.1
-  json_serializable: ^6.11.0
+  json_serializable: ^6.11.1
 
   # Package Renaming
   package_rename: ^1.10.0
