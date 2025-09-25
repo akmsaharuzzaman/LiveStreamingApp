@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:dlstarlive/features/reels/custom_package/reels_viewer.dart'
-    as reels_viewer;
+import 'package:dlstarlive/features/reels/custom_package/reels_viewer.dart' as reels_viewer;
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../../core/network/api_clients.dart';
@@ -96,9 +95,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
     final friendsService = getIt<FriendsApiService>();
 
     try {
-      final result = await friendsService.getFollowerAndFollowingCount(
-        widget.userId,
-      );
+      final result = await friendsService.getFollowerAndFollowingCount(widget.userId);
 
       result.when(
         success: (data) {
@@ -129,11 +126,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
         postsErrorMessage = null;
       });
 
-      final result = await _postService.getUserPosts(
-        userId: widget.userId,
-        page: _currentPage,
-        limit: 10,
-      );
+      final result = await _postService.getUserPosts(userId: widget.userId, page: _currentPage, limit: 10);
 
       result.when(
         success: (data) {
@@ -165,11 +158,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
         reelsErrorMessage = null;
       });
 
-      final result = await _reelsService.getUserReels(
-        userId: widget.userId,
-        page: _currentReelsPage,
-        limit: 10,
-      );
+      final result = await _reelsService.getUserReels(userId: widget.userId, page: _currentReelsPage, limit: 10);
 
       result.when(
         success: (data) {
@@ -203,8 +192,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
 
     try {
       final userApiClient = getIt<UserApiClient>();
-      final isCurrentlyFollowing =
-          userProfile!.relationship?.myFollowing == true;
+      final isCurrentlyFollowing = userProfile!.relationship?.myFollowing == true;
 
       ApiResponse<Map<String, dynamic>> response;
 
@@ -218,20 +206,14 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
         // Update the local state
         setState(() {
           userProfile = userProfile!.copyWith(
-            relationship: userProfile!.relationship?.copyWith(
-              myFollowing: !isCurrentlyFollowing,
-            ),
+            relationship: userProfile!.relationship?.copyWith(myFollowing: !isCurrentlyFollowing),
           );
         });
 
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              isCurrentlyFollowing
-                  ? 'Unfollowed ${userProfile!.name}'
-                  : 'Following ${userProfile!.name}',
-            ),
+            content: Text(isCurrentlyFollowing ? 'Unfollowed ${userProfile!.name}' : 'Following ${userProfile!.name}'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 2),
           ),
@@ -286,10 +268,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
     } else {
       // Handle error case
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to start chat. Please try again.'),
-          backgroundColor: Colors.red,
-        ),
+        const SnackBar(content: Text('Unable to start chat. Please try again.'), backgroundColor: Colors.red),
       );
     }
   }
@@ -323,10 +302,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
           children: [
             const Icon(Icons.error_outline, size: 64, color: Colors.red),
             const SizedBox(height: UIConstants.spacingM),
-            Text(
-              'Error Loading Profile',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            Text('Error Loading Profile', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: UIConstants.spacingS),
             Text(
               errorMessage!,
@@ -334,10 +310,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
               style: const TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: UIConstants.spacingM),
-            ElevatedButton(
-              onPressed: _loadUserProfile,
-              child: const Text('Retry'),
-            ),
+            ElevatedButton(onPressed: _loadUserProfile, child: const Text('Retry')),
           ],
         ),
       ),
@@ -369,13 +342,8 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                             ? Container(
                                 width: double.infinity,
                                 height: 170.h,
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                ),
-                                child: Image.network(
-                                  user.coverPicture ?? '',
-                                  fit: BoxFit.cover,
-                                ),
+                                decoration: const BoxDecoration(color: Colors.white),
+                                child: Image.network(user.coverPicture ?? '', fit: BoxFit.cover),
                               )
                             : Container(
                                 height: 170.h,
@@ -384,10 +352,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                                 child: Center(
                                   child: Text(
                                     'No Cover Photo',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16.sp,
-                                    ),
+                                    style: TextStyle(color: Colors.white, fontSize: 16.sp),
                                   ),
                                 ),
                               ),
@@ -395,10 +360,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                           Positioned.fill(
                             top: 125.h,
                             left: MediaQuery.of(context).size.width - 160.w,
-                            child: Image.asset(
-                              "assets/images/general/super_admin_frame.png",
-                              height: 26.h,
-                            ),
+                            child: Image.asset("assets/images/general/super_admin_frame.png", height: 26.h),
                           ),
                         Positioned(
                           top: 50.h,
@@ -410,18 +372,10 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                               GestureDetector(
                                 behavior: HitTestBehavior.opaque,
                                 onTap: () => Navigator.of(context).pop(),
-                                child: Icon(
-                                  Icons.arrow_back_ios,
-                                  size: 20.sp,
-                                  color: Colors.white,
-                                ),
+                                child: Icon(Icons.arrow_back_ios, size: 20.sp, color: Colors.white),
                               ),
                               GestureDetector(
-                                child: Icon(
-                                  Icons.more_horiz,
-                                  size: 20.sp,
-                                  color: Colors.white,
-                                ),
+                                child: Icon(Icons.more_horiz, size: 20.sp, color: Colors.white),
                               ),
                             ],
                           ),
@@ -432,11 +386,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                     // Content section with padding for overlapping profile picture
                     SizedBox(
                       child: Padding(
-                        padding: EdgeInsets.only(
-                          top: 50.h,
-                          left: 20.w,
-                          right: 20.w,
-                        ),
+                        padding: EdgeInsets.only(top: 50.h, left: 20.w, right: 20.w),
                         child: Column(
                           children: [
                             // Space and layout for profile picture with user info
@@ -463,28 +413,20 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                             SizedBox(height: 20.h),
 
                             // Expandable Tiles
-                            _buildExpandableTile(
-                              'assets/images/general/baggage_icon.png',
-                              'Baggage',
-                              () {
-                                // Handle baggage tap
-                                print('Baggage tapped');
-                              },
-                            ),
+                            _buildExpandableTile('assets/images/general/baggage_icon.png', 'Baggage', () {
+                              // Handle baggage tap
+                              print('Baggage tapped');
+                            }),
                             // Divider Line
                             Container(
                               height: 1,
                               color: const Color(0xFFF1F1F1),
                               margin: EdgeInsets.symmetric(vertical: 20.h),
                             ),
-                            _buildExpandableTile(
-                              'assets/images/general/black_badge_icon.png',
-                              'Badges',
-                              () {
-                                // Handle badges tap
-                                print('Badges tapped');
-                              },
-                            ),
+                            _buildExpandableTile('assets/images/general/black_badge_icon.png', 'Badges', () {
+                              // Handle badges tap
+                              print('Badges tapped');
+                            }),
 
                             // Continue with the rest of the content...
                             Container(
@@ -532,11 +474,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
         // User Name
         Text(
           user.name,
-          style: TextStyle(
-            fontSize: 20.sp,
-            fontWeight: FontWeight.w500,
-            color: Colors.black,
-          ),
+          style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w500, color: Colors.black),
         ),
 
         SizedBox(height: 12.h),
@@ -546,11 +484,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
           children: [
             Text(
               'ID:${user.id.substring(0, 6)} | Bangladesh',
-              style: TextStyle(
-                fontSize: 16.sp,
-                color: const Color(0xFF202020),
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 16.sp, color: const Color(0xFF202020), fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -566,11 +500,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
         // Moments Title
         Text(
           'Moments',
-          style: TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w400,
-            color: const Color(0xFF202020),
-          ),
+          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w400, color: const Color(0xFF202020)),
         ),
         SizedBox(height: 10.h),
         _buildReelsGrid(),
@@ -582,11 +512,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
         ),
         Text(
           'Posts',
-          style: TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w400,
-            color: const Color(0xFF202020),
-          ),
+          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w400, color: const Color(0xFF202020)),
         ),
 
         SizedBox(height: 10.h),
@@ -600,10 +526,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
   Widget _buildReelsGrid() {
     if (isLoadingReels) {
       return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(20.0),
-          child: CircularProgressIndicator(),
-        ),
+        child: Padding(padding: EdgeInsets.all(20.0), child: CircularProgressIndicator()),
       );
     }
 
@@ -621,10 +544,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadUserReels,
-                child: const Text('Retry'),
-              ),
+              ElevatedButton(onPressed: _loadUserReels, child: const Text('Retry')),
             ],
           ),
         ),
@@ -637,11 +557,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
           padding: const EdgeInsets.all(20.0),
           child: Column(
             children: [
-              Icon(
-                Icons.movie_creation_outlined,
-                size: 48,
-                color: Colors.grey[400],
-              ),
+              Icon(Icons.movie_creation_outlined, size: 48, color: Colors.grey[400]),
               const SizedBox(height: 16),
               Text(
                 'No reels yet',
@@ -677,11 +593,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
               color: Colors.black,
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
+                BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2)),
               ],
             ),
             child: Stack(
@@ -695,19 +607,10 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.3),
-                        Colors.black.withValues(alpha: 0.8),
-                      ],
+                      colors: [Colors.black.withValues(alpha: 0.3), Colors.black.withValues(alpha: 0.8)],
                     ),
                   ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.play_arrow,
-                      color: Colors.white,
-                      size: 32,
-                    ),
-                  ),
+                  child: const Center(child: Icon(Icons.play_arrow, color: Colors.white, size: 32)),
                 ),
                 // Reel info overlay
                 Positioned(
@@ -722,19 +625,11 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                       if (reel.reactions > 0)
                         Row(
                           children: [
-                            const Icon(
-                              Icons.favorite,
-                              color: Colors.white,
-                              size: 12,
-                            ),
+                            const Icon(Icons.favorite, color: Colors.white, size: 12),
                             const SizedBox(width: 4),
                             Text(
                               '${reel.reactions}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
+                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),
@@ -742,19 +637,11 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                       if (reel.comments > 0)
                         Row(
                           children: [
-                            const Icon(
-                              Icons.comment,
-                              color: Colors.white,
-                              size: 12,
-                            ),
+                            const Icon(Icons.comment, color: Colors.white, size: 12),
                             const SizedBox(width: 4),
                             Text(
                               '${reel.comments}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
+                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),
@@ -774,20 +661,12 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => UserReelsViewer(
-          userReels: userReels,
-          initialIndex: index,
-          userId: widget.userId,
-        ),
+        builder: (context) => UserReelsViewer(userReels: userReels, initialIndex: index, userId: widget.userId),
       ),
     );
   }
 
-  Widget _buildExpandableTile(
-    String iconPath,
-    String title,
-    VoidCallback onTap,
-  ) {
+  Widget _buildExpandableTile(String iconPath, String title, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       child: Row(
@@ -799,11 +678,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
               SizedBox(width: 12.w),
               Text(
                 title,
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Color(0xFF202020),
-                  fontWeight: FontWeight.w400,
-                ),
+                style: TextStyle(fontSize: 18, color: Color(0xFF202020), fontWeight: FontWeight.w400),
               ),
             ],
           ),
@@ -819,13 +694,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
       height: 100.h,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 5))],
       ),
       child: ClipOval(
         child: (user.avatar != null || user.profilePictureUrl != null)
@@ -834,8 +703,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                 width: 100.w,
                 height: 100.h,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    _buildDefaultAvatar(),
+                errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
               )
             : _buildDefaultAvatar(),
       ),
@@ -846,10 +714,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
     return Container(
       width: 100.w,
       height: 100.h,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: Color(0xFFF0F0F0),
-      ),
+      decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFF0F0F0)),
       child: Icon(Icons.person, size: 40.sp, color: Colors.grey[600]),
     );
   }
@@ -859,22 +724,48 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // Level Badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFF6B9D), Color(0xFFFF8BA0)],
-            ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            'Lv ${userProfile?.level ?? 0}',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-            ),
-          ),
+        Builder(
+          builder: (context) {
+            debugPrint(" \n \n Level: ${userProfile?.level} \n ");
+            debugPrint(" \n currentLevelBackground: ${userProfile?.currentLevelBackground} \n ");
+            debugPrint(" \n currentLevelTag: ${userProfile?.currentLevelTag} \n ");
+
+            if ((userProfile?.level ?? 0) > 0) {
+              return Stack(
+                children: [
+                  Image.network(userProfile?.currentLevelBackground ?? "", fit: BoxFit.fill, height: 30.h, width: 66.w),
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        SizedBox(width: 6.w),
+                        Image.network(userProfile?.currentLevelTag ?? "", fit: BoxFit.fill, height: 24.h, width: 24.w),
+                        SizedBox(width: 6.w),
+                        Text(
+                          userProfile?.level.toString() ?? "1",
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 20.sp),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            } else {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [Color(0xFFFF6B9D), Color(0xFFFF8BA0)]),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'Lv ${userProfile?.level ?? 0}',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
+                ),
+              );
+            }
+          },
         ),
 
         const SizedBox(width: 8),
@@ -882,27 +773,16 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
         // Yellow Badge (0)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFD700),
-            borderRadius: BorderRadius.circular(12),
-          ),
+          decoration: BoxDecoration(color: const Color(0xFFFFD700), borderRadius: BorderRadius.circular(12)),
           child: Row(
             children: [
               const Text(
                 '🤍',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
               ),
               const Text(
                 '0',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
               ),
             ],
           ),
@@ -911,12 +791,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
         const SizedBox(width: 8),
 
         // Settings Icon Badge
-        Image.asset(
-          'assets/images/general/frame.png',
-          width: 28,
-          height: 28,
-          color: const Color(0xFF2D3142),
-        ),
+        Image.asset('assets/images/general/frame.png', width: 28, height: 28, color: const Color(0xFF2D3142)),
       ],
     );
   }
@@ -925,29 +800,17 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _buildSocialStatItem(
-          isLoadingCounts ? '...' : '${followerCounts?.friendshipCount ?? 0}',
-          'Friends',
-          () {
-            context.push('/friends-list/${widget.userId}?title=Friends');
-          },
-        ),
+        _buildSocialStatItem(isLoadingCounts ? '...' : '${followerCounts?.friendshipCount ?? 0}', 'Friends', () {
+          context.push('/friends-list/${widget.userId}?title=Friends');
+        }),
         Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
-        _buildSocialStatItem(
-          isLoadingCounts ? '...' : '${followerCounts?.followerCount ?? 0}',
-          'Followers',
-          () {
-            context.push('/friends-list/${widget.userId}?title=Followers');
-          },
-        ),
+        _buildSocialStatItem(isLoadingCounts ? '...' : '${followerCounts?.followerCount ?? 0}', 'Followers', () {
+          context.push('/friends-list/${widget.userId}?title=Followers');
+        }),
         Container(width: 1, height: 30, color: const Color(0xFFF1F1F1)),
-        _buildSocialStatItem(
-          isLoadingCounts ? '...' : '${followerCounts?.followingCount ?? 0}',
-          'Following',
-          () {
-            context.push('/friends-list/${widget.userId}?title=Following');
-          },
-        ),
+        _buildSocialStatItem(isLoadingCounts ? '...' : '${followerCounts?.followingCount ?? 0}', 'Following', () {
+          context.push('/friends-list/${widget.userId}?title=Following');
+        }),
       ],
     );
   }
@@ -959,20 +822,12 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
         children: [
           Text(
             count,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w400,
-              color: Color(0xFF000000),
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w400, color: Color(0xFF000000)),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w400,
-              color: Color(0xFF000000),
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w400, color: Color(0xFF000000)),
           ),
         ],
       ),
@@ -984,9 +839,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
       width: double.infinity,
       padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 20.w),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF82A3), Color(0xFF9BC7FB), Color(0xFFFF82A3)],
-        ),
+        gradient: const LinearGradient(colors: [Color(0xFFFF82A3), Color(0xFF9BC7FB), Color(0xFFFF82A3)]),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -1013,11 +866,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
               children: [
                 Text(
                   '*${user.name.split(' ').first.toUpperCase()}*',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 20,
-                  ),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 20),
                 ),
               ],
             ),
@@ -1064,9 +913,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
             child: Container(
               height: 44,
               decoration: BoxDecoration(
-                color: relationship?.myFollowing == true
-                    ? Color(0xFF7C6C70)
-                    : Color(0xFF7C6C70),
+                color: relationship?.myFollowing == true ? Color(0xFF7C6C70) : Color(0xFF7C6C70),
                 gradient: relationship?.myFollowing == true
                     ? null
                     : const LinearGradient(
@@ -1081,19 +928,14 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(22),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
                 icon: isFollowLoading
                     ? SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                       )
                     : Image.asset(
                         relationship?.myFollowing == true
@@ -1104,16 +946,8 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                         color: Colors.white,
                       ),
                 label: Text(
-                  isFollowLoading
-                      ? 'Loading...'
-                      : (relationship?.myFollowing == true
-                            ? 'Unfollow'
-                            : 'Follow'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+                  isFollowLoading ? 'Loading...' : (relationship?.myFollowing == true ? 'Unfollow' : 'Follow'),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
                 ),
               ),
             ),
@@ -1134,9 +968,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(22),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
                 icon: Image.asset(
@@ -1147,11 +979,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                 ),
                 label: Text(
                   'Inbox',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w600, fontSize: 14),
                 ),
               ),
             ),
@@ -1164,10 +992,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
   Widget _buildPostsSection() {
     if (isLoadingPosts) {
       return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(20.0),
-          child: CircularProgressIndicator(),
-        ),
+        child: Padding(padding: EdgeInsets.all(20.0), child: CircularProgressIndicator()),
       );
     }
 
@@ -1185,10 +1010,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadUserPosts,
-                child: const Text('Retry'),
-              ),
+              ElevatedButton(onPressed: _loadUserPosts, child: const Text('Retry')),
             ],
           ),
         ),
@@ -1247,12 +1069,7 @@ class UserReelsViewer extends StatefulWidget {
   final int initialIndex;
   final String userId;
 
-  const UserReelsViewer({
-    super.key,
-    required this.userReels,
-    required this.initialIndex,
-    required this.userId,
-  });
+  const UserReelsViewer({super.key, required this.userReels, required this.initialIndex, required this.userId});
 
   @override
   State<UserReelsViewer> createState() => _UserReelsViewerState();
@@ -1269,9 +1086,7 @@ class _UserReelsViewerState extends State<UserReelsViewer> {
 
     // Convert ReelApiModel to ReelModel for ReelsViewer
     reelsList = widget.userReels.map((apiModel) {
-      return ReelMapper.entityToReelModel(
-        ReelMapper.apiModelToEntity(apiModel),
-      );
+      return ReelMapper.entityToReelModel(ReelMapper.apiModelToEntity(apiModel));
     }).toList();
   }
 
@@ -1284,44 +1099,29 @@ class _UserReelsViewerState extends State<UserReelsViewer> {
         reelsList: reelsList,
         appbarTitle: 'User Reels',
         onShare: (url) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Share feature coming soon!'),
-              duration: Duration(seconds: 2),
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Share feature coming soon!'), duration: Duration(seconds: 2)));
         },
         onLike: (url) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Like feature coming soon!'),
-              duration: Duration(seconds: 2),
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Like feature coming soon!'), duration: Duration(seconds: 2)));
         },
         onFollow: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Follow feature coming soon!'),
-              duration: Duration(seconds: 2),
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Follow feature coming soon!'), duration: Duration(seconds: 2)));
         },
         onComment: (comment) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Comment feature coming soon!'),
-              duration: Duration(seconds: 2),
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Comment feature coming soon!'), duration: Duration(seconds: 2)));
         },
         onClickMoreBtn: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('More options coming soon!'),
-              duration: Duration(seconds: 2),
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('More options coming soon!'), duration: Duration(seconds: 2)));
         },
         onClickBackArrow: () {
           Navigator.pop(context);

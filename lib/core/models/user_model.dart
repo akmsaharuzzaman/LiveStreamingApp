@@ -124,6 +124,8 @@ class UserModel extends Equatable {
   final String email;
   final String name;
   final int? level;
+  final String? currentLevelBackground;
+  final String? currentLevelTag;
   final String? firstName;
   final String? lastName;
   final String? uid;
@@ -157,6 +159,8 @@ class UserModel extends Equatable {
     required this.email,
     required this.name,
     this.level,
+    this.currentLevelBackground,
+    this.currentLevelTag,
     this.firstName,
     this.lastName,
     this.uid,
