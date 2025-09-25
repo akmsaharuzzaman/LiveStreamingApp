@@ -858,7 +858,7 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Level 1 Badge
+        // Level Badge
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
@@ -867,8 +867,8 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
             ),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Text(
-            'Lv 1',
+          child: Text(
+            'Lv ${userProfile?.level ?? 0}',
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w600,

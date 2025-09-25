@@ -12,8 +12,7 @@ class LevelPage extends StatefulWidget {
   State<LevelPage> createState() => _LevelPageState();
 }
 
-class _LevelPageState extends State<LevelPage>
-    with SingleTickerProviderStateMixin {
+class _LevelPageState extends State<LevelPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int selectedLevelRange = -1; // -1: show all, 0: 1-5, 1: 6-10, etc.
 
@@ -143,14 +142,13 @@ class _LevelPageState extends State<LevelPage>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
-      if (mounted)
-        setState(() {}); // Refresh header/title & progress when tab changes
+      if (mounted) setState(() {}); // Refresh header/title & progress when tab changes
     });
   }
 
   // Helper methods to get user data
   int get userCoins => widget.user?.stats?.coins ?? 0;
-  int get userLevel => widget.user?.stats?.levels ?? 1;
+  int get userLevel => widget.user?.stats?.levels == 0 ? 1 : (widget.user?.stats?.levels ?? 1);
 
   String get userLevelIcon {
     if (userLevel <= 5) return 'assets/icons/lv1-5.png';
@@ -163,11 +161,11 @@ class _LevelPageState extends State<LevelPage>
     return 'assets/icons/lv36-40.png';
   }
 
-  String get progressText {
-    final nextLevel = userLevel + 1;
-    final nextLevelCoins = levelRechargeValues[nextLevel] ?? "Max";
-    return "${_formatCoins(userCoins)} / $nextLevelCoins";
-  }
+  // String get progressText {
+  //   final nextLevel = userLevel + 1;
+  //   final nextLevelCoins = levelRechargeValues[nextLevel] ?? "Max";
+  //   return "${_formatCoins(userCoins)} / $nextLevelCoins";
+  // }
 
   String _formatCoins(int coins) {
     if (coins >= 10000000) {
@@ -224,10 +222,7 @@ class _LevelPageState extends State<LevelPage>
                       Expanded(
                         child: TabBarView(
                           controller: _tabController,
-                          children: [
-                            _buildLevelIconsGrid(isHostLevel: false),
-                            _buildLevelIconsGrid(isHostLevel: true),
-                          ],
+                          children: [_buildLevelIconsGrid(isHostLevel: false), _buildLevelIconsGrid(isHostLevel: true)],
                         ),
                       ),
                     ],
@@ -253,21 +248,13 @@ class _LevelPageState extends State<LevelPage>
                 onTap: () => context.pop(),
                 child: Container(
                   padding: EdgeInsets.all(8.w),
-                  child: Icon(
-                    Icons.arrow_back_ios,
-                    color: Colors.white,
-                    size: 20.sp,
-                  ),
+                  child: Icon(Icons.arrow_back_ios, color: Colors.white, size: 20.sp),
                 ),
               ),
               SizedBox(width: 15.w),
               Text(
                 _tabController.index == 0 ? 'My Level' : 'Host Level',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -275,10 +262,7 @@ class _LevelPageState extends State<LevelPage>
             onTap: () => _showLevelRules(),
             child: Container(
               padding: EdgeInsets.all(8.w),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
               child: Icon(Icons.help_outline, color: Colors.white, size: 20.sp),
             ),
           ),
@@ -307,11 +291,7 @@ class _LevelPageState extends State<LevelPage>
           // Progress Text (use group end threshold for display like 500k / 1M)
           Text(
             _groupProgressText(),
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.w500),
           ),
 
           SizedBox(height: 15.h),
@@ -327,24 +307,22 @@ class _LevelPageState extends State<LevelPage>
   }
 
   String _groupProgressText() {
-    final groupIndex = ((userLevel - 1) / 5).floor();
-    final groupStart = groupIndex * 5 + 1;
-    final groupEnd = groupStart + 4;
+    // final groupIndex = ((userLevel - 1) / 5).floor();
+    // final groupStart = groupIndex * 5 + 1;
+    // final groupEnd = groupStart + 4;
     // use end-of-group threshold for display
-    final endValue =
-        levelRechargeValues[groupEnd] ??
-        levelRechargeValues[userLevel + 1] ??
-        "0";
-    final endNumeric = _parseCoins(endValue);
-    final displayEnd = _compactFormat(endNumeric);
-    return "${_formatCoins(userCoins)} / $displayEnd";
+    // final endValue = levelRechargeValues[groupEnd] ?? levelRechargeValues[userLevel + 1] ?? "0";
+    // final endNumeric = _parseCoins(endValue);
+    // final displayEnd = _compactFormat(endNumeric);
+    // return "${_formatCoins(userCoins)} / $displayEnd";
+    return _formatCoins(userCoins);
   }
 
-  String _compactFormat(int value) {
-    if (value >= 1000000) return "${(value / 1000000).toStringAsFixed(1)}M";
-    if (value >= 1000) return "${(value / 1000).toStringAsFixed(0)}k";
-    return value.toString();
-  }
+  // String _compactFormat(int value) {
+  //   if (value >= 1000000) return "${(value / 1000000).toStringAsFixed(1)}M";
+  //   if (value >= 1000) return "${(value / 1000).toStringAsFixed(0)}k";
+  //   return value.toString();
+  // }
 
   Widget _buildRangeProgressBar() {
     final progress = _calculateProgress();
@@ -355,11 +333,7 @@ class _LevelPageState extends State<LevelPage>
       children: [
         Text(
           'Lv $groupStart',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.w500),
         ),
         SizedBox(width: 12.w),
         Expanded(
@@ -380,17 +354,11 @@ class _LevelPageState extends State<LevelPage>
                       ),
                     ),
                     Positioned(
-                      left: knobOffset.clamp(
-                        0,
-                        constraints.maxWidth - knobSize,
-                      ),
+                      left: knobOffset.clamp(0, constraints.maxWidth - knobSize),
                       child: Container(
                         width: knobSize,
                         height: knobSize,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFFD700),
-                          shape: BoxShape.circle,
-                        ),
+                        decoration: const BoxDecoration(color: Color(0xFFFFD700), shape: BoxShape.circle),
                       ),
                     ),
                   ],
@@ -402,28 +370,19 @@ class _LevelPageState extends State<LevelPage>
         SizedBox(width: 12.w),
         Text(
           'Lv $groupEnd',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.w500),
         ),
       ],
     );
   }
 
   double _calculateProgress() {
-    final currentLevelValue = _parseCoins(
-      levelRechargeValues[userLevel] ?? "0",
-    );
-    final nextLevelValue = _parseCoins(
-      levelRechargeValues[userLevel + 1] ?? "0",
-    );
+    final currentLevelValue = _parseCoins(levelRechargeValues[userLevel] ?? "0");
+    final nextLevelValue = _parseCoins(levelRechargeValues[userLevel + 1] ?? "0");
 
     if (nextLevelValue <= currentLevelValue) return 1.0;
 
-    final progress =
-        (userCoins - currentLevelValue) / (nextLevelValue - currentLevelValue);
+    final progress = (userCoins - currentLevelValue) / (nextLevelValue - currentLevelValue);
     return progress.clamp(0.0, 1.0);
   }
 
@@ -459,10 +418,7 @@ class _LevelPageState extends State<LevelPage>
         labelColor: const Color(0xFF8B5CF6),
         unselectedLabelColor: Colors.grey[600],
         labelStyle: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
-        unselectedLabelStyle: TextStyle(
-          fontSize: 15.sp,
-          fontWeight: FontWeight.w400,
-        ),
+        unselectedLabelStyle: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w400),
         tabs: const [
           Tab(text: 'User Level'),
           Tab(text: 'Host Level'),
@@ -492,10 +448,7 @@ class _LevelPageState extends State<LevelPage>
               decoration: BoxDecoration(
                 gradient: isSelected
                     ? LinearGradient(
-                        colors: [
-                          levelRangeColors[index].withOpacity(0.9),
-                          levelRangeColors[index].withOpacity(0.6),
-                        ],
+                        colors: [levelRangeColors[index].withOpacity(0.9), levelRangeColors[index].withOpacity(0.6)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       )
@@ -592,10 +545,7 @@ class _LevelPageState extends State<LevelPage>
         height: MediaQuery.of(context).size.height * 0.7,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20.r),
-            topRight: Radius.circular(20.r),
-          ),
+          borderRadius: BorderRadius.only(topLeft: Radius.circular(20.r), topRight: Radius.circular(20.r)),
         ),
         child: Column(
           children: [
@@ -607,10 +557,7 @@ class _LevelPageState extends State<LevelPage>
                 children: [
                   Text(
                     'Level $startLevel-$endLevel Details',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
                   ),
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
@@ -627,34 +574,22 @@ class _LevelPageState extends State<LevelPage>
                 itemCount: 5,
                 itemBuilder: (context, index) {
                   final level = startLevel + index;
-                  final value = isHostLevel
-                      ? hostLevelReceiveValues[level] ?? "0"
-                      : levelRechargeValues[level] ?? "0";
+                  final value = isHostLevel ? hostLevelReceiveValues[level] ?? "0" : levelRechargeValues[level] ?? "0";
 
                   return Container(
                     margin: EdgeInsets.only(bottom: 10.h),
                     padding: EdgeInsets.all(15.w),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(10.r),
-                    ),
+                    decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(10.r)),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           'Level $level',
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w500),
                         ),
                         Text(
                           value,
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            color: Colors.blue,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: TextStyle(fontSize: 16.sp, color: Colors.blue, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -668,22 +603,12 @@ class _LevelPageState extends State<LevelPage>
     );
   }
 
-  Widget _buildLevelIcon({
-    required String icon,
-    required String label,
-    required Color color,
-  }) {
+  Widget _buildLevelIcon({required String icon, required String label, required Color color}) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4))],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -696,17 +621,10 @@ class _LevelPageState extends State<LevelPage>
           SizedBox(height: 14.h),
           Container(
             padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(20.r),
-            ),
+            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20.r)),
             child: Text(
               label,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -716,12 +634,7 @@ class _LevelPageState extends State<LevelPage>
 
   void _showLevelRules() {
     final isHostTab = _tabController.index == 1;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => LevelRulesPage(isHostLevel: isHostTab),
-      ),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => LevelRulesPage(isHostLevel: isHostTab)));
   }
 }
 
@@ -830,11 +743,7 @@ class LevelRulesPage extends StatelessWidget {
         ),
         title: Text(
           isHostLevel ? 'Host Rules' : 'Level Rules',
-          style: TextStyle(
-            color: Colors.black87,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(color: Colors.black87, fontSize: 18.sp, fontWeight: FontWeight.w500),
         ),
       ),
       body: Container(
@@ -843,12 +752,7 @@ class LevelRulesPage extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(15.r),
           boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 2,
-              blurRadius: 5,
-              offset: const Offset(0, 3),
-            ),
+            BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 2, blurRadius: 5, offset: const Offset(0, 3)),
           ],
         ),
         child: Column(
@@ -857,45 +761,28 @@ class LevelRulesPage extends StatelessWidget {
             Container(
               padding: EdgeInsets.symmetric(vertical: 15.h),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(15.r),
-                  topRight: Radius.circular(15.r),
-                ),
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(15.r), topRight: Radius.circular(15.r)),
               ),
               child: Row(
                 children: [
                   Expanded(
                     child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 20.w,
-                        vertical: 12.h,
-                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
                       decoration: const BoxDecoration(color: Color(0xFF666666)),
                       child: Text(
                         'Level',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
+                        style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: Colors.white),
                         textAlign: TextAlign.center,
                       ),
                     ),
                   ),
                   Expanded(
                     child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 20.w,
-                        vertical: 12.h,
-                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
                       decoration: const BoxDecoration(color: Color(0xFFB8860B)),
                       child: Text(
                         isHostLevel ? 'Receive Coin' : 'Recharge Value',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
+                        style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: Colors.white),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -907,21 +794,15 @@ class LevelRulesPage extends StatelessWidget {
             // Table Content
             Expanded(
               child: ListView.builder(
-                itemCount: isHostLevel
-                    ? hostLevelReceiveValues.length
-                    : levelRechargeValues.length,
+                itemCount: isHostLevel ? hostLevelReceiveValues.length : levelRechargeValues.length,
                 itemBuilder: (context, index) {
                   final level = index + 1;
-                  final value = isHostLevel
-                      ? hostLevelReceiveValues[level]!
-                      : levelRechargeValues[level]!;
+                  final value = isHostLevel ? hostLevelReceiveValues[level]! : levelRechargeValues[level]!;
                   final isEven = index % 2 == 0;
 
                   return Container(
                     padding: EdgeInsets.symmetric(vertical: 12.h),
-                    decoration: BoxDecoration(
-                      color: isEven ? Colors.white : const Color(0xFFF8F4FF),
-                    ),
+                    decoration: BoxDecoration(color: isEven ? Colors.white : const Color(0xFFF8F4FF)),
                     child: Row(
                       children: [
                         Expanded(
@@ -929,10 +810,7 @@ class LevelRulesPage extends StatelessWidget {
                             padding: EdgeInsets.symmetric(horizontal: 20.w),
                             child: Text(
                               'Level $level',
-                              style: TextStyle(
-                                fontSize: 14.sp,
-                                color: Colors.black87,
-                              ),
+                              style: TextStyle(fontSize: 14.sp, color: Colors.black87),
                             ),
                           ),
                         ),
@@ -941,10 +819,7 @@ class LevelRulesPage extends StatelessWidget {
                             padding: EdgeInsets.symmetric(horizontal: 20.w),
                             child: Text(
                               value,
-                              style: TextStyle(
-                                fontSize: 14.sp,
-                                color: Colors.black87,
-                              ),
+                              style: TextStyle(fontSize: 14.sp, color: Colors.black87),
                             ),
                           ),
                         ),
