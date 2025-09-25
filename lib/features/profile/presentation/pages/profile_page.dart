@@ -354,21 +354,32 @@ class _ProfileContentState extends State<_ProfileContent> {
         SizedBox(height: 4.h),
         Builder(
           builder: (context) {
-            debugPrint(" \n \n Level: ${widget.user.level} \n ");
-            debugPrint(" \n currentLevelBackground: ${widget.user.currentLevelBackground} \n ");
-            debugPrint(" \n currentLevelTag: ${widget.user.currentLevelTag} \n ");
+            // debugPrint(" \n \n Level: ${widget.user.level} \n ");
+            // debugPrint(" \n currentLevelBackground: ${widget.user.currentLevelBackground} \n ");
+            // debugPrint(" \n currentLevelTag: ${widget.user.currentLevelTag} \n ");
 
             if ((widget.user.level ?? 0) > 0) {
               return Stack(
                 children: [
-                  Image.network(widget.user.currentLevelBackground ?? "", fit: BoxFit.fill, height: 26.h, width: 60.w),
+                  (widget.user.currentLevelBackground != null && widget.user.currentLevelBackground!.isNotEmpty)
+                      ? Image.network(widget.user.currentLevelBackground!, fit: BoxFit.fill, height: 26.h, width: 60.w)
+                      : Container(
+                          height: 26.h,
+                          width: 60.w,
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r), color: Colors.blue),
+                        ),
                   Positioned(
                     top: 0,
                     left: 0,
                     child: Row(
                       children: [
                         SizedBox(width: 6.w),
-                        Image.network(widget.user.currentLevelTag ?? "", fit: BoxFit.fill, height: 20.h, width: 20.w),
+                        (widget.user.currentLevelTag != null && widget.user.currentLevelTag!.isNotEmpty)
+                            ? Image.network(widget.user.currentLevelTag!, fit: BoxFit.fill, height: 20.h, width: 20.w)
+                            : Text(
+                                "Lvl",
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14.sp),
+                              ),
                         SizedBox(width: 6.w),
                         Text(
                           widget.user.level.toString(),

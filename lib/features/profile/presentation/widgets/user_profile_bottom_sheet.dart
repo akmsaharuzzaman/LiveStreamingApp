@@ -72,8 +72,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
 
     try {
       final userApiClient = getIt<UserApiClient>();
-      final isCurrentlyFollowing =
-          userProfile!.relationship?.myFollowing == true;
+      final isCurrentlyFollowing = userProfile!.relationship?.myFollowing == true;
 
       ApiResponse<Map<String, dynamic>> response;
 
@@ -87,20 +86,14 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
         // Update the local state
         setState(() {
           userProfile = userProfile!.copyWith(
-            relationship: userProfile!.relationship?.copyWith(
-              myFollowing: !isCurrentlyFollowing,
-            ),
+            relationship: userProfile!.relationship?.copyWith(myFollowing: !isCurrentlyFollowing),
           );
         });
 
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              isCurrentlyFollowing
-                  ? 'Unfollowed ${userProfile!.name}'
-                  : 'Following ${userProfile!.name}',
-            ),
+            content: Text(isCurrentlyFollowing ? 'Unfollowed ${userProfile!.name}' : 'Following ${userProfile!.name}'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 2),
           ),
@@ -158,10 +151,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
     } else {
       // Handle error case
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to start chat. Please try again.'),
-          backgroundColor: Colors.red,
-        ),
+        const SnackBar(content: Text('Unable to start chat. Please try again.'), backgroundColor: Colors.red),
       );
     }
   }
@@ -169,20 +159,11 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height:
-          MediaQuery.of(context).size.height * .6,
-      decoration:  BoxDecoration(
+      height: MediaQuery.of(context).size.height * .6,
+      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24.r),
-        ), // Increased radius
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x1A000000),
-            blurRadius: 16.r,
-            offset: Offset(0, -4),
-          ),
-        ],
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)), // Increased radius
+        boxShadow: [BoxShadow(color: Color(0x1A000000), blurRadius: 16.r, offset: Offset(0, -4))],
       ),
       child: Stack(
         children: [
@@ -192,11 +173,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
               Expanded(
                 child: isLoading
                     ? Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(24.r),
-                          ),
-                        ),
+                        decoration: BoxDecoration(borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
                         child: const Center(child: CircularProgressIndicator()),
                       )
                     : errorMessage != null
@@ -204,14 +181,8 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
                     : userProfile != null
                     ? _buildUserProfileContent()
                     : Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(24.r),
-                          ),
-                        ),
-                        child: const Center(
-                          child: Text('No user data available'),
-                        ),
+                        decoration: BoxDecoration(borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
+                        child: const Center(child: Text('No user data available')),
                       ),
               ),
             ],
@@ -243,9 +214,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
 
   Widget _buildErrorWidget() {
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
       child: Padding(
         padding: const EdgeInsets.all(UIConstants.spacingM),
         child: SizedBox(
@@ -253,14 +222,11 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-               Icon(Icons.error_outline, size: 64.h, color: Colors.red),
-               SizedBox(height: UIConstants.spacingM.h),
+              Icon(Icons.error_outline, size: 64.h, color: Colors.red),
+              SizedBox(height: UIConstants.spacingM.h),
               Text(
                 'Error Loading Profile',
-                style:  TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: UIConstants.spacingS.h),
               Text(
@@ -269,10 +235,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
                 style: TextStyle(color: Colors.grey),
               ),
               SizedBox(height: UIConstants.spacingM.h),
-              ElevatedButton(
-                onPressed: _loadUserProfile,
-                child: const Text('Retry'),
-              ),
+              ElevatedButton(onPressed: _loadUserProfile, child: const Text('Retry')),
             ],
           ),
         ),
@@ -285,7 +248,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
       children: [
         // Profile Header with background
         _buildProfileHeader(),
-         SizedBox(height: 10.h),
+        SizedBox(height: 10.h),
 
         // User Achievements
         _buildAchievements(),
@@ -329,19 +292,11 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
           children: [
             Text(
               "0",
-              style:  TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 18.sp,
-                color: Color(0xFF2D3142),
-              ),
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18.sp, color: Color(0xFF2D3142)),
             ),
             Text(
               "Fans",
-              style: TextStyle(
-                fontWeight: FontWeight.w400,
-                fontSize: 16.sp,
-                color: Color(0xFF2D3142),
-              ),
+              style: TextStyle(fontWeight: FontWeight.w400, fontSize: 16.sp, color: Color(0xFF2D3142)),
             ),
           ],
         ),
@@ -352,20 +307,12 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
           children: [
             Text(
               "0",
-              style:  TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 18.sp,
-                color: Color(0xFF2D3142),
-              ),
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18.sp, color: Color(0xFF2D3142)),
             ),
             SizedBox(height: 4.h),
             Text(
               "Likes",
-              style: TextStyle(
-                fontWeight: FontWeight.w400,
-                fontSize: 16.sp,
-                color: Color(0xFF2D3142),
-              ),
+              style: TextStyle(fontWeight: FontWeight.w400, fontSize: 16.sp, color: Color(0xFF2D3142)),
             ),
           ],
         ),
@@ -398,8 +345,8 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
     if (userProfile!.userRole == 'age') {
       badges.add(Image.asset('assets/images/general/age_tag.png', height: 20.h));
     }
-    
-    // Coin Badge  
+
+    // Coin Badge
     if (userProfile!.userRole == 'coin') {
       badges.add(Image.asset('assets/images/general/coin_tag.png', height: 20.h));
     }
@@ -438,20 +385,31 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
     // if (badges.isEmpty) {
     //   badges.add(Image.asset('assets/images/general/level_frame.png', height: 20.h));
     // }
-    
+
     // Add level badge if level is greater than 0
     if (userProfile!.level! > 0) {
       badges.add(
         Stack(
           children: [
-            Image.network(userProfile!.currentLevelBackground ?? "", fit: BoxFit.fill, height: 20.h, width: 50.w),
+            (userProfile!.currentLevelBackground != null && userProfile!.currentLevelBackground!.isNotEmpty)
+                ? Image.network(userProfile!.currentLevelBackground!, fit: BoxFit.fill, height: 20.h, width: 50.w)
+                : Container(
+                    height: 20.h,
+                    width: 50.w,
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r), color: Colors.blue),
+                  ),
             Positioned(
               top: 0,
               left: 0,
               child: Row(
                 children: [
                   SizedBox(width: 6.w),
-                  Image.network(userProfile!.currentLevelTag ?? "", fit: BoxFit.fill, height: 16.h, width: 16.w),
+                  (userProfile!.currentLevelTag != null && userProfile!.currentLevelTag!.isNotEmpty)
+                      ? Image.network(userProfile!.currentLevelTag!, fit: BoxFit.fill, height: 16.h, width: 16.w)
+                      : Text(
+                          "Lvl",
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14.sp),
+                        ),
                   SizedBox(width: 6.w),
                   Text(
                     userProfile!.level.toString(),
@@ -467,12 +425,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 40.w),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 4.w,
-        runSpacing: 8.h,
-        children: badges,
-      ),
+      child: Wrap(alignment: WrapAlignment.center, spacing: 4.w, runSpacing: 8.h, children: badges),
     );
   }
 
@@ -480,10 +433,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
     return InkWell(
       onTap: () {
         if (userProfile != null) {
-          context.pushNamed(
-            'viewProfile',
-            queryParameters: {'userId': userProfile!.id},
-          );
+          context.pushNamed('viewProfile', queryParameters: {'userId': userProfile!.id});
         }
         context.pop(); // Close the bottom sheet
       },
@@ -523,8 +473,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
                             width: 72.w,
                             height: 72.h,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                _buildDefaultAvatar(),
+                            errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
                           )
                         : _buildDefaultAvatar(),
                   ),
@@ -538,8 +487,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
                 // ),
                 SizedBox(width: double.infinity),
                 Positioned(
-                  top: 10
-                      .h, // Adjusted position forground desable that why it's 10 from 40
+                  top: 10.h, // Adjusted position forground desable that why it's 10 from 40
                   right: 50.w,
                   child: Image.asset(
                     'assets/images/general/car_frame.png',
@@ -559,18 +507,10 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
               children: [
                 Text(
                   userProfile!.name,
-                  style: TextStyle(
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.w400,
-                    color: Color(0xFF202020),
-                  ),
+                  style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w400, color: Color(0xFF202020)),
                 ),
                 SizedBox(width: 8.w),
-                Image.asset(
-                  'assets/images/general/gender_male_icon.png',
-                  width: 25.w,
-                  height: 25.h,
-                ),
+                Image.asset('assets/images/general/gender_male_icon.png', width: 25.w, height: 25.h),
               ],
             ),
           ],
@@ -583,10 +523,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
     return Container(
       width: 80.w,
       height: 80.h,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: Color(0xFFF0F0F0),
-      ),
+      decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFF0F0F0)),
       child: Icon(Icons.person, size: 40.sp, color: Colors.grey[600]),
     );
   }
@@ -620,19 +557,14 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22.r),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22.r)),
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
               ),
               icon: isFollowLoading
                   ? SizedBox(
                       width: 16.w,
                       height: 16.h,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                     )
                   : Image.asset(
                       relationship?.myFollowing == true
@@ -643,22 +575,14 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
                       color: Colors.white,
                     ),
               label: Text(
-                isFollowLoading
-                    ? 'Loading...'
-                    : (relationship?.myFollowing == true
-                          ? 'Unfollow'
-                          : 'Follow'),
-                style:  TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14.sp,
-                ),
+                isFollowLoading ? 'Loading...' : (relationship?.myFollowing == true ? 'Unfollow' : 'Follow'),
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14.sp),
               ),
             ),
           ),
         ),
 
-         SizedBox(width: 12.w),
+        SizedBox(width: 12.w),
 
         // Gift Button - circular with gift icon
         Container(
@@ -673,11 +597,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
             onPressed: () {
               // Handle gift action
             },
-            icon: Image.asset(
-              'assets/images/general/gift_icon.png',
-              width: 40.w,
-              height: 40.h,
-            ),
+            icon: Image.asset('assets/images/general/gift_icon.png', width: 40.w, height: 40.h),
             padding: EdgeInsets.zero,
           ),
         ),
@@ -697,10 +617,8 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                padding:  EdgeInsets.symmetric(horizontal: 16.w),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
               ),
               icon: Image.asset(
                 'assets/images/general/message_icon.png',
@@ -710,11 +628,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
               ),
               label: Text(
                 'Inbox',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14.sp,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w600, fontSize: 14.sp),
               ),
             ),
           ),
