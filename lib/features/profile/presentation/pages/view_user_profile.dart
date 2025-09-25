@@ -726,14 +726,20 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
         // Level Badge
         Builder(
           builder: (context) {
-            debugPrint(" \n \n Level: ${userProfile?.level} \n ");
-            debugPrint(" \n currentLevelBackground: ${userProfile?.currentLevelBackground} \n ");
-            debugPrint(" \n currentLevelTag: ${userProfile?.currentLevelTag} \n ");
+            // debugPrint(" \n \n Level: ${userProfile?.level} \n ");
+            // debugPrint(" \n currentLevelBackground: ${userProfile?.currentLevelBackground} \n ");
+            // debugPrint(" \n currentLevelTag: ${userProfile?.currentLevelTag} \n ");
 
             if ((userProfile?.level ?? 0) > 0) {
               return Stack(
                 children: [
-                  Image.network(userProfile?.currentLevelBackground ?? "", fit: BoxFit.fill, height: 30.h, width: 66.w),
+                  (userProfile?.currentLevelBackground != null && userProfile!.currentLevelBackground!.isNotEmpty)
+                      ? Image.network(userProfile!.currentLevelBackground!, fit: BoxFit.fill, height: 30.h, width: 66.w)
+                      : Container(
+                          height: 30.h,
+                          width: 66.w,
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r), color: Colors.blue),
+                        ),
                   Positioned(
                     top: 0,
                     left: 0,
@@ -741,7 +747,12 @@ class _ViewUserProfileState extends State<ViewUserProfile> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         SizedBox(width: 6.w),
-                        Image.network(userProfile?.currentLevelTag ?? "", fit: BoxFit.fill, height: 24.h, width: 24.w),
+                        (userProfile?.currentLevelTag != null && userProfile!.currentLevelTag!.isNotEmpty)
+                            ? Image.network(userProfile!.currentLevelTag!, fit: BoxFit.fill, height: 24.h, width: 24.w)
+                            : Text(
+                                "Lvl",
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14.sp),
+                              ),
                         SizedBox(width: 6.w),
                         Text(
                           userProfile?.level.toString() ?? "1",
