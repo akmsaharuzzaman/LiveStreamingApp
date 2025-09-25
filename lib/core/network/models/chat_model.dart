@@ -22,7 +22,8 @@ class ChatModel {
       uid: json['uid'] as String,
       id: json['_id'] as String,
       text: json['text'] as String,
-      equipedStoreItems: json['equipedStoreItems'] as Map<String, dynamic>?,
+      equipedStoreItems: (json['equipedStoreItems'] ??
+              json['equippedStoreItems']) as Map<String, dynamic>?,
     );
   }
 }

@@ -2,10 +2,10 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:dlstarlive/core/network/models/chat_model.dart';
-import 'package:dlstarlive/features/profile/presentation/pages/view_user_profile.dart';
 import 'package:dlstarlive/features/profile/presentation/widgets/user_profile_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svga/flutter_svga.dart';
 
 class LiveChatWidget extends StatefulWidget {
   final List<ChatModel> messages;
@@ -156,46 +156,12 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
         const SizedBox(width: 8),
         if (message.equipedStoreItems != null &&
             message.equipedStoreItems!.isNotEmpty)
-          for (var entry in message.equipedStoreItems!.entries)
-            Padding(
+          ...message.equipedStoreItems!.entries.map(
+            (entry) => Padding(
               padding: const EdgeInsets.only(right: 4.0),
-              child: Image.network(
-                entry.value,
-                height: 16,
-                width: 16,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return SizedBox(
-                    height: 16,
-                    width: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 1.5,
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                          : null,
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  debugPrint('Error loading equipped item image: $error');
-                  return Container(
-                    height: 16,
-                    width: 16,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                    child: const Icon(
-                      Icons.error_outline,
-                      size: 12,
-                      color: Colors.white54,
-                    ),
-                  );
-                },
-              ),
+              child: _EquippedItemBadge(url: entry.value),
             ),
+          ),
 
         const SizedBox(width: 8),
 
@@ -283,3 +249,200 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
 
   // Badge builder removed (unused in current design)
 }
+
+  class _EquippedItemBadge extends StatefulWidget {
+    const _EquippedItemBadge({required this.url});
+
+    final String url;
+
+    @override
+    State<_EquippedItemBadge> createState() => _EquippedItemBadgeState();
+  }
+
+  class _EquippedItemBadgeState extends State<_EquippedItemBadge>
+      with SingleTickerProviderStateMixin {
+    static const List<String> _imageExtensions = <String>[
+      '.png',
+      '.jpg',
+      '.jpeg',
+      '.gif',
+      '.webp',
+      '.bmp',
+    ];
+
+    static const double _badgeSize = 18;
+
+    SVGAAnimationController? _svgaController;
+    bool _isImage = false;
+    bool _isLoading = true;
+    bool _hasError = false;
+
+    @override
+    void initState() {
+      super.initState();
+      _loadAsset();
+    }
+
+    @override
+    void didUpdateWidget(covariant _EquippedItemBadge oldWidget) {
+      super.didUpdateWidget(oldWidget);
+      if (oldWidget.url != widget.url) {
+        _disposeController();
+        _isLoading = true;
+        _hasError = false;
+        _loadAsset();
+      }
+    }
+
+    Future<void> _loadAsset() async {
+      final String lowerUrl = widget.url.toLowerCase();
+      _isImage = _imageExtensions.any(lowerUrl.endsWith);
+
+      if (_isImage) {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      try {
+        final SVGAAnimationController controller =
+            SVGAAnimationController(vsync: this);
+        final movie = await SVGAParser.shared.decodeFromURL(widget.url);
+
+        if (!mounted) {
+          controller.dispose();
+          return;
+        }
+
+        controller.videoItem = movie;
+        controller.repeat();
+        _svgaController = controller;
+
+        setState(() {
+          _isLoading = false;
+        });
+      } catch (e) {
+        debugPrint('Error loading SVGA equipped item: $e');
+        setState(() {
+          _hasError = true;
+          _isLoading = false;
+        });
+      }
+    }
+
+    @override
+    void dispose() {
+      _disposeController();
+      super.dispose();
+    }
+
+    void _disposeController() {
+      _svgaController?.stop();
+      _svgaController?.dispose();
+      _svgaController = null;
+    }
+
+    @override
+    Widget build(BuildContext context) {
+      Widget child;
+
+      if (_isLoading) {
+        child = SizedBox(
+          height: _badgeSize,
+          width: _badgeSize,
+          child: const Center(
+            child: SizedBox(
+              height: 12,
+              width: 12,
+              child: CircularProgressIndicator(strokeWidth: 1.5),
+            ),
+          ),
+        );
+      } else if (_hasError) {
+        child = Container(
+          height: _badgeSize,
+          width: _badgeSize,
+          decoration: BoxDecoration(
+            color: Colors.grey.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(3),
+          ),
+          child: const Icon(
+            Icons.error_outline,
+            size: 12,
+            color: Colors.white54,
+          ),
+        );
+      } else if (_isImage) {
+        child = ClipRRect(
+          borderRadius: BorderRadius.circular(3),
+          child: Image.network(
+            widget.url,
+            height: _badgeSize,
+            width: _badgeSize,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return SizedBox(
+                height: _badgeSize,
+                width: _badgeSize,
+                child: const Center(
+                  child: SizedBox(
+                    height: 12,
+                    width: 12,
+                    child: CircularProgressIndicator(strokeWidth: 1.5),
+                  ),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              debugPrint('Error loading equipped image item: $error');
+              return Container(
+                height: _badgeSize,
+                width: _badgeSize,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: const Icon(
+                  Icons.error_outline,
+                  size: 12,
+                  color: Colors.white54,
+                ),
+              );
+            },
+          ),
+        );
+      } else if (_svgaController != null) {
+        child = SizedBox(
+          height: _badgeSize,
+          width: _badgeSize,
+          child: SVGAImage(
+            _svgaController!,
+            fit: BoxFit.cover,
+            clearsAfterStop: false,
+          ),
+        );
+      } else {
+        child = Container(
+          height: _badgeSize,
+          width: _badgeSize,
+          decoration: BoxDecoration(
+            color: Colors.grey.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(3),
+          ),
+          child: const Icon(
+            Icons.image_not_supported,
+            size: 12,
+            color: Colors.white54,
+          ),
+        );
+      }
+
+      return SizedBox(
+        height: _badgeSize,
+        width: _badgeSize,
+        child: child,
+      );
+    }
+  }
