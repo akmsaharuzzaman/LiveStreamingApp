@@ -1762,7 +1762,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     });
 
     // Stop the animation after inactivity timeout
-    Future.delayed(const Duration(seconds: _inactivityTimeoutSeconds), () {
+    Future.delayed(const Duration(seconds: 9), () {
       if (!mounted) return;
       setState(() {
         _animationPlaying = false;
