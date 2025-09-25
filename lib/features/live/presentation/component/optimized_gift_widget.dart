@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svga/flutter_svga.dart';
@@ -29,47 +31,35 @@ class OptimizedGiftWidget extends StatefulWidget {
 
 class _OptimizedGiftWidgetState extends State<OptimizedGiftWidget> {
   bool _showAnimation = false;
+  Timer? _longPressTimer;
+  bool _isPressing = false;
+  static const Duration _animationTriggerDuration = Duration(seconds: 3);
 
   @override
   void didUpdateWidget(OptimizedGiftWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-
-    // If gift becomes selected and animation is preloaded, show animation
-    if (widget.isSelected &&
-        !oldWidget.isSelected &&
-        widget.preloadedAnimations.contains(widget.gift.id)) {
-      setState(() {
-        _showAnimation = true;
-      });
-    }
-
-    // If gift becomes unselected, hide animation
     if (!widget.isSelected && oldWidget.isSelected) {
-      setState(() {
-        _showAnimation = false;
-      });
+      if (_showAnimation) {
+        setState(() {
+          _showAnimation = false;
+        });
+      }
+      _cancelLongPressTimer();
     }
+  }
 
-    // Preload animation when selected
-    if (widget.isSelected &&
-        !oldWidget.isSelected &&
-        !widget.preloadedAnimations.contains(widget.gift.id)) {
-      widget.onAnimationPreload?.call(widget.gift.id);
-
-      // Show animation after a short delay to allow preloading
-      Future.delayed(const Duration(milliseconds: 300), () {
-        if (mounted && widget.isSelected) {
-          setState(() {
-            _showAnimation = true;
-          });
-        }
-      });
-    }
+  @override
+  void dispose() {
+    _cancelLongPressTimer();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      onTapDown: _handleTapDown,
+      onTapUp: _handleTapUp,
+      onTapCancel: _handleTapCancel,
       onTap: widget.onTap,
       child: Container(
         decoration: BoxDecoration(
@@ -129,9 +119,7 @@ class _OptimizedGiftWidgetState extends State<OptimizedGiftWidget> {
 
   Widget _buildGiftImage() {
     // Show SVGA animation if selected and preloaded/ready
-    if (widget.isSelected &&
-        _showAnimation &&
-        widget.gift.svgaImage.isNotEmpty) {
+    if (_showAnimation && widget.gift.svgaImage.isNotEmpty) {
       return SVGAEasyPlayer(resUrl: widget.gift.svgaImage, fit: BoxFit.cover);
     }
 
@@ -152,5 +140,47 @@ class _OptimizedGiftWidgetState extends State<OptimizedGiftWidget> {
         child: Icon(Icons.card_giftcard, color: Colors.white54, size: 24.sp),
       ),
     );
+  }
+
+  void _handleTapDown(TapDownDetails details) {
+    _isPressing = true;
+    _cancelLongPressTimer();
+    _longPressTimer = Timer(_animationTriggerDuration, _triggerAnimation);
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    _isPressing = false;
+    _cancelLongPressTimer();
+  }
+
+  void _handleTapCancel() {
+    _isPressing = false;
+    _cancelLongPressTimer();
+  }
+
+  void _triggerAnimation() {
+    if (!mounted || !_isPressing || widget.gift.svgaImage.isEmpty) {
+      return;
+    }
+
+    if (!widget.isSelected) {
+      widget.onTap?.call();
+    }
+
+    if (!widget.preloadedAnimations.contains(widget.gift.id)) {
+      widget.onAnimationPreload?.call(widget.gift.id);
+    }
+
+    if (!_showAnimation && mounted) {
+      setState(() {
+        _showAnimation = true;
+      });
+    }
+  }
+
+  void _cancelLongPressTimer() {
+    _longPressTimer?.cancel();
+    _longPressTimer = null;
+    _isPressing = false;
   }
 }

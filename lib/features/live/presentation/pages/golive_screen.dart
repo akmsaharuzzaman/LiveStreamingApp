@@ -1097,7 +1097,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
   // Video state management to prevent white screen
   bool _isVideoReady = false;
   bool _isLocalVideoReady = false;
-  bool _isRemoteVideoReady = false;
   bool _isVideoConnecting = false;
 
   // Audio caller feature variables
@@ -1260,9 +1259,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
           _debugLog("User $remoteUid joined channel");
 
           setState(() {
-            // Only set _remoteUid for the first video user (host)
+            // For viewers, set _remoteUid to the first user (likely the host)
+            // But don't assume it's always the host since join order can vary
             if (_remoteUid == null && !isHost) {
               _remoteUid = remoteUid;
+              debugPrint("🎯 Set _remoteUid to first joined user: $remoteUid");
             }
             _remoteUsers.add(remoteUid);
           });
@@ -1296,11 +1297,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
                   // Mark remote video as ready when decoding starts
                   if (state == RemoteVideoState.remoteVideoStateDecoding) {
-                    if (remoteUid == _remoteUid && !isHost) {
-                      _isRemoteVideoReady = true;
+                    // For viewers, any video broadcaster (host or caller) should trigger video readiness
+                    // This fixes the issue where only the first joiner's video would be considered "ready"
+                    if (!isHost) {
                       _isVideoReady = true;
                       _isVideoConnecting = false;
-                      debugPrint('✅ Remote video ready for viewer');
+                      debugPrint(
+                        '✅ Remote video ready for viewer (UID: $remoteUid)',
+                      );
                     }
                   }
                 } else if (state == RemoteVideoState.remoteVideoStateStopped) {
@@ -2152,7 +2156,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                     Align(
                                       alignment: Alignment.centerLeft,
                                       child: LiveChatWidget(
-                                        isCallingNow: broadcasterList.isNotEmpty,
+                                        isCallingNow:
+                                            broadcasterList.isNotEmpty,
                                         messages: _chatMessages,
                                       ),
                                     ),
@@ -2826,15 +2831,20 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   /// Build multi-broadcaster view for audience
   Widget _buildAudienceMultiView() {
-    // Get all video broadcasters
+    // Get all video broadcasters including all remote users who could have video
     List<int> allVideoBroadcasters = [
-      if (_remoteUid != null) _remoteUid!, // Host video
-      ..._videoCallerUids, // Video callers
+      // Include all remote users as potential video sources
+      ..._remoteUsers,
       if (_isAudioCaller && isCameraEnabled)
         0, // Own video if audio caller with camera on
     ];
 
-    if (allVideoBroadcasters.isEmpty) {
+    // For viewers, show video if any remote users are present and video is ready
+    // OR if we're still connecting but have remote users
+    bool shouldShowVideo =
+        allVideoBroadcasters.isNotEmpty && (_isVideoReady || _localUserJoined);
+
+    if (!shouldShowVideo) {
       // Start host disconnection monitoring when no video broadcasters are present
       if (!isHost) {
         _startHostDisconnectionMonitoring(); //TODO: Implement host disconnection monitoring
@@ -2886,17 +2896,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
     // Since only host shows video and others are audio-only callers,
     // always prioritize host's video and show it in full screen
 
-    // Find host UID in the list (should be _remoteUid for viewers, 0 for host)
-    int hostUid;
+    // Find the best UID to display
+    int displayUid;
     if (isHost) {
-      hostUid = 0; // Local video for host
+      displayUid = 0; // Local video for host
     } else {
-      // For viewers, prioritize the host's video (_remoteUid) if available
-      hostUid =
-          _remoteUid ?? (broadcasterUids.isNotEmpty ? broadcasterUids[0] : 0);
+      // For viewers, use the first available remote user
+      // This could be host or any broadcaster with video
+      displayUid = broadcasterUids.isNotEmpty ? broadcasterUids[0] : 0;
     }
 
-    return _buildSingleVideoView(hostUid, isHostView: isHostView);
+    return _buildSingleVideoView(displayUid, isHostView: isHostView);
   }
 
   /// Single broadcaster view with video readiness checks
@@ -2915,7 +2925,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
           // Show loading overlay if local video is not ready
           if (!_isLocalVideoReady && isHost)
             Container(
-              color: Colors.black.withOpacity(0.8),
+              color: Colors.black.withValues(alpha: 0.8),
               child: Center(
                 child: CircularProgressIndicator(
                   color: Colors.white,
@@ -2926,49 +2936,25 @@ class _GoliveScreenState extends State<GoliveScreen> {
         ],
       );
     } else {
-      // Remote video with loading state
-      // Check if this is the host's video or an audio-only broadcaster
-      bool isHostVideo = uid == _remoteUid;
-      bool shouldShowVideoLoading =
-          isHostVideo && !_isRemoteVideoReady && !isHost;
+      // Remote video - always show video view for any remote user
+      // The video readiness is now handled globally, not per-user
+      bool shouldShowVideoLoading = !_isVideoReady && !isHost;
 
       return Stack(
         children: [
-          // Video view (only show for host, audio-only broadcasters won't have video)
-          if (isHostVideo)
-            AgoraVideoView(
-              controller: VideoViewController.remote(
-                rtcEngine: _engine,
-                canvas: VideoCanvas(uid: uid),
-                connection: RtcConnection(channelId: roomId),
-              ),
-            )
-          else
-            // Show audio-only indicator for non-host broadcasters
-            Container(
-              color: Colors.black87,
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.mic, color: Colors.white, size: 48),
-                    SizedBox(height: 8),
-                    Text(
-                      'Audio Only',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          // Always show video view for remote users
+          // Let Agora handle which user's video is actually displayed
+          AgoraVideoView(
+            controller: VideoViewController.remote(
+              rtcEngine: _engine,
+              canvas: VideoCanvas(uid: uid),
+              connection: RtcConnection(channelId: roomId),
             ),
-          // Show loading overlay only for host video when not ready
+          ),
+          // Show loading overlay only when video is not ready
           if (shouldShowVideoLoading)
             Container(
-              color: Colors.black.withOpacity(0.8),
+              color: Colors.black.withValues(alpha: 0.8),
               child: Center(
                 child: CircularProgressIndicator(
                   color: Colors.white,

@@ -86,7 +86,7 @@ dependencies:
   url_launcher: ^6.3.2
   country_picker: ^2.0.27
 
-  deepar_flutter_perfect: ^0.0.3
+  # deepar_flutter_perfect: ^0.0.3
 
 
 dev_dependencies:
