@@ -229,7 +229,7 @@ class _CallManageBottomSheetState extends State<CallManageBottomSheet>
               itemBuilder: (context, index) {
                 final caller = _currentCallers[index];
                 return _buildUserItem(
-                  userId: caller.userDetails.id,
+                  userId: caller.userId,
                   name: caller.userDetails.name,
                   profileImage: caller.userDetails.avatar.isNotEmpty
                       ? caller.userDetails.avatar
