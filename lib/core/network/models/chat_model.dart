@@ -3,7 +3,7 @@ class ChatModel {
   final String avatar;
   final String uid;
   final String id;
-  final String? currentLevel;
+  final int? currentLevel;
   final String text;
   final Map<String, dynamic>? equipedStoreItems;
 
@@ -27,7 +27,7 @@ class ChatModel {
       equipedStoreItems:
           (json['equipedStoreItems'] ?? json['equippedStoreItems'])
               as Map<String, dynamic>?,
-      currentLevel: json['currentLevel'] as String?,
+      currentLevel: json['currentLevel'] as int?,
     );
   }
 }
