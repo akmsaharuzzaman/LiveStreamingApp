@@ -438,6 +438,32 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
     if (badges.isEmpty) {
       badges.add(Image.asset('assets/images/general/level_frame.png', height: 20.h));
     }
+    
+    // Add level badge if level is greater than 0
+    if (userProfile!.level! > 0) {
+      badges.add(
+        Stack(
+          children: [
+            Image.network(userProfile!.currentLevelBackground ?? "", fit: BoxFit.fill, height: 20.h, width: 50.w),
+            Positioned(
+              top: 0,
+              left: 0,
+              child: Row(
+                children: [
+                  SizedBox(width: 6.w),
+                  Image.network(userProfile!.currentLevelTag ?? "", fit: BoxFit.fill, height: 16.h, width: 16.w),
+                  SizedBox(width: 6.w),
+                  Text(
+                    userProfile!.level.toString(),
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14.sp),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 40.w),
