@@ -2235,7 +2235,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                             iconPath:
                                                 "assets/icons/pk_icon.png",
                                             onTap: () {
-                                              _playAnimation();
+                                              // _playAnimation();
                                               _showSnackBar(
                                                 '🎶 Not implemented yet',
                                                 Colors.green,

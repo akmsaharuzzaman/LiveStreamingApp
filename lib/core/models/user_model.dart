@@ -123,6 +123,7 @@ class UserModel extends Equatable {
   final String id;
   final String email;
   final String name;
+  final int? level;
   final String? firstName;
   final String? lastName;
   final String? uid;
@@ -155,6 +156,7 @@ class UserModel extends Equatable {
     required this.id,
     required this.email,
     required this.name,
+    this.level,
     this.firstName,
     this.lastName,
     this.uid,
