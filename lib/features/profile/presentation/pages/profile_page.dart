@@ -360,30 +360,26 @@ class _ProfileContentState extends State<_ProfileContent> {
 
             if ((widget.user.level ?? 0) > 0) {
               return Stack(
+                clipBehavior: Clip.none,
                 children: [
                   (widget.user.currentLevelBackground != null && widget.user.currentLevelBackground!.isNotEmpty)
-                      ? Image.network(widget.user.currentLevelBackground!, fit: BoxFit.fill, height: 26.h, width: 60.w)
+                      ? Image.network(widget.user.currentLevelBackground!, fit: BoxFit.fill, height: 24.h, width: 62.w)
                       : Container(
-                          height: 26.h,
-                          width: 60.w,
+                          height: 24.h,
+                          width: 62.w,
                           decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r), color: Colors.blue),
                         ),
                   Positioned(
-                    top: 0,
-                    left: 0,
+                    left: -12,
                     child: Row(
                       children: [
-                        SizedBox(width: 6.w),
                         (widget.user.currentLevelTag != null && widget.user.currentLevelTag!.isNotEmpty)
-                            ? Image.network(widget.user.currentLevelTag!, fit: BoxFit.fill, height: 20.h, width: 20.w)
-                            : Text(
-                                "Lvl",
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14.sp),
-                              ),
-                        SizedBox(width: 6.w),
+                            ? Image.network(widget.user.currentLevelTag!, fit: BoxFit.fill, height: 24.h, width: 24.w)
+                            : Container(),
+                        SizedBox(width: 4.w),
                         Text(
-                          widget.user.level.toString(),
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 18.sp),
+                          "Lv.${widget.user.level}",
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 16.sp),
                         ),
                       ],
                     ),
@@ -609,13 +605,23 @@ class _ProfileContentState extends State<_ProfileContent> {
           ),
 
           // Icons on the right
+          // Row(
+          //   children: [
+          //     Image.asset('assets/images/general/king_level.png'),
+          //     SizedBox(width: 8.w),
+          //     Image.asset('assets/images/general/total_badges_icon.png'),
+          //     SizedBox(width: 8.w),
+          //     Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16.sp),
+          //   ],
+          // ),
           Row(
             children: [
               Image.asset('assets/images/general/king_level.png'),
               SizedBox(width: 8.w),
-              Image.asset('assets/images/general/total_badges_icon.png'),
-              SizedBox(width: 8.w),
-              Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16.sp),
+              Text(
+                "Lv.${widget.user.level}",
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 16.sp),
+              ),
             ],
           ),
         ],

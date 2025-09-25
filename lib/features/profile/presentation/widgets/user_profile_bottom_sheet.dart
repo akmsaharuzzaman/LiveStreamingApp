@@ -390,29 +390,28 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
     if (userProfile!.level! > 0) {
       badges.add(
         Stack(
+          clipBehavior: Clip.none,
           children: [
             (userProfile!.currentLevelBackground != null && userProfile!.currentLevelBackground!.isNotEmpty)
-                ? Image.network(userProfile!.currentLevelBackground!, fit: BoxFit.fill, height: 20.h, width: 50.w)
+                ? Image.network(userProfile!.currentLevelBackground!, fit: BoxFit.fill, height: 20.h, width: 56.w)
                 : Container(
                     height: 20.h,
-                    width: 50.w,
+                    width: 56.w,
                     decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r), color: Colors.blue),
                   ),
             Positioned(
-              top: 0,
-              left: 0,
+              left: -10,
               child: Row(
                 children: [
-                  SizedBox(width: 6.w),
                   (userProfile!.currentLevelTag != null && userProfile!.currentLevelTag!.isNotEmpty)
-                      ? Image.network(userProfile!.currentLevelTag!, fit: BoxFit.fill, height: 16.h, width: 16.w)
+                      ? Image.network(userProfile!.currentLevelTag!, fit: BoxFit.fill, height: 20.h, width: 20.w)
                       : Text(
                           "Lvl",
                           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14.sp),
                         ),
-                  SizedBox(width: 6.w),
+                  SizedBox(width: 4.w),
                   Text(
-                    userProfile!.level.toString(),
+                    "Lv.${userProfile!.level}",
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14.sp),
                   ),
                 ],
