@@ -9,9 +9,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class LiveChatWidget extends StatefulWidget {
   final List<ChatModel> messages;
+  final bool? isCallingNow;
   final VoidCallback? onSendMessage;
 
-  const LiveChatWidget({super.key, required this.messages, this.onSendMessage});
+  const LiveChatWidget({super.key, required this.messages, this.onSendMessage, this.isCallingNow});
 
   @override
   State<LiveChatWidget> createState() => _LiveChatWidgetState();
@@ -64,7 +65,7 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: MediaQuery.of(context).size.width * 0.95,
+      width: MediaQuery.of(context).size.width * (widget.isCallingNow == true ? 0.65 : 0.95),
       height: MediaQuery.of(context).size.height * 0.35,
       child: widget.messages.isEmpty
           ? const SizedBox.shrink()
@@ -173,8 +174,7 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
                 ),
               ],
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+            overflow: TextOverflow.visible,
           ),
         ),
       ],

@@ -1694,9 +1694,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   // Start stream timer
   void _startStreamTimer() {
     // Only set start time if not already set (for existing streams)
-    if (_streamStartTime == null) {
-      _streamStartTime = DateTime.now();
-    }
+    _streamStartTime ??= DateTime.now();
 
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted && _streamStartTime != null) {
@@ -2154,6 +2152,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                     Align(
                                       alignment: Alignment.centerLeft,
                                       child: LiveChatWidget(
+                                        isCallingNow: broadcasterList.isNotEmpty,
                                         messages: _chatMessages,
                                       ),
                                     ),
