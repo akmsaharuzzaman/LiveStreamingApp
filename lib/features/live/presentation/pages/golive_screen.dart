@@ -121,7 +121,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   bool _isCallingBonusAPI = false;
 
   //Live inactivity timeout duration
-  static const int _inactivityTimeoutSeconds = 14;
+  static const int _inactivityTimeoutSeconds = 60;
 
   // Host activity tracking for viewers
   Timer? _hostActivityTimer;
@@ -212,20 +212,23 @@ class _GoliveScreenState extends State<GoliveScreen> {
         debugPrint("💬 Loaded ${_chatMessages.length} existing messages");
       }
 
-      // Initialize broadcasters
+      // Initialize broadcasters (excluding host)
       if (roomData.broadcastersDetails.isNotEmpty) {
         broadcasterModels.clear();
         for (var broadcaster in roomData.broadcastersDetails) {
-          final broadcasterModel = BroadcasterModel(
-            id: broadcaster.id,
-            name: broadcaster.name,
-            avatar: broadcaster.avatar,
-            uid: broadcaster.uid,
-          );
-          broadcasterModels.add(broadcasterModel);
+          // Don't add host to broadcaster list
+          if (broadcaster.id != roomData.hostId) {
+            final broadcasterModel = BroadcasterModel(
+              id: broadcaster.id,
+              name: broadcaster.name,
+              avatar: broadcaster.avatar,
+              uid: broadcaster.uid,
+            );
+            broadcasterModels.add(broadcasterModel);
+          }
         }
         debugPrint(
-          "🎤 Loaded ${broadcasterModels.length} existing broadcasters",
+          "🎤 Loaded ${broadcasterModels.length} existing broadcasters (host excluded)",
         );
       }
 
@@ -1072,9 +1075,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
       final now = DateTime.now();
       final lastActivity = _lastHostActivity;
 
-      // If no activity detected for 13 seconds, consider host disconnected
+      // If no activity detected for _inactivityTimeoutSeconds seconds, consider host disconnected
       if (lastActivity != null &&
-          now.difference(lastActivity).inSeconds >= 13) {
+          now.difference(lastActivity).inSeconds >= _inactivityTimeoutSeconds) {
         timer.cancel();
         _handleHostDisconnection(
           "Host appears to be inactive. Live session ended.",
@@ -1332,6 +1335,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
                       remoteUid != _remoteUid &&
                       _audioCallerUids.length < _maxAudioCallers) {
                     _audioCallerUids.add(remoteUid);
+
+                    // For audio-only broadcasters (non-host), mark them as ready immediately
+                    // since they won't have video and shouldn't show loading indicators
+                    if (remoteUid != _remoteUid && !isHost) {
+                      debugPrint(
+                        '✅ Audio-only broadcaster $remoteUid marked as ready',
+                      );
+                    }
                   }
                 });
               } else if (state == RemoteAudioState.remoteAudioStateStopped) {
@@ -2874,8 +2885,19 @@ class _GoliveScreenState extends State<GoliveScreen> {
     required bool isHostView,
   }) {
     // Since only host shows video and others are audio-only callers,
-    // always show single video view (host's video in full screen)
-    return _buildSingleVideoView(broadcasterUids[0], isHostView: isHostView);
+    // always prioritize host's video and show it in full screen
+
+    // Find host UID in the list (should be _remoteUid for viewers, 0 for host)
+    int hostUid;
+    if (isHost) {
+      hostUid = 0; // Local video for host
+    } else {
+      // For viewers, prioritize the host's video (_remoteUid) if available
+      hostUid =
+          _remoteUid ?? (broadcasterUids.isNotEmpty ? broadcasterUids[0] : 0);
+    }
+
+    return _buildSingleVideoView(hostUid, isHostView: isHostView);
   }
 
   /// Single broadcaster view with video readiness checks
@@ -2906,18 +2928,46 @@ class _GoliveScreenState extends State<GoliveScreen> {
       );
     } else {
       // Remote video with loading state
+      // Check if this is the host's video or an audio-only broadcaster
+      bool isHostVideo = uid == _remoteUid;
+      bool shouldShowVideoLoading =
+          isHostVideo && !_isRemoteVideoReady && !isHost;
+
       return Stack(
         children: [
-          // Video view
-          AgoraVideoView(
-            controller: VideoViewController.remote(
-              rtcEngine: _engine,
-              canvas: VideoCanvas(uid: uid),
-              connection: RtcConnection(channelId: roomId),
+          // Video view (only show for host, audio-only broadcasters won't have video)
+          if (isHostVideo)
+            AgoraVideoView(
+              controller: VideoViewController.remote(
+                rtcEngine: _engine,
+                canvas: VideoCanvas(uid: uid),
+                connection: RtcConnection(channelId: roomId),
+              ),
+            )
+          else
+            // Show audio-only indicator for non-host broadcasters
+            Container(
+              color: Colors.black87,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.mic, color: Colors.white, size: 48),
+                    SizedBox(height: 8),
+                    Text(
+                      'Audio Only',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-          // Show loading overlay if remote video is not ready
-          if (!_isRemoteVideoReady && !isHost)
+          // Show loading overlay only for host video when not ready
+          if (shouldShowVideoLoading)
             Container(
               color: Colors.black.withOpacity(0.8),
               child: Center(
