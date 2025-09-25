@@ -156,15 +156,44 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
         const SizedBox(width: 8),
         if (message.equipedStoreItems != null &&
             message.equipedStoreItems!.isNotEmpty)
-          for (var i = 0; i < message.equipedStoreItems!.length; i++)
+          for (var entry in message.equipedStoreItems!.entries)
             Padding(
               padding: const EdgeInsets.only(right: 4.0),
               child: Image.network(
-                message.equipedStoreItems!.values.elementAt(i),
+                entry.value,
                 height: 16,
                 width: 16,
-                errorBuilder: (context, error, stackTrace) =>
-                    const SizedBox.shrink(),
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  debugPrint('Error loading equipped item image: $error');
+                  return Container(
+                    height: 16,
+                    width: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                    child: const Icon(
+                      Icons.error_outline,
+                      size: 12,
+                      color: Colors.white54,
+                    ),
+                  );
+                },
               ),
             ),
 
