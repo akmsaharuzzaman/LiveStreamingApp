@@ -9,9 +9,15 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class LiveChatWidget extends StatefulWidget {
   final List<ChatModel> messages;
+  final bool? isCallingNow;
   final VoidCallback? onSendMessage;
 
-  const LiveChatWidget({super.key, required this.messages, this.onSendMessage});
+  const LiveChatWidget({
+    super.key,
+    required this.messages,
+    this.onSendMessage,
+    this.isCallingNow,
+  });
 
   @override
   State<LiveChatWidget> createState() => _LiveChatWidgetState();
@@ -64,7 +70,9 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: MediaQuery.of(context).size.width * 0.95,
+      width:
+          MediaQuery.of(context).size.width *
+          (widget.isCallingNow == true ? 0.65 : 0.95),
       height: MediaQuery.of(context).size.height * 0.35,
       child: widget.messages.isEmpty
           ? const SizedBox.shrink()
@@ -125,7 +133,8 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
     // 3. If you later want a subtle glass background for normal, add a semi–transparent white here.
 
     final bool isPremium =
-        message.id == "premium"; // Replace with actual premium check logic
+        message.equipedStoreItems?.isNotEmpty ??
+        false; // Replace with actual premium check logic
     final BorderRadius radius = BorderRadius.circular(
       8,
     ); // simplified radius like screenshot
@@ -144,7 +153,49 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
       mainAxisSize: MainAxisSize.min,
       children: [
         // Spacing before name/message
-        const SizedBox(width: 6),
+        const SizedBox(width: 8),
+        if (message.equipedStoreItems != null &&
+            message.equipedStoreItems!.isNotEmpty)
+          for (var entry in message.equipedStoreItems!.entries)
+            Padding(
+              padding: const EdgeInsets.only(right: 4.0),
+              child: Image.network(
+                entry.value,
+                height: 16,
+                width: 16,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  debugPrint('Error loading equipped item image: $error');
+                  return Container(
+                    height: 16,
+                    width: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                    child: const Icon(
+                      Icons.error_outline,
+                      size: 12,
+                      color: Colors.white54,
+                    ),
+                  );
+                },
+              ),
+            ),
 
         const SizedBox(width: 8),
 
@@ -173,8 +224,7 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
                 ),
               ],
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+            overflow: TextOverflow.visible,
           ),
         ),
       ],

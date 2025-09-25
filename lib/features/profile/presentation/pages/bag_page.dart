@@ -80,19 +80,46 @@ class BagPage extends StatelessWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            'Error: ${state.message}',
-                            style: TextStyle(fontSize: 16.sp),
-                            textAlign: TextAlign.center,
+                          Icon(
+                            Icons.error_outline,
+                            size: 64.sp,
+                            color: Colors.red[300],
                           ),
                           SizedBox(height: 16.h),
-                          ElevatedButton(
+                          Text(
+                            'Something went wrong',
+                            style: TextStyle(
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.red[700],
+                            ),
+                          ),
+                          SizedBox(height: 8.h),
+                          Text(
+                            state.message,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Colors.grey[600],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 24.h),
+                          ElevatedButton.icon(
                             onPressed: () {
                               context.read<BagBloc>().add(
                                 const LoadBagCategories(),
                               );
                             },
-                            child: const Text('Retry'),
+                            icon: Icon(Icons.refresh),
+                            label: Text('Try Again'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF9D64B0),
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 24.w,
+                                vertical: 12.h,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -234,12 +261,27 @@ class BagPage extends StatelessWidget {
           child: isLoadingItems
               ? const Center(child: CircularProgressIndicator())
               : bagItems != null && bagItems.isNotEmpty
-              ? _buildBagItemsGrid(
-                  context,
-                  bagItems,
-                  isPurchasing,
-                  state is BagUsingItem,
-                  usingItemId,
+              ? RefreshIndicator(
+                  onRefresh: () async {
+                    if (selectedCategoryId != null) {
+                      final category = categories.firstWhere(
+                        (cat) => cat.id == selectedCategoryId,
+                      );
+                      context.read<BagBloc>().add(
+                        SelectBagCategory(
+                          categoryId: selectedCategoryId,
+                          categoryTitle: category.title,
+                        ),
+                      );
+                    }
+                  },
+                  child: _buildBagItemsGrid(
+                    context,
+                    bagItems,
+                    isPurchasing,
+                    state is BagUsingItem,
+                    usingItemId,
+                  ),
                 )
               : selectedCategoryId != null
               ? _buildEmptyBag()
@@ -254,7 +296,7 @@ class BagPage extends StatelessWidget {
     List<StoreCategory> categories,
     String? selectedCategoryId,
   ) {
-    return Container(
+    return SizedBox(
       height: 50.h,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -344,7 +386,9 @@ class BagPage extends StatelessWidget {
     final item = bagItem.itemId;
     final isSelected = bagItem.useStatus;
 
-    return Container(
+    return AnimatedContainer(
+      duration: Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
@@ -353,7 +397,7 @@ class BagPage extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: Offset(0, 2),
           ),
@@ -425,6 +469,37 @@ class BagPage extends StatelessWidget {
                                   context.read<BagBloc>().add(
                                     UseItem(bucketId: bagItem.id),
                                   );
+
+                                  // Add timeout to prevent infinite loading
+                                  Future.delayed(Duration(seconds: 8), () {
+                                    // Check if widget is still mounted and force refresh if stuck
+                                    if (context.mounted) {
+                                      final currentState = context
+                                          .read<BagBloc>()
+                                          .state;
+                                      if (currentState is BagUsingItem &&
+                                          currentState.usingItemId ==
+                                              bagItem.id) {
+                                        // Reload items to get fresh state
+                                        final selectedCategory = currentState
+                                            .categories
+                                            .firstWhere(
+                                              (cat) =>
+                                                  cat.id ==
+                                                  currentState
+                                                      .selectedCategoryId,
+                                            );
+                                        context.read<BagBloc>().add(
+                                          SelectBagCategory(
+                                            categoryId:
+                                                currentState.selectedCategoryId,
+                                            categoryTitle:
+                                                selectedCategory.title,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  });
                                 }
                               },
                         style: ElevatedButton.styleFrom(

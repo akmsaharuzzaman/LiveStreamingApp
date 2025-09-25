@@ -58,12 +58,16 @@ class BagBloc extends Bloc<BagEvent, BagState> {
   ) async {
     final currentState = state;
 
-    if (currentState is BagCategoriesLoaded || currentState is BagItemsLoaded) {
+    if (currentState is BagCategoriesLoaded ||
+        currentState is BagItemsLoaded ||
+        currentState is BagUsingItem) {
       List<StoreCategory> categories;
 
       if (currentState is BagCategoriesLoaded) {
         categories = currentState.categories;
       } else if (currentState is BagItemsLoaded) {
+        categories = currentState.categories;
+      } else if (currentState is BagUsingItem) {
         categories = currentState.categories;
       } else {
         return;
@@ -89,7 +93,9 @@ class BagBloc extends Bloc<BagEvent, BagState> {
   ) async {
     final currentState = state;
 
-    if (currentState is BagCategoriesLoaded || currentState is BagItemsLoaded) {
+    if (currentState is BagCategoriesLoaded ||
+        currentState is BagItemsLoaded ||
+        currentState is BagUsingItem) {
       List<StoreCategory> categories;
       String selectedCategoryTitle = '';
 
@@ -97,6 +103,9 @@ class BagBloc extends Bloc<BagEvent, BagState> {
         categories = currentState.categories;
         selectedCategoryTitle = currentState.selectedCategoryTitle ?? '';
       } else if (currentState is BagItemsLoaded) {
+        categories = currentState.categories;
+        selectedCategoryTitle = currentState.selectedCategoryTitle;
+      } else if (currentState is BagUsingItem) {
         categories = currentState.categories;
         selectedCategoryTitle = currentState.selectedCategoryTitle;
       } else {
@@ -229,6 +238,8 @@ class BagBloc extends Bloc<BagEvent, BagState> {
     final currentState = state;
 
     if (currentState is BagItemsLoaded) {
+      add(LoadBagItems(categoryId: currentState.selectedCategoryId));
+    } else if (currentState is BagUsingItem) {
       add(LoadBagItems(categoryId: currentState.selectedCategoryId));
     }
   }
