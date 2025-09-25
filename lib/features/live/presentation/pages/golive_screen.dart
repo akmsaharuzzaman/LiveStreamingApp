@@ -51,6 +51,7 @@ class GoliveScreen extends StatefulWidget {
   final String? hostAvatar;
   final List<HostDetails> existingViewers;
   final int hostCoins;
+  final GetRoomModel? roomData; // Add room data to load initial state
 
   const GoliveScreen({
     super.key,
@@ -60,6 +61,7 @@ class GoliveScreen extends StatefulWidget {
     this.hostAvatar,
     this.existingViewers = const [],
     this.hostCoins = 0,
+    this.roomData, // Optional room data for existing rooms
   });
 
   @override
@@ -105,11 +107,21 @@ class _GoliveScreenState extends State<GoliveScreen> {
   Timer? _durationTimer;
   Duration _streamDuration = Duration.zero;
 
-  // Daily bonus tracking - track last milestone called (50, 100, 150, etc.)
+  // Daily bonus tracking - track last milestone called (configurable interval)
   int _lastBonusMilestone = 0;
 
   // Total bonus diamonds earned from API calls
   int _totalBonusDiamonds = 0;
+
+  // Configurable interval for bonus API calls (in minutes) - for debugging
+  // Set to 1 for testing, 50 for production
+  static const int _bonusIntervalMinutes = 50;
+
+  // Flag to prevent multiple API calls for the same milestone
+  bool _isCallingBonusAPI = false;
+
+  //Live inactivity timeout duration
+  static const int _inactivityTimeoutSeconds = 60;
 
   // Host activity tracking for viewers
   Timer? _hostActivityTimer;
@@ -141,11 +153,134 @@ class _GoliveScreenState extends State<GoliveScreen> {
   @override
   void initState() {
     super.initState();
+    _initializeFromRoomData(); // Initialize from existing room data
     _initializeExistingViewers();
     extractRoomId();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUidAndDispatchEvent();
     });
+  }
+
+  /// Initialize state from existing room data (when joining existing live)
+  void _initializeFromRoomData() {
+    if (widget.roomData != null) {
+      final roomData = widget.roomData!;
+
+      // Initialize duration and start time based on existing duration
+      if (roomData.duration > 0) {
+        _streamStartTime = DateTime.now().subtract(
+          Duration(seconds: roomData.duration),
+        );
+        _streamDuration = Duration(seconds: roomData.duration);
+        debugPrint(
+          "🕒 Initialized stream with existing duration: ${roomData.duration}s",
+        );
+      }
+
+      // Initialize bonus data
+      _totalBonusDiamonds = roomData.hostBonus;
+
+      // Calculate last milestone based on existing duration to prevent duplicate API calls
+      if (roomData.duration > 0) {
+        int existingMinutes = (roomData.duration / 60).floor();
+        _lastBonusMilestone =
+            (existingMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
+        debugPrint(
+          "🎯 Set last milestone to: $_lastBonusMilestone minutes based on duration: $existingMinutes minutes",
+        );
+      }
+
+      debugPrint(
+        "💰 Initialized with existing bonus: ${roomData.hostBonus} diamonds",
+      );
+
+      // Initialize chat messages if any
+
+      if (roomData.messages.isNotEmpty) {
+        _chatMessages.clear();
+        for (var messageData in roomData.messages) {
+          if (messageData is Map<String, dynamic>) {
+            try {
+              final chatMessage = ChatModel.fromJson(messageData);
+              _chatMessages.add(chatMessage);
+            } catch (e) {
+              debugPrint("❌ Error parsing message: $e");
+              debugPrint("❌ Message data: $messageData");
+            }
+          }
+        }
+        debugPrint("💬 Loaded ${_chatMessages.length} existing messages");
+      }
+
+      // Initialize broadcasters (excluding host)
+      if (roomData.broadcastersDetails.isNotEmpty) {
+        broadcasterModels.clear();
+        for (var broadcaster in roomData.broadcastersDetails) {
+          // Don't add host to broadcaster list
+          if (broadcaster.id != roomData.hostId) {
+            final broadcasterModel = BroadcasterModel(
+              id: broadcaster.id,
+              name: broadcaster.name,
+              avatar: broadcaster.avatar,
+              uid: broadcaster.uid,
+            );
+            broadcasterModels.add(broadcasterModel);
+          }
+        }
+        debugPrint(
+          "🎤 Loaded ${broadcasterModels.length} existing broadcasters (host excluded)",
+        );
+      }
+
+      // Initialize call requests
+      if (roomData.callRequests.isNotEmpty) {
+        callRequests.clear();
+        for (var request in roomData.callRequests) {
+          final userDetails = UserDetails(
+            id: request.id,
+            avatar: request.avatar,
+            name: request.name,
+            uid: request.uid,
+          );
+          final callRequest = CallRequestModel(
+            userId: request.id,
+            userDetails: userDetails,
+            roomId: roomData.roomId,
+          );
+          callRequests.add(callRequest);
+        }
+        debugPrint("📞 Loaded ${callRequests.length} existing call requests");
+      }
+
+      // Initialize members as active viewers (excluding host)
+      if (roomData.membersDetails.isNotEmpty) {
+        activeViewers.clear();
+        for (var member in roomData.membersDetails) {
+          // Don't add host to viewers list
+          if (member.id != roomData.hostId) {
+            final viewer = JoinedUserModel(
+              id: member.id,
+              avatar: member.avatar,
+              name: member.name,
+              uid: member.uid,
+              diamonds: 0, // Initialize with 0, will be updated from gifts
+            );
+            activeViewers.add(viewer);
+          }
+        }
+        debugPrint(
+          "👥 Loaded ${activeViewers.length} existing members as viewers",
+        );
+      }
+
+      // Set room ID if not already set
+      if (_currentRoomId == null && roomData.roomId.isNotEmpty) {
+        _currentRoomId = roomData.roomId;
+        debugPrint("🏠 Set room ID from existing data: ${roomData.roomId}");
+      }
+
+      debugPrint("✅ Successfully initialized from existing room data");
+    }
   }
 
   /// Debug method to print current diamond status
@@ -230,7 +365,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     );
   }
 
-  /// Calculate total bonus diamonds earned from daily streaming bonuses (50-minute milestones)
+  /// Calculate total bonus diamonds earned from daily streaming bonuses (configurable intervals)
   int _calculateTotalBonusDiamonds() {
     return _totalBonusDiamonds;
   }
@@ -894,31 +1029,34 @@ class _GoliveScreenState extends State<GoliveScreen> {
     if (_hostActivityTimer != null) return;
 
     debugPrint(
-      "🔍 No video broadcasters detected - starting 7 second countdown...",
+      "🔍 No video broadcasters detected - starting $_inactivityTimeoutSeconds second countdown...",
     );
 
-    // Wait 7 seconds before considering host disconnected
-    _hostActivityTimer = Timer(const Duration(seconds: 7), () {
-      if (!mounted) return;
+    // Wait for inactivity timeout before considering host disconnected
+    _hostActivityTimer = Timer(
+      const Duration(seconds: _inactivityTimeoutSeconds),
+      () {
+        if (!mounted) return;
 
-      // Double check that there are still no video broadcasters
-      List<int> currentBroadcasters = [
-        if (_remoteUid != null) _remoteUid!,
-        ..._videoCallerUids,
-        if (_isAudioCaller && isCameraEnabled) 0,
-      ];
+        // Double check that there are still no video broadcasters
+        List<int> currentBroadcasters = [
+          if (_remoteUid != null) _remoteUid!,
+          ..._videoCallerUids,
+          if (_isAudioCaller && isCameraEnabled) 0,
+        ];
 
-      if (currentBroadcasters.isEmpty) {
-        debugPrint(
-          "🚨 No video broadcasters for 7 seconds - host disconnected",
-        );
-        _handleHostDisconnection("Host disconnected. Live session ended.");
-      } else {
-        debugPrint("✅ Video broadcasters detected - host reconnected");
-      }
+        if (currentBroadcasters.isEmpty) {
+          debugPrint(
+            "🚨 No video broadcasters for $_inactivityTimeoutSeconds seconds - host disconnected",
+          );
+          _handleHostDisconnection("Host disconnected. Live session ended.");
+        } else {
+          debugPrint("✅ Video broadcasters detected - host reconnected");
+        }
 
-      _hostActivityTimer = null;
-    });
+        _hostActivityTimer = null;
+      },
+    );
   }
 
   /// Initialize host activity monitoring for viewers
@@ -937,9 +1075,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
       final now = DateTime.now();
       final lastActivity = _lastHostActivity;
 
-      // If no activity detected for 13 seconds, consider host disconnected
+      // If no activity detected for _inactivityTimeoutSeconds seconds, consider host disconnected
       if (lastActivity != null &&
-          now.difference(lastActivity).inSeconds >= 13) {
+          now.difference(lastActivity).inSeconds >= _inactivityTimeoutSeconds) {
         timer.cancel();
         _handleHostDisconnection(
           "Host appears to be inactive. Live session ended.",
@@ -955,6 +1093,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
   final List<int> _remoteUsers = [];
   bool _muted = false;
   bool _isInitializingCamera = false;
+
+  // Video state management to prevent white screen
+  bool _isVideoReady = false;
+  bool _isLocalVideoReady = false;
+  bool _isRemoteVideoReady = false;
+  bool _isVideoConnecting = false;
 
   // Audio caller feature variables
   bool _isAudioCaller = false;
@@ -1074,6 +1218,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
           );
           setState(() {
             _localUserJoined = true;
+            _isVideoConnecting = true; // Start video connection process
             // Don't set _remoteUid here - it should only be set when a remote user joins
           });
 
@@ -1084,6 +1229,18 @@ class _GoliveScreenState extends State<GoliveScreen> {
               '🔍 Calling _applyCameraPreference() from onJoinChannelSuccess',
             );
             _applyCameraPreference();
+
+            // For hosts, local video should be ready after camera setup
+            Future.delayed(Duration(milliseconds: 500), () {
+              if (mounted) {
+                setState(() {
+                  _isLocalVideoReady = true;
+                  _isVideoReady = true;
+                  _isVideoConnecting = false;
+                });
+                debugPrint('✅ Local video ready for host');
+              }
+            });
           } else {
             debugPrint('🔍 Not applying camera preference - user is not host');
           }
@@ -1123,7 +1280,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
               RemoteVideoStateReason reason,
               int elapsed,
             ) {
-              // Reduced logging for video state changes
+              // Track remote video state for better user experience
+              debugPrint(
+                '📹 Remote video state changed: $state for UID: $remoteUid',
+              );
 
               setState(() {
                 if (state == RemoteVideoState.remoteVideoStateStarting ||
@@ -1132,6 +1292,16 @@ class _GoliveScreenState extends State<GoliveScreen> {
                   if (!_videoCallerUids.contains(remoteUid) &&
                       remoteUid != _remoteUid) {
                     _videoCallerUids.add(remoteUid);
+                  }
+
+                  // Mark remote video as ready when decoding starts
+                  if (state == RemoteVideoState.remoteVideoStateDecoding) {
+                    if (remoteUid == _remoteUid && !isHost) {
+                      _isRemoteVideoReady = true;
+                      _isVideoReady = true;
+                      _isVideoConnecting = false;
+                      debugPrint('✅ Remote video ready for viewer');
+                    }
                   }
                 } else if (state == RemoteVideoState.remoteVideoStateStopped) {
                   // User disabled video
@@ -1165,6 +1335,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
                       remoteUid != _remoteUid &&
                       _audioCallerUids.length < _maxAudioCallers) {
                     _audioCallerUids.add(remoteUid);
+
+                    // For audio-only broadcasters (non-host), mark them as ready immediately
+                    // since they won't have video and shouldn't show loading indicators
+                    if (remoteUid != _remoteUid && !isHost) {
+                      debugPrint(
+                        '✅ Audio-only broadcaster $remoteUid marked as ready',
+                      );
+                    }
                   }
                 });
               } else if (state == RemoteAudioState.remoteAudioStateStopped) {
@@ -1212,16 +1390,28 @@ class _GoliveScreenState extends State<GoliveScreen> {
           ? ClientRoleType.clientRoleBroadcaster
           : ClientRoleType.clientRoleAudience,
     );
+
+    // Optimize video settings for better performance and stability
     await _engine.enableVideo();
+    await _engine.setVideoEncoderConfiguration(
+      const VideoEncoderConfiguration(
+        dimensions: VideoDimensions(width: 640, height: 360),
+        frameRate: 15,
+        bitrate: 400,
+      ),
+    );
 
-    // Only start preview for broadcasters
+    // Only start preview for broadcasters with error handling
     if (isHost) {
-      // Apply saved camera preference immediately for preview
-      await _applyCameraPreference();
-      await _engine.startPreview();
-
-      // Camera preference will be applied AFTER joining channel successfully
-      // await _applyCameraPreference();
+      try {
+        // Apply saved camera preference immediately for preview
+        await _applyCameraPreference();
+        await _engine.startPreview();
+        debugPrint('✅ Video preview started successfully');
+      } catch (e) {
+        debugPrint('⚠️ Preview start failed: $e');
+        // Continue without preview - video will start when joining channel
+      }
     }
 
     // For viewers, join channel immediately
@@ -1503,16 +1693,22 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   // Start stream timer
   void _startStreamTimer() {
-    _streamStartTime = DateTime.now();
+    // Only set start time if not already set (for existing streams)
+    _streamStartTime ??= DateTime.now();
+
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted && _streamStartTime != null) {
         setState(() {
           _streamDuration = DateTime.now().difference(_streamStartTime!);
         });
 
-        // Check for 50-minute milestones for hosts only (50, 100, 150, etc.)
-        if (isHost && _streamDuration.inMinutes >= 50) {
-          int currentMilestone = (_streamDuration.inMinutes ~/ 50) * 50;
+        // Check for bonus milestones for hosts only
+        if (isHost &&
+            _streamDuration.inMinutes >= _bonusIntervalMinutes &&
+            !_isCallingBonusAPI) {
+          int currentMilestone =
+              (_streamDuration.inMinutes ~/ _bonusIntervalMinutes) *
+              _bonusIntervalMinutes;
 
           // Only call API if we've reached a new milestone
           if (currentMilestone > _lastBonusMilestone) {
@@ -1544,32 +1740,55 @@ class _GoliveScreenState extends State<GoliveScreen> {
       _animationPlaying = true;
     });
 
-    // Stop the animation after 2 seconds
-    Future.delayed(const Duration(seconds: 7), () {
+    // Stop the animation after inactivity timeout
+    Future.delayed(const Duration(seconds: _inactivityTimeoutSeconds), () {
       setState(() {
         _animationPlaying = false;
       });
     });
   }
 
-  // Call daily bonus API for every 50 minute milestone (50, 100, 150, etc.)
-  Future<void> _callDailyBonusAPI() async {
+  // Call daily bonus API for every milestone interval or on stream end
+  Future<void> _callDailyBonusAPI({bool isStreamEnd = false}) async {
     if (!isHost) return;
 
-    final totalMinutes = _streamDuration.inMinutes;
-    final currentMilestone = (totalMinutes ~/ 50) * 50;
+    // Prevent multiple simultaneous API calls (except for stream end)
+    if (!isStreamEnd && _isCallingBonusAPI) {
+      debugPrint("⏳ Bonus API call already in progress, skipping...");
+      return;
+    }
 
-    // Don't call if we've already processed this milestone
-    if (currentMilestone <= _lastBonusMilestone) return;
+    final totalMinutes = _streamDuration.inMinutes;
+    int currentMilestone;
+
+    if (isStreamEnd) {
+      // On stream end, ALWAYS call API regardless of duration
+      currentMilestone = totalMinutes; // Use exact duration for final call
+    } else {
+      // During stream, call at configured intervals
+      currentMilestone =
+          (totalMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
+      // Don't call if we've already processed this milestone or if not at minimum milestone
+      if (currentMilestone <= _lastBonusMilestone ||
+          currentMilestone < _bonusIntervalMinutes) {
+        return;
+      }
+    }
+
+    // Set flag to prevent multiple calls (except for stream end)
+    if (!isStreamEnd) {
+      _isCallingBonusAPI = true;
+      debugPrint("🔒 Setting bonus API flag to prevent duplicate calls");
+    }
 
     try {
       debugPrint(
-        "🏆 Calling daily bonus API for $totalMinutes minutes of streaming (milestone: ${currentMilestone}m)",
+        "🏆 Calling daily bonus API for $totalMinutes minutes of streaming ${isStreamEnd ? '(final call)' : '(milestone: ${currentMilestone}m)'}",
       );
 
       final response = await _apiService.post<Map<String, dynamic>>(
         '/api/auth/daily-bonus',
-        data: {'totalTime': totalMinutes, 'type': 'live'},
+        data: {'totalTime': totalMinutes, 'type': 'video'},
       );
 
       response.fold(
@@ -1579,86 +1798,96 @@ class _GoliveScreenState extends State<GoliveScreen> {
           // Check if response is successful and has result data
           if (data['success'] == true && data['result'] != null) {
             final result = data['result'] as Map<String, dynamic>;
-            final int bonusDiamonds = result['diamonds'] ?? 0;
+            final int bonusDiamonds =
+                result['bonus'] ??
+                0; // Fixed: use 'bonus' instead of 'diamonds'
 
             if (bonusDiamonds > 0) {
               debugPrint("💎 Received daily bonus: $bonusDiamonds diamonds");
 
-              // Create a synthetic gift model to represent the daily bonus
-              final bonusGift = GiftModel(
-                avatar:
-                    "https://cdn-icons-png.flaticon.com/512/2583/2583788.png", // Bonus icon
-                name: "System Bonus",
-                recieverIds: [userId!], // Host receives the bonus
-                diamonds: bonusDiamonds,
-                qty: 1,
-                gift: Gift(
-                  id: "daily_bonus_${DateTime.now().millisecondsSinceEpoch}",
-                  name: "Daily Streaming Bonus",
-                  category: "Bonus",
-                  diamonds: bonusDiamonds,
-                  coinPrice: bonusDiamonds,
-                  previewImage:
-                      "https://cdn-icons-png.flaticon.com/512/2583/2583788.png",
-                  svgaImage: "",
-                  createdAt: DateTime.now(),
-                  updatedAt: DateTime.now(),
-                  v: 0,
-                ),
-              );
-
-              // Add the bonus gift to sentGifts and update UI like a received gift
+              // Track total bonus diamonds
               setState(() {
-                sentGifts.add(bonusGift);
-                _updateUserDiamonds(bonusGift);
-                _lastBonusMilestone = currentMilestone;
-                _totalBonusDiamonds +=
-                    bonusDiamonds; // Track total bonus diamonds
+                if (!isStreamEnd) {
+                  _lastBonusMilestone = currentMilestone;
+                }
+                _totalBonusDiamonds += bonusDiamonds;
               });
 
-              // Trigger gift animation
-              _playAnimation();
+              // Show appropriate message
+              if (isStreamEnd) {
+                _showSnackBar(
+                  '🎉 Final streaming bonus earned: $bonusDiamonds diamonds! (Total: ${totalMinutes}m)',
+                  Colors.green,
+                );
+              } else {
+                _showSnackBar(
+                  '🎉 Daily streaming bonus earned: $bonusDiamonds diamonds! (${currentMilestone}m milestone)',
+                  Colors.green,
+                );
+              }
 
-              _showSnackBar(
-                '🎉 Daily streaming bonus earned: $bonusDiamonds diamonds! (${currentMilestone}m milestone)',
-                Colors.green,
-              );
-              debugPrint("🎁 Daily bonus added as gift to host");
+              debugPrint("💰 Total bonus diamonds now: $_totalBonusDiamonds");
             } else {
-              _showSnackBar(
-                '🎉 Daily streaming bonus earned! (${currentMilestone}m milestone)',
-                Colors.green,
-              );
               setState(() {
-                _lastBonusMilestone = currentMilestone;
+                if (!isStreamEnd) {
+                  _lastBonusMilestone = currentMilestone;
+                }
               });
+
+              if (isStreamEnd) {
+                _showSnackBar(
+                  '🎉 Stream completed! (Total: ${totalMinutes}m)',
+                  Colors.green,
+                );
+              } else {
+                _showSnackBar(
+                  '🎉 Milestone reached! (${currentMilestone}m)',
+                  Colors.green,
+                );
+              }
             }
           } else {
-            _showSnackBar(
-              '🎉 Daily streaming bonus earned! (${currentMilestone}m milestone)',
-              Colors.green,
-            );
             setState(() {
-              _lastBonusMilestone = currentMilestone;
+              if (!isStreamEnd) {
+                _lastBonusMilestone = currentMilestone;
+              }
             });
+
+            if (isStreamEnd) {
+              _showSnackBar(
+                '🎉 Stream completed! (Total: ${totalMinutes}m)',
+                Colors.green,
+              );
+            } else {
+              _showSnackBar(
+                '🎉 Milestone reached! (${currentMilestone}m)',
+                Colors.green,
+              );
+            }
           }
         },
         (error) {
           debugPrint("❌ Daily bonus API call failed: $error");
           // Update milestone even on error to prevent continuous retries
           setState(() {
-            _lastBonusMilestone = currentMilestone;
+            if (!isStreamEnd) {
+              _lastBonusMilestone = currentMilestone;
+            }
           });
 
           // Check if it's a "maximum bonus reached" error
           if (error.contains("maximum bonus") || error.contains("reached")) {
             _showSnackBar(
-              '⚠️ Daily bonus limit reached (${currentMilestone}m)',
+              isStreamEnd
+                  ? '⚠️ Daily bonus limit reached (Total: ${totalMinutes}m)'
+                  : '⚠️ Daily bonus limit reached (${currentMilestone}m)',
               Colors.orange,
             );
           } else {
             _showSnackBar(
-              '⚠️ Bonus reward processing... (${currentMilestone}m)',
+              isStreamEnd
+                  ? '⚠️ Processing final bonus... (Total: ${totalMinutes}m)'
+                  : '⚠️ Bonus reward processing... (${currentMilestone}m)',
               Colors.orange,
             );
           }
@@ -1668,12 +1897,22 @@ class _GoliveScreenState extends State<GoliveScreen> {
       debugPrint("❌ Exception calling daily bonus API: $e");
       // Update milestone even on exception to prevent continuous retries
       setState(() {
-        _lastBonusMilestone = currentMilestone;
+        if (!isStreamEnd) {
+          _lastBonusMilestone = currentMilestone;
+        }
       });
       _showSnackBar(
-        '❌ Failed to process bonus (${currentMilestone}m)',
+        isStreamEnd
+            ? '❌ Failed to process final bonus (Total: ${totalMinutes}m)'
+            : '❌ Failed to process bonus (${currentMilestone}m)',
         Colors.red,
       );
+    } finally {
+      // Always reset the flag when API call completes (except for stream end)
+      if (!isStreamEnd) {
+        _isCallingBonusAPI = false;
+        debugPrint("🔓 Resetting bonus API flag");
+      }
     }
   }
 
@@ -1703,14 +1942,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
         if (mounted) {
           final state = context.read<AuthBloc>().state;
           if (state is AuthAuthenticated) {
-            // Call daily bonus API if stream duration is valid and we haven't called for current milestone
-            if (_streamDuration.inMinutes > 0) {
-              int currentMilestone = (_streamDuration.inMinutes ~/ 50) * 50;
-              if (currentMilestone > _lastBonusMilestone &&
-                  currentMilestone >= 50) {
-                await _callDailyBonusAPI();
-              }
-            }
+            // Always call daily bonus API on stream end
+            await _callDailyBonusAPI(isStreamEnd: true);
 
             // Calculate total earned diamonds/coins
             int earnedDiamonds = GiftModel.totalDiamondsForHost(
@@ -1834,6 +2067,15 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                         // *show the viwers
                                         ActiveViewers(
                                           activeUserList: activeViewers,
+                                          hostUserId: isHost
+                                              ? userId
+                                              : widget.hostUserId,
+                                          hostName: isHost
+                                              ? state.user.name
+                                              : widget.hostName,
+                                          hostAvatar: isHost
+                                              ? state.user.avatar
+                                              : widget.hostAvatar,
                                         ),
 
                                         // * to show the leave button
@@ -1910,6 +2152,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                     Align(
                                       alignment: Alignment.centerLeft,
                                       child: LiveChatWidget(
+                                        isCallingNow: broadcasterList.isNotEmpty,
                                         messages: _chatMessages,
                                       ),
                                     ),
@@ -2518,33 +2761,22 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   // Main video view with multi-broadcaster support
   Widget _buildVideoView() {
-    // Removed spammy debug print that was called on every rebuild
-
     // Show loading indicator during camera initialization
     if (_isInitializingCamera) {
       return Container(
         color: Colors.black,
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-              // SizedBox(height: 20.h),
-              // Text(
-              //   '🎥 Initializing camera...',
-              //   style: TextStyle(
-              //     color: Colors.white,
-              //     fontSize: 18.sp,
-              //     fontWeight: FontWeight.w500,
-              //   ),
-              // ),
-              // SizedBox(height: 10.h),
-              // Text(
-              //   'Please wait while we set up your stream',
-              //   style: TextStyle(color: Colors.grey, fontSize: 14),
-              // ),
-            ],
-          ),
+          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+        ),
+      );
+    }
+
+    // Show connecting indicator while video is establishing
+    if (_isVideoConnecting && !_isVideoReady) {
+      return Container(
+        color: Colors.black,
+        child: Center(
+          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
         ),
       );
     }
@@ -2652,28 +2884,99 @@ class _GoliveScreenState extends State<GoliveScreen> {
     required bool isHostView,
   }) {
     // Since only host shows video and others are audio-only callers,
-    // always show single video view (host's video in full screen)
-    return _buildSingleVideoView(broadcasterUids[0], isHostView: isHostView);
+    // always prioritize host's video and show it in full screen
+
+    // Find host UID in the list (should be _remoteUid for viewers, 0 for host)
+    int hostUid;
+    if (isHost) {
+      hostUid = 0; // Local video for host
+    } else {
+      // For viewers, prioritize the host's video (_remoteUid) if available
+      hostUid =
+          _remoteUid ?? (broadcasterUids.isNotEmpty ? broadcasterUids[0] : 0);
+    }
+
+    return _buildSingleVideoView(hostUid, isHostView: isHostView);
   }
 
-  /// Single broadcaster view
+  /// Single broadcaster view with video readiness checks
   Widget _buildSingleVideoView(int uid, {required bool isHostView}) {
     if (uid == 0) {
       // Local video (host or audio caller with camera)
-      return AgoraVideoView(
-        controller: VideoViewController(
-          rtcEngine: _engine,
-          canvas: const VideoCanvas(uid: 0),
-        ),
+      return Stack(
+        children: [
+          // Video view
+          AgoraVideoView(
+            controller: VideoViewController(
+              rtcEngine: _engine,
+              canvas: const VideoCanvas(uid: 0),
+            ),
+          ),
+          // Show loading overlay if local video is not ready
+          if (!_isLocalVideoReady && isHost)
+            Container(
+              color: Colors.black.withOpacity(0.8),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              ),
+            ),
+        ],
       );
     } else {
-      // Remote video
-      return AgoraVideoView(
-        controller: VideoViewController.remote(
-          rtcEngine: _engine,
-          canvas: VideoCanvas(uid: uid),
-          connection: RtcConnection(channelId: roomId),
-        ),
+      // Remote video with loading state
+      // Check if this is the host's video or an audio-only broadcaster
+      bool isHostVideo = uid == _remoteUid;
+      bool shouldShowVideoLoading =
+          isHostVideo && !_isRemoteVideoReady && !isHost;
+
+      return Stack(
+        children: [
+          // Video view (only show for host, audio-only broadcasters won't have video)
+          if (isHostVideo)
+            AgoraVideoView(
+              controller: VideoViewController.remote(
+                rtcEngine: _engine,
+                canvas: VideoCanvas(uid: uid),
+                connection: RtcConnection(channelId: roomId),
+              ),
+            )
+          else
+            // Show audio-only indicator for non-host broadcasters
+            Container(
+              color: Colors.black87,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.mic, color: Colors.white, size: 48),
+                    SizedBox(height: 8),
+                    Text(
+                      'Audio Only',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          // Show loading overlay only for host video when not ready
+          if (shouldShowVideoLoading)
+            Container(
+              color: Colors.black.withOpacity(0.8),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              ),
+            ),
+        ],
       );
     }
   }

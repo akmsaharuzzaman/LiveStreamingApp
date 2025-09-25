@@ -3,12 +3,14 @@ class HostDetails {
   final String avatar;
   final String name;
   final String uid;
+  final Map<String, dynamic>? equipedStoreItems;
 
   HostDetails({
     required this.id,
     required this.avatar,
     required this.name,
     required this.uid,
+    this.equipedStoreItems,
   });
 
   factory HostDetails.fromJson(Map<String, dynamic> json) {
@@ -17,6 +19,7 @@ class HostDetails {
       avatar: json['avatar'] as String,
       name: json['name'] as String,
       uid: json['uid'] as String,
+      equipedStoreItems: json['equipedStoreItems'] as Map<String, dynamic>?,
     );
   }
 }
@@ -36,6 +39,9 @@ class GetRoomModel {
   final HostDetails? adminDetails;
   final String title;
   final int hostCoins;
+  final int hostBonus;
+  final int duration;
+  final List<String> mutedUsers;
 
   GetRoomModel({
     required this.hostId,
@@ -52,6 +58,9 @@ class GetRoomModel {
     required this.callRequests,
     required this.title,
     this.hostCoins = 0,
+    this.hostBonus = 0,
+    this.duration = 0,
+    this.mutedUsers = const [],
   });
 
   factory GetRoomModel.fromJson(Map<String, dynamic> json) {
@@ -80,6 +89,9 @@ class GetRoomModel {
           : null,
       title: json['title'] as String,
       hostCoins: json['hostCoins'] as int? ?? 0,
+      hostBonus: json['hostBonus'] as int? ?? 0,
+      duration: json['duration'] as int? ?? 0,
+      mutedUsers: List<String>.from(json['mutedUsers'] ?? []),
     );
   }
 
