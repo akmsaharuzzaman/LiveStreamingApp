@@ -435,9 +435,9 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
     }
 
     // If no specific role badges, show default level badge
-    if (badges.isEmpty) {
-      badges.add(Image.asset('assets/images/general/level_frame.png', height: 20.h));
-    }
+    // if (badges.isEmpty) {
+    //   badges.add(Image.asset('assets/images/general/level_frame.png', height: 20.h));
+    // }
     
     // Add level badge if level is greater than 0
     if (userProfile!.level! > 0) {
