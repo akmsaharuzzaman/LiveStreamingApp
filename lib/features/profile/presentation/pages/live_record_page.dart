@@ -21,16 +21,20 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
   int hourCount = 0;
   int audioHour = 0;
   int videoHour = 0;
+  int withdrawBonus = 0;
 
   @override
   void initState() {
     super.initState();
     getLiveRecord();
+    getWithdrawBonus();
   }
 
   void getLiveRecord() async {
     try {
-      var response = await _apiService.get('/api/auth/live-count/${widget.user?.id}');
+      var response = await _apiService.get(
+        '/api/auth/live-count/${widget.user?.id}',
+      );
       debugPrint("\n \n ${response.dataOrNull.toString()} \n \n");
       setState(() {
         this.response = response;
@@ -43,6 +47,22 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
     } catch (e) {
       setState(() {
         response = ApiResult.failure(e.toString());
+      });
+    }
+  }
+
+  Future<void> getWithdrawBonus() async {
+    try {
+      final bonusResponse = await _apiService.get('/api/auth/withdraw-bonus');
+      final bonus = bonusResponse.dataOrNull?['result']?['bonus'] ?? 0;
+      if (!mounted) return;
+      setState(() {
+        withdrawBonus = bonus is num ? bonus.toInt() : 0;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        withdrawBonus = 0;
       });
     }
   }
@@ -73,7 +93,11 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
             child: Center(
               child: Text(
                 'Records',
-                style: TextStyle(color: Colors.black, fontSize: 14.sp, fontWeight: FontWeight.w400),
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w400,
+                ),
               ),
             ),
           ),
@@ -94,7 +118,11 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12.r),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10.r, offset: const Offset(0, 2)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10.r,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
               ),
               child: Column(
@@ -102,18 +130,32 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.diamond, color: const Color(0xFF00BCD4), size: 24.sp),
+                      Icon(
+                        Icons.diamond,
+                        color: const Color(0xFF00BCD4),
+                        size: 24.sp,
+                      ),
                       SizedBox(width: 8.w),
                       Text(
-                        AppUtils.formatNumber(widget.user?.stats?.diamonds ?? 0),
-                        style: TextStyle(fontSize: 36.sp, fontWeight: FontWeight.w600, color: Colors.black),
+                        AppUtils.formatNumber(
+                          widget.user?.stats?.diamonds ?? 0,
+                        ),
+                        style: TextStyle(
+                          fontSize: 36.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
                       ),
                     ],
                   ),
                   SizedBox(height: 8.h),
                   Text(
                     'This Month',
-                    style: TextStyle(fontSize: 14.sp, color: const Color(0xFF999999), fontWeight: FontWeight.w400),
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: const Color(0xFF999999),
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ],
               ),
@@ -129,7 +171,11 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12.r),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10.r, offset: const Offset(0, 2)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10.r,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
               ),
               child: Row(
@@ -141,11 +187,19 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.diamond, color: const Color(0xFF00BCD4), size: 16.sp),
+                            Icon(
+                              Icons.diamond,
+                              color: const Color(0xFF00BCD4),
+                              size: 16.sp,
+                            ),
                             SizedBox(width: 4.w),
                             Text(
                               '+${AppUtils.formatNumber(widget.user?.stats?.diamonds ?? 0)}',
-                              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: Colors.black),
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black,
+                              ),
                             ),
                           ],
                         ),
@@ -172,12 +226,19 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                             Container(
                               width: 12.w,
                               height: 12.h,
-                              decoration: const BoxDecoration(color: Color(0xFF666666), shape: BoxShape.circle),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF666666),
+                                shape: BoxShape.circle,
+                              ),
                             ),
                             SizedBox(width: 4.w),
                             Text(
                               videoHour.toString(),
-                              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: Colors.black),
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black,
+                              ),
                             ),
                           ],
                         ),
@@ -205,12 +266,19 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                             Container(
                               width: 12.w,
                               height: 12.h,
-                              decoration: const BoxDecoration(color: Color(0xFF666666), shape: BoxShape.circle),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF666666),
+                                shape: BoxShape.circle,
+                              ),
                             ),
                             SizedBox(width: 4.w),
                             Text(
                               audioHour.toString(),
-                              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: Colors.black),
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black,
+                              ),
                             ),
                           ],
                         ),
@@ -238,12 +306,19 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                             Container(
                               width: 12.w,
                               height: 12.h,
-                              decoration: const BoxDecoration(color: Color(0xFF666666), shape: BoxShape.circle),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF666666),
+                                shape: BoxShape.circle,
+                              ),
                             ),
                             SizedBox(width: 4.w),
                             Text(
                               dayCount.toString(),
-                              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: Colors.black),
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black,
+                              ),
                             ),
                           ],
                         ),
@@ -272,7 +347,10 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                   Container(
                     width: 12.w,
                     height: 12.h,
-                    decoration: const BoxDecoration(color: Color(0xFF00BCD4), shape: BoxShape.circle),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF00BCD4),
+                      shape: BoxShape.circle,
+                    ),
                   ),
 
                   // Progress line
@@ -296,7 +374,10 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                   Container(
                     width: 12.w,
                     height: 12.h,
-                    decoration: const BoxDecoration(color: Color(0xFFE0E0E0), shape: BoxShape.circle),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE0E0E0),
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ],
               ),
@@ -311,21 +392,35 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12.r),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10.r, offset: const Offset(0, 2)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10.r,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
               ),
               child: Column(
                 children: [
                   _buildOptionItem(
                     'Bonuses',
-                    '+${AppUtils.formatNumber(widget.user?.stats?.diamonds ?? 0)}',
+                    '+${AppUtils.formatNumber(withdrawBonus)}',
                     const Color(0xFF00BCD4),
                     true,
                   ),
                   _buildDivider(),
-                  _buildOptionItem('Exchange', '-0', const Color(0xFF00BCD4), true),
+                  _buildOptionItem(
+                    'Exchange',
+                    '-0',
+                    const Color(0xFF00BCD4),
+                    true,
+                  ),
                   _buildDivider(),
-                  _buildOptionItem('Others', '0', const Color(0xFF00BCD4), true),
+                  _buildOptionItem(
+                    'Others',
+                    '0',
+                    const Color(0xFF00BCD4),
+                    true,
+                  ),
                 ],
               ),
             ),
@@ -340,7 +435,11 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12.r),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10.r, offset: const Offset(0, 2)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10.r,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
               ),
               child: Column(
@@ -353,7 +452,11 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                   SizedBox(height: 20.h),
                   Text(
                     'Note:',
-                    style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: Colors.black),
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
                   ),
                   SizedBox(height: 8.h),
                   // Note content would go here if provided
@@ -368,7 +471,12 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
     );
   }
 
-  Widget _buildOptionItem(String title, String value, Color valueColor, bool showArrow) {
+  Widget _buildOptionItem(
+    String title,
+    String value,
+    Color valueColor,
+    bool showArrow,
+  ) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
       child: Row(
@@ -376,7 +484,11 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
           Expanded(
             child: Text(
               title,
-              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w400, color: Colors.black),
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w400,
+                color: Colors.black,
+              ),
             ),
           ),
           Row(
@@ -385,11 +497,19 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
               SizedBox(width: 4.w),
               Text(
                 value,
-                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: Colors.black),
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
               ),
               if (showArrow) ...[
                 SizedBox(width: 8.w),
-                Icon(Icons.arrow_forward_ios, color: const Color(0xFF999999), size: 14.sp),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: const Color(0xFF999999),
+                  size: 14.sp,
+                ),
               ],
             ],
           ),
@@ -409,7 +529,11 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
   Widget _buildFAQItem(String question) {
     return Text(
       question,
-      style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w400, color: Colors.black),
+      style: TextStyle(
+        fontSize: 14.sp,
+        fontWeight: FontWeight.w400,
+        color: Colors.black,
+      ),
     );
   }
 }
