@@ -250,199 +250,192 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
   // Badge builder removed (unused in current design)
 }
 
-  class _EquippedItemBadge extends StatefulWidget {
-    const _EquippedItemBadge({required this.url});
+class _EquippedItemBadge extends StatefulWidget {
+  const _EquippedItemBadge({required this.url});
 
-    final String url;
+  final String url;
 
-    @override
-    State<_EquippedItemBadge> createState() => _EquippedItemBadgeState();
+  @override
+  State<_EquippedItemBadge> createState() => _EquippedItemBadgeState();
+}
+
+class _EquippedItemBadgeState extends State<_EquippedItemBadge>
+    with SingleTickerProviderStateMixin {
+  static const List<String> _imageExtensions = <String>[
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.gif',
+    '.webp',
+    '.bmp',
+  ];
+
+  static const double _badgeSize = 18;
+
+  SVGAAnimationController? _svgaController;
+  bool _isImage = false;
+  bool _isLoading = true;
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAsset();
   }
 
-  class _EquippedItemBadgeState extends State<_EquippedItemBadge>
-      with SingleTickerProviderStateMixin {
-    static const List<String> _imageExtensions = <String>[
-      '.png',
-      '.jpg',
-      '.jpeg',
-      '.gif',
-      '.webp',
-      '.bmp',
-    ];
-
-    static const double _badgeSize = 18;
-
-    SVGAAnimationController? _svgaController;
-    bool _isImage = false;
-    bool _isLoading = true;
-    bool _hasError = false;
-
-    @override
-    void initState() {
-      super.initState();
+  @override
+  void didUpdateWidget(covariant _EquippedItemBadge oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.url != widget.url) {
+      _disposeController();
+      _isLoading = true;
+      _hasError = false;
       _loadAsset();
     }
+  }
 
-    @override
-    void didUpdateWidget(covariant _EquippedItemBadge oldWidget) {
-      super.didUpdateWidget(oldWidget);
-      if (oldWidget.url != widget.url) {
-        _disposeController();
-        _isLoading = true;
-        _hasError = false;
-        _loadAsset();
-      }
+  Future<void> _loadAsset() async {
+    final String lowerUrl = widget.url.toLowerCase();
+    _isImage = _imageExtensions.any(lowerUrl.endsWith);
+
+    if (_isImage) {
+      setState(() {
+        _isLoading = false;
+      });
+      return;
     }
 
-    Future<void> _loadAsset() async {
-      final String lowerUrl = widget.url.toLowerCase();
-      _isImage = _imageExtensions.any(lowerUrl.endsWith);
+    try {
+      final SVGAAnimationController controller = SVGAAnimationController(
+        vsync: this,
+      );
+      final movie = await SVGAParser.shared.decodeFromURL(widget.url);
 
-      if (_isImage) {
-        setState(() {
-          _isLoading = false;
-        });
+      if (!mounted) {
+        controller.dispose();
         return;
       }
 
-      try {
-        final SVGAAnimationController controller =
-            SVGAAnimationController(vsync: this);
-        final movie = await SVGAParser.shared.decodeFromURL(widget.url);
+      controller.videoItem = movie;
+      controller.repeat();
+      _svgaController = controller;
 
-        if (!mounted) {
-          controller.dispose();
-          return;
-        }
-
-        controller.videoItem = movie;
-        controller.repeat();
-        _svgaController = controller;
-
-        setState(() {
-          _isLoading = false;
-        });
-      } catch (e) {
-        debugPrint('Error loading SVGA equipped item: $e');
-        setState(() {
-          _hasError = true;
-          _isLoading = false;
-        });
-      }
-    }
-
-    @override
-    void dispose() {
-      _disposeController();
-      super.dispose();
-    }
-
-    void _disposeController() {
-      _svgaController?.stop();
-      _svgaController?.dispose();
-      _svgaController = null;
-    }
-
-    @override
-    Widget build(BuildContext context) {
-      Widget child;
-
-      if (_isLoading) {
-        child = SizedBox(
-          height: _badgeSize,
-          width: _badgeSize,
-          child: const Center(
-            child: SizedBox(
-              height: 12,
-              width: 12,
-              child: CircularProgressIndicator(strokeWidth: 1.5),
-            ),
-          ),
-        );
-      } else if (_hasError) {
-        child = Container(
-          height: _badgeSize,
-          width: _badgeSize,
-          decoration: BoxDecoration(
-            color: Colors.grey.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(3),
-          ),
-          child: const Icon(
-            Icons.error_outline,
-            size: 12,
-            color: Colors.white54,
-          ),
-        );
-      } else if (_isImage) {
-        child = ClipRRect(
-          borderRadius: BorderRadius.circular(3),
-          child: Image.network(
-            widget.url,
-            height: _badgeSize,
-            width: _badgeSize,
-            fit: BoxFit.cover,
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return SizedBox(
-                height: _badgeSize,
-                width: _badgeSize,
-                child: const Center(
-                  child: SizedBox(
-                    height: 12,
-                    width: 12,
-                    child: CircularProgressIndicator(strokeWidth: 1.5),
-                  ),
-                ),
-              );
-            },
-            errorBuilder: (context, error, stackTrace) {
-              debugPrint('Error loading equipped image item: $error');
-              return Container(
-                height: _badgeSize,
-                width: _badgeSize,
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-                child: const Icon(
-                  Icons.error_outline,
-                  size: 12,
-                  color: Colors.white54,
-                ),
-              );
-            },
-          ),
-        );
-      } else if (_svgaController != null) {
-        child = SizedBox(
-          height: _badgeSize,
-          width: _badgeSize,
-          child: SVGAImage(
-            _svgaController!,
-            fit: BoxFit.cover,
-            clearsAfterStop: false,
-          ),
-        );
-      } else {
-        child = Container(
-          height: _badgeSize,
-          width: _badgeSize,
-          decoration: BoxDecoration(
-            color: Colors.grey.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(3),
-          ),
-          child: const Icon(
-            Icons.image_not_supported,
-            size: 12,
-            color: Colors.white54,
-          ),
-        );
-      }
-
-      return SizedBox(
-        height: _badgeSize,
-        width: _badgeSize,
-        child: child,
-      );
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading SVGA equipped item: $e');
+      setState(() {
+        _hasError = true;
+        _isLoading = false;
+      });
     }
   }
+
+  @override
+  void dispose() {
+    _disposeController();
+    super.dispose();
+  }
+
+  void _disposeController() {
+    _svgaController?.stop();
+    _svgaController?.dispose();
+    _svgaController = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Widget child;
+
+    if (_isLoading) {
+      child = SizedBox(
+        height: _badgeSize,
+        width: _badgeSize,
+        child: const Center(
+          child: SizedBox(
+            height: 12,
+            width: 12,
+            child: CircularProgressIndicator(strokeWidth: 1.5),
+          ),
+        ),
+      );
+    } else if (_hasError) {
+      child = Container(
+        height: _badgeSize,
+        width: _badgeSize,
+        decoration: BoxDecoration(
+          color: Colors.grey.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(3),
+        ),
+        child: const Icon(Icons.error_outline, size: 12, color: Colors.white54),
+      );
+    } else if (_isImage) {
+      child = ClipRRect(
+        borderRadius: BorderRadius.circular(3),
+        child: Image.network(
+          widget.url,
+          height: _badgeSize,
+          width: _badgeSize,
+          fit: BoxFit.cover,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return SizedBox(
+              height: _badgeSize,
+              width: _badgeSize,
+              child: const Center(
+                child: SizedBox(
+                  height: 12,
+                  width: 12,
+                  child: CircularProgressIndicator(strokeWidth: 1.5),
+                ),
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            debugPrint('Error loading equipped image item: $error');
+            return Container(
+              height: _badgeSize,
+              width: _badgeSize,
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(3),
+              ),
+              child: const Icon(
+                Icons.error_outline,
+                size: 12,
+                color: Colors.white54,
+              ),
+            );
+          },
+        ),
+      );
+    } else if (_svgaController != null) {
+      child = SizedBox(
+        height: _badgeSize,
+        width: _badgeSize,
+        child: SVGAImage(
+          _svgaController!,
+          fit: BoxFit.cover,
+          clearsAfterStop: false,
+        ),
+      );
+    } else {
+      child = Container(
+        height: _badgeSize,
+        width: _badgeSize,
+        decoration: BoxDecoration(
+          color: Colors.grey.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(3),
+        ),
+        child: const Icon(
+          Icons.image_not_supported,
+          size: 12,
+          color: Colors.white54,
+        ),
+      );
+    }
+
+    return SizedBox(height: _badgeSize, width: _badgeSize, child: child);
+  }
+}
