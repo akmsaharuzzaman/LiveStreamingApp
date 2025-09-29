@@ -7,6 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svga/flutter_svga.dart';
 
+const String _defaultLevelBackgroundUrl =
+    'https://res.cloudinary.com/dmpktzr0m/image/upload/v1758734670/level_tag_bg_assets/level_tag_bg_assets/e339ac59362bffeb805c4db58db2086e3494ace8b4670728f00748d7896dfc74.png';
+
+const String _defaultLevelTagUrl =
+    'https://res.cloudinary.com/dmpktzr0m/image/upload/v1758734667/level_tag_bg_assets/level_tag_bg_assets/20bbcd089e3948a2a5137dacd0af08cefcfe9c12ad0169014439022d68a4789a.png';
+
 class LiveChatWidget extends StatefulWidget {
   final List<ChatModel> messages;
   final bool? isCallingNow;
@@ -148,20 +154,15 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
     );
     final Color premiumBackground = premiumBase.withValues(alpha: 0.5);
 
+    final levelBadge = _buildLevelBadge(message);
+
     Widget content = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         // Spacing before name/message
         const SizedBox(width: 8),
-        if (message.equipedStoreItems != null &&
-            message.equipedStoreItems!.isNotEmpty)
-          ...message.equipedStoreItems!.entries.map(
-            (entry) => Padding(
-              padding: const EdgeInsets.only(right: 4.0),
-              child: _EquippedItemBadge(url: entry.value),
-            ),
-          ),
+        if (levelBadge != null) ...[levelBadge, SizedBox(width: 8.w)],
 
         const SizedBox(width: 8),
 
@@ -248,6 +249,85 @@ class _LiveChatWidgetState extends State<LiveChatWidget> {
   }
 
   // Badge builder removed (unused in current design)
+
+  Widget? _buildLevelBadge(ChatModel message) {
+    final int level = message.currentLevel ?? 0;
+    if (level <= 0) {
+      return null;
+    }
+
+    final double badgeHeight = 24.h;
+    final double badgeWidth = 62.w;
+    final double tagSize = 24.w;
+
+    Widget buildBackground() {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(20.r),
+        child: Image.network(
+          _defaultLevelBackgroundUrl,
+          height: badgeHeight,
+          width: badgeWidth,
+          fit: BoxFit.fill,
+          errorBuilder: (context, error, stackTrace) => Container(
+            height: badgeHeight,
+            width: badgeWidth,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20.r),
+              color: const Color(0xFF5166C6),
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget buildTag() {
+      return Image.network(
+        _defaultLevelTagUrl,
+        height: tagSize,
+        width: tagSize,
+        fit: BoxFit.fill,
+        errorBuilder: (context, error, stackTrace) => SizedBox(
+          height: tagSize,
+          width: tagSize,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6.r),
+              color: Colors.white.withValues(alpha: 0.3),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: badgeHeight,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.centerLeft,
+        children: [
+          buildBackground(),
+          Positioned(
+            left: -12.w,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                buildTag(),
+                SizedBox(width: 4.w),
+                Text(
+                  'Lv.$level',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.sp,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _EquippedItemBadge extends StatefulWidget {
