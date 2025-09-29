@@ -31,7 +31,6 @@ import '../../../../core/network/models/joined_user_model.dart';
 import '../../../../core/network/models/mute_user_model.dart';
 import '../../../../core/utils/app_utils.dart';
 import '../component/active_viwers.dart';
-import '../component/bonus_status.dart';
 import '../component/custom_live_button.dart';
 import '../component/diamond_star_status.dart';
 import '../component/end_stream_overlay.dart';
@@ -366,9 +365,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
   }
 
   /// Calculate total bonus diamonds earned from daily streaming bonuses (configurable intervals)
-  int _calculateTotalBonusDiamonds() {
-    return _totalBonusDiamonds;
-  }
+  // int _calculateTotalBonusDiamonds() {
+  //   return _totalBonusDiamonds;
+  // }
 
   /// Convert HostDetails to JoinedUserModel and initialize existing viewers
   void _initializeExistingViewers() {
@@ -2142,11 +2141,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                         ),
                                         SizedBox(height: 5.h),
                                         //add another widget to show the bonus
-                                        BonusStatus(
-                                          bonusCount: AppUtils.formatNumber(
-                                            _calculateTotalBonusDiamonds(),
-                                          ),
-                                        ),
+                                        // BonusStatus(
+                                        //   bonusCount: AppUtils.formatNumber(
+                                        //     _calculateTotalBonusDiamonds(),
+                                        //   ),
+                                        // ),
                                       ],
                                     ),
 

@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/network/models/joined_user_model.dart';
-import '../../../../core/utils/app_utils.dart';
 import '../../../profile/presentation/widgets/user_profile_bottom_sheet.dart';
 
 class ViewersListPage extends StatefulWidget {
@@ -332,36 +331,36 @@ class _ViewersListPageState extends State<ViewersListPage> {
                       ),
                       SizedBox(width: 4.w),
                       // Show diamonds if viewer has sent gifts
-                      if (viewer.diamonds > 0)
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 6.w,
-                            vertical: 2.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.8),
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.diamond,
-                                color: Colors.white,
-                                size: 12.sp,
-                              ),
-                              SizedBox(width: 2.w),
-                              Text(
-                                AppUtils.formatNumber(viewer.diamonds),
-                                style: TextStyle(
-                                  fontSize: 10.sp,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      // if (viewer.diamonds > 0)
+                      //   Container(
+                      //     padding: EdgeInsets.symmetric(
+                      //       horizontal: 6.w,
+                      //       vertical: 2.h,
+                      //     ),
+                      //     decoration: BoxDecoration(
+                      //       color: Colors.blue.withOpacity(0.8),
+                      //       borderRadius: BorderRadius.circular(8.r),
+                      //     ),
+                      //     child: Row(
+                      //       mainAxisSize: MainAxisSize.min,
+                      //       children: [
+                      //         Icon(
+                      //           Icons.diamond,
+                      //           color: Colors.white,
+                      //           size: 12.sp,
+                      //         ),
+                      //         SizedBox(width: 2.w),
+                      //         Text(
+                      //           AppUtils.formatNumber(viewer.diamonds),
+                      //           style: TextStyle(
+                      //             fontSize: 10.sp,
+                      //             color: Colors.white,
+                      //             fontWeight: FontWeight.bold,
+                      //           ),
+                      //         ),
+                      //       ],
+                      //     ),
+                      //   ),
                     ],
                   ),
                   SizedBox(height: 4.h),
@@ -385,22 +384,22 @@ class _ViewersListPageState extends State<ViewersListPage> {
           ),
 
           // Gift count indicator
-          if (viewer.diamonds > 0)
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-              decoration: BoxDecoration(
-                color: Color(0xFFF1F1F1),
-                borderRadius: BorderRadius.circular(16.r),
-              ),
-              child: Text(
-                '💎 ${AppUtils.formatNumber(viewer.diamonds)}',
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF825CB3),
-                ),
-              ),
-            ),
+          // if (viewer.diamonds > 0)
+          //   Container(
+          //     padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+          //     decoration: BoxDecoration(
+          //       color: Color(0xFFF1F1F1),
+          //       borderRadius: BorderRadius.circular(16.r),
+          //     ),
+          //     child: Text(
+          //       '💎 ${AppUtils.formatNumber(viewer.diamonds)}',
+          //       style: TextStyle(
+          //         fontSize: 12.sp,
+          //         fontWeight: FontWeight.w500,
+          //         color: Color(0xFF825CB3),
+          //       ),
+          //     ),
+          //   ),
         ],
       ),
     );
