@@ -262,6 +262,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
               avatar: member.avatar,
               name: member.name,
               uid: member.uid,
+              currentLevel: member.currentLevel,
+              currentBackground: member.currentBackground,
+              currentTag: member.currentTag,
               diamonds: 0, // Initialize with 0, will be updated from gifts
             );
             activeViewers.add(viewer);

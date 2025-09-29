@@ -11,13 +11,7 @@ class ViewersListPage extends StatefulWidget {
   final String? hostName;
   final String? hostAvatar;
 
-  const ViewersListPage({
-    super.key,
-    required this.viewers,
-    this.hostUserId,
-    this.hostName,
-    this.hostAvatar,
-  });
+  const ViewersListPage({super.key, required this.viewers, this.hostUserId, this.hostName, this.hostAvatar});
 
   @override
   State<ViewersListPage> createState() => _ViewersListPageState();
@@ -54,11 +48,7 @@ class _ViewersListPageState extends State<ViewersListPage> {
           ),
           title: Text(
             'Viewers ($totalViewers)',
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: Colors.black, fontSize: 18.sp, fontWeight: FontWeight.w600),
           ),
           centerTitle: false,
           flexibleSpace: Container(
@@ -68,13 +58,7 @@ class _ViewersListPageState extends State<ViewersListPage> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 5,
-                  offset: Offset(0, 1),
-                ),
-              ],
+              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5, offset: Offset(0, 1))],
             ),
           ),
         ),
@@ -102,9 +86,7 @@ class _ViewersListPageState extends State<ViewersListPage> {
                   return _buildHostItem();
                 } else {
                   // Adjust index for viewers
-                  int viewerIndex = widget.hostUserId != null
-                      ? index - 1
-                      : index;
+                  int viewerIndex = widget.hostUserId != null ? index - 1 : index;
                   if (viewerIndex < displayedViewers.length) {
                     return _buildViewerItem(displayedViewers[viewerIndex]);
                   } else {
@@ -133,18 +115,14 @@ class _ViewersListPageState extends State<ViewersListPage> {
                 ),
                 child: ClipOval(
                   child: Image.network(
-                    widget.hostAvatar ??
-                        'https://i.pravatar.cc/150?u=${widget.hostUserId}',
+                    widget.hostAvatar ?? 'https://i.pravatar.cc/150?u=${widget.hostUserId}',
                     width: 50.w,
                     height: 50.w,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
                       width: 50.w,
                       height: 50.w,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.grey,
-                      ),
+                      decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.grey),
                       child: const Icon(Icons.person, color: Colors.white),
                     ),
                   ),
@@ -179,8 +157,7 @@ class _ViewersListPageState extends State<ViewersListPage> {
                     context: context,
                     isScrollControlled: true,
                     backgroundColor: Colors.transparent,
-                    builder: (context) =>
-                        UserProfileBottomSheet(userId: widget.hostUserId!),
+                    builder: (context) => UserProfileBottomSheet(userId: widget.hostUserId!),
                   );
                 }
               },
@@ -192,29 +169,15 @@ class _ViewersListPageState extends State<ViewersListPage> {
                     children: [
                       Text(
                         widget.hostName ?? 'Host',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black,
-                        ),
+                        style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: Colors.black),
                       ),
                       SizedBox(width: 8.w),
                       Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 8.w,
-                          vertical: 2.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(10.r),
-                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10.r)),
                         child: Text(
                           'HOST',
-                          style: TextStyle(
-                            fontSize: 10.sp,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(fontSize: 10.sp, color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
@@ -223,11 +186,7 @@ class _ViewersListPageState extends State<ViewersListPage> {
                   // Live status
                   Row(
                     children: [
-                      Icon(
-                        Icons.radio_button_checked,
-                        color: Colors.red,
-                        size: 12.sp,
-                      ),
+                      Icon(Icons.radio_button_checked, color: Colors.red, size: 12.sp),
                       SizedBox(width: 4.w),
                       Text(
                         'Live',
@@ -268,10 +227,7 @@ class _ViewersListPageState extends State<ViewersListPage> {
                     errorBuilder: (context, error, stackTrace) => Container(
                       width: 50.w,
                       height: 50.w,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.grey,
-                      ),
+                      decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.grey),
                       child: const Icon(Icons.person, color: Colors.white),
                     ),
                   ),
@@ -304,8 +260,7 @@ class _ViewersListPageState extends State<ViewersListPage> {
                   context: context,
                   isScrollControlled: true,
                   backgroundColor: Colors.transparent,
-                  builder: (context) =>
-                      UserProfileBottomSheet(userId: viewer.id),
+                  builder: (context) => UserProfileBottomSheet(userId: viewer.id),
                 );
               },
               child: Column(
@@ -314,20 +269,80 @@ class _ViewersListPageState extends State<ViewersListPage> {
                   // Name
                   Text(
                     viewer.name,
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
+                    style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: Colors.black),
                   ),
                   SizedBox(height: 4.h),
                   // Badges Row
                   Row(
                     children: [
                       // Level Badge
-                      Image.asset(
-                        'assets/images/general/level_frame.png',
-                        height: 20.w,
+                      // Image.asset(
+                      //   'assets/images/general/level_frame.png',
+                      //   height: 20.w,
+                      // ),
+                      // Level Text with currentBackground and currentTag
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          (viewer.currentBackground.isNotEmpty)
+                              ? Image.network(
+                                  viewer.currentBackground,
+                                  fit: BoxFit.fill,
+                                  height: 20.h,
+                                  width: 56.w,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    height: 20.h,
+                                    width: 56.w,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(20.r),
+                                      color: Colors.blue,
+                                    ),
+                                  ),
+                                )
+                              : Container(
+                                  height: 20.h,
+                                  width: 56.w,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20.r),
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                          Positioned(
+                            left: -10,
+                            child: Row(
+                              children: [
+                                (viewer.currentTag.isNotEmpty)
+                                    ? Image.network(
+                                        viewer.currentTag,
+                                        fit: BoxFit.fill,
+                                        height: 20.h,
+                                        width: 20.w,
+                                        errorBuilder: (context, error, stackTrace) => Text(
+                                          "Lvl",
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 14.sp,
+                                          ),
+                                        ),
+                                      )
+                                    : Text(
+                                        "Lvl",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 14.sp,
+                                        ),
+                                      ),
+                                SizedBox(width: 4.w),
+                                Text(
+                                  "Lv.${viewer.currentLevel}",
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14.sp),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                       SizedBox(width: 4.w),
                       // Show diamonds if viewer has sent gifts
@@ -371,10 +386,7 @@ class _ViewersListPageState extends State<ViewersListPage> {
                       SizedBox(width: 4.w),
                       Text(
                         'Watching',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 12.sp, color: Colors.grey[600]),
                       ),
                     ],
                   ),

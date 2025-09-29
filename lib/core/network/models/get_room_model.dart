@@ -3,6 +3,9 @@ class HostDetails {
   final String avatar;
   final String name;
   final String uid;
+  final int currentLevel;
+  final String currentBackground;
+  final String currentTag;
   final Map<String, dynamic>? equipedStoreItems;
 
   HostDetails({
@@ -10,6 +13,9 @@ class HostDetails {
     required this.avatar,
     required this.name,
     required this.uid,
+    required this.currentLevel,
+    required this.currentBackground,
+    required this.currentTag,
     this.equipedStoreItems,
   });
 
@@ -19,6 +25,9 @@ class HostDetails {
       avatar: json['avatar'] as String,
       name: json['name'] as String,
       uid: json['uid'] as String,
+      currentLevel: json['currentLevel'] as int,
+      currentBackground: json['currentBackground'] as String,
+      currentTag: json['currentTag'] as String,
       equipedStoreItems: json['equipedStoreItems'] as Map<String, dynamic>?,
     );
   }
