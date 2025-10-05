@@ -284,9 +284,9 @@ class _ViewersListPageState extends State<ViewersListPage> {
                       Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          (viewer.currentBackground.isNotEmpty)
+                          (viewer.currentBackground != null)
                               ? Image.network(
-                                  viewer.currentBackground,
+                                  viewer.currentBackground!,
                                   fit: BoxFit.fill,
                                   height: 20.h,
                                   width: 56.w,
@@ -311,32 +311,17 @@ class _ViewersListPageState extends State<ViewersListPage> {
                             left: -10,
                             child: Row(
                               children: [
-                                (viewer.currentTag.isNotEmpty)
+                                (viewer.currentTag != null)
                                     ? Image.network(
-                                        viewer.currentTag,
+                                        viewer.currentTag!,
                                         fit: BoxFit.fill,
                                         height: 20.h,
                                         width: 20.w,
-                                        errorBuilder: (context, error, stackTrace) => Text(
-                                          "Lvl",
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 14.sp,
-                                          ),
-                                        ),
                                       )
-                                    : Text(
-                                        "Lvl",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 14.sp,
-                                        ),
-                                      ),
+                                    : SizedBox(width: 20.w),
                                 SizedBox(width: 4.w),
                                 Text(
-                                  "Lv.${viewer.currentLevel}",
+                                  "Lv.${viewer.currentLevel ?? 0}",
                                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14.sp),
                                 ),
                               ],
