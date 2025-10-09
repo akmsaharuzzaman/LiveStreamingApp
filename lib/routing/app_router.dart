@@ -4,6 +4,7 @@ import 'package:dlstarlive/features/chat/presentation/pages/chat_settings.dart';
 import 'package:dlstarlive/features/live/presentation/pages/golive_screen.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_page.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_summary_screen.dart';
+import 'package:dlstarlive/features/live_audio/presentation/audio_golive.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/view_user_profile.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/friends_list_page.dart';
 import 'package:dlstarlive/features/reels/presentation/pages/reels.dart';
@@ -36,6 +37,7 @@ class AppRoutes {
   static const String reels = '/reels';
   static const String live = '/live';
   static const String onGoingLive = '/on-going-live';
+  static const String audioLive = '/audio-live';
   static const String liveSummary = '/live-summary';
   static const String chatDetail = '/chat-details';
   static const String chats = '/chats';
@@ -147,6 +149,40 @@ final GoRouter appRouter = GoRouter(
           existingViewers: existingViewers,
           hostCoins: hostCoins,
           roomData: roomData, // Pass the complete room data
+        );
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.audioLive,
+      name: 'audioLive',
+      builder: (context, state) {
+        final roomId = state.uri.queryParameters['roomId'] ?? '';
+        final hostName = state.uri.queryParameters['hostName'] ?? '';
+        final hostUserId = state.uri.queryParameters['hostUserId'] ?? '';
+        final hostAvatar = state.uri.queryParameters['hostAvatar'] ?? '';
+        final existingViewers =
+            (state.extra as Map<String, dynamic>?)?['existingViewers']
+                as List<HostDetails>? ??
+            [];
+        final hostCoins =
+            (state.extra as Map<String, dynamic>?)?['hostCoins'] as int? ?? 0;
+        final roomData =
+            (state.extra as Map<String, dynamic>?)?['roomData']
+                as GetRoomModel?;
+        final numberOfSeats =
+            (state.extra as Map<String, dynamic>?)?['numberOfSeats'] as int? ?? 8;
+        final roomTitle =
+            (state.extra as Map<String, dynamic>?)?['title'] as String? ?? 'Audio Room';
+        return AudioGoLiveScreen(
+          roomId: roomId,
+          hostName: hostName,
+          hostUserId: hostUserId,
+          hostAvatar: hostAvatar,
+          existingViewers: existingViewers,
+          hostCoins: hostCoins,
+          roomData: roomData, // Pass the complete room data
+          numberOfSeats: numberOfSeats, // Pass selected seat count
+          roomTitle: roomTitle, // Pass room title
         );
       },
     ),

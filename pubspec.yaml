@@ -116,6 +116,7 @@ flutter:
     # Fonts & General Assets
     - assets/fonts/
     - assets/icons/
+    - assets/icons/audio_room/
     - assets/images/
     - .env
 

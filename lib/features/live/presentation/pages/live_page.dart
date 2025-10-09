@@ -15,9 +15,9 @@ class LivePage extends StatefulWidget {
 }
 
 class _LivePageState extends State<LivePage> {
-  bool isLiveSelected = true; // true for Live, false for Party Live
+  bool isLiveSelected = true; // true for Live, false for Audio Live
   String selectedCategory = "Song";
-  String selectedPeopleCount = "8 People";
+  String selectedPeopleCount = "6 People";
   bool isPasswordEnabled = false;
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -31,7 +31,10 @@ class _LivePageState extends State<LivePage> {
   @override
   void initState() {
     super.initState();
-    _initializeCamera();
+    // Only initialize camera for Live mode, not Audio Live
+    if (isLiveSelected) {
+      _initializeCamera();
+    }
   }
 
   Future<void> _initializeCamera() async {
@@ -169,8 +172,43 @@ class _LivePageState extends State<LivePage> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Camera preview as background
-          Positioned.fill(child: _buildCameraPreview()),
+          // Camera preview as background (only for Live mode)
+          if (isLiveSelected)
+            Positioned.fill(child: _buildCameraPreview())
+          else
+            // Audio Live background
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xFF6B46C1),
+                      Color(0xFF2D3748),
+                    ],
+                  ),
+                ),
+                child: Image.asset(
+                  'assets/icons/audio_room/audio_room_background.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0xFF6B46C1),
+                            Color(0xFF2D3748),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
 
           // Dark overlay for better content visibility
           Positioned.fill(
@@ -221,7 +259,7 @@ class _LivePageState extends State<LivePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Live / Party Live Toggle
+                  // Live / Audio Live Toggle
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -230,6 +268,10 @@ class _LivePageState extends State<LivePage> {
                           onTap: () {
                             setState(() {
                               isLiveSelected = true;
+                              // Initialize camera when switching to Live mode
+                              if (!_isCameraInitialized && !_isInitializingCamera) {
+                                _initializeCamera();
+                              }
                             });
                           },
                           child: Container(
@@ -288,7 +330,7 @@ class _LivePageState extends State<LivePage> {
                               ),
                               child: Center(
                                 child: Text(
-                                  'Party Live',
+                                  'Audio Live',
                                   style: TextStyle(
                                     color: !isLiveSelected
                                         ? Colors.black
@@ -377,7 +419,7 @@ class _LivePageState extends State<LivePage> {
                     ],
                   ),
 
-                  // Show additional options for Party Live
+                  // Show additional options for Audio Live
                   if (!isLiveSelected) ...[
                     SizedBox(height: 30.h),
 
@@ -397,6 +439,11 @@ class _LivePageState extends State<LivePage> {
                     Row(
                       children: [
                         _buildPeopleButton(
+                          '6 People',
+                          selectedPeopleCount == '6 People',
+                        ),
+                        SizedBox(width: 12.w),
+                        _buildPeopleButton(
                           '8 People',
                           selectedPeopleCount == '8 People',
                         ),
@@ -404,11 +451,6 @@ class _LivePageState extends State<LivePage> {
                         _buildPeopleButton(
                           '12 People',
                           selectedPeopleCount == '12 People',
-                        ),
-                        SizedBox(width: 12.w),
-                        _buildPeopleButton(
-                          '16 People',
-                          selectedPeopleCount == '16 People',
                         ),
                       ],
                     ),
@@ -525,21 +567,37 @@ class _LivePageState extends State<LivePage> {
                     height: 56.h,
                     child: ElevatedButton(
                       onPressed: () async {
-                        print(
-                          "Going live with title: ${_isFrontCamera ? 'Front Camera' : 'Back Camera'}",
-                        );
+                        if (isLiveSelected) {
+                          print("Going live with title: ${_isFrontCamera ? 'Front Camera' : 'Back Camera'}");
 
-                        // Ensure camera preference is saved before navigation
-                        await _saveCameraPreference(_isFrontCamera);
-                        debugPrint(
-                          '🚀 Navigating to go live with camera: ${_isFrontCamera ? 'Front' : 'Rear'}',
-                        );
+                          // Ensure camera preference is saved before navigation
+                          await _saveCameraPreference(_isFrontCamera);
+                          debugPrint('🚀 Navigating to go live with camera: ${_isFrontCamera ? 'Front' : 'Rear'}');
 
-                        // Small delay to ensure SharedPreferences write completes
-                        await Future.delayed(const Duration(milliseconds: 100));
+                          // Small delay to ensure SharedPreferences write completes
+                          await Future.delayed(const Duration(milliseconds: 100));
 
-                        if (mounted) {
-                          context.push(AppRoutes.onGoingLive);
+                          if (mounted) {
+                            context.push(AppRoutes.onGoingLive);
+                          }
+                        } else {
+                          // Audio Live mode
+                          // Extract number from selectedPeopleCount (e.g., "6 People" -> 6)
+                          int numberOfSeats = int.parse(
+                            selectedPeopleCount.split(' ').first,
+                          );
+                          
+                          if (mounted) {
+                            context.push(
+                              AppRoutes.audioLive,
+                              extra: {
+                                'numberOfSeats': numberOfSeats,
+                                'title': _titleController.text.isEmpty 
+                                    ? 'Audio Room' 
+                                    : _titleController.text,
+                              },
+                            );
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -660,6 +718,7 @@ class _LivePageState extends State<LivePage> {
   void dispose() {
     _titleController.dispose();
     _passwordController.dispose();
+    // Only dispose camera if it was initialized
     if (_isCameraInitialized) {
       _engine.leaveChannel();
       _engine.release();
