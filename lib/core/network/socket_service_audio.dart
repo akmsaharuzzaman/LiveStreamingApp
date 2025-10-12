@@ -26,7 +26,7 @@ class AudioSocketService {
     const reset = '\x1B[0m';
 
     if (kDebugMode) {
-      debugPrint('\n$yellow[AUDIO_SOCKET]$reset $message\n');
+      debugPrint('\n$yellow[AUDIO_ROOM] : Socket - $reset $message\n');
     }
   }
 

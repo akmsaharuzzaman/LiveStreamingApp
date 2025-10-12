@@ -18,6 +18,7 @@ import 'package:dlstarlive/features/live/presentation/widgets/call_manage_bottom
 import 'package:dlstarlive/features/live/presentation/widgets/live_chat_widget.dart';
 import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -75,6 +76,15 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
   // Seat configuration - initialized from widget
   late int totalSeats;
+
+  void _uiLog(String message) {
+    const cyan = '\x1B[36m';
+    const reset = '\x1B[0m';
+
+    if (kDebugMode) {
+      debugPrint('\n$cyan[AUDIO_ROOM] : UI - $reset $message\n');
+    }
+  }
 
   // Selected seat for context menu
   int? selectedSeatIndex;
@@ -182,7 +192,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       if (roomData.duration > 0) {
         _streamStartTime = DateTime.now().subtract(Duration(seconds: roomData.duration));
         _streamDuration = Duration(seconds: roomData.duration);
-        debugPrint("🕒 Initialized stream with existing duration: ${roomData.duration}s");
+        _uiLog("🕒 Initialized stream with existing duration: ${roomData.duration}s");
       }
 
       // Initialize bonus data
@@ -192,12 +202,12 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       if (roomData.duration > 0) {
         int existingMinutes = (roomData.duration / 60).floor();
         _lastBonusMilestone = (existingMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
-        debugPrint(
+        _uiLog(
           "🎯 Set last milestone to: $_lastBonusMilestone minutes based on duration: $existingMinutes minutes",
         );
       }
 
-      debugPrint("💰 Initialized with existing bonus: ${roomData.hostBonus} diamonds");
+      _uiLog("💰 Initialized with existing bonus: ${roomData.hostBonus} diamonds");
 
       // Initialize chat messages if any
 
@@ -209,12 +219,12 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               final chatMessage = ChatModel.fromJson(messageData);
               _chatMessages.add(chatMessage);
             } catch (e) {
-              debugPrint("❌ Error parsing message: $e");
-              debugPrint("❌ Message data: $messageData");
+              _uiLog("❌ Error parsing message: $e");
+              _uiLog("❌ Message data: $messageData");
             }
           }
         }
-        debugPrint("💬 Loaded ${_chatMessages.length} existing messages");
+        _uiLog("💬 Loaded ${_chatMessages.length} existing messages");
       }
 
       // Initialize broadcasters (excluding host)
@@ -232,7 +242,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
             broadcasterModels.add(broadcasterModel);
           }
         }
-        debugPrint("🎤 Loaded ${broadcasterModels.length} existing broadcasters (host excluded)");
+        _uiLog("🎤 Loaded ${broadcasterModels.length} existing broadcasters (host excluded)");
       }
 
       // Initialize members as active viewers (excluding host)
@@ -254,16 +264,16 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
             activeViewers.add(viewer);
           }
         }
-        debugPrint("👥 Loaded ${activeViewers.length} existing members as viewers");
+        _uiLog("👥 Loaded ${activeViewers.length} existing members as viewers");
       }
 
       // Set room ID if not already set
       if (_currentRoomId == null && roomData.roomId.isNotEmpty) {
         _currentRoomId = roomData.roomId;
-        debugPrint("🏠 Set room ID from existing data: ${roomData.roomId}");
+        _uiLog("🏠 Set room ID from existing data: ${roomData.roomId}");
       }
 
-      debugPrint("✅ Successfully initialized from existing room data");
+      _uiLog("✅ Successfully initialized from existing room data");
     }
   }
 
@@ -294,7 +304,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         }
       }
     } catch (e) {
-      debugPrint('Socket connection error: $e');
+      _uiLog('Socket connection error: $e');
     }
   }
 
@@ -322,7 +332,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     // Sent Messages
     _sentMessageSubscription = _socketService.sentMessageStream.listen((data) {
       if (mounted) {
-        debugPrint("User sent a message: ${data.text}");
+        _uiLog("User sent a message: ${data.text}");
         setState(() {
           _chatMessages.add(data);
           if (_chatMessages.length > 50) {
@@ -541,14 +551,14 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       _engine.registerEventHandler(
         RtcEngineEventHandler(
           onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
-            debugPrint("Joined audio channel: ${connection.channelId}");
+            _uiLog("Joined audio channel: ${connection.channelId}");
             _startStreamTimer();
           },
           onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
-            debugPrint("User $remoteUid joined audio channel");
+            _uiLog("User $remoteUid joined audio channel");
           },
           onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
-            debugPrint("User $remoteUid left audio channel");
+            _uiLog("User $remoteUid left audio channel");
             setState(() {
               _audioCallerUids.remove(remoteUid);
             });
@@ -577,7 +587,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         await _joinChannelWithDynamicToken();
       }
     } catch (e) {
-      debugPrint('❌ Error initializing Agora: $e');
+      _uiLog('❌ Error initializing Agora: $e');
       _showSnackBar('❌ Failed to initialize audio', Colors.red);
     }
   }
@@ -607,13 +617,13 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         );
       }
     } catch (e) {
-      debugPrint('Error joining channel: $e');
+      _uiLog('Error joining channel: $e');
     }
   }
 
   // Socket and helper methods
   void _emitMessageToSocket(String message) {
-    debugPrint("Emitting message to socket: $message");
+    _uiLog("Emitting message to socket: $message");
     if (message.isNotEmpty && _currentRoomId != null) {
       _socketService.sendMessage(_currentRoomId!, message);
     }
@@ -633,7 +643,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         });
         _showSnackBar('🔇 You have been muted by an admin', Colors.red);
       } catch (e) {
-        debugPrint('❌ Error force muting user: $e');
+        _uiLog('❌ Error force muting user: $e');
       }
     }
   }
@@ -666,7 +676,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
   void _handleHostDisconnection(String reason) {
     if (!mounted) return;
-    debugPrint("🚨 $reason - Exiting audio room...");
+    _uiLog("🚨 $reason - Exiting audio room...");
     _showSnackBar('📱 $reason', Colors.red);
     _stopStreamTimer();
     _hostActivityTimer?.cancel();
@@ -784,7 +794,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           }
         },
         (error) {
-          debugPrint("❌ Daily bonus API failed: $error");
+          _uiLog("❌ Daily bonus API failed: $error");
           setState(() {
             if (!isStreamEnd) {
               _lastBonusMilestone = currentMilestone;
@@ -793,7 +803,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         },
       );
     } catch (e) {
-      debugPrint("❌ Exception calling daily bonus API: $e");
+      _uiLog("❌ Exception calling daily bonus API: $e");
       setState(() {
         if (!isStreamEnd) {
           _lastBonusMilestone = currentMilestone;
@@ -838,8 +848,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               userId, // Use userId for host
             );
 
-            debugPrint("🏆 Host ending live stream - Total earned diamonds: $earnedDiamonds");
-            debugPrint("📊 Total gifts received: ${sentGifts.length}");
+            _uiLog("🏆 Host ending live stream - Total earned diamonds: $earnedDiamonds");
+            _uiLog("📊 Total gifts received: ${sentGifts.length}");
 
             context.go(
               AppRoutes.liveSummary,
@@ -861,7 +871,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         }
       }
     } catch (e) {
-      debugPrint('Error ending live stream: $e');
+      _uiLog('Error ending live stream: $e');
       // Still navigate back even if update fails
       if (mounted) {
         Navigator.of(context).pop();
@@ -1183,11 +1193,11 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                                     EndStreamOverlay.show(
                                       context,
                                       onKeepStream: () {
-                                        debugPrint("Keep stream pressed");
+                                        _uiLog("Keep stream pressed");
                                       },
                                       onEndStream: () {
                                         _endLiveStream();
-                                        debugPrint("End stream pressed");
+                                        _uiLog("End stream pressed");
                                       },
                                     );
                                   },
@@ -1200,7 +1210,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                               : InkWell(
                                   onTap: () {
                                     _endLiveStream();
-                                    debugPrint("Disconnect pressed");
+                                    _uiLog("Disconnect pressed");
                                   },
                                   child: Image.asset("assets/icons/live_exit_icon.png", height: 50.h),
                                 ),
@@ -1253,7 +1263,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                                 showSendMessageBottomSheet(
                                   context,
                                   onSendMessage: (message) {
-                                    debugPrint("Send message pressed");
+                                    _uiLog("Send message pressed");
                                     _emitMessageToSocket(message);
                                   },
                                 );
