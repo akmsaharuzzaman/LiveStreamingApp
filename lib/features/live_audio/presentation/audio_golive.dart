@@ -27,8 +27,6 @@ import '../../../core/auth/auth_bloc.dart';
 import '../../../core/network/models/admin_details_model.dart';
 import '../../../core/network/models/ban_user_model.dart';
 import '../../../core/network/models/broadcaster_model.dart';
-import '../../../core/network/models/call_request_list_model.dart';
-import '../../../core/network/models/call_request_model.dart';
 import '../../../core/network/models/gift_model.dart';
 import '../../../core/network/models/mute_user_model.dart';
 import '../../../core/network/socket_service_audio.dart';
@@ -81,18 +79,12 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   // Selected seat for context menu
   int? selectedSeatIndex;
 
-  // Text controller for chat input
-  final TextEditingController _messageController = TextEditingController();
-
-  final SocketService _socketService = SocketService.instance;
+  final AudioSocketService _socketService = AudioSocketService.instance;
   String? _currentRoomId;
   String? userId;
   bool isHost = true;
   String roomId = "default_channel";
   List<JoinedUserModel> activeViewers = [];
-  List<CallRequestModel> callRequests = [];
-  List<CallRequestListModel> callDetailRequest = [];
-  List<String> callRequestsList = [];
   List<String> broadcasterList = [];
   List<BroadcasterModel> broadcasterModels = [];
   List<BroadcasterModel> broadcasterDetails = [];
@@ -120,6 +112,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
   // Flag to prevent multiple API calls for the same milestone
   bool _isCallingBonusAPI = false;
+
+  // Total bonus diamonds earned from API calls
+  int _totalBonusDiamonds = 0;
 
   // Host activity tracking for viewers
   Timer? _hostActivityTimer;
@@ -161,12 +156,12 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   final int _maxAudioCallers = 8; // Audio room can have more participants
 
   // Global key for CallManageBottomSheet
-  final GlobalKey<State<CallManageBottomSheet>> callManageBottomSheetKey =
-      GlobalKey<State<CallManageBottomSheet>>();
+  final GlobalKey<State<CallManageBottomSheet>> callManageBottomSheetKey = GlobalKey<State<CallManageBottomSheet>>();
 
   @override
   void initState() {
     super.initState();
+    _initializeFromRoomData(); // Initialize from existing room data
     // Initialize totalSeats = selected seats + 2 (host + special)
     // e.g., 6 People = 6 + 2 = 8 total seats
     totalSeats = widget.numberOfSeats + 2;
@@ -176,6 +171,100 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       _updateSeatsWithBroadcasters();
       _loadUidAndInitialize();
     });
+  }
+
+  /// Initialize state from existing room data (when joining existing live)
+  void _initializeFromRoomData() {
+    if (widget.roomData != null) {
+      final roomData = widget.roomData!;
+
+      // Initialize duration and start time based on existing duration
+      if (roomData.duration > 0) {
+        _streamStartTime = DateTime.now().subtract(Duration(seconds: roomData.duration));
+        _streamDuration = Duration(seconds: roomData.duration);
+        debugPrint("🕒 Initialized stream with existing duration: ${roomData.duration}s");
+      }
+
+      // Initialize bonus data
+      _totalBonusDiamonds = roomData.hostBonus;
+
+      // Calculate last milestone based on existing duration to prevent duplicate API calls
+      if (roomData.duration > 0) {
+        int existingMinutes = (roomData.duration / 60).floor();
+        _lastBonusMilestone = (existingMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
+        debugPrint(
+          "🎯 Set last milestone to: $_lastBonusMilestone minutes based on duration: $existingMinutes minutes",
+        );
+      }
+
+      debugPrint("💰 Initialized with existing bonus: ${roomData.hostBonus} diamonds");
+
+      // Initialize chat messages if any
+
+      if (roomData.messages.isNotEmpty) {
+        _chatMessages.clear();
+        for (var messageData in roomData.messages) {
+          if (messageData is Map<String, dynamic>) {
+            try {
+              final chatMessage = ChatModel.fromJson(messageData);
+              _chatMessages.add(chatMessage);
+            } catch (e) {
+              debugPrint("❌ Error parsing message: $e");
+              debugPrint("❌ Message data: $messageData");
+            }
+          }
+        }
+        debugPrint("💬 Loaded ${_chatMessages.length} existing messages");
+      }
+
+      // Initialize broadcasters (excluding host)
+      if (roomData.broadcastersDetails.isNotEmpty) {
+        broadcasterModels.clear();
+        for (var broadcaster in roomData.broadcastersDetails) {
+          // Don't add host to broadcaster list
+          if (broadcaster.id != roomData.hostId) {
+            final broadcasterModel = BroadcasterModel(
+              id: broadcaster.id,
+              name: broadcaster.name,
+              avatar: broadcaster.avatar,
+              uid: broadcaster.uid,
+            );
+            broadcasterModels.add(broadcasterModel);
+          }
+        }
+        debugPrint("🎤 Loaded ${broadcasterModels.length} existing broadcasters (host excluded)");
+      }
+
+      // Initialize members as active viewers (excluding host)
+      if (roomData.membersDetails.isNotEmpty) {
+        activeViewers.clear();
+        for (var member in roomData.membersDetails) {
+          // Don't add host to viewers list
+          if (member.id != roomData.hostId) {
+            final viewer = JoinedUserModel(
+              id: member.id,
+              avatar: member.avatar,
+              name: member.name,
+              uid: member.uid,
+              currentLevel: member.currentLevel,
+              currentBackground: member.currentBackground,
+              currentTag: member.currentTag,
+              diamonds: 0, // Initialize with 0, will be updated from gifts
+            );
+            activeViewers.add(viewer);
+          }
+        }
+        debugPrint("👥 Loaded ${activeViewers.length} existing members as viewers");
+      }
+
+      // Set room ID if not already set
+      if (_currentRoomId == null && roomData.roomId.isNotEmpty) {
+        _currentRoomId = roomData.roomId;
+        debugPrint("🏠 Set room ID from existing data: ${roomData.roomId}");
+      }
+
+      debugPrint("✅ Successfully initialized from existing room data");
+    }
   }
 
   Future<void> _loadUidAndInitialize() async {
@@ -230,15 +319,22 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       }
     });
 
-    // Messages
+    // Sent Messages
     _sentMessageSubscription = _socketService.sentMessageStream.listen((data) {
       if (mounted) {
+        debugPrint("User sent a message: ${data.text}");
         setState(() {
           _chatMessages.add(data);
           if (_chatMessages.length > 50) {
             _chatMessages.removeAt(0);
           }
         });
+
+        final String normalizedMessage = data.text.trim().toLowerCase();
+        final dynamic entryAnimation = data.equipedStoreItems?['entry'];
+        if (normalizedMessage == 'joined the room' && entryAnimation is String && entryAnimation.isNotEmpty) {
+          _playAnimation(animationUrl: entryAnimation, title: '${data.name} joined the room');
+        }
       }
     });
 
@@ -253,9 +349,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     });
 
     // Broadcaster list
-    _broadcasterListSubscription = _socketService.broadcasterListStream.listen((
-      data,
-    ) {
+    _broadcasterListSubscription = _socketService.broadcasterListStream.listen((data) {
       if (mounted) {
         broadcasterModels = List.from(data);
         broadcasterList = broadcasterModels.map((model) => model.id).toList();
@@ -269,17 +363,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         // Update seats with real broadcaster data
         _updateSeatsWithBroadcasters();
 
-        setState(() {});
-      }
-    });
-
-    // Call requests
-    _joinCallRequestSubscription = _socketService.joinCallRequestStream.listen((
-      data,
-    ) {
-      if (mounted && !callRequests.any((user) => user.userId == data.userId)) {
-        callRequests.add(data);
-        _showSnackBar('📞 ${data.userDetails.name} wants to join', Colors.blue);
         setState(() {});
       }
     });
@@ -326,8 +409,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       userId!,
       widget.roomTitle,
       targetId: userId,
-      numberOfSeats: totalSeats,
-      seatKey: 'host', // Host always takes seat-1
+      numberOfSeats: widget.numberOfSeats,
+      seatKey: 'seat-1', // Host always takes seat-1
     );
 
     if (success) {
@@ -385,10 +468,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           avatar: authState.user.avatar,
           isHost: true,
           isLocked: false,
-          diamonds: GiftModel.totalDiamondsForHost(
-            sentGifts,
-            userId,
-          ).toDouble(),
+          diamonds: GiftModel.totalDiamondsForHost(sentGifts, userId).toDouble(),
           userId: userId,
         );
       } else if (!isHost && seats.isNotEmpty) {
@@ -416,10 +496,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           isHost: false,
           isSpecial: seatIndex == 1,
           isLocked: false,
-          diamonds: GiftModel.totalDiamondsForHost(
-            sentGifts,
-            broadcaster.id,
-          ).toDouble(),
+          diamonds: GiftModel.totalDiamondsForHost(sentGifts, broadcaster.id).toDouble(),
           userId: broadcaster.id,
         );
         seatIndex++;
@@ -453,9 +530,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
       // Set client role
       await _engine.setClientRole(
-        role: isHost
-            ? ClientRoleType.clientRoleBroadcaster
-            : ClientRoleType.clientRoleAudience,
+        role: isHost ? ClientRoleType.clientRoleBroadcaster : ClientRoleType.clientRoleAudience,
       );
 
       // Audio-only setup - no video
@@ -472,17 +547,12 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
             debugPrint("User $remoteUid joined audio channel");
           },
-          onUserOffline:
-              (
-                RtcConnection connection,
-                int remoteUid,
-                UserOfflineReasonType reason,
-              ) {
-                debugPrint("User $remoteUid left audio channel");
-                setState(() {
-                  _audioCallerUids.remove(remoteUid);
-                });
-              },
+          onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
+            debugPrint("User $remoteUid left audio channel");
+            setState(() {
+              _audioCallerUids.remove(remoteUid);
+            });
+          },
           onRemoteAudioStateChanged:
               (
                 RtcConnection connection,
@@ -493,8 +563,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               ) {
                 if (state == RemoteAudioState.remoteAudioStateDecoding) {
                   setState(() {
-                    if (!_audioCallerUids.contains(remoteUid) &&
-                        _audioCallerUids.length < _maxAudioCallers) {
+                    if (!_audioCallerUids.contains(remoteUid) && _audioCallerUids.length < _maxAudioCallers) {
                       _audioCallerUids.add(remoteUid);
                     }
                   });
@@ -528,9 +597,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           uid: 0,
           options: ChannelMediaOptions(
             channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
-            clientRoleType: isHost
-                ? ClientRoleType.clientRoleBroadcaster
-                : ClientRoleType.clientRoleAudience,
+            clientRoleType: isHost ? ClientRoleType.clientRoleBroadcaster : ClientRoleType.clientRoleAudience,
             // Audio-only settings
             publishMicrophoneTrack: true,
             publishCameraTrack: false, // Disable camera
@@ -546,6 +613,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
   // Socket and helper methods
   void _emitMessageToSocket(String message) {
+    debugPrint("Emitting message to socket: $message");
     if (message.isNotEmpty && _currentRoomId != null) {
       _socketService.sendMessage(_currentRoomId!, message);
     }
@@ -592,13 +660,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: color,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        ..showSnackBar(SnackBar(content: Text(message), backgroundColor: color, duration: const Duration(seconds: 2)));
     }
   }
 
@@ -622,15 +684,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       setState(() {
         _muted = !_muted;
       });
-      _showSnackBar(
-        _muted ? '🔇 Microphone muted' : '🎤 Microphone unmuted',
-        _muted ? Colors.orange : Colors.green,
-      );
+      _showSnackBar(_muted ? '🔇 Microphone muted' : '🎤 Microphone unmuted', _muted ? Colors.orange : Colors.green);
     } else {
-      _showSnackBar(
-        '🎤 Only hosts and speakers can use microphone',
-        Colors.orange,
-      );
+      _showSnackBar('🎤 Only hosts and speakers can use microphone', Colors.orange);
     }
   }
 
@@ -642,12 +698,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           _streamDuration = DateTime.now().difference(_streamStartTime!);
         });
 
-        if (isHost &&
-            _streamDuration.inMinutes >= _bonusIntervalMinutes &&
-            !_isCallingBonusAPI) {
-          int currentMilestone =
-              (_streamDuration.inMinutes ~/ _bonusIntervalMinutes) *
-              _bonusIntervalMinutes;
+        if (isHost && _streamDuration.inMinutes >= _bonusIntervalMinutes && !_isCallingBonusAPI) {
+          int currentMilestone = (_streamDuration.inMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
           if (currentMilestone > _lastBonusMilestone) {
             _callDailyBonusAPI();
           }
@@ -698,10 +750,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     if (isStreamEnd) {
       currentMilestone = totalMinutes;
     } else {
-      currentMilestone =
-          (totalMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
-      if (currentMilestone <= _lastBonusMilestone ||
-          currentMilestone < _bonusIntervalMinutes) {
+      currentMilestone = (totalMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
+      if (currentMilestone <= _lastBonusMilestone || currentMilestone < _bonusIntervalMinutes) {
         return;
       }
     }
@@ -729,10 +779,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                 }
               });
 
-              _showSnackBar(
-                '🎉 Streaming bonus: $bonusDiamonds diamonds!',
-                Colors.green,
-              );
+              _showSnackBar('🎉 Streaming bonus: $bonusDiamonds diamonds!', Colors.green);
             }
           }
         },
@@ -757,12 +804,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         _isCallingBonusAPI = false;
       }
     }
-  }
-
-  void _updateCallManageBottomSheet() {
-    // Update the bottom sheet if it's currently open
-    // Note: This is a simplified version - the actual implementation
-    // would need to check if the bottom sheet is open and update it
   }
 
   // End live stream
@@ -797,9 +838,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               userId, // Use userId for host
             );
 
-            debugPrint(
-              "🏆 Host ending live stream - Total earned diamonds: $earnedDiamonds",
-            );
+            debugPrint("🏆 Host ending live stream - Total earned diamonds: $earnedDiamonds");
             debugPrint("📊 Total gifts received: ${sentGifts.length}");
 
             context.go(
@@ -845,9 +884,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: AssetImage(
-                  "assets/icons/audio_room/audio_room_background.png",
-                ),
+                image: AssetImage("assets/icons/audio_room/audio_room_background.png"),
                 fit: BoxFit.cover,
               ),
             ),
@@ -958,14 +995,10 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: seat.name != null
-                        ? Colors.white.withOpacity(0.3)
-                        : Colors.white.withOpacity(0.5),
+                    color: seat.name != null ? Colors.white.withOpacity(0.3) : Colors.white.withOpacity(0.5),
                     width: 2,
                   ),
-                  color: seat.name != null
-                      ? Colors.transparent
-                      : Colors.white.withOpacity(0.1),
+                  color: seat.name != null ? Colors.transparent : Colors.white.withOpacity(0.1),
                 ),
                 child: ClipOval(
                   child: seat.name != null
@@ -976,21 +1009,13 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                                 errorBuilder: (context, error, stackTrace) {
                                   return Container(
                                     color: Colors.grey[800],
-                                    child: Icon(
-                                      Icons.person,
-                                      color: Colors.white54,
-                                      size: 28.sp,
-                                    ),
+                                    child: Icon(Icons.person, color: Colors.white54, size: 28.sp),
                                   );
                                 },
                               )
                             : Container(
                                 color: Colors.grey[800],
-                                child: Icon(
-                                  Icons.person,
-                                  color: Colors.white54,
-                                  size: 28.sp,
-                                ),
+                                child: Icon(Icons.person, color: Colors.white54, size: 28.sp),
                               ))
                       : Container(
                           decoration: BoxDecoration(
@@ -1000,8 +1025,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                                 seat.isLocked
                                     ? "assets/icons/audio_room/lock_seat.png"
                                     : (seat.isSpecial && !seat.isHost)
-                                        ? "assets/icons/audio_room/special_seat.png"
-                                        : "assets/icons/audio_room/empty_seat.png",
+                                    ? "assets/icons/audio_room/special_seat.png"
+                                    : "assets/icons/audio_room/empty_seat.png",
                               ),
                               fit: BoxFit.contain,
                             ),
@@ -1042,19 +1067,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: Offset(0, 2))],
                     ),
-                    child: Icon(
-                      Icons.mic,
-                      color: Colors.grey[700],
-                      size: 14.sp,
-                    ),
+                    child: Icon(Icons.mic, color: Colors.grey[700], size: 14.sp),
                   ),
                 ),
             ],
@@ -1065,11 +1080,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           // User name or seat number
           Text(
             seat.name ?? "Seat ${index + 1}",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w500),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
@@ -1142,9 +1153,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                         children: [
                           if (isHost)
                             HostInfo(
-                              imageUrl:
-                                  state.user.avatar ??
-                                  "https://thispersondoesnotexist.com/",
+                              imageUrl: state.user.avatar ?? "https://thispersondoesnotexist.com/",
                               name: state.user.name,
                               id: state.user.id.substring(0, 4),
                               hostUserId: state.user.id,
@@ -1152,9 +1161,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                             )
                           else
                             HostInfo(
-                              imageUrl:
-                                  widget.hostAvatar ??
-                                  "https://thispersondoesnotexist.com/",
+                              imageUrl: widget.hostAvatar ?? "https://thispersondoesnotexist.com/",
                               name: widget.hostName ?? "Host",
                               id: widget.hostUserId?.substring(0, 4) ?? "Host",
                               hostUserId: widget.hostUserId ?? "",
@@ -1165,12 +1172,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                           ActiveViewers(
                             activeUserList: activeViewers,
                             hostUserId: isHost ? userId : widget.hostUserId,
-                            hostName: isHost
-                                ? state.user.name
-                                : widget.hostName,
-                            hostAvatar: isHost
-                                ? state.user.avatar
-                                : widget.hostAvatar,
+                            hostName: isHost ? state.user.name : widget.hostName,
+                            hostAvatar: isHost ? state.user.avatar : widget.hostAvatar,
                           ),
 
                           // * to show the leave button
@@ -1199,10 +1202,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                                     _endLiveStream();
                                     debugPrint("Disconnect pressed");
                                   },
-                                  child: Image.asset(
-                                    "assets/icons/live_exit_icon.png",
-                                    height: 50.h,
-                                  ),
+                                  child: Image.asset("assets/icons/live_exit_icon.png", height: 50.h),
                                 ),
                         ],
                       ),
@@ -1218,8 +1218,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                                 sentGifts,
                                 isHost
                                     ? userId
-                                    : widget
-                                          .hostUserId, // Use userId for host, widget.hostUserId for viewers
+                                    : widget.hostUserId, // Use userId for host, widget.hostUserId for viewers
                               ),
                             ),
                             starCount: AppUtils.formatNumber(0),
@@ -1239,10 +1238,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                       // Chat widget - positioned at bottom left
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: LiveChatWidget(
-                          isCallingNow: broadcasterList.isNotEmpty,
-                          messages: _chatMessages,
-                        ),
+                        child: LiveChatWidget(isCallingNow: broadcasterList.isNotEmpty, messages: _chatMessages),
                       ),
 
                       SizedBox(height: 10.h),
@@ -1257,34 +1253,25 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                                 showSendMessageBottomSheet(
                                   context,
                                   onSendMessage: (message) {
-                                    print("Send message pressed");
+                                    debugPrint("Send message pressed");
                                     _emitMessageToSocket(message);
                                   },
                                 );
                               },
                               child: Stack(
                                 children: [
-                                  Image.asset(
-                                    "assets/icons/message_icon.png",
-                                    height: 40.h,
-                                  ),
+                                  Image.asset("assets/icons/message_icon.png", height: 40.h),
                                   Positioned(
                                     left: 10.w,
                                     top: 0,
                                     bottom: 0,
                                     child: Row(
                                       children: [
-                                        Image.asset(
-                                          "assets/icons/message_user_icon.png",
-                                          height: 20.h,
-                                        ),
+                                        Image.asset("assets/icons/message_user_icon.png", height: 20.h),
                                         SizedBox(width: 5.w),
                                         Text(
                                           'Say Hello!',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 18.sp,
-                                          ),
+                                          style: TextStyle(color: Colors.white, fontSize: 18.sp),
                                         ),
                                       ],
                                     ),
@@ -1303,15 +1290,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                                   context,
                                   activeViewers: activeViewers,
                                   roomId: _currentRoomId ?? roomId,
-                                  hostUserId: isHost
-                                      ? userId
-                                      : widget.hostUserId,
-                                  hostName: isHost
-                                      ? state.user.name
-                                      : widget.hostName,
-                                  hostAvatar: isHost
-                                      ? state.user.avatar
-                                      : widget.hostAvatar,
+                                  hostUserId: isHost ? userId : widget.hostUserId,
+                                  hostName: isHost ? state.user.name : widget.hostName,
+                                  hostAvatar: isHost ? state.user.avatar : widget.hostAvatar,
                                 );
                               },
                             ),
@@ -1319,17 +1300,12 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                               iconPath: "assets/icons/emoji_icon.png",
                               onTap: () {
                                 // _playAnimation();
-                                _showSnackBar(
-                                  '🎶 Not implemented yet',
-                                  Colors.green,
-                                );
+                                _showSnackBar('🎶 Not implemented yet', Colors.green);
                                 // showMusicBottomSheet(context);
                               },
                             ),
                             CustomLiveButton(
-                              iconPath: _muted
-                                  ? "assets/icons/mute_icon.png"
-                                  : "assets/icons/unmute_icon.png",
+                              iconPath: _muted ? "assets/icons/mute_icon.png" : "assets/icons/unmute_icon.png",
                               onTap: () {
                                 _toggleMute();
                               },
@@ -1343,48 +1319,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                                     Colors.green,
                                   );
                                 } else {
-                                  _showSnackBar(
-                                    '📞 Waiting for audio callers to join...',
-                                    Colors.blue,
-                                  );
+                                  _showSnackBar('📞 Waiting for audio callers to join...', Colors.blue);
                                 }
-                                showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  backgroundColor: Colors.transparent,
-                                  builder: (context) => CallManageBottomSheet(
-                                    key: callManageBottomSheetKey,
-                                    onAcceptCall: (userId) {
-                                      debugPrint(
-                                        "Accepting call request from $userId",
-                                      );
-                                      _socketService.acceptCallRequest(userId);
-                                      callRequests.removeWhere(
-                                        (call) => call.userId == userId,
-                                      );
-                                      // Update the bottom sheet with new data
-                                      _updateCallManageBottomSheet();
-                                    },
-                                    onRejectCall: (userId) {
-                                      debugPrint(
-                                        "Rejecting call request from $userId",
-                                      );
-                                      _socketService.rejectCallRequest(userId);
-                                      // Update the bottom sheet with new data
-                                      _updateCallManageBottomSheet();
-                                    },
-                                    onKickUser: (userId) {
-                                      _socketService.removeBroadcaster(userId);
-                                      debugPrint(
-                                        "Kicking user $userId from call",
-                                      );
-                                      // Update the bottom sheet with new data
-                                      _updateCallManageBottomSheet();
-                                    },
-                                    callers: callRequests,
-                                    inCallList: broadcasterModels,
-                                  ),
-                                );
                               },
                             ),
 
@@ -1421,27 +1357,18 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                               },
                               child: Stack(
                                 children: [
-                                  Image.asset(
-                                    "assets/icons/message_icon.png",
-                                    height: 40.h,
-                                  ),
+                                  Image.asset("assets/icons/message_icon.png", height: 40.h),
                                   Positioned(
                                     left: 10,
                                     top: 0,
                                     bottom: 0,
                                     child: Row(
                                       children: [
-                                        Image.asset(
-                                          "assets/icons/message_user_icon.png",
-                                          height: 20.h,
-                                        ),
+                                        Image.asset("assets/icons/message_user_icon.png", height: 20.h),
                                         SizedBox(width: 5.w),
                                         Text(
                                           'Say Hello!',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 18.sp,
-                                          ),
+                                          style: TextStyle(color: Colors.white, fontSize: 18.sp),
                                         ),
                                       ],
                                     ),
@@ -1457,15 +1384,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                                   context,
                                   activeViewers: activeViewers,
                                   roomId: _currentRoomId ?? roomId,
-                                  hostUserId: isHost
-                                      ? userId
-                                      : widget.hostUserId,
-                                  hostName: isHost
-                                      ? state.user.name
-                                      : widget.hostName,
-                                  hostAvatar: isHost
-                                      ? state.user.avatar
-                                      : widget.hostAvatar,
+                                  hostUserId: isHost ? userId : widget.hostUserId,
+                                  hostName: isHost ? state.user.name : widget.hostName,
+                                  hostAvatar: isHost ? state.user.avatar : widget.hostAvatar,
                                 );
                               },
                               height: 40.h,
@@ -1474,19 +1395,11 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                             CustomLiveButton(
                               iconPath: "assets/icons/game_user_icon.png",
                               onTap: () {
-                                showGameBottomSheet(
-                                  context,
-                                  userId: userId,
-                                  streamDuration: _streamDuration,
-                                );
+                                showGameBottomSheet(context, userId: userId, streamDuration: _streamDuration);
                               },
                               height: 40.h,
                             ),
-                            CustomLiveButton(
-                              iconPath: "assets/icons/share_user_icon.png",
-                              onTap: () {},
-                              height: 40.h,
-                            ),
+                            CustomLiveButton(iconPath: "assets/icons/share_user_icon.png", onTap: () {}, height: 40.h),
                             CustomLiveButton(
                               iconPath: "assets/icons/menu_icon.png",
                               onTap: () {
@@ -1516,8 +1429,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
   @override
   void dispose() {
-    _messageController.dispose();
-
     // Cancel all stream subscriptions
     _connectionStatusSubscription?.cancel();
     _roomCreatedSubscription?.cancel();
