@@ -4,15 +4,10 @@ import 'package:flutter/material.dart';
 class PermissionHelper {
   // Request camera and microphone permissions for live streaming
   static Future<bool> requestLiveStreamPermissions() async {
-    Map<Permission, PermissionStatus> permissions = await [
-      Permission.camera,
-      Permission.microphone,
-    ].request();
+    Map<Permission, PermissionStatus> permissions = await [Permission.camera, Permission.microphone].request();
 
-    bool cameraGranted =
-        permissions[Permission.camera] == PermissionStatus.granted;
-    bool microphoneGranted =
-        permissions[Permission.microphone] == PermissionStatus.granted;
+    bool cameraGranted = permissions[Permission.camera] == PermissionStatus.granted;
+    bool microphoneGranted = permissions[Permission.microphone] == PermissionStatus.granted;
 
     return cameraGranted && microphoneGranted;
   }
@@ -23,6 +18,15 @@ class PermissionHelper {
     bool microphoneGranted = await Permission.microphone.isGranted;
 
     return cameraGranted && microphoneGranted;
+  }
+
+  static Future<bool> requestAudioStreamPermissions() async {
+    final permissions = await [Permission.microphone].request();
+    return permissions[Permission.microphone] == PermissionStatus.granted;
+  }
+
+  static Future<bool> hasAudioStreamPermissions() async {
+    return await Permission.microphone.isGranted;
   }
 
   // Show permission dialog if permissions are denied

@@ -56,7 +56,7 @@ class AudioGoLiveScreen extends StatefulWidget {
     this.existingViewers = const [],
     this.hostCoins = 0,
     this.roomData, // Optional room data for existing rooms
-    this.numberOfSeats = 8, // Default to 8 seats
+    this.numberOfSeats = 6, // Default to 6 seats
     this.roomTitle = 'Audio Room', // Default title
   });
 
@@ -327,7 +327,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       widget.roomTitle,
       targetId: userId,
       numberOfSeats: totalSeats,
-      seatKey: 'seat-1', // Host always takes seat-1
+      seatKey: 'host', // Host always takes seat-1
     );
 
     if (success) {
@@ -360,7 +360,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     for (int i = 0; i < totalSeats; i++) {
       seats.add(
         SeatModel(
-          id: i + 1,
+          id: 'seat-$i',
           name: null,
           avatar: null,
           isHost: i == 0, // Seat 1: Host
@@ -380,7 +380,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       // Update host seat (seat 0) with real data
       if (isHost && seats.isNotEmpty) {
         seats[0] = SeatModel(
-          id: 1,
+          id: 'host',
           name: authState.user.name,
           avatar: authState.user.avatar,
           isHost: true,
@@ -394,7 +394,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       } else if (!isHost && seats.isNotEmpty) {
         // Viewer mode - show host from widget data
         seats[0] = SeatModel(
-          id: 1,
+          id: 'host',
           name: widget.hostName,
           avatar: widget.hostAvatar,
           isHost: true,
@@ -410,7 +410,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     for (var broadcaster in broadcasterModels) {
       if (seatIndex < seats.length) {
         seats[seatIndex] = SeatModel(
-          id: seatIndex + 1,
+          id: 'seat-$seatIndex',
           name: broadcaster.name,
           avatar: broadcaster.avatar,
           isHost: false,
@@ -433,9 +433,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   Future<void> initAgora() async {
     try {
       // Check permissions
-      bool hasPermissions = await PermissionHelper.hasLiveStreamPermissions();
+      bool hasPermissions = await PermissionHelper.hasAudioStreamPermissions();
       if (!hasPermissions) {
-        bool granted = await PermissionHelper.requestLiveStreamPermissions();
+        bool granted = await PermissionHelper.requestAudioStreamPermissions();
         if (!granted) {
           _showSnackBar('❌ Microphone permission required', Colors.red);
           return;
@@ -1549,7 +1549,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
 // Models
 class SeatModel {
-  final int id;
+  final String id;
   final String? name;
   final String? avatar;
   final bool isHost;

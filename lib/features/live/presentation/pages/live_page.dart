@@ -23,7 +23,7 @@ class _LivePageState extends State<LivePage> {
   final TextEditingController _passwordController = TextEditingController();
 
   // Camera related variables
-  late RtcEngine _engine;
+  RtcEngine? _engine;
   bool _isCameraInitialized = false;
   bool _isFrontCamera = true;
   bool _isInitializingCamera = false;
@@ -46,9 +46,7 @@ class _LivePageState extends State<LivePage> {
       // Load camera preference from SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       _isFrontCamera = prefs.getBool('is_front_camera') ?? true;
-      debugPrint(
-        '🔍 Loaded camera preference: ${_isFrontCamera ? 'Front' : 'Rear'} camera',
-      );
+      debugPrint('🔍 Loaded camera preference: ${_isFrontCamera ? 'Front' : 'Rear'} camera');
 
       // Check permissions
       bool hasPermissions = await PermissionHelper.hasLiveStreamPermissions();
@@ -63,8 +61,8 @@ class _LivePageState extends State<LivePage> {
       }
 
       // Initialize Agora engine
-      _engine = createAgoraRtcEngine();
-      await _engine.initialize(
+      final engine = createAgoraRtcEngine();
+      await engine.initialize(
         RtcEngineContext(
           appId: dotenv.env['AGORA_APP_ID'] ?? '',
           channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
@@ -72,17 +70,18 @@ class _LivePageState extends State<LivePage> {
       );
       // Apply the saved camera preference after preview starts
       if (!_isFrontCamera) {
-        await _engine.switchCamera();
+        await engine.switchCamera();
         debugPrint('🔄 Applied saved camera preference: Rear camera');
       } else {
         debugPrint('🔄 Applied saved camera preference: Front camera');
       }
 
-      await _engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
-      await _engine.enableVideo();
-      await _engine.startPreview();
+      await engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
+      await engine.enableVideo();
+      await engine.startPreview();
 
       setState(() {
+        _engine = engine;
         _isCameraInitialized = true;
         _isInitializingCamera = false;
       });
@@ -100,7 +99,9 @@ class _LivePageState extends State<LivePage> {
   Future<void> _flipCamera() async {
     if (_isCameraInitialized) {
       try {
-        await _engine.switchCamera();
+        final engine = _engine;
+        if (engine == null) return;
+        await engine.switchCamera();
         setState(() {
           _isFrontCamera = !_isFrontCamera;
         });
@@ -121,12 +122,8 @@ class _LivePageState extends State<LivePage> {
 
       // Verify the save was successful
       bool saved = prefs.getBool('is_front_camera') ?? true;
-      debugPrint(
-        '💾 Saved camera preference: ${isFrontCamera ? 'Front' : 'Rear'} camera',
-      );
-      debugPrint(
-        '✅ Verification - Stored value: ${saved ? 'Front' : 'Rear'} camera',
-      );
+      debugPrint('💾 Saved camera preference: ${isFrontCamera ? 'Front' : 'Rear'} camera');
+      debugPrint('✅ Verification - Stored value: ${saved ? 'Front' : 'Rear'} camera');
 
       if (saved != isFrontCamera) {
         debugPrint('⚠️ Warning: Camera preference save verification failed!');
@@ -140,9 +137,7 @@ class _LivePageState extends State<LivePage> {
     if (_isInitializingCamera) {
       return Container(
         color: Colors.black,
-        child: const Center(
-          child: CircularProgressIndicator(color: Colors.white),
-        ),
+        child: const Center(child: CircularProgressIndicator(color: Colors.white)),
       );
     }
 
@@ -158,12 +153,53 @@ class _LivePageState extends State<LivePage> {
       );
     }
 
+    final engine = _engine;
+    if (engine == null) {
+      return Container(
+        color: Colors.black,
+        child: Center(
+          child: Text(
+            'Camera not available',
+            style: TextStyle(color: Colors.white, fontSize: 16.sp),
+          ),
+        ),
+      );
+    }
+
     return AgoraVideoView(
-      controller: VideoViewController(
-        rtcEngine: _engine,
-        canvas: const VideoCanvas(uid: 0),
-      ),
+      controller: VideoViewController(rtcEngine: engine, canvas: const VideoCanvas(uid: 0)),
     );
+  }
+
+  Future<void> _disposeCamera() async {
+    final engine = _engine;
+    if (engine == null && !_isCameraInitialized && !_isInitializingCamera) {
+      return;
+    }
+
+    try {
+      if (_isCameraInitialized && engine != null) {
+        await engine.stopPreview();
+        await engine.leaveChannel();
+      }
+      if (engine != null) {
+        await engine.release();
+      }
+    } catch (e) {
+      debugPrint('Error disposing camera: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _engine = null;
+          _isCameraInitialized = false;
+          _isInitializingCamera = false;
+        });
+      } else {
+        _engine = null;
+        _isCameraInitialized = false;
+        _isInitializingCamera = false;
+      }
+    }
   }
 
   @override
@@ -183,10 +219,7 @@ class _LivePageState extends State<LivePage> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xFF6B46C1),
-                      Color(0xFF2D3748),
-                    ],
+                    colors: [Color(0xFF6B46C1), Color(0xFF2D3748)],
                   ),
                 ),
                 child: Image.asset(
@@ -198,10 +231,7 @@ class _LivePageState extends State<LivePage> {
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [
-                            Color(0xFF6B46C1),
-                            Color(0xFF2D3748),
-                          ],
+                          colors: [Color(0xFF6B46C1), Color(0xFF2D3748)],
                         ),
                       ),
                     );
@@ -217,10 +247,7 @@ class _LivePageState extends State<LivePage> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.3),
-                    Colors.black.withValues(alpha: 0.7),
-                  ],
+                  colors: [Colors.black.withValues(alpha: 0.3), Colors.black.withValues(alpha: 0.7)],
                 ),
               ),
             ),
@@ -284,18 +311,14 @@ class _LivePageState extends State<LivePage> {
                             child: Container(
                               height: 50.h,
                               decoration: BoxDecoration(
-                                color: isLiveSelected
-                                    ? Colors.white
-                                    : Colors.transparent,
+                                color: isLiveSelected ? Colors.white : Colors.transparent,
                                 borderRadius: BorderRadius.circular(25.r),
                               ),
                               child: Center(
                                 child: Text(
                                   'Live',
                                   style: TextStyle(
-                                    color: isLiveSelected
-                                        ? Colors.black
-                                        : Colors.white,
+                                    color: isLiveSelected ? Colors.black : Colors.white,
                                     fontSize: 16.sp,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -308,10 +331,15 @@ class _LivePageState extends State<LivePage> {
                       SizedBox(width: 72.w),
                       Center(
                         child: InkWell(
-                          onTap: () {
-                            setState(() {
-                              isLiveSelected = false;
-                            });
+                          onTap: () async {
+                            if (isLiveSelected) {
+                              await _disposeCamera();
+                            }
+                            if (mounted) {
+                              setState(() {
+                                isLiveSelected = false;
+                              });
+                            }
                           },
                           child: Container(
                             height: 33.h,
@@ -323,18 +351,14 @@ class _LivePageState extends State<LivePage> {
                             child: Container(
                               height: 50.h,
                               decoration: BoxDecoration(
-                                color: !isLiveSelected
-                                    ? Colors.white
-                                    : Colors.transparent,
+                                color: !isLiveSelected ? Colors.white : Colors.transparent,
                                 borderRadius: BorderRadius.circular(25.r),
                               ),
                               child: Center(
                                 child: Text(
                                   'Audio Live',
                                   style: TextStyle(
-                                    color: !isLiveSelected
-                                        ? Colors.black
-                                        : Colors.white,
+                                    color: !isLiveSelected ? Colors.black : Colors.white,
                                     fontSize: 16.sp,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -354,36 +378,23 @@ class _LivePageState extends State<LivePage> {
                     height: 85.h,
                     padding: EdgeInsets.all(10.w),
                     decoration: BoxDecoration(
-                      border: Border.all(
-                        width: 2.w,
-                        color: Colors.white.withValues(alpha: 0.3),
-                      ),
+                      border: Border.all(width: 2.w, color: Colors.white.withValues(alpha: 0.3)),
                       borderRadius: BorderRadius.circular(12.r),
                       color: Colors.black.withValues(alpha: 0.3),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Image.asset(
-                          'assets/images/image_holder.png',
-                          width: 75.w,
-                          height: 75.h,
-                        ),
+                        Image.asset('assets/images/image_holder.png', width: 75.w, height: 75.h),
                         SizedBox(width: 16.w),
                         Expanded(
                           child: TextField(
                             controller: _titleController,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16.sp,
-                            ),
+                            style: TextStyle(color: Colors.white, fontSize: 16.sp),
                             decoration: InputDecoration(
                               filled: false,
                               hintText: 'Add a title',
-                              hintStyle: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.7),
-                                fontSize: 16.sp,
-                              ),
+                              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 16.sp),
                               hintMaxLines: 2,
                               border: InputBorder.none,
                             ),
@@ -398,11 +409,7 @@ class _LivePageState extends State<LivePage> {
                   // Select Category
                   Text(
                     'Select Category',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w500),
                   ),
 
                   SizedBox(height: 16.h),
@@ -412,10 +419,7 @@ class _LivePageState extends State<LivePage> {
                     children: [
                       _buildCategoryButton('Song', selectedCategory == 'Song'),
                       SizedBox(width: 16.w),
-                      _buildCategoryButton(
-                        'Music',
-                        selectedCategory == 'Music',
-                      ),
+                      _buildCategoryButton('Music', selectedCategory == 'Music'),
                     ],
                   ),
 
@@ -426,11 +430,7 @@ class _LivePageState extends State<LivePage> {
                     // Category (People Count)
                     Text(
                       'Category',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w500),
                     ),
 
                     SizedBox(height: 16.h),
@@ -438,20 +438,11 @@ class _LivePageState extends State<LivePage> {
                     // People Count Selection
                     Row(
                       children: [
-                        _buildPeopleButton(
-                          '6 People',
-                          selectedPeopleCount == '6 People',
-                        ),
+                        _buildPeopleButton('6 People', selectedPeopleCount == '6 People'),
                         SizedBox(width: 12.w),
-                        _buildPeopleButton(
-                          '8 People',
-                          selectedPeopleCount == '8 People',
-                        ),
+                        _buildPeopleButton('8 People', selectedPeopleCount == '8 People'),
                         SizedBox(width: 12.w),
-                        _buildPeopleButton(
-                          '12 People',
-                          selectedPeopleCount == '12 People',
-                        ),
+                        _buildPeopleButton('12 People', selectedPeopleCount == '12 People'),
                       ],
                     ),
 
@@ -460,11 +451,7 @@ class _LivePageState extends State<LivePage> {
                     // Password Section
                     Text(
                       'Password',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w500),
                     ),
 
                     SizedBox(height: 16.h),
@@ -476,26 +463,17 @@ class _LivePageState extends State<LivePage> {
                             height: 50.h,
                             padding: EdgeInsets.symmetric(horizontal: 16.w),
                             decoration: BoxDecoration(
-                              border: Border.all(
-                                width: 1.w,
-                                color: Colors.white.withValues(alpha: 0.3),
-                              ),
+                              border: Border.all(width: 1.w, color: Colors.white.withValues(alpha: 0.3)),
                               borderRadius: BorderRadius.circular(8.r),
                               color: Colors.black.withValues(alpha: 0.3),
                             ),
                             child: TextField(
                               controller: _passwordController,
                               enabled: isPasswordEnabled,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16.sp,
-                              ),
+                              style: TextStyle(color: Colors.white, fontSize: 16.sp),
                               decoration: InputDecoration(
                                 hintText: 'Enter Password',
-                                hintStyle: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.5),
-                                  fontSize: 16.sp,
-                                ),
+                                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 16.sp),
                                 border: InputBorder.none,
                               ),
                             ),
@@ -512,24 +490,17 @@ class _LivePageState extends State<LivePage> {
                             width: 50.w,
                             height: 28.h,
                             decoration: BoxDecoration(
-                              color: isPasswordEnabled
-                                  ? const Color(0xFFFF69B4)
-                                  : Colors.white.withValues(alpha: 0.3),
+                              color: isPasswordEnabled ? const Color(0xFFFF69B4) : Colors.white.withValues(alpha: 0.3),
                               borderRadius: BorderRadius.circular(14.r),
                             ),
                             child: AnimatedAlign(
                               duration: const Duration(milliseconds: 200),
-                              alignment: isPasswordEnabled
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
+                              alignment: isPasswordEnabled ? Alignment.centerRight : Alignment.centerLeft,
                               child: Container(
                                 width: 24.w,
                                 height: 24.h,
                                 margin: EdgeInsets.all(2.w),
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                ),
+                                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
                               ),
                             ),
                           ),
@@ -550,11 +521,7 @@ class _LivePageState extends State<LivePage> {
                           label: 'Flip Camera',
                           onTap: _flipCamera,
                         ),
-                        _buildActionButton(
-                          icon: "assets/icons/beauty_icon.png",
-                          label: 'Beauty',
-                          onTap: () {},
-                        ),
+                        _buildActionButton(icon: "assets/icons/beauty_icon.png", label: 'Beauty', onTap: () {}),
                       ],
                     ),
 
@@ -583,18 +550,14 @@ class _LivePageState extends State<LivePage> {
                         } else {
                           // Audio Live mode
                           // Extract number from selectedPeopleCount (e.g., "6 People" -> 6)
-                          int numberOfSeats = int.parse(
-                            selectedPeopleCount.split(' ').first,
-                          );
-                          
+                          int numberOfSeats = int.parse(selectedPeopleCount.split(' ').first);
+
                           if (mounted) {
                             context.push(
                               AppRoutes.audioLive,
                               extra: {
                                 'numberOfSeats': numberOfSeats,
-                                'title': _titleController.text.isEmpty 
-                                    ? 'Audio Room' 
-                                    : _titleController.text,
+                                'title': _titleController.text.isEmpty ? 'Audio Room' : _titleController.text,
                               },
                             );
                           }
@@ -602,18 +565,12 @@ class _LivePageState extends State<LivePage> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFF85A3),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28.r),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
                         elevation: 0,
                       ),
                       child: Text(
                         'Go Live',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
@@ -639,12 +596,7 @@ class _LivePageState extends State<LivePage> {
         padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.transparent,
-          border: Border.all(
-            width: 2.w,
-            color: isSelected
-                ? Colors.white
-                : Colors.white.withValues(alpha: 0.3),
-          ),
+          border: Border.all(width: 2.w, color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.3)),
           borderRadius: BorderRadius.circular(20.r),
         ),
         child: Text(
@@ -670,12 +622,7 @@ class _LivePageState extends State<LivePage> {
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.transparent,
-          border: Border.all(
-            width: 2.w,
-            color: isSelected
-                ? Colors.white
-                : Colors.white.withValues(alpha: 0.3),
-          ),
+          border: Border.all(width: 2.w, color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.3)),
           borderRadius: BorderRadius.circular(20.r),
         ),
         child: Text(
@@ -690,11 +637,7 @@ class _LivePageState extends State<LivePage> {
     );
   }
 
-  Widget _buildActionButton({
-    required String icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildActionButton({required String icon, required String label, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -703,11 +646,7 @@ class _LivePageState extends State<LivePage> {
           SizedBox(height: 8.h),
           Text(
             label,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -720,8 +659,8 @@ class _LivePageState extends State<LivePage> {
     _passwordController.dispose();
     // Only dispose camera if it was initialized
     if (_isCameraInitialized) {
-      _engine.leaveChannel();
-      _engine.release();
+      _engine?.leaveChannel();
+      _engine?.release();
     }
     super.dispose();
   }
