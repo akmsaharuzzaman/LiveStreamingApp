@@ -149,8 +149,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   StreamSubscription? _broadcasterListSubscription;
   StreamSubscription? _bannedListSubscription;
   StreamSubscription? _bannedUserSubscription;
-  StreamSubscription? _joinCallRequestSubscription;
-  StreamSubscription? _joinCallRequestListSubscription;
 
   // Chat messages
   final List<ChatModel> _chatMessages = [];
@@ -210,7 +208,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       _uiLog("💰 Initialized with existing bonus: ${roomData.hostBonus} diamonds");
 
       // Initialize chat messages if any
-
       if (roomData.messages.isNotEmpty) {
         _chatMessages.clear();
         for (var messageData in roomData.messages) {
@@ -1248,7 +1245,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                       // Chat widget - positioned at bottom left
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: LiveChatWidget(isCallingNow: broadcasterList.isNotEmpty, messages: _chatMessages),
+                        child: LiveChatWidget(isCallingNow: true, messages: _chatMessages),
                       ),
 
                       SizedBox(height: 10.h),
@@ -1453,8 +1450,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     _broadcasterListSubscription?.cancel();
     _bannedListSubscription?.cancel();
     _bannedUserSubscription?.cancel();
-    _joinCallRequestSubscription?.cancel();
-    _joinCallRequestListSubscription?.cancel();
 
     // Stop timers
     _durationTimer?.cancel();

@@ -296,10 +296,14 @@ class AudioSocketService {
       }
     });
 
-    _socket!.on('send-audio-data', (data) {
+    _socket!.on('send-audio-message', (data) {
       _log('💬 Audio message response: $data');
-      if (data is Map<String, dynamic>) {
-        _sentMessageController.add(ChatModel.fromJson(data));
+      try {
+        if (data is Map<String, dynamic>) {
+          _sentMessageController.add(ChatModel.fromJson(data));
+        }
+      } catch (e) {
+        _log('❌ Audio message response error: $e');
       }
     });
 
@@ -470,25 +474,6 @@ class AudioSocketService {
     }
   }
 
-  /// Join call request
-  Future<bool> joinCallRequest(String roomId) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('📋 Getting rooms list');
-
-      _socket!.emit(_joinCallRequestEvent, {'roomId': roomId});
-      return true;
-    } catch (e) {
-      _log('❌ Error getting rooms: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to get rooms: $e'});
-      return false;
-    }
-  }
-
   /// Send Message
   Future<bool> sendMessage(String roomId, String message) async {
     if (!_isConnected || _socket == null) {
@@ -504,63 +489,6 @@ class AudioSocketService {
     } catch (e) {
       _log('❌ Error sending audio message: $e');
       _errorMessageController.add({'status': 'error', 'message': 'Failed to send message: $e'});
-      return false;
-    }
-  }
-
-  /// Get join call request list
-  Future<bool> getJoinCallRequestList() async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('📋 Getting join call request list');
-
-      _socket!.emit(_joinCallRequestListEvent, {'roomId': _currentRoomId});
-      return true;
-    } catch (e) {
-      _log('❌ Error getting join call request list: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to get join call request list: $e'});
-      return false;
-    }
-  }
-
-  /// Accept call request
-  Future<bool> acceptCallRequest(String userId) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('✅ Accepting call request from user: $userId');
-
-      _socket!.emit(_acceptCallRequestEvent, {'roomId': _currentRoomId, 'targetId': userId});
-      return true;
-    } catch (e) {
-      _log('❌ Error accepting call request: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to accept call request: $e'});
-      return false;
-    }
-  }
-
-  /// Reject call request
-  Future<bool> rejectCallRequest(String userId) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('❌ Rejecting call request from user: $userId');
-
-      _socket!.emit(_rejectCallRequestEvent, {'roomId': _currentRoomId, 'targetId': userId});
-      return true;
-    } catch (e) {
-      _log('❌ Error rejecting call request: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to reject call request: $e'});
       return false;
     }
   }
