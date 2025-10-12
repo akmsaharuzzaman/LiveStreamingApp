@@ -43,11 +43,11 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
         setState(() {
           try {
             userProfile = UserModel.fromJson(userData);
+            isLoading = false;
           } catch (e) {
             errorMessage = 'Error parsing user data: $e';
+            isLoading = false;
           }
-          userProfile = UserModel.fromJson(userData);
-          isLoading = false;
         });
       } else {
         setState(() {
@@ -72,28 +72,28 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
 
     try {
       final userApiClient = getIt<UserApiClient>();
-      final isCurrentlyFollowing = userProfile!.relationship?.myFollowing == true;
+      final isCurrentlyFollowing = userProfile?.relationship?.myFollowing == true;
 
       ApiResponse<Map<String, dynamic>> response;
 
       if (isCurrentlyFollowing) {
-        response = await userApiClient.unfollowUser(userProfile!.id);
+        response = await userApiClient.unfollowUser(userProfile?.id ?? '');
       } else {
-        response = await userApiClient.followUser(userProfile!.id);
+        response = await userApiClient.followUser(userProfile?.id ?? '');
       }
 
       if (response.isSuccess) {
         // Update the local state
         setState(() {
-          userProfile = userProfile!.copyWith(
-            relationship: userProfile!.relationship?.copyWith(myFollowing: !isCurrentlyFollowing),
+          userProfile = userProfile?.copyWith(
+            relationship: userProfile?.relationship?.copyWith(myFollowing: !isCurrentlyFollowing),
           );
         });
 
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isCurrentlyFollowing ? 'Unfollowed ${userProfile!.name}' : 'Following ${userProfile!.name}'),
+            content: Text(isCurrentlyFollowing ? 'Unfollowed ${userProfile?.name}' : 'Following ${userProfile?.name}'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 2),
           ),
@@ -132,11 +132,11 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
       // Navigate directly to chat conversation with this user
       // Pass user information as extra data for better UX
       context.push(
-        '/chat-details/${userProfile!.id}',
+        '/chat-details/${userProfile?.id}',
         extra: {
-          'userName': userProfile!.name,
-          'userAvatar': userProfile!.avatar ?? userProfile!.profilePictureUrl,
-          'userEmail': userProfile!.email,
+          'userName': userProfile?.name,
+          'userAvatar': userProfile?.avatar ?? userProfile?.profilePictureUrl,
+          'userEmail': userProfile?.email,
         },
       );
 
@@ -244,6 +244,10 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
   }
 
   Widget _buildUserProfileContent() {
+    if (userProfile == null) {
+      return const Center(child: Text('No user data available'));
+    }
+    
     return Column(
       children: [
         // Profile Header with background
@@ -271,6 +275,10 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
   }
 
   Widget _buildFanBadges() {
+    if (userProfile == null) {
+      return const SizedBox.shrink();
+    }
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -284,6 +292,10 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
   }
 
   Widget _buildStats() {
+    if (userProfile == null) {
+      return const SizedBox.shrink();
+    }
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -342,42 +354,42 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
     List<Widget> badges = [];
 
     // Age Badge
-    if (userProfile!.userRole == 'age') {
+    if (userProfile?.userRole == 'age') {
       badges.add(Image.asset('assets/images/general/age_tag.png', height: 20.h));
     }
 
     // Coin Badge
-    if (userProfile!.userRole == 'coin') {
+    if (userProfile?.userRole == 'coin') {
       badges.add(Image.asset('assets/images/general/coin_tag.png', height: 20.h));
     }
 
     // VIP Badge
-    if (userProfile!.userRole == 'vip') {
+    if (userProfile?.userRole == 'vip') {
       badges.add(Image.asset('assets/images/general/vip_tag.png', height: 20.h));
     }
 
     // SVIP Badge
-    if (userProfile!.userRole == 'svip') {
+    if (userProfile?.userRole == 'svip') {
       badges.add(Image.asset('assets/images/general/svip_tag.png', height: 20.h));
     }
 
     // Host Badge
-    if (userProfile!.userRole == 'host') {
+    if (userProfile?.userRole == 'host') {
       badges.add(Image.asset('assets/images/general/host_tag.png', height: 20.h));
     }
 
     // Agent Badge
-    if (userProfile!.userRole == 'agent') {
+    if (userProfile?.userRole == 'agent') {
       badges.add(Image.asset('assets/images/general/agent_tag.png', height: 20.h));
     }
 
     // Re Seller Badge
-    if (userProfile!.userRole == 're_seller') {
+    if (userProfile?.userRole == 're_seller') {
       badges.add(Image.asset('assets/images/general/re_seller_tag.png', height: 20.h));
     }
 
     // Admin Badge
-    if (userProfile!.userRole == 'admin') {
+    if (userProfile?.userRole == 'admin') {
       badges.add(Image.asset('assets/images/general/super_admin_frame.png', height: 20.h));
     }
 
@@ -387,13 +399,24 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
     // }
 
     // Add level badge if level is greater than 0
-    if (userProfile!.level! > 0) {
+    final level = userProfile?.level;
+    if (level != null && level > 0) {
       badges.add(
         Stack(
           clipBehavior: Clip.none,
           children: [
-            (userProfile!.currentLevelBackground != null && userProfile!.currentLevelBackground!.isNotEmpty)
-                ? Image.network(userProfile!.currentLevelBackground!, fit: BoxFit.fill, height: 20.h, width: 56.w)
+            (userProfile?.currentLevelBackground != null && userProfile!.currentLevelBackground!.isNotEmpty)
+                ? Image.network(
+                    userProfile!.currentLevelBackground!,
+                    fit: BoxFit.fill,
+                    height: 20.h,
+                    width: 56.w,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 20.h,
+                      width: 56.w,
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r), color: Colors.blue),
+                    ),
+                  )
                 : Container(
                     height: 20.h,
                     width: 56.w,
@@ -403,15 +426,24 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
               left: -10,
               child: Row(
                 children: [
-                  (userProfile!.currentLevelTag != null && userProfile!.currentLevelTag!.isNotEmpty)
-                      ? Image.network(userProfile!.currentLevelTag!, fit: BoxFit.fill, height: 20.h, width: 20.w)
+                  (userProfile?.currentLevelTag != null && userProfile!.currentLevelTag!.isNotEmpty)
+                      ? Image.network(
+                          userProfile!.currentLevelTag!,
+                          fit: BoxFit.fill,
+                          height: 20.h,
+                          width: 20.w,
+                          errorBuilder: (context, error, stackTrace) => Text(
+                            "Lvl",
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14.sp),
+                          ),
+                        )
                       : Text(
                           "Lvl",
                           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14.sp),
                         ),
                   SizedBox(width: 4.w),
                   Text(
-                    "Lv.${userProfile!.level}",
+                    "Lv.${level}",
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14.sp),
                   ),
                 ],
@@ -429,11 +461,13 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
   }
 
   Widget _buildProfileHeader() {
+    if (userProfile == null) {
+      return const SizedBox.shrink();
+    }
+    
     return InkWell(
       onTap: () {
-        if (userProfile != null) {
-          context.pushNamed('viewProfile', queryParameters: {'userId': userProfile!.id});
-        }
+        context.pushNamed('viewProfile', queryParameters: {'userId': userProfile!.id});
         context.pop(); // Close the bottom sheet
       },
       child: Container(
@@ -466,7 +500,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
                     border: Border.all(color: Colors.white, width: 2),
                   ),
                   child: ClipOval(
-                    child: userProfile!.avatar != null
+                    child: userProfile?.avatar != null
                         ? Image.network(
                             userProfile!.avatar!,
                             width: 72.w,
@@ -505,7 +539,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  userProfile!.name,
+                  userProfile?.name ?? 'User',
                   style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w400, color: Color(0xFF202020)),
                 ),
                 SizedBox(width: 8.w),
@@ -528,7 +562,11 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
   }
 
   Widget _buildActionButtons() {
-    final relationship = userProfile!.relationship;
+    if (userProfile == null) {
+      return const SizedBox.shrink();
+    }
+    
+    final relationship = userProfile?.relationship;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,

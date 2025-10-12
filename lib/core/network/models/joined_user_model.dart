@@ -4,6 +4,9 @@ class JoinedUserModel {
   final String name;
   final String uid;
   final int diamonds;
+  final int? currentLevel;
+  final String? currentBackground;
+  final String? currentTag;
 
   JoinedUserModel({
     required this.id,
@@ -11,6 +14,9 @@ class JoinedUserModel {
     required this.name,
     required this.uid,
     this.diamonds = 0,
+    this.currentLevel,
+    this.currentBackground,
+    this.currentTag,
   });
 
   factory JoinedUserModel.fromJson(Map<String, dynamic> json) {
@@ -20,6 +26,9 @@ class JoinedUserModel {
       name: json['name'] as String,
       uid: json['uid'] as String,
       diamonds: json['diamonds'] as int? ?? 0,
+      currentLevel: json['currentLevel'],
+      currentBackground: json['currentBackground'],
+      currentTag: json['currentTag'],
     );
   }
 
@@ -30,6 +39,9 @@ class JoinedUserModel {
     String? name,
     String? uid,
     int? diamonds,
+    int? currentLevel,
+    String? currentBackground,
+    String? currentTag,
   }) {
     return JoinedUserModel(
       id: id ?? this.id,
@@ -37,6 +49,9 @@ class JoinedUserModel {
       name: name ?? this.name,
       uid: uid ?? this.uid,
       diamonds: diamonds ?? this.diamonds,
+      currentLevel: currentLevel ?? this.currentLevel,
+      currentBackground: currentBackground ?? this.currentBackground,
+      currentTag: currentTag ?? this.currentTag,
     );
   }
 }
