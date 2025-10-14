@@ -1,16 +1,13 @@
 import 'dart:async';
 import 'package:dlstarlive/core/network/models/ban_user_model.dart';
 import 'package:dlstarlive/core/network/models/broadcaster_model.dart';
-import 'package:dlstarlive/core/network/models/chat_model.dart';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
-import 'package:dlstarlive/core/network/models/gift_model.dart';
-import 'package:dlstarlive/core/network/models/joined_user_model.dart';
 import 'package:dlstarlive/core/network/models/left_user_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
-import 'models/admin_details_model.dart';
-import 'models/mute_user_model.dart';
+import '../../../core/network/models/mute_user_model.dart';
+import '../models/chat_model.dart';
 
 /// Comprehensive Socket Service for Audio Live Streaming
 /// Handles all socket operations including room management and real-time events
@@ -30,49 +27,100 @@ class AudioSocketService {
     }
   }
 
-  // Stream controllers for the 11 new events
-  final StreamController<Map<String, dynamic>> _errorMessageController =
-      StreamController<Map<String, dynamic>>.broadcast();
-  final StreamController<List<String>> _roomClosedController = StreamController<List<String>>.broadcast();
-  final StreamController<JoinedUserModel> _userJoinedController = StreamController<JoinedUserModel>.broadcast();
-  final StreamController<LeftUserModel> _userLeftController = StreamController<LeftUserModel>.broadcast();
-  final StreamController<List<String>> _removeBroadcasterController = StreamController<List<String>>.broadcast();
-  final StreamController<List<BroadcasterModel>> _broadcasterListController =
-      StreamController<List<BroadcasterModel>>.broadcast();
-  final StreamController<List<BroadcasterModel>> _broadcasterDetailsController =
-      StreamController<List<BroadcasterModel>>.broadcast();
-  final StreamController<List<String>> _roomListController = StreamController<List<String>>.broadcast();
-  final StreamController<List<GetRoomModel>> _getRoomsController = StreamController<List<GetRoomModel>>.broadcast();
-  final StreamController<ChatModel> _sentMessageController = StreamController<ChatModel>.broadcast();
-  final StreamController<bool> _connectionStatusController = StreamController<bool>.broadcast();
-  final StreamController<GiftModel> _sentGiftController = StreamController<GiftModel>.broadcast();
-  final StreamController<BanUserModel> _bannedUserController = StreamController<BanUserModel>.broadcast();
-  final StreamController<AdminDetailsModel> _adminDetailsController = StreamController<AdminDetailsModel>.broadcast();
-  final StreamController<List<String>> _bannedListController = StreamController<List<String>>.broadcast();
-  final StreamController<MuteUserModel> _muteUserController = StreamController<MuteUserModel>.broadcast();
-
   // Constants
   static const String _baseUrl = 'http://31.97.222.97:8000';
 
   // Event names - Audio room specific events
-  static const String _createRoomEvent = 'create-audio-room';
-  static const String _deleteRoomEvent = 'delete-audio-room';
-  static const String _joinRoomEvent = 'join-audio-room';
-  static const String _leaveRoomEvent = 'leave-audio-room';
-  static const String _getRoomsEvent = 'get-all-audio-rooms';
-  static const String _joinCallRequestEvent = 'join-audio-seat';
-  static const String _joinCallRequestListEvent = 'audio-seat-list';
-  static const String _sendMessageEvent = 'send-audio-message';
-  static const String _acceptCallRequestEvent = 'accept-audio-seat';
-  static const String _rejectCallRequestEvent = 'reject-audio-seat';
-  static const String _removeBroadcasterEvent = 'remove-from-seat';
-  static const String _broadcasterListEvent = 'audio-room-data';
-  static const String _broadcasterDetailsEvent = 'audio-room-details';
-  static const String _sentGiftEvent = 'send-audio-gift';
-  static const String _banUserEvent = 'ban-audio-user';
-  static const String _makeAdminEvent = 'make-audio-admin';
-  static const String _bannedListEvent = 'audio-banned-list';
-  static const String _muteUserEvent = 'audio-mute-or-mute';
+  static const String _getAllRoomsEvent = 'get-all-audio-rooms'; // 1
+  static const String _audioRoomDetailsEvent = 'audio-room-details'; // 2
+
+  static const String _createRoomEvent = 'create-audio-room'; // 3
+  static const String _closeRoomEvent = 'close-audio-room'; // 4
+
+  static const String _joinAudioRoomEvent = 'join-audio-room'; // 5
+  static const String _leaveAudioRoomEvent = 'leave-audio-room'; // 6
+  static const String _userLeftEvent = 'audio-user-left'; // 7
+
+  static const String _joinSeatRequestEvent = 'join-audio-seat'; // 8
+  static const String _leaveSeatRequestEvent = 'leave-audio-seat'; // 9
+  static const String _removeFromSeatEvent = 'remove-from-seat'; // 10
+
+  static const String _sendMessageEvent = 'send-audio-message'; // 11
+  static const String _errorMessageEvent = 'error-message'; // 12
+
+  static const String _muteUnmuteUserEvent = 'audio-mute-unmute'; // 13
+
+  static const String _banUserEvent = 'ban-audio-user'; // 14
+  static const String _unbanUserEvent = 'unban-audio-user'; // 15
+
+  // create-audio-room      join-audio-room   join-audio-seat   leave-audio-room     get-all-audio-rooms ;
+  //    send-audio-message.   error-message.
+  // remove-from-seat.   leave-audio-seat.   audio-room-details.  audio-mute-unmute.   audio-user-left.   ban-audio-user.   unban-audio-user
+
+  // Stream controllers for the 15 events
+
+  // Get all audio rooms stream
+  final StreamController<List<GetRoomModel>> _getAllRoomsController = StreamController<List<GetRoomModel>>.broadcast(); // 1
+
+  // Audio room details stream
+  final StreamController<List<BroadcasterModel>> _audioRoomDetailsController =
+      StreamController<List<BroadcasterModel>>.broadcast(); // 2
+
+  // Create audio room stream
+  final StreamController<List<BroadcasterModel>> _createRoomController =
+      StreamController<List<BroadcasterModel>>.broadcast(); // 3
+
+  // Close audio room stream
+  final StreamController<List<BroadcasterModel>> _closeRoomController =
+      StreamController<List<BroadcasterModel>>.broadcast(); // 4
+
+  // Join audio room stream
+  final StreamController<List<BroadcasterModel>> _joinRoomController =
+      StreamController<List<BroadcasterModel>>.broadcast(); // 5
+
+  // Leave audio room stream
+  final StreamController<List<BroadcasterModel>> _leaveRoomController =
+      StreamController<List<BroadcasterModel>>.broadcast(); // 6
+
+  // User left stream
+  final StreamController<LeftUserModel> _userLeftController = StreamController<LeftUserModel>.broadcast(); // 7
+
+  // Join audio seat stream
+  final StreamController<List<BroadcasterModel>> _joinSeatRequestController =
+      StreamController<List<BroadcasterModel>>.broadcast(); // 8
+
+  // Leave audio seat stream
+  final StreamController<List<BroadcasterModel>> _leaveSeatRequestController =
+      StreamController<List<BroadcasterModel>>.broadcast(); // 9
+
+  // Remove from seat stream
+  final StreamController<List<BroadcasterModel>> _removeFromSeatController =
+      StreamController<List<BroadcasterModel>>.broadcast(); // 10
+
+  // Send Audio Message stream
+  final StreamController<AudioChatModel> _sendMessageController =
+      StreamController<AudioChatModel>.broadcast(); // 11
+
+  // Error message stream
+  final StreamController<Map<String, dynamic>> _errorMessageController =
+      StreamController<Map<String, dynamic>>.broadcast(); // 12
+
+  // Mute/Unmute user stream
+  final StreamController<MuteUserModel> _muteUnmuteUserController =
+      StreamController<MuteUserModel>.broadcast(); // 13
+
+  // Ban user stream
+  final StreamController<BanUserModel> _banUserController =
+      StreamController<BanUserModel>.broadcast(); // 14
+
+  // Unban user stream
+  final StreamController<BanUserModel> _unbanUserController =
+      StreamController<BanUserModel>.broadcast(); // 15
+
+  // Connection status stream
+  final StreamController<bool> _connectionStatusController = StreamController<bool>.broadcast();
+
+
 
   /// Singleton instance
   static AudioSocketService get instance {
@@ -82,22 +130,25 @@ class AudioSocketService {
 
   AudioSocketService._internal();
 
-  /// Stream getters for listening to the 11 events
-  Stream<Map<String, dynamic>> get errorMessageStream => _errorMessageController.stream;
-  Stream<List<String>> get roomClosedStream => _roomClosedController.stream;
-  Stream<JoinedUserModel> get userJoinedStream => _userJoinedController.stream;
-  Stream<LeftUserModel> get userLeftStream => _userLeftController.stream;
-  Stream<List<String>> get removeBroadcasterStream => _removeBroadcasterController.stream;
-  Stream<List<BroadcasterModel>> get broadcasterListStream => _broadcasterListController.stream;
-  Stream<List<String>> get roomListStream => _roomListController.stream;
-  Stream<List<GetRoomModel>> get getRoomsStream => _getRoomsController.stream;
+  /// Stream getters for listening to the 15 events
+  Stream<List<GetRoomModel>> get getAllRoomsStream => _getAllRoomsController.stream; // 1
+  Stream<List<BroadcasterModel>> get audioRoomDetailsStream => _audioRoomDetailsController.stream; // 2
+  Stream<List<BroadcasterModel>> get createRoomStream => _createRoomController.stream; // 3
+  Stream<List<BroadcasterModel>> get closeRoomStream => _closeRoomController.stream; // 4
+  Stream<List<BroadcasterModel>> get joinRoomStream => _joinRoomController.stream; // 5
+  Stream<List<BroadcasterModel>> get leaveRoomStream => _leaveRoomController.stream; // 6
+  Stream<LeftUserModel> get userLeftStream => _userLeftController.stream; // 7
+  Stream<List<BroadcasterModel>> get joinSeatRequestStream => _joinSeatRequestController.stream; // 8
+  Stream<List<BroadcasterModel>> get leaveSeatRequestStream => _leaveSeatRequestController.stream; // 9
+  Stream<List<BroadcasterModel>> get removeFromSeatStream => _removeFromSeatController.stream; // 10
+  Stream<AudioChatModel> get sendMessageStream => _sendMessageController.stream; // 11
+  Stream<Map<String, dynamic>> get errorMessageStream => _errorMessageController.stream; // 12
+  Stream<MuteUserModel> get muteUnmuteUserStream => _muteUnmuteUserController.stream; // 13
+  Stream<BanUserModel> get banUserStream => _banUserController.stream; // 14
+  Stream<BanUserModel> get unbanUserStream => _unbanUserController.stream; // 15
+
+  /// Connection status stream
   Stream<bool> get connectionStatusStream => _connectionStatusController.stream;
-  Stream<ChatModel> get sentMessageStream => _sentMessageController.stream;
-  Stream<GiftModel> get sentGiftStream => _sentGiftController.stream;
-  Stream<AdminDetailsModel> get adminDetailsStream => _adminDetailsController.stream;
-  Stream<BanUserModel> get bannedUserStream => _bannedUserController.stream;
-  Stream<List<String>> get bannedListStream => _bannedListController.stream;
-  Stream<MuteUserModel> get muteUserStream => _muteUserController.stream;
 
   /// Getters
   bool get isConnected => _isConnected;
@@ -181,25 +232,22 @@ class AudioSocketService {
 
     _log('🧹 Clearing existing audio socket listeners');
 
-    // Clear all audio event listeners
-    _socket!.off('error-message');
-    _socket!.off('audio-room-closed');
-    _socket!.off('create-audio-user');
-    _socket!.off('audio-user-left');
-    _socket!.off('join-audio-seat');
-    _socket!.off('audio-seat-list');
-    _socket!.off('accept-audio-seat');
-    _socket!.off('remove-from-seat');
-    _socket!.off('audio-room-data');
-    _socket!.off('audio-room-list');
-    _socket!.off('get-all-audio-rooms');
-    _socket!.off('send-audio-data');
-    _socket!.off('send-audio-gift');
-    _socket!.off('audio-room-details');
-    _socket!.off('ban-audio-user');
-    _socket!.off('make-audio-admin');
-    _socket!.off('audio-banned-list');
-    _socket!.off('audio-mute-or-mute');
+    // Clear all 15 audio event listeners
+    _socket!.off(_getAllRoomsEvent); // 1
+    _socket!.off(_audioRoomDetailsEvent); // 2
+    _socket!.off(_createRoomEvent); // 3
+    _socket!.off(_closeRoomEvent); // 4
+    _socket!.off(_joinAudioRoomEvent); // 5
+    _socket!.off(_leaveAudioRoomEvent); // 6
+    _socket!.off(_userLeftEvent); // 7
+    _socket!.off(_joinSeatRequestEvent); // 8
+    _socket!.off(_leaveSeatRequestEvent); // 9
+    _socket!.off(_removeFromSeatEvent); // 10
+    _socket!.off(_sendMessageEvent); // 11
+    _socket!.off(_errorMessageEvent); // 12
+    _socket!.off(_muteUnmuteUserEvent); // 13
+    _socket!.off(_banUserEvent); // 14
+    _socket!.off(_unbanUserEvent); // 15
   }
 
   /// Setup socket event listeners
@@ -229,121 +277,70 @@ class AudioSocketService {
     });
 
     // Audio room specific events
-    _socket!.on('error-message', (data) {
+    _socket!.on(_errorMessageEvent, (data) {
       _log('❌ Error message: $data');
       if (data is Map<String, dynamic>) {
         _errorMessageController.add(data);
       }
     });
 
-    _socket!.on('audio-room-closed', (data) {
-      _log('🚪 Audio room closed: $data');
-      if (data is List) {
-        _roomClosedController.add(List<String>.from(data));
-      }
-    });
-
-    _socket!.on('create-audio-user', (data) {
-      _log('👋 Audio user joined: $data');
-      if (data is Map<String, dynamic>) {
-        _userJoinedController.add(JoinedUserModel.fromJson(data));
-      }
-    });
-
-    _socket!.on('audio-user-left', (data) {
+    // User left
+    _socket!.on(_userLeftEvent, (data) {
       _log('👋 Audio user left: $data');
       if (data is Map<String, dynamic>) {
         _userLeftController.add(LeftUserModel.fromJson(data));
       }
     });
 
-    _socket!.on('remove-from-seat', (data) {
+    // Remove from seat
+    _socket!.on(_removeFromSeatEvent, (data) {
       _log('🚫 Remove from seat: $data');
       if (data is List) {
-        _removeBroadcasterController.add(List<String>.from(data));
+        _removeFromSeatController.add(List<BroadcasterModel>.from(data));
       }
     });
 
-    _socket!.on('audio-room-data', (data) {
-      _log('📺 Audio room data: $data');
-      if (data is List) {
-        List<BroadcasterModel> broadcasters = BroadcasterModel.fromListJson(data);
-        // Remove duplicates based on ID
-        Set<String> seenIds = {};
-        broadcasters = broadcasters.where((broadcaster) => seenIds.add(broadcaster.id)).toList();
-        _broadcasterListController.add(broadcasters);
-      }
-    });
-
-    _socket!.on('audio-room-details', (data) {
+    // Audio room details
+    _socket!.on(_audioRoomDetailsEvent, (data) {
       _log('📺 Audio room details: $data');
       if (data is List) {
-        _broadcasterDetailsController.add(BroadcasterModel.fromListJson(data));
+        _audioRoomDetailsController.add(BroadcasterModel.fromListJson(data));
       }
     });
 
-    _socket!.on('audio-room-list', (data) {
-      _log('📋 Audio room list: $data');
-      if (data is List) {
-        _roomListController.add(List<String>.from(data));
-      }
-    });
-
-    _socket!.on('get-all-audio-rooms', (data) {
+    // Get all audio rooms
+    _socket!.on(_getAllRoomsEvent, (data) {
       _log('🏠 Get all audio rooms response: $data');
       if (data is List) {
-        _getRoomsController.add(GetRoomModel.listFromJson(data));
+        _getAllRoomsController.add(GetRoomModel.listFromJson(data));
       }
     });
 
-    _socket!.on('send-audio-message', (data) {
-      _log('💬 Audio message response: $data');
+    // Sent messages
+    _socket!.on(_sendMessageEvent, (data) {
+      _log('💬 Audio message response: ${data['message']}');
       try {
         if (data is Map<String, dynamic>) {
-          _sentMessageController.add(ChatModel.fromJson(data));
+          _sendMessageController.add(AudioChatModel.fromJson(data['data']));
         }
       } catch (e) {
         _log('❌ Audio message response error: $e');
       }
     });
 
-    // Audio Gift events
-    _socket!.on('send-audio-gift', (data) {
-      _log('🎁 Audio gift response: $data');
-      if (data is Map<String, dynamic>) {
-        _sentGiftController.add(GiftModel.fromJson(data));
-      }
-    });
-
-    //Ban Audio User events
-    _socket!.on('ban-audio-user', (data) {
+    //Ban Audio User
+    _socket!.on(_banUserEvent, (data) {
       _log('🚫 Ban audio user response: $data');
       if (data is Map<String, dynamic>) {
-        _bannedUserController.add(BanUserModel.fromJson(data));
+        _banUserController.add(BanUserModel.fromJson(data));
       }
     });
 
-    //Make audio admin
-    _socket!.on('make-audio-admin', (data) {
-      _log('👑 Make audio admin response: $data');
+    //Mute/Unmute Audio User
+    _socket!.on(_muteUnmuteUserEvent, (data) {
+      _log('🔇 Audio mute/unmute user response: $data');
       if (data is Map<String, dynamic>) {
-        _adminDetailsController.add(AdminDetailsModel.fromJson(data));
-      }
-    });
-
-    //Audio Banned List
-    _socket!.on('audio-banned-list', (data) {
-      _log('🚫 Audio banned list response: $data');
-      if (data is List) {
-        _bannedListController.add(List<String>.from(data));
-      }
-    });
-
-    //Mute Audio User
-    _socket!.on('audio-mute-or-mute', (data) {
-      _log('🔇 Audio mute user response: $data');
-      if (data is Map<String, dynamic>) {
-        _muteUserController.add(MuteUserModel.fromJson(data));
+        _muteUnmuteUserController.add(MuteUserModel.fromJson(data));
       }
     });
   }
@@ -367,7 +364,7 @@ class AudioSocketService {
       final Map<String, dynamic> roomData = {
         'roomId': roomId,
         'title': title,
-        'roomType': 'audio',
+        // 'roomType': 'audio',
         'numberOfSeats': numberOfSeats,
         'seatKey': seatKey,
       };
@@ -397,7 +394,7 @@ class AudioSocketService {
     try {
       _log('🗑️ Deleting room: $roomId');
 
-      _socket!.emit(_deleteRoomEvent, {'roomId': roomId});
+      _socket!.emit(_closeRoomEvent, {'roomId': roomId});
 
       if (_currentRoomId == roomId) {
         _currentRoomId = null;
@@ -421,7 +418,7 @@ class AudioSocketService {
     try {
       _log('🚪 Joining room: $roomId');
 
-      _socket!.emit(_joinRoomEvent, {'roomId': roomId});
+      _socket!.emit(_joinAudioRoomEvent, {'roomId': roomId});
       _currentRoomId = roomId;
       return true;
     } catch (e) {
@@ -441,7 +438,7 @@ class AudioSocketService {
     try {
       _log('🚪 Leaving room: $roomId');
 
-      _socket!.emit(_leaveRoomEvent, {'roomId': roomId});
+      _socket!.emit(_leaveAudioRoomEvent, {'roomId': roomId});
 
       if (_currentRoomId == roomId) {
         _currentRoomId = null;
@@ -465,7 +462,7 @@ class AudioSocketService {
     try {
       _log('📋 Getting rooms list');
 
-      _socket!.emit(_getRoomsEvent, {});
+      _socket!.emit(_getAllRoomsEvent, {});
       return true;
     } catch (e) {
       _log('❌ Error getting rooms: $e');
@@ -484,30 +481,11 @@ class AudioSocketService {
     try {
       _log('💬 Sending audio message: $message');
 
-      _socket!.emit(_sendMessageEvent, {'roomId': roomId, 'messageText': message});
+      _socket!.emit(_sendMessageEvent, {'roomId': roomId, 'text': message});
       return true;
     } catch (e) {
       _log('❌ Error sending audio message: $e');
       _errorMessageController.add({'status': 'error', 'message': 'Failed to send message: $e'});
-      return false;
-    }
-  }
-
-  /// Remove broadcaster
-  Future<bool> removeBroadcaster(String userId) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('🚫 Removing broadcaster: $userId');
-
-      _socket!.emit(_removeBroadcasterEvent, {'roomId': _currentRoomId, 'targetId': userId});
-      return true;
-    } catch (e) {
-      _log('❌ Error removing broadcaster: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to remove broadcaster: $e'});
       return false;
     }
   }
@@ -531,20 +509,39 @@ class AudioSocketService {
     }
   }
 
-  ///Mute User
-  Future<bool> muteUser(String userId) async {
+  // Unban User
+  Future<bool> unbanUser(String userId) async {
     if (!_isConnected || _socket == null) {
       _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
       return false;
     }
 
     try {
-      _log('🔇 Muting audio user: $userId');
+      _log('🚫 Unbanning audio user: $userId');
 
-      _socket!.emit(_muteUserEvent, {'roomId': _currentRoomId, 'targetId': userId});
+      _socket!.emit(_unbanUserEvent, {'roomId': _currentRoomId, 'targetId': userId});
       return true;
     } catch (e) {
-      _log('❌ Error muting audio user: $e');
+      _log('❌ Error unbanning audio user: $e');
+      _errorMessageController.add({'status': 'error', 'message': 'Failed to unban user: $e'});
+      return false;
+    }
+  }
+
+  ///Mute/Unmute User
+  Future<bool> muteUnmuteUser(String userId) async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
+      return false;
+    }
+
+    try {
+      _log('🔇 Muting/Unmuting audio user: $userId');
+
+      _socket!.emit(_muteUnmuteUserEvent, {'roomId': _currentRoomId, 'targetId': userId});
+      return true;
+    } catch (e) {
+      _log('❌ Error muting/Unmuting audio user: $e');
       _errorMessageController.add({'status': 'error', 'message': 'Failed to mute user: $e'});
       return false;
     }
@@ -571,25 +568,6 @@ class AudioSocketService {
     }
   }
 
-  ///Make admin
-  Future<bool> makeAdmin(String userId) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('👑 Making audio admin: $userId');
-
-      _socket!.emit(_makeAdminEvent, {'roomId': _currentRoomId, 'targetId': userId});
-      return true;
-    } catch (e) {
-      _log('❌ Error making audio admin: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to make admin: $e'});
-      return false;
-    }
-  }
-
   /// Join a specific seat in audio room
   Future<bool> joinSeat({
     required String roomId,
@@ -611,7 +589,7 @@ class AudioSocketService {
         data['numberOfSeats'] = numberOfSeats;
       }
 
-      _socket!.emit('join-audio-seat', data);
+      _socket!.emit(_joinSeatRequestEvent, data);
       return true;
     } catch (e) {
       _log('❌ Error joining seat: $e');
@@ -630,30 +608,11 @@ class AudioSocketService {
     try {
       _log('🚪 Leaving seat: $seatKey in room: $roomId');
 
-      _socket!.emit('leave-audio-seat', {'roomId': roomId, 'seatKey': seatKey, 'targetId': targetId});
+      _socket!.emit(_leaveSeatRequestEvent, {'roomId': roomId, 'seatKey': seatKey, 'targetId': targetId});
       return true;
     } catch (e) {
       _log('❌ Error leaving seat: $e');
       _errorMessageController.add({'status': 'error', 'message': 'Failed to leave seat: $e'});
-      return false;
-    }
-  }
-
-  /// Accept user to a specific seat (host only)
-  Future<bool> acceptToSeat({required String roomId, required String seatKey, required String targetId}) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('✅ Accepting user to seat: $seatKey');
-
-      _socket!.emit('accept-audio-seat', {'roomId': roomId, 'seatKey': seatKey, 'targetId': targetId});
-      return true;
-    } catch (e) {
-      _log('❌ Error accepting to seat: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to accept to seat: $e'});
       return false;
     }
   }
@@ -668,7 +627,7 @@ class AudioSocketService {
     try {
       _log('🚫 Removing user from seat: $seatKey');
 
-      _socket!.emit('remove-from-seat', {'roomId': roomId, 'seatKey': seatKey, 'targetId': targetId});
+      _socket!.emit(_removeFromSeatEvent, {'roomId': roomId, 'seatKey': seatKey, 'targetId': targetId});
       return true;
     } catch (e) {
       _log('❌ Error removing from seat: $e');
@@ -726,16 +685,22 @@ class AudioSocketService {
   void dispose() {
     disconnect();
 
-    // Close all stream controllers for the 11 new events
-    _errorMessageController.close();
-    _roomClosedController.close();
-    _userJoinedController.close();
-    _userLeftController.close();
-    _removeBroadcasterController.close();
-    _broadcasterListController.close();
-    _roomListController.close();
-    _getRoomsController.close();
-    _connectionStatusController.close();
+    // Close all stream controllers for the 15 new events
+    _getAllRoomsController.close(); // 1
+    _audioRoomDetailsController.close(); // 2
+    _createRoomController.close(); // 3
+    _closeRoomController.close(); // 4
+    _joinRoomController.close(); // 5
+    _leaveRoomController.close(); // 6
+    _userLeftController.close(); // 7
+    _joinSeatRequestController.close(); // 8
+    _leaveSeatRequestController.close(); // 9
+    _removeFromSeatController.close(); // 10
+    _sendMessageController.close(); // 11
+    _errorMessageController.close(); // 12
+    _muteUnmuteUserController.close(); // 13
+    _banUserController.close(); // 14
+    _unbanUserController.close(); // 15
 
     _instance = null;
   }
