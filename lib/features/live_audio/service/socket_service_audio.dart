@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:dlstarlive/core/network/models/ban_user_model.dart';
 import 'package:dlstarlive/core/network/models/broadcaster_model.dart';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
+import 'package:dlstarlive/core/network/models/joined_user_model.dart';
 import 'package:dlstarlive/core/network/models/left_user_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -71,8 +72,8 @@ class AudioSocketService {
       StreamController<List<BroadcasterModel>>.broadcast(); // 3
 
   // Close audio room stream
-  final StreamController<List<BroadcasterModel>> _closeRoomController =
-      StreamController<List<BroadcasterModel>>.broadcast(); // 4
+  final StreamController<List<String>> _closeRoomController =
+      StreamController<List<String>>.broadcast(); // 4
 
   // Join audio room stream
   final StreamController<List<BroadcasterModel>> _joinRoomController =
@@ -86,8 +87,8 @@ class AudioSocketService {
   final StreamController<LeftUserModel> _userLeftController = StreamController<LeftUserModel>.broadcast(); // 7
 
   // Join audio seat stream
-  final StreamController<List<BroadcasterModel>> _joinSeatRequestController =
-      StreamController<List<BroadcasterModel>>.broadcast(); // 8
+  final StreamController<JoinedUserModel> _joinSeatRequestController =
+      StreamController<JoinedUserModel>.broadcast(); // 8
 
   // Leave audio seat stream
   final StreamController<List<BroadcasterModel>> _leaveSeatRequestController =
@@ -121,7 +122,6 @@ class AudioSocketService {
   final StreamController<bool> _connectionStatusController = StreamController<bool>.broadcast();
 
 
-
   /// Singleton instance
   static AudioSocketService get instance {
     _instance ??= AudioSocketService._internal();
@@ -134,11 +134,11 @@ class AudioSocketService {
   Stream<List<GetRoomModel>> get getAllRoomsStream => _getAllRoomsController.stream; // 1
   Stream<List<BroadcasterModel>> get audioRoomDetailsStream => _audioRoomDetailsController.stream; // 2
   Stream<List<BroadcasterModel>> get createRoomStream => _createRoomController.stream; // 3
-  Stream<List<BroadcasterModel>> get closeRoomStream => _closeRoomController.stream; // 4
+  Stream<List<String>> get closeRoomStream => _closeRoomController.stream; // 4
   Stream<List<BroadcasterModel>> get joinRoomStream => _joinRoomController.stream; // 5
   Stream<List<BroadcasterModel>> get leaveRoomStream => _leaveRoomController.stream; // 6
   Stream<LeftUserModel> get userLeftStream => _userLeftController.stream; // 7
-  Stream<List<BroadcasterModel>> get joinSeatRequestStream => _joinSeatRequestController.stream; // 8
+  Stream<JoinedUserModel> get joinSeatRequestStream => _joinSeatRequestController.stream; // 8
   Stream<List<BroadcasterModel>> get leaveSeatRequestStream => _leaveSeatRequestController.stream; // 9
   Stream<List<BroadcasterModel>> get removeFromSeatStream => _removeFromSeatController.stream; // 10
   Stream<AudioChatModel> get sendMessageStream => _sendMessageController.stream; // 11

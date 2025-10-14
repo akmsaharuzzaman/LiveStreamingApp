@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:dlstarlive/core/network/api_service.dart';
-import 'package:dlstarlive/core/network/models/chat_model.dart';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:dlstarlive/core/network/models/joined_user_model.dart';
 import 'package:dlstarlive/core/utils/app_utils.dart';
@@ -15,7 +14,6 @@ import 'package:dlstarlive/features/live/presentation/component/gift_bottom_shee
 import 'package:dlstarlive/features/live/presentation/component/menu_bottom_sheet.dart';
 import 'package:dlstarlive/features/live/presentation/widgets/animated_layer.dart';
 import 'package:dlstarlive/features/live/presentation/widgets/call_manage_bottom_sheet.dart';
-import 'package:dlstarlive/features/live/presentation/widgets/live_chat_widget.dart';
 import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -30,11 +28,14 @@ import '../../../core/network/models/ban_user_model.dart';
 import '../../../core/network/models/broadcaster_model.dart';
 import '../../../core/network/models/gift_model.dart';
 import '../../../core/network/models/mute_user_model.dart';
-import '../../../core/network/socket_service_audio.dart';
+import '../models/chat_model.dart';
+import '../models/seat_model.dart';
+import '../service/socket_service_audio.dart';
 import '../../live/presentation/component/active_viwers.dart';
 import '../../live/presentation/component/end_stream_overlay.dart';
 import '../../live/presentation/component/host_info.dart';
 import '../../live/presentation/component/send_message_buttonsheet.dart';
+import 'widgets/chat_widget.dart';
 
 class AudioGoLiveScreen extends StatefulWidget {
   final String? roomId;
@@ -123,9 +124,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   // Flag to prevent multiple API calls for the same milestone
   bool _isCallingBonusAPI = false;
 
-  // Total bonus diamonds earned from API calls
-  int _totalBonusDiamonds = 0;
-
   // Host activity tracking for viewers
   Timer? _hostActivityTimer;
   bool _animationPlaying = false;
@@ -135,23 +133,26 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
   // Stream subscriptions for proper cleanup
   StreamSubscription? _connectionStatusSubscription;
-  StreamSubscription? _roomCreatedSubscription;
-  StreamSubscription? _roomJoinedSubscription;
-  StreamSubscription? _roomLeftSubscription;
-  StreamSubscription? _roomDeletedSubscription;
-  StreamSubscription? _errorSubscription;
 
-  // Additional socket stream subscriptions
-  StreamSubscription? _userJoinedSubscription;
-  StreamSubscription? _userLeftSubscription;
-  StreamSubscription? _sentMessageSubscription;
-  StreamSubscription? _sentGiftSubscription;
-  StreamSubscription? _broadcasterListSubscription;
-  StreamSubscription? _bannedListSubscription;
-  StreamSubscription? _bannedUserSubscription;
+  // Socket subscriptions
+  StreamSubscription? _getAllRoomsSubscription; // 1
+  StreamSubscription? _audioRoomDetailsSubscription; // 2
+  StreamSubscription? _createRoomSubscription; // 3
+  StreamSubscription? _closeRoomSubscription; // 4
+  StreamSubscription? _joinRoomSubscription; // 5
+  StreamSubscription? _leaveRoomSubscription; // 6
+  StreamSubscription? _userLeftSubscription; // 7
+  StreamSubscription? _joinSeatRequestSubscription; // 8
+  StreamSubscription? _leaveSeatRequestSubscription; // 9
+  StreamSubscription? _removeFromSeatSubscription; // 10
+  StreamSubscription? _sendMessageSubscription; // 11
+  StreamSubscription? _errorMessageSubscription; // 12
+  StreamSubscription? _muteUnmuteUserSubscription; // 13
+  StreamSubscription? _banUserSubscription; // 14
+  StreamSubscription? _unbanUserSubscription; // 15
 
   // Chat messages
-  final List<ChatModel> _chatMessages = [];
+  final List<AudioChatModel> _chatMessages = [];
 
   // Agora SDK variables
   late final RtcEngine _engine;
@@ -193,16 +194,11 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         _uiLog("🕒 Initialized stream with existing duration: ${roomData.duration}s");
       }
 
-      // Initialize bonus data
-      _totalBonusDiamonds = roomData.hostBonus;
-
       // Calculate last milestone based on existing duration to prevent duplicate API calls
       if (roomData.duration > 0) {
         int existingMinutes = (roomData.duration / 60).floor();
         _lastBonusMilestone = (existingMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
-        _uiLog(
-          "🎯 Set last milestone to: $_lastBonusMilestone minutes based on duration: $existingMinutes minutes",
-        );
+        _uiLog("🎯 Set last milestone to: $_lastBonusMilestone minutes based on duration: $existingMinutes minutes");
       }
 
       _uiLog("💰 Initialized with existing bonus: ${roomData.hostBonus} diamonds");
@@ -213,7 +209,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         for (var messageData in roomData.messages) {
           if (messageData is Map<String, dynamic>) {
             try {
-              final chatMessage = ChatModel.fromJson(messageData);
+              final chatMessage = AudioChatModel.fromJson(messageData);
               _chatMessages.add(chatMessage);
             } catch (e) {
               _uiLog("❌ Error parsing message: $e");
@@ -307,7 +303,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
   void _setupSocketListeners() {
     // User joined
-    _userJoinedSubscription = _socketService.userJoinedStream.listen((data) {
+    _joinSeatRequestSubscription = _socketService.joinSeatRequestStream.listen((data) {
       if (mounted && data.id != widget.hostUserId) {
         if (!activeViewers.any((user) => user.id == data.id)) {
           activeViewers.add(data);
@@ -327,7 +323,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     });
 
     // Sent Messages
-    _sentMessageSubscription = _socketService.sentMessageStream.listen((data) {
+    _sendMessageSubscription = _socketService.sendMessageStream.listen((data) {
       if (mounted) {
         _uiLog("User sent a message: ${data.text}");
         setState(() {
@@ -345,37 +341,27 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       }
     });
 
-    // Gifts
-    _sentGiftSubscription = _socketService.sentGiftStream.listen((data) {
-      if (mounted) {
-        setState(() {
-          sentGifts.add(data);
-        });
-        _playAnimation();
-      }
-    });
-
     // Broadcaster list
-    _broadcasterListSubscription = _socketService.broadcasterListStream.listen((data) {
-      if (mounted) {
-        broadcasterModels = List.from(data);
-        broadcasterList = broadcasterModels.map((model) => model.id).toList();
+    // _broadcasterListSubscription = _socketService.broadcasterListStream.listen((data) {
+    //   if (mounted) {
+    //     broadcasterModels = List.from(data);
+    //     broadcasterList = broadcasterModels.map((model) => model.id).toList();
 
-        String? hostId = isHost ? userId : widget.hostUserId;
-        if (hostId != null && broadcasterList.contains(hostId)) {
-          broadcasterList.remove(hostId);
-          broadcasterModels.removeWhere((model) => model.id == hostId);
-        }
+    //     String? hostId = isHost ? userId : widget.hostUserId;
+    //     if (hostId != null && broadcasterList.contains(hostId)) {
+    //       broadcasterList.remove(hostId);
+    //       broadcasterModels.removeWhere((model) => model.id == hostId);
+    //     }
 
-        // Update seats with real broadcaster data
-        _updateSeatsWithBroadcasters();
+    //     // Update seats with real broadcaster data
+    //     _updateSeatsWithBroadcasters();
 
-        setState(() {});
-      }
-    });
+    //     setState(() {});
+    //   }
+    // });
 
     // Banned users
-    _bannedUserSubscription = _socketService.bannedUserStream.listen((data) {
+    _banUserSubscription = _socketService.banUserStream.listen((data) {
       if (mounted) {
         if (data.targetId == userId) {
           _handleHostDisconnection('You have been banned from this room.');
@@ -389,7 +375,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     });
 
     // Mute user
-    _socketService.muteUserStream.listen((data) {
+    _muteUnmuteUserSubscription = _socketService.muteUnmuteUserStream.listen((data) {
       if (mounted) {
         setState(() {
           currentMuteState = data;
@@ -401,7 +387,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     });
 
     // Room closed
-    _socketService.roomClosedStream.listen((data) {
+    _closeRoomSubscription = _socketService.closeRoomStream.listen((data) {
       if (mounted) {
         _handleHostDisconnection('Audio room ended by host.');
       }
@@ -884,42 +870,65 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Background
-          Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage("assets/icons/audio_room/audio_room_background.png"),
-                fit: BoxFit.cover,
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        // Always trigger cleanup when back navigation is invoked
+        _endLiveStream();
+        debugPrint(
+          'Back navigation invoked: '
+          '(cleanup triggered)',
+        );
+      },
+      child: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, state) {
+          if (state is! AuthAuthenticated) {
+            return Scaffold(
+              body: Center(
+                child: Text('Please log in to start live streaming', style: TextStyle(fontSize: 18.sp)),
               ),
-            ),
-          ),
+            );
+          } else {
+            return Scaffold(
+              body: Stack(
+                children: [
+                  // Background
+                  Container(
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: AssetImage("assets/icons/audio_room/audio_room_background.png"),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
 
-          // Main content with seats grid
-          SafeArea(
-            child: Column(
-              children: [
-                SizedBox(height: 160.h), // Space for top bar
-                _buildSeatsGrid(),
-                Spacer(),
-              ],
-            ),
-          ),
+                  // Main content with seats grid
+                  SafeArea(
+                    child: Column(
+                      children: [
+                        SizedBox(height: 160.h), // Space for top bar
+                        _buildSeatsGrid(),
+                        Spacer(),
+                      ],
+                    ),
+                  ),
 
-          // Stream options overlay (top bar, chat, bottom buttons)
-          _buildStreamOptions(state),
+                  // Stream options overlay (top bar, chat, bottom buttons)
+                  _buildStreamOptions(state),
 
-          // Animation layer
-          if (_animationPlaying)
-            AnimatedLayer(
-              gifts: sentGifts,
-              customAnimationUrl: _customAnimationUrl,
-              customTitle: _customAnimationTitle,
-              customSubtitle: _customAnimationSubtitle,
-            ),
-        ],
+                  // Animation layer
+                  if (_animationPlaying)
+                    AnimatedLayer(
+                      gifts: sentGifts,
+                      customAnimationUrl: _customAnimationUrl,
+                      customTitle: _customAnimationTitle,
+                      customSubtitle: _customAnimationSubtitle,
+                    ),
+                ],
+              ),
+            );
+          }
+        },
       ),
     );
   }
@@ -1245,7 +1254,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                       // Chat widget - positioned at bottom left
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: LiveChatWidget(isCallingNow: true, messages: _chatMessages),
+                        child: AudioChatWidget(messages: _chatMessages),
                       ),
 
                       SizedBox(height: 10.h),
@@ -1438,18 +1447,22 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   void dispose() {
     // Cancel all stream subscriptions
     _connectionStatusSubscription?.cancel();
-    _roomCreatedSubscription?.cancel();
-    _roomJoinedSubscription?.cancel();
-    _roomLeftSubscription?.cancel();
-    _roomDeletedSubscription?.cancel();
-    _errorSubscription?.cancel();
-    _userJoinedSubscription?.cancel();
-    _userLeftSubscription?.cancel();
-    _sentMessageSubscription?.cancel();
-    _sentGiftSubscription?.cancel();
-    _broadcasterListSubscription?.cancel();
-    _bannedListSubscription?.cancel();
-    _bannedUserSubscription?.cancel();
+    _getAllRoomsSubscription?.cancel(); // 1
+    _audioRoomDetailsSubscription?.cancel(); // 2
+    _createRoomSubscription?.cancel(); // 3
+    _closeRoomSubscription?.cancel(); // 4
+    _joinRoomSubscription?.cancel(); // 5
+    _leaveRoomSubscription?.cancel(); // 6
+    _userLeftSubscription?.cancel(); // 7
+    _joinSeatRequestSubscription?.cancel(); // 8
+    _leaveSeatRequestSubscription?.cancel(); // 9
+    _removeFromSeatSubscription?.cancel(); // 10
+    _sendMessageSubscription?.cancel(); // 11
+    _errorMessageSubscription?.cancel(); // 12
+    _muteUnmuteUserSubscription?.cancel(); // 13
+    _banUserSubscription?.cancel(); // 14
+    _unbanUserSubscription?.cancel(); // 15
+
 
     // Stop timers
     _durationTimer?.cancel();
@@ -1461,30 +1474,4 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
     super.dispose();
   }
-}
-
-// Models
-class SeatModel {
-  final String id;
-  final String? name;
-  final String? avatar;
-  final bool isHost;
-  final bool isSpecial;
-  final bool isLocked;
-  final double? diamonds;
-  final String? userId; // User ID occupying this seat
-
-  // Generate seat key (seat-1, seat-2, etc.)
-  String get seatKey => 'seat-$id';
-
-  SeatModel({
-    required this.id,
-    this.name,
-    this.avatar,
-    this.isHost = false,
-    this.isSpecial = false,
-    this.isLocked = false,
-    this.diamonds,
-    this.userId,
-  });
 }
