@@ -64,8 +64,8 @@ class AudioSocketService {
   final StreamController<List<AudioRoomDetails>> _getAllRoomsController = StreamController<List<AudioRoomDetails>>.broadcast(); // 1
 
   // Audio room details stream
-  final StreamController<AudioRoomDetails> _audioRoomDetailsController =
-      StreamController<AudioRoomDetails>.broadcast(); // 2
+  final StreamController<AudioRoomDetails?> _audioRoomDetailsController =
+      StreamController<AudioRoomDetails?>.broadcast(); // 2
 
   // Create audio room stream
   final StreamController<AudioRoomDetails> _createRoomController =
@@ -132,7 +132,7 @@ class AudioSocketService {
 
   /// Stream getters for listening to the 15 events
   Stream<List<AudioRoomDetails>> get getAllRoomsStream => _getAllRoomsController.stream; // 1
-  Stream<AudioRoomDetails> get audioRoomDetailsStream => _audioRoomDetailsController.stream; // 2
+  Stream<AudioRoomDetails?> get audioRoomDetailsStream => _audioRoomDetailsController.stream; // 2
   Stream<AudioRoomDetails> get createRoomStream => _createRoomController.stream; // 3
   Stream<List<String>> get closeRoomStream => _closeRoomController.stream; // 4
   Stream<AudioRoomDetails> get joinRoomStream => _joinRoomController.stream; // 5
@@ -284,11 +284,43 @@ class AudioSocketService {
       }
     });
 
+    // Room created - refresh room list
+    _socket!.on(_createRoomEvent, (data) {
+      _log('🏠 Audio room created: $data');
+      if (data is Map<String, dynamic>) {
+        _createRoomController.add(AudioRoomDetails.fromJson(data));
+        // Refresh room list after room creation
+        _refreshRoomList();
+      }
+    });
+
+    // User joined room - refresh room list
+    _socket!.on(_joinAudioRoomEvent, (data) {
+      _log('🚪 User joined audio room: $data');
+      if (data is Map<String, dynamic>) {
+        _joinRoomController.add(AudioRoomDetails.fromJson(data));
+        // Refresh room list after user joins
+        _refreshRoomList();
+      }
+    });
+
     // User left
     _socket!.on(_userLeftEvent, (data) {
       _log('👋 Audio user left: $data');
       if (data is Map<String, dynamic>) {
         _userLeftController.add(LeftUserModel.fromJson(data));
+        // Refresh room list after user leaves
+        _refreshRoomList();
+      }
+    });
+
+    // Room deleted/left - refresh room list
+    _socket!.on(_leaveAudioRoomEvent, (data) {
+      _log('🚪 Audio room left/deleted: $data');
+      if (data is Map<String, dynamic>) {
+        _leaveRoomController.add(AudioRoomDetails.fromJson(data));
+        // Refresh room list after room is left/deleted
+        _refreshRoomList();
       }
     });
 
@@ -302,9 +334,34 @@ class AudioSocketService {
 
     // Audio room details
     _socket!.on(_audioRoomDetailsEvent, (data) {
-      _log('📺 Audio room details: $data');
-      if (data is Map<String, dynamic>) {
-        _audioRoomDetailsController.add(AudioRoomDetails.fromJson(data));
+      _log('📺 Audio room details response received');
+      _log('📺 Raw response: $data');
+
+      try {
+        if (data is Map<String, dynamic>) {
+          // Check if this is a room closure notification
+          if (data['success'] == true && data['message'] == 'Room has been closed by the host' && data['data'] is Map && (data['data'] as Map).isEmpty) {
+            _log('🏠 Room has been closed by the host - notifying listeners');
+            // Emit an empty/null room details to indicate room closure
+            _audioRoomDetailsController.add(null);
+            return;
+          }
+
+          // Normal room details response
+          if (data.containsKey('data') && data['data'] is Map<String, dynamic>) {
+            final roomData = data['data'] as Map<String, dynamic>;
+            final roomDetails = AudioRoomDetails.fromJson(roomData);
+            _log('✅ Parsed room details for: ${roomDetails.roomId}');
+            _audioRoomDetailsController.add(roomDetails);
+          } else {
+            _log('❌ Invalid room details response format');
+          }
+        } else {
+          _log('❌ Room details response is not a Map');
+        }
+      } catch (e, stackTrace) {
+        _log('💥 Error processing room details response: $e');
+        _log('💥 Stack trace: $stackTrace');
       }
     });
 
@@ -480,6 +537,14 @@ class AudioSocketService {
       _log('❌ Error leaving room: $e');
       _errorMessageController.add({'status': 'error', 'message': 'Failed to leave room: $e'});
       return false;
+    }
+  }
+
+  /// Refresh room list (called when rooms are created, joined, left, etc.)
+  void _refreshRoomList() {
+    if (_isConnected && _socket != null) {
+      _log('🔄 Refreshing audio room list due to room changes');
+      _socket!.emit(_getAllRoomsEvent, {});
     }
   }
 
