@@ -162,7 +162,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeFromRoomData(); // Initialize from existing room data
+    // _initializeFromRoomData(); // Moved to after userId is loaded
     // Initialize totalSeats = selected seats + 2 (host + special)
     // e.g., 6 People = 6 + 2 = 8 total seats
     totalSeats = widget.numberOfSeats + 2;
@@ -178,6 +178,15 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   void _initializeFromRoomData() {
     if (widget.roomData != null) {
       final roomData = widget.roomData!;
+
+      // Determine if current user is the host
+      if (userId != null && roomData.hostDetails?.id == userId) {
+        isHost = true;
+        _uiLog("👑 User is the host of this room");
+      } else {
+        isHost = false;
+        _uiLog("👤 User is joining as viewer");
+      }
 
       // Initialize duration and start time based on existing duration
       if (roomData.duration != null && roomData.duration! > 0) {
@@ -206,20 +215,28 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       // Initialize members as active viewers (excluding host)
       if (roomData.membersDetails != null && roomData.membersDetails!.isNotEmpty) {
         activeViewers.clear();
-        for (var member in roomData.membersDetails!) {
-          // Don't add host to viewers list
-          if (member.id != roomData.hostDetails?.id) {
-            final viewer = JoinedUserModel(
-              id: member.id,
-              avatar: member.avatar,
-              name: member.name,
-              uid: member.uid,
-              currentLevel: member.currentLevel,
-              currentBackground: member.currentBackground,
-              currentTag: member.currentTag,
-              diamonds: 0, // Initialize with 0, will be updated from gifts
-            );
-            activeViewers.add(viewer);
+        for (var memberData in roomData.membersDetails!) {
+          if (memberData is Map<String, dynamic>) {
+            try {
+              final member = AudioHostDetails.fromJson(memberData);
+              // Don't add host to viewers list
+              if (member.id != roomData.hostDetails?.id) {
+                final viewer = JoinedUserModel(
+                  id: member.id ?? '',
+                  avatar: member.avatar ?? '',
+                  name: member.name ?? 'Unknown',
+                  uid: member.uid ?? '',
+                  currentLevel: member.currentLevel ?? 0,
+                  currentBackground: member.currentBackground ?? '',
+                  currentTag: member.currentTag ?? '',
+                  diamonds: 0, // Initialize with 0, will be updated from gifts
+                );
+                activeViewers.add(viewer);
+              }
+            } catch (e) {
+              _uiLog("❌ Error parsing member: $e");
+              _uiLog("❌ Member data: $memberData");
+            }
           }
         }
         _uiLog("👥 Loaded ${activeViewers.length} existing members as viewers");
@@ -228,6 +245,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       // Set room ID if not already set
       if (_currentRoomId == null && roomData.roomId != null) {
         _currentRoomId = roomData.roomId;
+        roomId = roomData.roomId!;
         _uiLog("🏠 Set room ID from existing data: ${roomData.roomId}");
       }
 
@@ -243,6 +261,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       setState(() {
         userId = uid;
       });
+
+      // Initialize from room data after userId is set
+      _initializeFromRoomData();
 
       // Initialize Agora and socket
       await initAgora();

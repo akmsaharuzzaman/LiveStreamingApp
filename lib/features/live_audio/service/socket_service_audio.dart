@@ -310,21 +310,40 @@ class AudioSocketService {
 
     // Get all audio rooms
     _socket!.on(_getAllRoomsEvent, (data) {
-      _log('🏠 Get all audio rooms response: ${data['data']} \n\n');
-      _log('🏠 Get all audio rooms length: ${data['data'].length} \n\n');
-      if (data is List) {
-        // Direct list response - convert each Map to AudioRoomDetails
-        _getAllRoomsController.add(data.map((room) => AudioRoomDetails.fromJson(room as Map<String, dynamic>)).toList());
-      } else if (data is Map<String, dynamic> && data.containsKey('data')) {
-        // Wrapped response with 'data' key
-        final roomsData = data['data'];
-        if (roomsData is List) {
-          _getAllRoomsController.add(roomsData.map((room) => AudioRoomDetails.fromJson(room as Map<String, dynamic>)).toList());
+      _log('🏠 Get all audio rooms response received');
+      _log('🏠 Raw data type: ${data.runtimeType}');
+      _log('🏠 Raw data: $data');
+
+      try {
+        if (data is List) {
+          _log('✅ Data is List with ${data.length} items');
+          // Direct list response - convert each Map to AudioRoomDetails
+          final rooms = data.map((room) => AudioRoomDetails.fromJson(room as Map<String, dynamic>)).toList();
+          _log('✅ Successfully parsed ${rooms.length} rooms');
+          _getAllRoomsController.add(rooms);
+        } else if (data is Map<String, dynamic>) {
+          _log('📦 Data is Map, checking for data key...');
+          if (data.containsKey('data')) {
+            final roomsData = data['data'];
+            _log('📦 Found data key, type: ${roomsData.runtimeType}');
+            if (roomsData is List) {
+              _log('✅ Data.data is List with ${roomsData.length} items');
+              final rooms = roomsData.map((room) => AudioRoomDetails.fromJson(room as Map<String, dynamic>)).toList();
+              _log('✅ Successfully parsed ${rooms.length} rooms from data field');
+              _getAllRoomsController.add(rooms);
+            } else {
+              _log('❌ Invalid audio rooms data format: data field is not a List, got: ${roomsData.runtimeType}');
+            }
+          } else {
+            _log('❌ Map does not contain data key. Available keys: ${data.keys}');
+          }
         } else {
-          _log('❌ Invalid audio rooms data format: expected List in data field');
+          _log('❌ Invalid audio rooms response format: expected List or Map, got ${data.runtimeType}');
         }
-      } else {
-        _log('❌ Invalid audio rooms response format: $data');
+      } catch (e, stackTrace) {
+        _log('💥 Error processing audio rooms response: $e');
+        _log('💥 Stack trace: $stackTrace');
+        _log('💥 Raw data that caused error: $data');
       }
     });
 
@@ -480,6 +499,58 @@ class AudioSocketService {
       _log('❌ Error getting audio rooms: $e');
       _errorMessageController.add({'status': 'error', 'message': 'Failed to get rooms: $e'});
       return false;
+    }
+  }
+
+  /// Get room details by room ID
+  Future<AudioRoomDetails?> getRoomDetails(String roomId) async {
+    if (!_isConnected || _socket == null) {
+      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
+      return null;
+    }
+
+    try {
+      _log('📋 Getting audio room details for: $roomId');
+
+      // Create a completer to wait for the response
+      final completer = Completer<AudioRoomDetails?>();
+
+      // Listen for the room details response
+      void onRoomDetails(dynamic data) {
+        try {
+          if (data is Map<String, dynamic>) {
+            final roomDetails = AudioRoomDetails.fromJson(data);
+            _log('✅ Received room details for: ${roomDetails.roomId}');
+            completer.complete(roomDetails);
+          } else {
+            _log('❌ Invalid room details format: $data');
+            completer.complete(null);
+          }
+        } catch (e) {
+          _log('❌ Error parsing room details: $e');
+          completer.complete(null);
+        }
+      }
+
+      // Set up one-time listener for room details
+      _socket!.once(_audioRoomDetailsEvent, onRoomDetails);
+
+      // Emit the request
+      _socket!.emit(_audioRoomDetailsEvent, {'roomId': roomId});
+
+      // Wait for response with timeout
+      return await completer.future.timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          _log('⏰ Room details request timeout');
+          _socket!.off(_audioRoomDetailsEvent, onRoomDetails);
+          return null;
+        },
+      );
+    } catch (e) {
+      _log('❌ Error getting room details: $e');
+      _errorMessageController.add({'status': 'error', 'message': 'Failed to get room details: $e'});
+      return null;
     }
   }
 

@@ -126,10 +126,14 @@ class _HomePageState extends State<HomePage>
 
   /// Setup audio socket event listeners
   void _setupAudioSocketListeners() {
+    debugPrint("🔧 Setting up audio socket listeners...");
+    debugPrint("🔧 Audio socket connected: ${_audioSocketService.isConnected}");
+
     // Audio room list updates
-    debugPrint("Setting up audio socket listeners");
     _audioGetRoomListSubscription = _audioSocketService.getAllRoomsStream.listen((rooms) {
+      debugPrint("📡 Audio rooms stream triggered with ${rooms.length} rooms");
       if (mounted) {
+        debugPrint("✅ Updating UI with ${rooms.length} audio rooms");
         setState(() {
           _availableAudioRooms = rooms;
           debugPrint(
@@ -137,8 +141,16 @@ class _HomePageState extends State<HomePage>
           );
           debugPrint("Audio rooms count: ${rooms.length}");
         });
+      } else {
+        debugPrint("❌ Widget not mounted, skipping UI update");
       }
+    }, onError: (error) {
+      debugPrint("❌ Audio rooms stream error: $error");
+    }, onDone: () {
+      debugPrint("🔚 Audio rooms stream completed");
     });
+
+    debugPrint("✅ Audio socket listeners setup complete");
   }
 
   /// Handle pull-to-refresh action
@@ -167,10 +179,12 @@ class _HomePageState extends State<HomePage>
             await _initializeSocket().then((value) {
               debugPrint('✅ Audio socket connected successfully');
               _setupAudioSocketListeners();
+              debugPrint('📡 Calling getRooms on audio socket...');
               _audioSocketService.getRooms();
             }); // This will reconnect both
           } else {
-            // If already connected, just get the audio rooms
+            debugPrint('Audio socket already connected, calling getRooms...');
+            debugPrint('📡 Calling getRooms on audio socket...');
             await _audioSocketService.getRooms();
           }
         }(),

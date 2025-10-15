@@ -68,26 +68,44 @@ class ListAudioRooms extends StatelessWidget {
         itemBuilder: (context, index) {
           return AudioRoomCard(
             audioRoomModel: availableAudioRooms[index],
-            onTap: () {
-              // Navigate to the audio room screen with the room ID using the named route
-              context.pushNamed(
-                'audioLive', // You'll need to define this route
-                queryParameters: {
-                  'roomId': availableAudioRooms[index].roomId,
-                  'hostName':
-                      availableAudioRooms[index].hostDetails?.name ?? 'Unknown Host',
-                  'hostUserId':
-                      availableAudioRooms[index].hostDetails?.id ?? 'Unknown User',
-                  'hostAvatar':
-                      availableAudioRooms[index].hostDetails?.avatar ??
-                      'Unknown Avatar',
-                },
-                extra: {
-                  'existingViewers': availableAudioRooms[index].membersDetails,
-                  'hostCoins': availableAudioRooms[index].hostGifts,
-                  'roomData': availableAudioRooms[index], // Pass complete room data
-                },
+            onTap: () async {
+              // Show loading indicator
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Loading room details...')),
               );
+
+              try {
+                // Fetch fresh room details
+                final roomDetails = await socketService.getRoomDetails(availableAudioRooms[index].roomId!);
+
+                if (roomDetails != null) {
+                  // Navigate to the audio room screen with updated room data
+                  context.pushNamed(
+                    'audioLive', // Using audioLive route for joining
+                    queryParameters: {
+                      'roomId': roomDetails.roomId,
+                      'hostName': roomDetails.hostDetails?.name ?? 'Unknown Host',
+                      'hostUserId': roomDetails.hostDetails?.id ?? 'Unknown User',
+                      'hostAvatar': roomDetails.hostDetails?.avatar ?? 'Unknown Avatar',
+                    },
+                    extra: {
+                      'existingViewers': roomDetails.membersDetails,
+                      'hostCoins': roomDetails.hostGifts,
+                      'roomData': roomDetails, // Pass fresh room data
+                    },
+                  );
+                } else {
+                  // Fallback to original data if fetch fails
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Failed to load room details')),
+                  );
+                }
+              } catch (e) {
+                // Fallback to original navigation on error
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: $e, using cached data')),
+                );
+              }
             },
           );
         },
