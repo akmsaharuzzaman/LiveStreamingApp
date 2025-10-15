@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'package:dlstarlive/core/network/models/ban_user_model.dart';
-import 'package:dlstarlive/core/network/models/broadcaster_model.dart';
-import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:dlstarlive/core/network/models/joined_user_model.dart';
 import 'package:dlstarlive/core/network/models/left_user_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 import '../../../core/network/models/mute_user_model.dart';
+import '../models/audio_room_details.dart';
 import '../models/chat_model.dart';
+import '../models/seat_model.dart';
 
 /// Comprehensive Socket Service for Audio Live Streaming
 /// Handles all socket operations including room management and real-time events
@@ -36,7 +36,7 @@ class AudioSocketService {
   static const String _audioRoomDetailsEvent = 'audio-room-details'; // 2
 
   static const String _createRoomEvent = 'create-audio-room'; // 3
-  static const String _closeRoomEvent = 'close-audio-room'; // 4
+  // static const String _closeRoomEvent = 'close-audio-room'; // 4
 
   static const String _joinAudioRoomEvent = 'join-audio-room'; // 5
   static const String _leaveAudioRoomEvent = 'leave-audio-room'; // 6
@@ -61,27 +61,27 @@ class AudioSocketService {
   // Stream controllers for the 15 events
 
   // Get all audio rooms stream
-  final StreamController<List<GetRoomModel>> _getAllRoomsController = StreamController<List<GetRoomModel>>.broadcast(); // 1
+  final StreamController<List<AudioRoomDetails>> _getAllRoomsController = StreamController<List<AudioRoomDetails>>.broadcast(); // 1
 
   // Audio room details stream
-  final StreamController<List<BroadcasterModel>> _audioRoomDetailsController =
-      StreamController<List<BroadcasterModel>>.broadcast(); // 2
+  final StreamController<AudioRoomDetails> _audioRoomDetailsController =
+      StreamController<AudioRoomDetails>.broadcast(); // 2
 
   // Create audio room stream
-  final StreamController<List<BroadcasterModel>> _createRoomController =
-      StreamController<List<BroadcasterModel>>.broadcast(); // 3
+  final StreamController<AudioRoomDetails> _createRoomController =
+      StreamController<AudioRoomDetails>.broadcast(); // 3
 
   // Close audio room stream
   final StreamController<List<String>> _closeRoomController =
       StreamController<List<String>>.broadcast(); // 4
 
   // Join audio room stream
-  final StreamController<List<BroadcasterModel>> _joinRoomController =
-      StreamController<List<BroadcasterModel>>.broadcast(); // 5
+  final StreamController<AudioRoomDetails> _joinRoomController =
+      StreamController<AudioRoomDetails>.broadcast(); // 5
 
   // Leave audio room stream
-  final StreamController<List<BroadcasterModel>> _leaveRoomController =
-      StreamController<List<BroadcasterModel>>.broadcast(); // 6
+  final StreamController<AudioRoomDetails> _leaveRoomController =
+      StreamController<AudioRoomDetails>.broadcast(); // 6
 
   // User left stream
   final StreamController<LeftUserModel> _userLeftController = StreamController<LeftUserModel>.broadcast(); // 7
@@ -91,12 +91,12 @@ class AudioSocketService {
       StreamController<JoinedUserModel>.broadcast(); // 8
 
   // Leave audio seat stream
-  final StreamController<List<BroadcasterModel>> _leaveSeatRequestController =
-      StreamController<List<BroadcasterModel>>.broadcast(); // 9
+  final StreamController<SeatModel> _leaveSeatRequestController =
+      StreamController<SeatModel>.broadcast(); // 9
 
   // Remove from seat stream
-  final StreamController<List<BroadcasterModel>> _removeFromSeatController =
-      StreamController<List<BroadcasterModel>>.broadcast(); // 10
+  final StreamController<SeatModel> _removeFromSeatController =
+      StreamController<SeatModel>.broadcast(); // 10
 
   // Send Audio Message stream
   final StreamController<AudioChatModel> _sendMessageController =
@@ -131,16 +131,16 @@ class AudioSocketService {
   AudioSocketService._internal();
 
   /// Stream getters for listening to the 15 events
-  Stream<List<GetRoomModel>> get getAllRoomsStream => _getAllRoomsController.stream; // 1
-  Stream<List<BroadcasterModel>> get audioRoomDetailsStream => _audioRoomDetailsController.stream; // 2
-  Stream<List<BroadcasterModel>> get createRoomStream => _createRoomController.stream; // 3
+  Stream<List<AudioRoomDetails>> get getAllRoomsStream => _getAllRoomsController.stream; // 1
+  Stream<AudioRoomDetails> get audioRoomDetailsStream => _audioRoomDetailsController.stream; // 2
+  Stream<AudioRoomDetails> get createRoomStream => _createRoomController.stream; // 3
   Stream<List<String>> get closeRoomStream => _closeRoomController.stream; // 4
-  Stream<List<BroadcasterModel>> get joinRoomStream => _joinRoomController.stream; // 5
-  Stream<List<BroadcasterModel>> get leaveRoomStream => _leaveRoomController.stream; // 6
+  Stream<AudioRoomDetails> get joinRoomStream => _joinRoomController.stream; // 5
+  Stream<AudioRoomDetails> get leaveRoomStream => _leaveRoomController.stream; // 6
   Stream<LeftUserModel> get userLeftStream => _userLeftController.stream; // 7
   Stream<JoinedUserModel> get joinSeatRequestStream => _joinSeatRequestController.stream; // 8
-  Stream<List<BroadcasterModel>> get leaveSeatRequestStream => _leaveSeatRequestController.stream; // 9
-  Stream<List<BroadcasterModel>> get removeFromSeatStream => _removeFromSeatController.stream; // 10
+  Stream<SeatModel> get leaveSeatRequestStream => _leaveSeatRequestController.stream; // 9
+  Stream<SeatModel> get removeFromSeatStream => _removeFromSeatController.stream; // 10
   Stream<AudioChatModel> get sendMessageStream => _sendMessageController.stream; // 11
   Stream<Map<String, dynamic>> get errorMessageStream => _errorMessageController.stream; // 12
   Stream<MuteUserModel> get muteUnmuteUserStream => _muteUnmuteUserController.stream; // 13
@@ -236,7 +236,7 @@ class AudioSocketService {
     _socket!.off(_getAllRoomsEvent); // 1
     _socket!.off(_audioRoomDetailsEvent); // 2
     _socket!.off(_createRoomEvent); // 3
-    _socket!.off(_closeRoomEvent); // 4
+    // _socket!.off(_closeRoomEvent); // 4
     _socket!.off(_joinAudioRoomEvent); // 5
     _socket!.off(_leaveAudioRoomEvent); // 6
     _socket!.off(_userLeftEvent); // 7
@@ -295,16 +295,16 @@ class AudioSocketService {
     // Remove from seat
     _socket!.on(_removeFromSeatEvent, (data) {
       _log('🚫 Remove from seat: $data');
-      if (data is List) {
-        _removeFromSeatController.add(List<BroadcasterModel>.from(data));
+      if (data is Map<String, dynamic>) {
+        _removeFromSeatController.add(SeatModel.fromJson(data));
       }
     });
 
     // Audio room details
     _socket!.on(_audioRoomDetailsEvent, (data) {
       _log('📺 Audio room details: $data');
-      if (data is List) {
-        _audioRoomDetailsController.add(BroadcasterModel.fromListJson(data));
+      if (data is Map<String, dynamic>) {
+        _audioRoomDetailsController.add(AudioRoomDetails.fromJson(data));
       }
     });
 
@@ -312,7 +312,7 @@ class AudioSocketService {
     _socket!.on(_getAllRoomsEvent, (data) {
       _log('🏠 Get all audio rooms response: $data');
       if (data is List) {
-        _getAllRoomsController.add(GetRoomModel.listFromJson(data));
+        _getAllRoomsController.add(List<AudioRoomDetails>.from(data));
       }
     });
 
@@ -394,7 +394,7 @@ class AudioSocketService {
     try {
       _log('🗑️ Deleting room: $roomId');
 
-      _socket!.emit(_closeRoomEvent, {'roomId': roomId});
+      _socket!.emit(_leaveAudioRoomEvent, {'roomId': roomId});
 
       if (_currentRoomId == roomId) {
         _currentRoomId = null;

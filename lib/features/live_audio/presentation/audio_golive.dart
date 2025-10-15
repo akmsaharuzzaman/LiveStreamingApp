@@ -1,34 +1,29 @@
 import 'dart:async';
-
-import 'package:agora_rtc_engine/agora_rtc_engine.dart';
-import 'package:dlstarlive/core/network/api_service.dart';
-import 'package:dlstarlive/core/network/models/get_room_model.dart';
-import 'package:dlstarlive/core/network/models/joined_user_model.dart';
-import 'package:dlstarlive/core/utils/app_utils.dart';
-import 'package:dlstarlive/core/utils/permission_helper.dart';
-import 'package:dlstarlive/features/live/presentation/component/agora_token_service.dart';
-import 'package:dlstarlive/features/live/presentation/component/custom_live_button.dart';
-import 'package:dlstarlive/features/live/presentation/component/diamond_star_status.dart';
-import 'package:dlstarlive/features/live/presentation/component/game_bottomsheet.dart';
-import 'package:dlstarlive/features/live/presentation/component/gift_bottom_sheet.dart';
-import 'package:dlstarlive/features/live/presentation/component/menu_bottom_sheet.dart';
-import 'package:dlstarlive/features/live/presentation/widgets/animated_layer.dart';
-import 'package:dlstarlive/features/live/presentation/widgets/call_manage_bottom_sheet.dart';
-import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+
+import 'package:dlstarlive/core/network/api_service.dart';
+import 'package:dlstarlive/core/network/models/joined_user_model.dart';
+import 'package:dlstarlive/core/utils/permission_helper.dart';
+import 'package:dlstarlive/routing/app_router.dart';
+
+import 'package:dlstarlive/features/live/presentation/component/agora_token_service.dart';
+import 'package:dlstarlive/features/live/presentation/component/custom_live_button.dart';
+import 'package:dlstarlive/features/live/presentation/component/game_bottomsheet.dart';
+import 'package:dlstarlive/features/live/presentation/component/gift_bottom_sheet.dart';
+import 'package:dlstarlive/features/live/presentation/component/menu_bottom_sheet.dart';
+import 'package:dlstarlive/features/live/presentation/widgets/animated_layer.dart';
 
 import '../../../core/auth/auth_bloc.dart';
-import '../../../core/network/models/admin_details_model.dart';
 import '../../../core/network/models/ban_user_model.dart';
-import '../../../core/network/models/broadcaster_model.dart';
-import '../../../core/network/models/gift_model.dart';
-import '../../../core/network/models/mute_user_model.dart';
+import '../models/audio_room_details.dart';
 import '../models/chat_model.dart';
+import '../models/audio_host_details.dart';
 import '../models/seat_model.dart';
 import '../service/socket_service_audio.dart';
 import '../../live/presentation/component/active_viwers.dart';
@@ -42,9 +37,9 @@ class AudioGoLiveScreen extends StatefulWidget {
   final String? hostName;
   final String? hostUserId;
   final String? hostAvatar;
-  final List<HostDetails> existingViewers;
+  final List<AudioHostDetails> existingViewers;
   final int hostCoins;
-  final GetRoomModel? roomData; // Add room data to load initial state
+  final AudioRoomDetails? roomData; // Add room data to load initial state
   final int numberOfSeats; // Number of seats in the audio room
   final String roomTitle; // Title of the audio room
   const AudioGoLiveScreen({
@@ -66,17 +61,37 @@ class AudioGoLiveScreen extends StatefulWidget {
 
 class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   // User data
-  final String hostName = "Host";
-  final String hostId = "123";
-  final double hostCoins = 100;
-  final String imageUrl = "https://thispersondoesnotexist.com/";
-  final String profileFrame = "assets/images/general/profile_frame.png";
+  String userName = "You";
+  String? userId;
+  double? userCoins = 0;
+  String userImageUrl = "https://thispersondoesnotexist.com/";
+  String userProfileFrame = "assets/images/general/profile_frame.png";
 
-  // Seat data
-  final List<SeatModel> seats = [];
+  // Host data
+  String hostName = "Host";
+  String hostId = "123";
+  double hostCoins = 100;
+  String hostImageUrl = "https://thispersondoesnotexist.com/";
+  String hostProfileFrame = "assets/images/general/profile_frame.png";
 
-  // Seat configuration - initialized from widget
-  late int totalSeats;
+  // Special data
+  String specialName = "Special";
+  String specialId = "123";
+  double specialCoins = 100;
+  String specialImageUrl = "https://thispersondoesnotexist.com/";
+  String specialProfileFrame = "assets/images/general/profile_frame.png";
+
+  // Host Seat data
+  SeatModel? hostSeatData;
+
+  // Special Seat data
+  SeatModel? specialSeatData;
+
+  // Broadcaster Seat data
+  final List<SeatModel> broadcasterSeatData = [];
+
+  // Total seats - initialized from widget
+  late int totalSeats = widget.numberOfSeats;
 
   void _uiLog(String message) {
     const cyan = '\x1B[36m';
@@ -92,37 +107,22 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
   final AudioSocketService _socketService = AudioSocketService.instance;
   String? _currentRoomId;
-  String? userId;
   bool isHost = true;
   String roomId = "default_channel";
   List<JoinedUserModel> activeViewers = [];
   List<String> broadcasterList = [];
-  List<BroadcasterModel> broadcasterModels = [];
-  List<BroadcasterModel> broadcasterDetails = [];
-  List<GiftModel> sentGifts = [];
+  // List<BroadcasterModel> broadcasterModels = [];
+  // List<BroadcasterModel> broadcasterDetails = [];
+  // List<GiftModel> sentGifts = [];
   // Banned users
   List<String> bannedUsers = [];
   // Banned user details
   List<BanUserModel> bannedUserModels = [];
-  // Mute user details - store only the latest mute state
-  MuteUserModel? currentMuteState;
-  //Admin Details
-  List<AdminDetailsModel> adminModels = [];
 
   // Live stream timing
   DateTime? _streamStartTime;
   Timer? _durationTimer;
   Duration _streamDuration = Duration.zero;
-
-  // Daily bonus tracking - track last milestone called (configurable interval)
-  int _lastBonusMilestone = 0;
-
-  // Configurable interval for bonus API calls (in minutes) - for debugging
-  // Set to 1 for testing, 50 for production
-  static const int _bonusIntervalMinutes = 50;
-
-  // Flag to prevent multiple API calls for the same milestone
-  bool _isCallingBonusAPI = false;
 
   // Host activity tracking for viewers
   Timer? _hostActivityTimer;
@@ -159,14 +159,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   bool _muted = false;
   final ApiService _apiService = ApiService.instance;
 
-  // Audio caller feature variables
-  bool _isAudioCaller = false;
-  final List<int> _audioCallerUids = [];
-  final int _maxAudioCallers = 8; // Audio room can have more participants
-
-  // Global key for CallManageBottomSheet
-  final GlobalKey<State<CallManageBottomSheet>> callManageBottomSheetKey = GlobalKey<State<CallManageBottomSheet>>();
-
   @override
   void initState() {
     super.initState();
@@ -188,25 +180,16 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       final roomData = widget.roomData!;
 
       // Initialize duration and start time based on existing duration
-      if (roomData.duration > 0) {
-        _streamStartTime = DateTime.now().subtract(Duration(seconds: roomData.duration));
-        _streamDuration = Duration(seconds: roomData.duration);
+      if (roomData.duration != null && roomData.duration! > 0) {
+        _streamStartTime = DateTime.now().subtract(Duration(seconds: roomData.duration!));
+        _streamDuration = Duration(seconds: roomData.duration!);
         _uiLog("🕒 Initialized stream with existing duration: ${roomData.duration}s");
       }
 
-      // Calculate last milestone based on existing duration to prevent duplicate API calls
-      if (roomData.duration > 0) {
-        int existingMinutes = (roomData.duration / 60).floor();
-        _lastBonusMilestone = (existingMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
-        _uiLog("🎯 Set last milestone to: $_lastBonusMilestone minutes based on duration: $existingMinutes minutes");
-      }
-
-      _uiLog("💰 Initialized with existing bonus: ${roomData.hostBonus} diamonds");
-
       // Initialize chat messages if any
-      if (roomData.messages.isNotEmpty) {
+      if (roomData.messages != null && roomData.messages!.isNotEmpty) {
         _chatMessages.clear();
-        for (var messageData in roomData.messages) {
+        for (var messageData in roomData.messages!) {
           if (messageData is Map<String, dynamic>) {
             try {
               final chatMessage = AudioChatModel.fromJson(messageData);
@@ -220,30 +203,12 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         _uiLog("💬 Loaded ${_chatMessages.length} existing messages");
       }
 
-      // Initialize broadcasters (excluding host)
-      if (roomData.broadcastersDetails.isNotEmpty) {
-        broadcasterModels.clear();
-        for (var broadcaster in roomData.broadcastersDetails) {
-          // Don't add host to broadcaster list
-          if (broadcaster.id != roomData.hostId) {
-            final broadcasterModel = BroadcasterModel(
-              id: broadcaster.id,
-              name: broadcaster.name,
-              avatar: broadcaster.avatar,
-              uid: broadcaster.uid,
-            );
-            broadcasterModels.add(broadcasterModel);
-          }
-        }
-        _uiLog("🎤 Loaded ${broadcasterModels.length} existing broadcasters (host excluded)");
-      }
-
       // Initialize members as active viewers (excluding host)
-      if (roomData.membersDetails.isNotEmpty) {
+      if (roomData.membersDetails != null && roomData.membersDetails!.isNotEmpty) {
         activeViewers.clear();
-        for (var member in roomData.membersDetails) {
+        for (var member in roomData.membersDetails!) {
           // Don't add host to viewers list
-          if (member.id != roomData.hostId) {
+          if (member.id != roomData.hostDetails?.id) {
             final viewer = JoinedUserModel(
               id: member.id,
               avatar: member.avatar,
@@ -261,7 +226,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       }
 
       // Set room ID if not already set
-      if (_currentRoomId == null && roomData.roomId.isNotEmpty) {
+      if (_currentRoomId == null && roomData.roomId != null) {
         _currentRoomId = roomData.roomId;
         _uiLog("🏠 Set room ID from existing data: ${roomData.roomId}");
       }
@@ -317,7 +282,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       if (mounted) {
         activeViewers.removeWhere((user) => user.id == data.id);
         broadcasterList.removeWhere((user) => user == data.id);
-        broadcasterModels.removeWhere((model) => model.id == data.id);
         setState(() {});
       }
     });
@@ -341,25 +305,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       }
     });
 
-    // Broadcaster list
-    // _broadcasterListSubscription = _socketService.broadcasterListStream.listen((data) {
-    //   if (mounted) {
-    //     broadcasterModels = List.from(data);
-    //     broadcasterList = broadcasterModels.map((model) => model.id).toList();
-
-    //     String? hostId = isHost ? userId : widget.hostUserId;
-    //     if (hostId != null && broadcasterList.contains(hostId)) {
-    //       broadcasterList.remove(hostId);
-    //       broadcasterModels.removeWhere((model) => model.id == hostId);
-    //     }
-
-    //     // Update seats with real broadcaster data
-    //     _updateSeatsWithBroadcasters();
-
-    //     setState(() {});
-    //   }
-    // });
-
     // Banned users
     _banUserSubscription = _socketService.banUserStream.listen((data) {
       if (mounted) {
@@ -369,21 +314,20 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         setState(() {
           bannedUsers.add(data.targetId);
           activeViewers.removeWhere((user) => user.id == data.targetId);
-          broadcasterModels.removeWhere((user) => user.id == data.targetId);
         });
       }
     });
 
     // Mute user
     _muteUnmuteUserSubscription = _socketService.muteUnmuteUserStream.listen((data) {
-      if (mounted) {
-        setState(() {
-          currentMuteState = data;
-        });
-        if (_isCurrentUserMuted()) {
-          _forceMuteCurrentUser();
-        }
-      }
+      // if (mounted) {
+      //   setState(() {
+      //     currentMuteState = data;
+      //   });
+      //   if (_isCurrentUserMuted()) {
+      //     _forceMuteCurrentUser();
+      //   }
+      // }
     });
 
     // Room closed
@@ -427,22 +371,17 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   }
 
   void _initializeSeats() {
-    seats.clear();
-
+    broadcasterSeatData.clear();
     // Initialize empty seats based on totalSeats configuration
-    // totalSeats = selected count + 2 (host + special)
-    // e.g., "6 People" = 6 + 2 = 8 total seats
     // Seats will be filled with real broadcaster data from socket
-    for (int i = 0; i < totalSeats; i++) {
-      seats.add(
+    for (int i = 1; i < totalSeats; i++) {
+      broadcasterSeatData.add(
         SeatModel(
           id: 'seat-$i',
           name: null,
           avatar: null,
-          isHost: i == 0, // Seat 1: Host
-          isSpecial: i == 1, // Seat 2: Special guest
           isLocked: false,
-          diamonds: null,
+          // diamonds: null,
         ),
       );
     }
@@ -454,42 +393,48 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
       // Update host seat (seat 0) with real data
-      if (isHost && seats.isNotEmpty) {
-        seats[0] = SeatModel(
-          id: 'host',
-          name: authState.user.name,
-          avatar: authState.user.avatar,
-          isHost: true,
+      // if (isHost) {
+      //   hostSeatData = SeatModel(
+      //     id: 'host',
+      //     name: authState.user.name,
+      //     avatar: authState.user.avatar,
+      //     isLocked: false,
+      //     // diamonds: GiftModel.totalDiamondsForHost(sentGifts, userId).toDouble(),
+      //     userId: userId,
+      //   );
+      // } else if (!isHost) {
+      // Viewer mode - show host from widget data
+      hostSeatData = SeatModel(
+        id: 'host',
+        name: widget.hostName,
+        avatar: widget.hostAvatar,
+        isLocked: false,
+        // diamonds: widget.hostCoins.toDouble(),
+        userId: widget.hostUserId,
+      );
+      // }
+
+      // Update special seat (seat 1) with real data
+      if (specialSeatData != null && broadcasterSeatData.isNotEmpty) {
+        specialSeatData = SeatModel(
+          id: 'special',
+          name: specialName,
+          avatar: specialImageUrl,
           isLocked: false,
-          diamonds: GiftModel.totalDiamondsForHost(sentGifts, userId).toDouble(),
-          userId: userId,
-        );
-      } else if (!isHost && seats.isNotEmpty) {
-        // Viewer mode - show host from widget data
-        seats[0] = SeatModel(
-          id: 'host',
-          name: widget.hostName,
-          avatar: widget.hostAvatar,
-          isHost: true,
-          isLocked: false,
-          diamonds: widget.hostCoins.toDouble(),
-          userId: widget.hostUserId,
+          // diamonds: specialCoins.toDouble(),
+          userId: specialId,
         );
       }
-    }
 
-    // Fill remaining seats with broadcasters from socket
-    int seatIndex = 2; // Start after host and special seat
-    for (var broadcaster in broadcasterModels) {
-      if (seatIndex < seats.length) {
-        seats[seatIndex] = SeatModel(
+      // Update broadcaster seats
+      int seatIndex = 1; // Start after host and special seat
+      for (var broadcaster in broadcasterSeatData) {
+        broadcasterSeatData[seatIndex] = SeatModel(
           id: 'seat-$seatIndex',
           name: broadcaster.name,
           avatar: broadcaster.avatar,
-          isHost: false,
-          isSpecial: seatIndex == 1,
           isLocked: false,
-          diamonds: GiftModel.totalDiamondsForHost(sentGifts, broadcaster.id).toDouble(),
+          // diamonds: GiftModel.totalDiamondsForHost(sentGifts, broadcaster.id).toDouble(),
           userId: broadcaster.id,
         );
         seatIndex++;
@@ -543,7 +488,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
             _uiLog("User $remoteUid left audio channel");
             setState(() {
-              _audioCallerUids.remove(remoteUid);
+              // _audioCallerUids.remove(remoteUid);
             });
           },
           onRemoteAudioStateChanged:
@@ -556,9 +501,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               ) {
                 if (state == RemoteAudioState.remoteAudioStateDecoding) {
                   setState(() {
-                    if (!_audioCallerUids.contains(remoteUid) && _audioCallerUids.length < _maxAudioCallers) {
-                      _audioCallerUids.add(remoteUid);
-                    }
+                    // if (!_audioCallerUids.contains(remoteUid) && _audioCallerUids.length < _maxAudioCallers) {
+                    //   _audioCallerUids.add(remoteUid);
+                    // }
                   });
                 }
               },
@@ -613,22 +558,23 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   }
 
   bool _isCurrentUserMuted() {
-    if (userId == null || currentMuteState == null) return false;
-    return currentMuteState!.allMutedUsersList.contains(userId);
+    return false;
+    // if (userId == null || currentMuteState == null) return false;
+    // return currentMuteState!.allMutedUsersList.contains(userId);
   }
 
   void _forceMuteCurrentUser() async {
-    if ((isHost || _isAudioCaller) && !_muted) {
-      try {
-        await _engine.muteLocalAudioStream(true);
-        setState(() {
-          _muted = true;
-        });
-        _showSnackBar('🔇 You have been muted by an admin', Colors.red);
-      } catch (e) {
-        _uiLog('❌ Error force muting user: $e');
-      }
-    }
+    // if ((isHost || _isAudioCaller) && !_muted) {
+    //   try {
+    //     await _engine.muteLocalAudioStream(true);
+    //     setState(() {
+    //       _muted = true;
+    //     });
+    //     _showSnackBar('🔇 You have been muted by an admin', Colors.red);
+    //   } catch (e) {
+    //     _uiLog('❌ Error force muting user: $e');
+    //   }
+    // }
   }
 
   Future<void> _deleteRoom() async {
@@ -672,15 +618,18 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   }
 
   void _toggleMute() async {
-    if (isHost || _isAudioCaller) {
-      await _engine.muteLocalAudioStream(!_muted);
-      setState(() {
-        _muted = !_muted;
-      });
-      _showSnackBar(_muted ? '🔇 Microphone muted' : '🎤 Microphone unmuted', _muted ? Colors.orange : Colors.green);
-    } else {
-      _showSnackBar('🎤 Only hosts and speakers can use microphone', Colors.orange);
-    }
+    // if (isHost || _isAudioCaller) {
+    //   _uiLog("Toggle mute");
+    //   //Mute/Unmute Audio User
+    //   _socketService.muteUnmuteUser(userId!);
+    //   await _engine.muteLocalAudioStream(!_muted);
+    //   setState(() {
+    //     _muted = !_muted;
+    //   });
+    //   _showSnackBar(_muted ? '🔇 Microphone muted' : '🎤 Microphone unmuted', _muted ? Colors.orange : Colors.green);
+    // } else {
+    //   _showSnackBar('🎤 Only hosts and speakers can use microphone', Colors.orange);
+    // }
   }
 
   void _startStreamTimer() {
@@ -691,12 +640,12 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           _streamDuration = DateTime.now().difference(_streamStartTime!);
         });
 
-        if (isHost && _streamDuration.inMinutes >= _bonusIntervalMinutes && !_isCallingBonusAPI) {
-          int currentMilestone = (_streamDuration.inMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
-          if (currentMilestone > _lastBonusMilestone) {
-            _callDailyBonusAPI();
-          }
-        }
+        // if (isHost && _streamDuration.inMinutes >= _bonusIntervalMinutes && !_isCallingBonusAPI) {
+        //   int currentMilestone = (_streamDuration.inMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
+        //   if (currentMilestone > _lastBonusMilestone) {
+        //     _callDailyBonusAPI();
+        //   }
+        // }
       }
     });
   }
@@ -735,23 +684,25 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
   Future<void> _callDailyBonusAPI({bool isStreamEnd = false}) async {
     if (!isHost) return;
-    if (!isStreamEnd && _isCallingBonusAPI) return;
+    // if (!isStreamEnd && _isCallingBonusAPI) return;
+    if (!isStreamEnd) return;
 
     final totalMinutes = _streamDuration.inMinutes;
     int currentMilestone;
 
     if (isStreamEnd) {
       currentMilestone = totalMinutes;
-    } else {
-      currentMilestone = (totalMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
-      if (currentMilestone <= _lastBonusMilestone || currentMilestone < _bonusIntervalMinutes) {
-        return;
-      }
     }
+    // else {
+    //   currentMilestone = (totalMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
+    //   if (currentMilestone <= _lastBonusMilestone || currentMilestone < _bonusIntervalMinutes) {
+    //     return;
+    //   }
+    // }
 
-    if (!isStreamEnd) {
-      _isCallingBonusAPI = true;
-    }
+    // if (!isStreamEnd) {
+    //   _isCallingBonusAPI = true;
+    // }
 
     try {
       final response = await _apiService.post<Map<String, dynamic>>(
@@ -767,9 +718,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
             if (bonusDiamonds > 0) {
               setState(() {
-                if (!isStreamEnd) {
-                  _lastBonusMilestone = currentMilestone;
-                }
+                // if (!isStreamEnd) {
+                //   _lastBonusMilestone = currentMilestone;
+                // }
               });
 
               _showSnackBar('🎉 Streaming bonus: $bonusDiamonds diamonds!', Colors.green);
@@ -779,23 +730,23 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         (error) {
           _uiLog("❌ Daily bonus API failed: $error");
           setState(() {
-            if (!isStreamEnd) {
-              _lastBonusMilestone = currentMilestone;
-            }
+            // if (!isStreamEnd) {
+            //   _lastBonusMilestone = currentMilestone;
+            // }
           });
         },
       );
     } catch (e) {
       _uiLog("❌ Exception calling daily bonus API: $e");
       setState(() {
-        if (!isStreamEnd) {
-          _lastBonusMilestone = currentMilestone;
-        }
+        // if (!isStreamEnd) {
+        //   _lastBonusMilestone = currentMilestone;
+        // }
       });
     } finally {
-      if (!isStreamEnd) {
-        _isCallingBonusAPI = false;
-      }
+      // if (!isStreamEnd) {
+      //   _isCallingBonusAPI = false;
+      // }
     }
   }
 
@@ -807,8 +758,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
       // Reset audio caller state
       setState(() {
-        _isAudioCaller = false;
-        _audioCallerUids.clear();
+        // _isAudioCaller = false;
+        // _audioCallerUids.clear();
       });
 
       if (isHost) {
@@ -826,20 +777,20 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
             await _callDailyBonusAPI(isStreamEnd: true);
 
             // Calculate total earned diamonds/coins
-            int earnedDiamonds = GiftModel.totalDiamondsForHost(
-              sentGifts,
-              userId, // Use userId for host
-            );
+            // int earnedDiamonds = GiftModel.totalDiamondsForHost(
+            //   sentGifts,
+            //   userId!, // Use userId for host
+            // );
 
-            _uiLog("🏆 Host ending live stream - Total earned diamonds: $earnedDiamonds");
-            _uiLog("📊 Total gifts received: ${sentGifts.length}");
+            // _uiLog("🏆 Host ending live stream - Total earned diamonds: $earnedDiamonds");
+            // _uiLog("📊 Total gifts received: ${sentGifts.length}");
 
             context.go(
               AppRoutes.liveSummary,
               extra: {
                 'userName': state.user.name,
                 'userId': state.user.id.substring(0, 6),
-                'earnedPoints': earnedDiamonds, // Pass actual earned diamonds
+                'earnedPoints': 0, // Pass actual earned diamonds - earnedDiamonds
                 'newFollowers': 0,
                 'totalDuration': _formatDuration(_streamDuration),
                 'userAvatar': state.user.avatar,
@@ -919,7 +870,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   // Animation layer
                   if (_animationPlaying)
                     AnimatedLayer(
-                      gifts: sentGifts,
+                      gifts: [], // sentGifts,
                       customAnimationUrl: _customAnimationUrl,
                       customTitle: _customAnimationTitle,
                       customSubtitle: _customAnimationSubtitle,
@@ -943,11 +894,11 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Expanded(
-                child: _buildSeatItem(seats[0], 0), // Host
+                child: _buildHostOrSpecialSeatItem(broadcasterSeatData[0], true), // Host
               ),
               SizedBox(width: 16.w),
               Expanded(
-                child: _buildSeatItem(seats[1], 1), // Special seat
+                child: _buildHostOrSpecialSeatItem(broadcasterSeatData[1], false), // Special seat
               ),
             ],
           ),
@@ -955,7 +906,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           SizedBox(height: 60.h),
 
           // Remaining seats in grid
-          if (seats.length > 2)
+          if (broadcasterSeatData.length > 2)
             GridView.builder(
               shrinkWrap: true,
               physics: NeverScrollableScrollPhysics(),
@@ -965,9 +916,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                 mainAxisSpacing: 0.h,
                 childAspectRatio: 0.8,
               ),
-              itemCount: seats.length - 2, // Exclude host and special seat
+              itemCount: broadcasterSeatData.length - 2, // Exclude host and special seat
               itemBuilder: (context, index) {
-                return _buildSeatItem(seats[index + 2], index + 2);
+                return _buildSeatItem(broadcasterSeatData[index + 2], index + 2);
               },
             ),
         ],
@@ -987,6 +938,113 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       default:
         return 4; // Default to 4 columns
     }
+  }
+
+  Widget _buildHostOrSpecialSeatItem(SeatModel hostSeatData, bool isHost) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Stack(
+          alignment: Alignment.center,
+          clipBehavior: Clip.none,
+          children: [
+            // Seat circle
+            Container(
+              width: 70.w,
+              height: 70.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: hostSeatData.name != null ? Colors.white.withOpacity(0.3) : Colors.white.withOpacity(0.5),
+                  width: 2,
+                ),
+                color: hostSeatData.name != null ? Colors.transparent : Colors.white.withOpacity(0.1),
+              ),
+              child: ClipOval(
+                child: hostSeatData.name != null
+                    ? (hostSeatData.avatar != null && hostSeatData.avatar!.isNotEmpty
+                          ? Image.network(
+                              hostSeatData.avatar!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[800],
+                                  child: Icon(Icons.person, color: Colors.white54, size: 28.sp),
+                                );
+                              },
+                            )
+                          : Container(
+                              color: Colors.grey[800],
+                              child: Icon(Icons.person, color: Colors.white54, size: 28.sp),
+                            ))
+                    : Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          image: DecorationImage(
+                            image: AssetImage(
+                              (!isHost)
+                                  ? "assets/icons/audio_room/special_seat.png"
+                                  : "assets/icons/audio_room/empty_seat.png",
+                            ),
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+
+            // Crown badge for all occupied seats
+            if (hostSeatData.name != null && isHost)
+              Positioned(
+                top: -25,
+                child: Image.asset(
+                  "assets/icons/audio_room/crown_badge.png",
+                  width: 110.w,
+                  height: 110.h,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 110.w,
+                      height: 110.h,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.orange, width: 3),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+            // Microphone icon if seat is occupied
+            if (hostSeatData.name != null && isHost)
+              Positioned(
+                bottom: -3,
+                right: -3,
+                child: Container(
+                  width: 24.w,
+                  height: 24.w,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: Offset(0, 2))],
+                  ),
+                  child: Icon(Icons.mic, color: Colors.grey[700], size: 14.sp),
+                ),
+              ),
+          ],
+        ),
+
+        SizedBox(height: 6.h),
+
+        // User name or seat number
+        Text(
+          hostSeatData.name ?? (isHost ? "Host Seat" : "Premium Seat"),
+          style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w500),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
   }
 
   Widget _buildSeatItem(SeatModel seat, int index) {
@@ -1040,8 +1098,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                               image: AssetImage(
                                 seat.isLocked
                                     ? "assets/icons/audio_room/lock_seat.png"
-                                    : (seat.isSpecial && !seat.isHost)
-                                    ? "assets/icons/audio_room/special_seat.png"
                                     : "assets/icons/audio_room/empty_seat.png",
                               ),
                               fit: BoxFit.contain,
@@ -1228,17 +1284,17 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          DiamondStarStatus(
-                            diamonCount: AppUtils.formatNumber(
-                              GiftModel.totalDiamondsForHost(
-                                sentGifts,
-                                isHost
-                                    ? userId
-                                    : widget.hostUserId, // Use userId for host, widget.hostUserId for viewers
-                              ),
-                            ),
-                            starCount: AppUtils.formatNumber(0),
-                          ),
+                          // DiamondStarStatus(
+                          //   diamonCount: AppUtils.formatNumber(
+                          //     GiftModel.totalDiamondsForHost(
+                          //       sentGifts,
+                          //       isHost
+                          //           ? userId
+                          //           : widget.hostUserId, // Use userId for host, widget.hostUserId for viewers
+                          //     ),
+                          //   ),
+                          //   starCount: AppUtils.formatNumber(0),
+                          // ),
                           SizedBox(height: 5.h),
                           //add another widget to show the bonus
                           // BonusStatus(
@@ -1298,45 +1354,44 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                             CustomLiveButton(
                               iconPath: "assets/icons/gift_user_icon.png",
                               onTap: () {
-                                // _showSnackBar(
-                                //   '🎁 Not implemented yet',
-                                //   Colors.green,
+                                _showSnackBar('🎁 Not implemented yet', Colors.red);
+                                // showGiftBottomSheet(
+                                //   context,
+                                //   activeViewers: activeViewers,
+                                //   roomId: _currentRoomId ?? roomId,
+                                //   hostUserId: isHost ? userId : widget.hostUserId,
+                                //   hostName: isHost ? state.user.name : widget.hostName,
+                                //   hostAvatar: isHost ? state.user.avatar : widget.hostAvatar,
                                 // );
-                                showGiftBottomSheet(
-                                  context,
-                                  activeViewers: activeViewers,
-                                  roomId: _currentRoomId ?? roomId,
-                                  hostUserId: isHost ? userId : widget.hostUserId,
-                                  hostName: isHost ? state.user.name : widget.hostName,
-                                  hostAvatar: isHost ? state.user.avatar : widget.hostAvatar,
-                                );
                               },
                             ),
                             CustomLiveButton(
                               iconPath: "assets/icons/emoji_icon.png",
                               onTap: () {
                                 // _playAnimation();
-                                _showSnackBar('🎶 Not implemented yet', Colors.green);
+                                _showSnackBar('🎶 Not implemented yet', Colors.red);
                                 // showMusicBottomSheet(context);
                               },
                             ),
                             CustomLiveButton(
                               iconPath: _muted ? "assets/icons/mute_icon.png" : "assets/icons/unmute_icon.png",
                               onTap: () {
-                                _toggleMute();
+                                // _toggleMute();
+                                _showSnackBar('🔇 Not implemented yet', Colors.red);
                               },
                             ),
                             CustomLiveButton(
                               iconPath: "assets/icons/call_icon.png",
                               onTap: () {
-                                if (_audioCallerUids.isNotEmpty) {
-                                  _showSnackBar(
-                                    '🎤 ${_audioCallerUids.length} audio caller${_audioCallerUids.length > 1 ? 's' : ''} connected',
-                                    Colors.green,
-                                  );
-                                } else {
-                                  _showSnackBar('📞 Waiting for audio callers to join...', Colors.blue);
-                                }
+                                // if (_audioCallerUids.isNotEmpty) {
+                                //   _showSnackBar(
+                                //     '🎤 ${_audioCallerUids.length} audio caller${_audioCallerUids.length > 1 ? 's' : ''} connected',
+                                //     Colors.green,
+                                //   );
+                                // } else {
+                                //   _showSnackBar('📞 Waiting for audio callers to join...', Colors.blue);
+                                // }
+                                _showSnackBar('📞 Not implemented yet', Colors.red);
                               },
                             ),
 
@@ -1462,7 +1517,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     _muteUnmuteUserSubscription?.cancel(); // 13
     _banUserSubscription?.cancel(); // 14
     _unbanUserSubscription?.cancel(); // 15
-
 
     // Stop timers
     _durationTimer?.cancel();
