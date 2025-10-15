@@ -1,5 +1,4 @@
 import 'audio_host_details.dart';
-import 'seat_model.dart';
 
 class AudioRoomDetails {
   String? roomId;
@@ -7,7 +6,7 @@ class AudioRoomDetails {
   int? hostBonus;
   AudioHostDetails? hostDetails;
   PremiumSeat? premiumSeat;
-  SeatModel? seats;
+  SeatsData? seats;
   List<dynamic>? messages;
   String? createdAt;
   List<dynamic>? bannedUsers;
@@ -16,6 +15,7 @@ class AudioRoomDetails {
   List<dynamic>? mutedUsers;
   List<Ranking>? ranking;
   int? duration;
+  int? numberOfSeats;
 
   AudioRoomDetails({
     this.roomId,
@@ -32,23 +32,31 @@ class AudioRoomDetails {
     this.mutedUsers,
     this.ranking,
     this.duration,
+    this.numberOfSeats,
   });
 
   AudioRoomDetails.fromJson(Map<String, dynamic> json) {
-    roomId = json['roomId'] as String?;
-    hostGifts = json['hostGifts'] as int?;
-    hostBonus = json['hostBonus'] as int?;
-    hostDetails = (json['hostDetails'] as Map<String,dynamic>?) != null ? AudioHostDetails.fromJson(json['hostDetails'] as Map<String,dynamic>) : null;
-    premiumSeat = (json['premiumSeat'] as Map<String,dynamic>?) != null ? PremiumSeat.fromJson(json['premiumSeat'] as Map<String,dynamic>) : null;
-    seats = (json['seats'] as Map<String,dynamic>?) != null ? SeatModel.fromJson(json['seats'] as Map<String,dynamic>) : null;
-    messages = json['messages'] as List?;
-    createdAt = json['createdAt'] as String?;
-    bannedUsers = json['bannedUsers'] as List?;
-    members = (json['members'] as List?)?.map((dynamic e) => e as String).toList();
-    membersDetails = json['membersDetails'] as List?;
-    mutedUsers = json['mutedUsers'] as List?;
-    ranking = (json['ranking'] as List?)?.map((dynamic e) => Ranking.fromJson(e as Map<String,dynamic>)).toList();
-    duration = json['duration'] as int?;
+    try {
+      roomId = json['roomId'] as String?;
+      hostGifts = json['hostGifts'] as int?;
+      hostBonus = json['hostBonus'] as int?;
+      hostDetails = (json['hostDetails'] as Map<String,dynamic>?) != null ? AudioHostDetails.fromJson(json['hostDetails'] as Map<String,dynamic>) : null;
+      premiumSeat = (json['premiumSeat'] as Map<String,dynamic>?) != null ? PremiumSeat.fromJson(json['premiumSeat'] as Map<String,dynamic>) : null;
+      seats = (json['seats'] as Map<String,dynamic>?) != null ? SeatsData.fromJson(json['seats'] as Map<String,dynamic>) : null;
+      messages = json['messages'] as List?;
+      createdAt = json['createdAt'] as String?;
+      bannedUsers = json['bannedUsers'] as List?;
+      members = (json['members'] as List?)?.map((dynamic e) => e as String).toList();
+      membersDetails = json['membersDetails'] as List?;
+      mutedUsers = json['mutedUsers'] as List?;
+      ranking = (json['ranking'] as List?)?.map((dynamic e) => Ranking.fromJson(e as Map<String,dynamic>)).toList();
+      duration = json['duration'] as int?;
+      numberOfSeats = json['numberOfSeats'] as int?;
+    } catch (e) {
+      print('❌ Error parsing AudioRoomDetails: $e');
+      print('JSON data: $json');
+      rethrow;
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -67,10 +75,62 @@ class AudioRoomDetails {
     json['mutedUsers'] = mutedUsers;
     json['ranking'] = ranking?.map((e) => e.toJson()).toList();
     json['duration'] = duration;
+    json['numberOfSeats'] = numberOfSeats;
     return json;
   }
 }
 
+
+class SeatsData {
+  Map<String, SeatInfo>? seats;
+
+  SeatsData({
+    this.seats,
+  });
+
+  SeatsData.fromJson(Map<String, dynamic> json) {
+    if (json.isNotEmpty) {
+      seats = {};
+      json.forEach((key, value) {
+        if (value is Map<String, dynamic>) {
+          seats![key] = SeatInfo.fromJson(value);
+        }
+      });
+    }
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> json = <String, dynamic>{};
+    seats?.forEach((key, value) {
+      json[key] = value.toJson();
+    });
+    return json;
+  }
+}
+
+class SeatInfo {
+  AudioHostDetails? member;
+  bool? available;
+
+  SeatInfo({
+    this.member,
+    this.available,
+  });
+
+  SeatInfo.fromJson(Map<String, dynamic> json) {
+    member = (json['member'] as Map<String,dynamic>?) != null && (json['member'] as Map<String,dynamic>).isNotEmpty
+        ? AudioHostDetails.fromJson(json['member'] as Map<String,dynamic>)
+        : null;
+    available = json['available'] as bool?;
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> json = <String, dynamic>{};
+    json['member'] = member?.toJson() ?? {};
+    json['available'] = available;
+    return json;
+  }
+}
 
 class PremiumSeat {
   AudioHostDetails? member;
@@ -82,13 +142,15 @@ class PremiumSeat {
   });
 
   PremiumSeat.fromJson(Map<String, dynamic> json) {
-    member = (json['member'] as Map<String,dynamic>?) != null ? AudioHostDetails.fromJson(json['member'] as Map<String,dynamic>) : null;
+    member = (json['member'] as Map<String,dynamic>?) != null && (json['member'] as Map<String,dynamic>).isNotEmpty
+        ? AudioHostDetails.fromJson(json['member'] as Map<String,dynamic>)
+        : null;
     available = json['available'] as bool?;
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> json = <String, dynamic>{};
-    json['member'] = member?.toJson();
+    json['member'] = member?.toJson() ?? {};
     json['available'] = available;
     return json;
   }

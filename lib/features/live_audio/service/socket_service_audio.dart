@@ -159,7 +159,7 @@ class AudioSocketService {
   Future<bool> connect(String userId) async {
     try {
       if (_isConnected && _currentUserId == userId) {
-        _log('🔌 Socket already connected for user: $userId');
+        _log('🔌  Audio Socket already connected for user: $userId');
         return true;
       }
 
@@ -170,7 +170,7 @@ class AudioSocketService {
 
       _currentUserId = userId;
 
-      _log('🔌 Connecting to socket with userId: $userId');
+      _log('🔌 Audio Socket connecting to socket with userId: $userId');
 
       // Create socket with userId in query
       _socket = IO.io(
@@ -192,14 +192,14 @@ class AudioSocketService {
       _socket!.onConnect((_) {
         _isConnected = true;
         _connectionStatusController.add(true);
-        _log('✅ Socket connected successfully');
+        _log('✅ Audio Socket connected successfully');
         if (!completer.isCompleted) {
           completer.complete(true);
         }
       });
 
       _socket!.onConnectError((error) {
-        _log('❌ Socket connection error: $error');
+        _log('❌ Audio Socket connection error: $error');
         _errorMessageController.add({'status': 'error', 'message': 'Connection failed: $error'});
         if (!completer.isCompleted) {
           completer.complete(false);
@@ -214,13 +214,13 @@ class AudioSocketService {
       return await completer.future.timeout(
         const Duration(seconds: 10),
         onTimeout: () {
-          _log('⏰ Socket connection timeout');
+          _log('⏰ Audio Socket connection timeout');
           _errorMessageController.add({'status': 'error', 'message': 'Connection timeout'});
           return false;
         },
       );
     } catch (e) {
-      _log('💥 Socket connection exception: $e');
+      _log('💥 Audio Socket connection exception: $e');
       _errorMessageController.add({'status': 'error', 'message': 'Connection exception: $e'});
       return false;
     }
@@ -252,7 +252,7 @@ class AudioSocketService {
 
   /// Setup socket event listeners
   void _setupSocketListeners() {
-    _log('🔧 Setting up socket listeners');
+    _log('🔧 Setting up Audio socket listeners');
     if (_socket == null) return;
 
     // Clear any existing listeners to prevent duplicates
@@ -262,23 +262,23 @@ class AudioSocketService {
     _socket!.onDisconnect((_) {
       _isConnected = false;
       _connectionStatusController.add(false);
-      _log('🔌 Socket disconnected');
+      _log('🔌 Audio Socket disconnected');
     });
 
     _socket!.onReconnect((_) {
       _isConnected = true;
       _connectionStatusController.add(true);
-      _log('🔄 Socket reconnected');
+      _log('🔄 Audio Socket reconnected');
     });
 
     _socket!.onReconnectError((error) {
-      _log('❌ Socket reconnection error: $error');
+      _log('❌ Audio Socket reconnection error: $error');
       _errorMessageController.add({'status': 'error', 'message': 'Reconnection failed: $error'});
     });
 
     // Audio room specific events
     _socket!.on(_errorMessageEvent, (data) {
-      _log('❌ Error message: $data');
+      _log('❌ Audio Error message: $data');
       if (data is Map<String, dynamic>) {
         _errorMessageController.add(data);
       }
@@ -310,9 +310,21 @@ class AudioSocketService {
 
     // Get all audio rooms
     _socket!.on(_getAllRoomsEvent, (data) {
-      _log('🏠 Get all audio rooms response: $data');
+      _log('🏠 Get all audio rooms response: ${data['data']} \n\n');
+      _log('🏠 Get all audio rooms length: ${data['data'].length} \n\n');
       if (data is List) {
-        _getAllRoomsController.add(List<AudioRoomDetails>.from(data));
+        // Direct list response - convert each Map to AudioRoomDetails
+        _getAllRoomsController.add(data.map((room) => AudioRoomDetails.fromJson(room as Map<String, dynamic>)).toList());
+      } else if (data is Map<String, dynamic> && data.containsKey('data')) {
+        // Wrapped response with 'data' key
+        final roomsData = data['data'];
+        if (roomsData is List) {
+          _getAllRoomsController.add(roomsData.map((room) => AudioRoomDetails.fromJson(room as Map<String, dynamic>)).toList());
+        } else {
+          _log('❌ Invalid audio rooms data format: expected List in data field');
+        }
+      } else {
+        _log('❌ Invalid audio rooms response format: $data');
       }
     });
 
@@ -460,12 +472,12 @@ class AudioSocketService {
     }
 
     try {
-      _log('📋 Getting rooms list');
+      _log('📋 Getting audio rooms list');
 
       _socket!.emit(_getAllRoomsEvent, {});
       return true;
     } catch (e) {
-      _log('❌ Error getting rooms: $e');
+      _log('❌ Error getting audio rooms: $e');
       _errorMessageController.add({'status': 'error', 'message': 'Failed to get rooms: $e'});
       return false;
     }
