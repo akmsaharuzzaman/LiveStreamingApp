@@ -84,6 +84,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   List<String> broadcasterList = [];
   // Room data for seat initialization
   AudioRoomDetails? roomData;
+  // Pending seat requests
+  Set<String> pendingSeats = {};
   // List<BroadcasterModel> broadcasterModels = [];
   // List<BroadcasterModel> broadcasterDetails = [];
   // List<GiftModel> sentGifts = [];
@@ -461,6 +463,16 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     }
   }
 
+  void _takeSeat(String seatId) {
+    final roomId = _currentRoomId ?? widget.roomId;
+    if (roomId != null && !isHost) {
+      setState(() {
+        pendingSeats.add(seatId);
+      });
+      _socketService.joinSeat(roomId: roomId, seatKey: seatId, targetId: userId!);
+    }
+  }
+
   bool _isCurrentUserMuted() {
     return false;
     // if (userId == null || currentMuteState == null) return false;
@@ -770,6 +782,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                           hostDetails: roomData?.hostDetails,
                           premiumSeat: roomData?.premiumSeat,
                           seatsData: roomData?.seats,
+                          onTakeSeat: _takeSeat,
+                          pendingSeats: pendingSeats,
+                          isHost: isHost,
                         ),
                         Spacer(),
                       ],

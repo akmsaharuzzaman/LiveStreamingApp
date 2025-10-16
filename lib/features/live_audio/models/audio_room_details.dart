@@ -44,43 +44,55 @@ factory AudioRoomDetails.fromJson(Map<String, dynamic> json) {
       final title = json['title'] as String?;
       late final int numberOfSeats;
       try {
-        numberOfSeats = json['numberOfSeats'] as int;
+        numberOfSeats = json['numberOfSeats'] as int? ?? 6;
       } catch (e) {
         throw ArgumentError('Error parsing numberOfSeats: $e');
       }
       late final String roomId;
       try {
-        roomId = json['roomId'] as String;
+        roomId = json['roomId'] as String? ?? '';
       } catch (e) {
         throw ArgumentError('Error parsing roomId: $e');
       }
       late final int hostGifts;
       try {
-        hostGifts = json['hostGifts'] as int;
+        hostGifts = json['hostGifts'] as int? ?? 0;
       } catch (e) {
         throw ArgumentError('Error parsing hostGifts: $e');
       }
       late final int hostBonus;
       try {
-        hostBonus = json['hostBonus'] as int;
+        hostBonus = json['hostBonus'] as int? ?? 0;
       } catch (e) {
         throw ArgumentError('Error parsing hostBonus: $e');
       }
       late final AudioHostDetails hostDetails;
       try {
-        hostDetails = AudioHostDetails.fromJson(json['hostDetails'] as Map<String, dynamic>);
+        if (json['hostDetails'] != null) {
+          hostDetails = AudioHostDetails.fromJson(json['hostDetails'] as Map<String, dynamic>);
+        } else {
+          hostDetails = AudioHostDetails(name: 'Host', avatar: '', uid: '', id: '', currentLevel: 0, equipedStoreItems: {}, totalGiftSent: 0, isMuted: false);
+        }
       } catch (e) {
         throw ArgumentError('Error parsing hostDetails: $e');
       }
       late final PremiumSeat premiumSeat;
       try {
-        premiumSeat = PremiumSeat.fromJson(json['premiumSeat'] as Map<String, dynamic>);
+        if (json['premiumSeat'] != null) {
+          premiumSeat = PremiumSeat.fromJson(json['premiumSeat'] as Map<String, dynamic>);
+        } else {
+          premiumSeat = PremiumSeat(member: null, available: true);
+        }
       } catch (e) {
         throw ArgumentError('Error parsing premiumSeat: $e');
       }
       late final SeatsData seats;
       try {
-        seats = SeatsData.fromJson(json['seats'] as Map<String, dynamic>);
+        if (json['seats'] != null) {
+          seats = SeatsData.fromJson(json['seats'] as Map<String, dynamic>);
+        } else {
+          seats = SeatsData(seats: {});
+        }
       } catch (e) {
         throw ArgumentError('Error parsing seats: $e');
       }
@@ -89,43 +101,55 @@ factory AudioRoomDetails.fromJson(Map<String, dynamic> json) {
           : <AudioChatModel>[];
       late final String createdAt;
       try {
-        createdAt = json['createdAt'] as String;
+        createdAt = json['createdAt'] as String? ?? DateTime.now().toIso8601String();
       } catch (e) {
         throw ArgumentError('Error parsing createdAt: $e');
       }
       late final List<dynamic> bannedUsers;
       try {
-        bannedUsers = json['bannedUsers'] as List<dynamic>;
+        bannedUsers = json['bannedUsers'] as List<dynamic>? ?? [];
       } catch (e) {
         throw ArgumentError('Error parsing bannedUsers: $e');
       }
       late final List<String> members;
       try {
-        members = List<String>.from(json['members'].map((dynamic e) => e as String));
+        if (json['members'] != null) {
+          members = List<String>.from(json['members'].map((dynamic e) => e as String));
+        } else {
+          members = [];
+        }
       } catch (e) {
         throw ArgumentError('Error parsing members: $e');
       }
       late final List<AudioHostDetails> membersDetails;
       try {
-        membersDetails = List<AudioHostDetails>.from(json['membersDetails'].map((dynamic e) => AudioHostDetails.fromJson(e as Map<String, dynamic>)));
+        if (json['membersDetails'] != null) {
+          membersDetails = List<AudioHostDetails>.from(json['membersDetails'].map((dynamic e) => AudioHostDetails.fromJson(e as Map<String, dynamic>)));
+        } else {
+          membersDetails = [];
+        }
       } catch (e) {
         throw ArgumentError('Error parsing membersDetails: $e');
       }
       late final List<dynamic> mutedUsers;
       try {
-        mutedUsers = json['mutedUsers'] as List<dynamic>;
+        mutedUsers = json['mutedUsers'] as List<dynamic>? ?? [];
       } catch (e) {
         throw ArgumentError('Error parsing mutedUsers: $e');
       }
       late final List<Ranking> ranking;
       try {
-        ranking = List<Ranking>.from(json['ranking'].map((dynamic e) => Ranking.fromJson(e as Map<String, dynamic>)));
+        if (json['ranking'] != null) {
+          ranking = List<Ranking>.from(json['ranking'].map((dynamic e) => Ranking.fromJson(e as Map<String, dynamic>)));
+        } else {
+          ranking = [];
+        }
       } catch (e) {
         throw ArgumentError('Error parsing ranking: $e');
       }
       late final int duration;
       try {
-        duration = json['duration'] as int;
+        duration = json['duration'] as int? ?? 0;
       } catch (e) {
         throw ArgumentError('Error parsing duration: $e');
       }

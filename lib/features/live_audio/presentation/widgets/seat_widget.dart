@@ -13,6 +13,9 @@ class SeatWidget extends StatefulWidget {
   final AudioHostDetails? hostDetails;
   final PremiumSeat? premiumSeat;
   final SeatsData? seatsData;
+  final Function(String seatId)? onTakeSeat;
+  final Set<String> pendingSeats;
+  final bool isHost;
 
   const SeatWidget({
     super.key,
@@ -23,6 +26,9 @@ class SeatWidget extends StatefulWidget {
     this.hostDetails,
     this.premiumSeat,
     this.seatsData,
+    this.onTakeSeat,
+    this.pendingSeats = const {},
+    this.isHost = false,
   });
 
   @override
@@ -97,14 +103,7 @@ class _SeatWidgetState extends State<SeatWidget> {
     } else {
       // Fallback: Initialize empty seats based on totalSeats configuration
       for (int i = 1; i < widget.numberOfSeats + 1; i++) {
-        broadcasterSeatData.add(
-          SeatModel(
-            id: 'seat-$i',
-            name: null,
-            avatar: null,
-            isLocked: false,
-          ),
-        );
+        broadcasterSeatData.add(SeatModel(id: 'seat-$i', name: null, avatar: null, isLocked: false));
       }
     }
   }
@@ -362,6 +361,7 @@ class _SeatWidgetState extends State<SeatWidget> {
   Widget _buildSeatItem(SeatModel seat, int index) {
     return GestureDetector(
       onTap: () {
+        print("Selected seat index: $index");
         setState(() {
           selectedSeatIndex = index;
         });
@@ -379,12 +379,12 @@ class _SeatWidgetState extends State<SeatWidget> {
                 width: 70.w,
                 height: 70.w,
                 decoration: BoxDecoration(
+                  color: Colors.transparent, // Add transparent background for InkWell
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: seat.name != null ? Colors.white.withOpacity(0.3) : Colors.white.withOpacity(0.5),
                     width: 2,
                   ),
-                  color: seat.name != null ? Colors.transparent : Colors.white.withOpacity(0.1),
                 ),
                 child: ClipOval(
                   child: seat.name != null
@@ -475,6 +475,7 @@ class _SeatWidgetState extends State<SeatWidget> {
   }
 
   void _showSeatOptions(SeatModel seat, int index) {
+    print('_showSeatOptions called for seat: ${seat.id}');
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -487,30 +488,56 @@ class _SeatWidgetState extends State<SeatWidget> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: Icon(Icons.lock),
-                title: Text("Seat Lock"),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Implement seat lock functionality
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.event_seat),
-                title: Text("Take Seat"),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Implement take seat functionality
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.settings),
-                title: Text("Manage"),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Implement manage functionality
-                },
-              ),
+              if (widget.isHost != true) ...[
+                // print('Non-host options for seat ${seat.id}');
+                if (seat.name == null) ...[
+                  // print('Seat is empty');
+                  if (widget.pendingSeats.contains(seat.id)) ...[
+                    // print('Seat is pending');
+                    ListTile(leading: Icon(Icons.hourglass_empty), title: Text("Seat Request Pending"), enabled: false),
+                  ] else ...[
+                    // print('Seat can be requested');
+                    ListTile(
+                      leading: Icon(Icons.event_seat),
+                      title: Text("Request Seat"),
+                      onTap: () {
+                        Navigator.pop(context);
+                        widget.onTakeSeat?.call(seat.id);
+                      },
+                    ),
+                  ],
+                ] else if (seat.userId == widget.currentUserId) ...[
+                  // print('Seat is user\'s own');
+                  ListTile(
+                    leading: Icon(Icons.exit_to_app),
+                    title: Text("Leave Seat"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      // widget.onLeaveSeat?.call(seat.id);
+                    },
+                  ),
+                ] else ...[
+                  // print('Seat occupied by others, no options');
+                ],
+              ] else ...[
+                // print('Host options');
+                ListTile(
+                  leading: Icon(Icons.lock),
+                  title: Text("Seat Lock"),
+                  onTap: () {
+                    Navigator.pop(context);
+                    // Implement seat lock functionality
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.settings),
+                  title: Text("Manage"),
+                  onTap: () {
+                    Navigator.pop(context);
+                    // Implement manage functionality
+                  },
+                ),
+              ],
             ],
           ),
         );

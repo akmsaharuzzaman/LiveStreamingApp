@@ -89,7 +89,8 @@ class AudioSocketEventHandler {
     socket.on(AudioSocketConstants.joinAudioRoomEvent, _handleJoinRoom);
     socket.on(AudioSocketConstants.userLeftEvent, _handleUserLeft);
     socket.on(AudioSocketConstants.leaveAudioRoomEvent, _handleLeaveRoom);
-    socket.on(AudioSocketConstants.removeFromSeatEvent, _handleRemoveFromSeat);
+    socket.on(AudioSocketConstants.joinSeatRequestEvent, _handleJoinSeatRequest);
+    socket.on(AudioSocketConstants.leaveSeatRequestEvent, _handleLeaveSeatRequest);
     socket.on(AudioSocketConstants.audioRoomDetailsEvent, _handleAudioRoomDetails);
     socket.on(AudioSocketConstants.getAllRoomsEvent, _handleGetAllRooms);
     socket.on(AudioSocketConstants.sendMessageEvent, _handleSendMessage);
@@ -158,10 +159,17 @@ class AudioSocketEventHandler {
     }
   }
 
-  void _handleRemoveFromSeat(dynamic data) {
-    _log('🚫 Remove from seat: $data');
+  void _handleJoinSeatRequest(dynamic data) {
+    _log('🪑 Join seat request: $data');
     if (data is Map<String, dynamic>) {
-      _removeFromSeatController.add(SeatModel.fromJson(data));
+      _joinSeatRequestController.add(JoinedUserModel.fromJson(data));
+    }
+  }
+
+  void _handleLeaveSeatRequest(dynamic data) {
+    _log('🪑 Leave seat request: $data');
+    if (data is Map<String, dynamic>) {
+      _leaveSeatRequestController.add(SeatModel.fromJson(data));
     }
   }
 
