@@ -1,92 +1,186 @@
+import 'package:flutter/material.dart';
 import 'audio_host_details.dart';
+import 'chat_model.dart';
 
 class AudioRoomDetails {
-  String? roomId;
-  int? hostGifts;
-  int? hostBonus;
-  AudioHostDetails? hostDetails;
-  PremiumSeat? premiumSeat;
-  SeatsData? seats;
-  List<dynamic>? messages;
-  String? createdAt;
-  List<dynamic>? bannedUsers;
-  List<String>? members;
-  List<dynamic>? membersDetails;
-  List<dynamic>? mutedUsers;
-  List<Ranking>? ranking;
-  int? duration;
-  int? numberOfSeats;
+  String title;
+  int numberOfSeats;
+  String roomId;
+  int hostGifts;
+  int hostBonus;
+  AudioHostDetails hostDetails;
+  PremiumSeat premiumSeat;
+  SeatsData seats;
+  List<AudioChatModel> messages;
+  String createdAt;
+  List<String> members;
+  List<AudioHostDetails> membersDetails;
+  List<dynamic> bannedUsers;
+  List<dynamic> mutedUsers;
+  List<Ranking> ranking;
+  int duration;
 
   AudioRoomDetails({
-    this.roomId,
-    this.hostGifts,
-    this.hostBonus,
-    this.hostDetails,
-    this.premiumSeat,
-    this.seats,
-    this.messages,
-    this.createdAt,
-    this.bannedUsers,
-    this.members,
-    this.membersDetails,
-    this.mutedUsers,
-    this.ranking,
-    this.duration,
-    this.numberOfSeats,
+    required this.title,
+    required this.numberOfSeats,
+    required this.roomId,
+    required this.hostGifts,
+    required this.hostBonus,
+    required this.hostDetails,
+    required this.premiumSeat,
+    required this.seats,
+    required this.messages,
+    required this.createdAt,
+    required this.bannedUsers,
+    required this.members,
+    required this.membersDetails,
+    required this.mutedUsers,
+    required this.ranking,
+    required this.duration,
   });
 
-  AudioRoomDetails.fromJson(Map<String, dynamic> json) {
+factory AudioRoomDetails.fromJson(Map<String, dynamic> json) {
     try {
-      roomId = json['roomId'] as String?;
-      hostGifts = json['hostGifts'] as int?;
-      hostBonus = json['hostBonus'] as int?;
-      hostDetails = (json['hostDetails'] as Map<String,dynamic>?) != null ? AudioHostDetails.fromJson(json['hostDetails'] as Map<String,dynamic>) : null;
-      premiumSeat = (json['premiumSeat'] as Map<String,dynamic>?) != null ? PremiumSeat.fromJson(json['premiumSeat'] as Map<String,dynamic>) : null;
-      seats = (json['seats'] as Map<String,dynamic>?) != null ? SeatsData.fromJson(json['seats'] as Map<String,dynamic>) : null;
-      messages = json['messages'] as List?;
-      createdAt = json['createdAt'] as String?;
-      bannedUsers = json['bannedUsers'] as List?;
-      members = (json['members'] as List?)?.map((dynamic e) => e as String).toList();
-      membersDetails = json['membersDetails'] as List?;
-      mutedUsers = json['mutedUsers'] as List?;
-      ranking = (json['ranking'] as List?)?.map((dynamic e) => Ranking.fromJson(e as Map<String,dynamic>)).toList();
-      duration = json['duration'] as int?;
-      numberOfSeats = json['numberOfSeats'] as int?;
+      final title = json['title'] as String?;
+      late final int numberOfSeats;
+      try {
+        numberOfSeats = json['numberOfSeats'] as int;
+      } catch (e) {
+        throw ArgumentError('Error parsing numberOfSeats: $e');
+      }
+      late final String roomId;
+      try {
+        roomId = json['roomId'] as String;
+      } catch (e) {
+        throw ArgumentError('Error parsing roomId: $e');
+      }
+      late final int hostGifts;
+      try {
+        hostGifts = json['hostGifts'] as int;
+      } catch (e) {
+        throw ArgumentError('Error parsing hostGifts: $e');
+      }
+      late final int hostBonus;
+      try {
+        hostBonus = json['hostBonus'] as int;
+      } catch (e) {
+        throw ArgumentError('Error parsing hostBonus: $e');
+      }
+      late final AudioHostDetails hostDetails;
+      try {
+        hostDetails = AudioHostDetails.fromJson(json['hostDetails'] as Map<String, dynamic>);
+      } catch (e) {
+        throw ArgumentError('Error parsing hostDetails: $e');
+      }
+      late final PremiumSeat premiumSeat;
+      try {
+        premiumSeat = PremiumSeat.fromJson(json['premiumSeat'] as Map<String, dynamic>);
+      } catch (e) {
+        throw ArgumentError('Error parsing premiumSeat: $e');
+      }
+      late final SeatsData seats;
+      try {
+        seats = SeatsData.fromJson(json['seats'] as Map<String, dynamic>);
+      } catch (e) {
+        throw ArgumentError('Error parsing seats: $e');
+      }
+      final messages = json['messages'] != null && (json['messages'] as List<dynamic>).isNotEmpty
+          ? (json['messages'] as List<dynamic>).map((e) => AudioChatModel.fromJson(e as Map<String, dynamic>)).toList()
+          : <AudioChatModel>[];
+      late final String createdAt;
+      try {
+        createdAt = json['createdAt'] as String;
+      } catch (e) {
+        throw ArgumentError('Error parsing createdAt: $e');
+      }
+      late final List<dynamic> bannedUsers;
+      try {
+        bannedUsers = json['bannedUsers'] as List<dynamic>;
+      } catch (e) {
+        throw ArgumentError('Error parsing bannedUsers: $e');
+      }
+      late final List<String> members;
+      try {
+        members = List<String>.from(json['members'].map((dynamic e) => e as String));
+      } catch (e) {
+        throw ArgumentError('Error parsing members: $e');
+      }
+      late final List<AudioHostDetails> membersDetails;
+      try {
+        membersDetails = List<AudioHostDetails>.from(json['membersDetails'].map((dynamic e) => AudioHostDetails.fromJson(e as Map<String, dynamic>)));
+      } catch (e) {
+        throw ArgumentError('Error parsing membersDetails: $e');
+      }
+      late final List<dynamic> mutedUsers;
+      try {
+        mutedUsers = json['mutedUsers'] as List<dynamic>;
+      } catch (e) {
+        throw ArgumentError('Error parsing mutedUsers: $e');
+      }
+      late final List<Ranking> ranking;
+      try {
+        ranking = List<Ranking>.from(json['ranking'].map((dynamic e) => Ranking.fromJson(e as Map<String, dynamic>)));
+      } catch (e) {
+        throw ArgumentError('Error parsing ranking: $e');
+      }
+      late final int duration;
+      try {
+        duration = json['duration'] as int;
+      } catch (e) {
+        throw ArgumentError('Error parsing duration: $e');
+      }
+
+      return AudioRoomDetails(
+        title: title ?? 'Audio Room',
+        numberOfSeats: numberOfSeats,
+        roomId: roomId,
+        hostGifts: hostGifts,
+        hostBonus: hostBonus,
+        hostDetails: hostDetails,
+        premiumSeat: premiumSeat,
+        seats: seats,
+        messages: messages,
+        createdAt: createdAt,
+        bannedUsers: bannedUsers,
+        members: members,
+        membersDetails: membersDetails,
+        mutedUsers: mutedUsers,
+        ranking: ranking,
+        duration: duration,
+      );
     } catch (e) {
-      print('❌ Error parsing AudioRoomDetails: $e');
-      print('JSON data: $json');
+      debugPrint('\n \x1B[36m [AUDIO_ROOM] : MODEL - JSON data: $json \x1B[0m');
+      debugPrint('\n \x1B[36m [AUDIO_ROOM] : MODEL - ❌ Error parsing AudioRoomDetails: $e \x1B[0m');
       rethrow;
     }
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> json = <String, dynamic>{};
+    json['title'] = title;
+    json['numberOfSeats'] = numberOfSeats;
     json['roomId'] = roomId;
     json['hostGifts'] = hostGifts;
     json['hostBonus'] = hostBonus;
-    json['hostDetails'] = hostDetails?.toJson();
-    json['premiumSeat'] = premiumSeat?.toJson();
-    json['seats'] = seats?.toJson();
+    json['hostDetails'] = hostDetails.toJson();
+    json['premiumSeat'] = premiumSeat.toJson();
+    json['seats'] = seats.toJson();
     json['messages'] = messages;
     json['createdAt'] = createdAt;
     json['bannedUsers'] = bannedUsers;
     json['members'] = members;
     json['membersDetails'] = membersDetails;
     json['mutedUsers'] = mutedUsers;
-    json['ranking'] = ranking?.map((e) => e.toJson()).toList();
+    json['ranking'] = ranking.map((e) => e.toJson()).toList();
     json['duration'] = duration;
-    json['numberOfSeats'] = numberOfSeats;
     return json;
   }
 }
 
-
 class SeatsData {
   Map<String, SeatInfo>? seats;
 
-  SeatsData({
-    this.seats,
-  });
+  SeatsData({this.seats});
 
   SeatsData.fromJson(Map<String, dynamic> json) {
     if (json.isNotEmpty) {
@@ -112,14 +206,11 @@ class SeatInfo {
   AudioHostDetails? member;
   bool? available;
 
-  SeatInfo({
-    this.member,
-    this.available,
-  });
+  SeatInfo({this.member, this.available});
 
   SeatInfo.fromJson(Map<String, dynamic> json) {
-    member = (json['member'] as Map<String,dynamic>?) != null && (json['member'] as Map<String,dynamic>).isNotEmpty
-        ? AudioHostDetails.fromJson(json['member'] as Map<String,dynamic>)
+    member = (json['member'] as Map<String, dynamic>?) != null && (json['member'] as Map<String, dynamic>).isNotEmpty
+        ? AudioHostDetails.fromJson(json['member'] as Map<String, dynamic>)
         : null;
     available = json['available'] as bool?;
   }
@@ -136,14 +227,11 @@ class PremiumSeat {
   AudioHostDetails? member;
   bool? available;
 
-  PremiumSeat({
-    this.member,
-    this.available,
-  });
+  PremiumSeat({this.member, this.available});
 
   PremiumSeat.fromJson(Map<String, dynamic> json) {
-    member = (json['member'] as Map<String,dynamic>?) != null && (json['member'] as Map<String,dynamic>).isNotEmpty
-        ? AudioHostDetails.fromJson(json['member'] as Map<String,dynamic>)
+    member = (json['member'] as Map<String, dynamic>?) != null && (json['member'] as Map<String, dynamic>).isNotEmpty
+        ? AudioHostDetails.fromJson(json['member'] as Map<String, dynamic>)
         : null;
     available = json['available'] as bool?;
   }
@@ -189,7 +277,7 @@ class Ranking {
     currentBackground = json['currentBackground'] as String?;
     currentTag = json['currentTag'] as String?;
     currentLevel = json['currentLevel'] as int?;
-    equipedStoreItems = json['equipedStoreItems'] as Map<String,dynamic>?;
+    equipedStoreItems = json['equipedStoreItems'] as Map<String, dynamic>?;
     totalGiftSent = json['totalGiftSent'] as int?;
     isMuted = json['isMuted'] as bool?;
   }

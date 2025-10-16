@@ -24,13 +24,13 @@ import '../../../core/network/models/ban_user_model.dart';
 import '../models/audio_room_details.dart';
 import '../models/chat_model.dart';
 import '../models/audio_host_details.dart';
-import '../models/seat_model.dart';
 import '../service/socket_service_audio.dart';
 import '../../live/presentation/component/active_viwers.dart';
 import '../../live/presentation/component/end_stream_overlay.dart';
 import '../../live/presentation/component/host_info.dart';
 import '../../live/presentation/component/send_message_buttonsheet.dart';
 import 'widgets/chat_widget.dart';
+import 'widgets/seat_widget.dart';
 
 class AudioGoLiveScreen extends StatefulWidget {
   final String? roomId;
@@ -67,32 +67,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   String userImageUrl = "https://thispersondoesnotexist.com/";
   String userProfileFrame = "assets/images/general/profile_frame.png";
 
-  // Host data
-  String hostName = "Host";
-  String hostId = "123";
-  double hostCoins = 100;
-  String hostImageUrl = "https://thispersondoesnotexist.com/";
-  String hostProfileFrame = "assets/images/general/profile_frame.png";
-
-  // Special data
-  String specialName = "Special";
-  String specialId = "123";
-  double specialCoins = 100;
-  String specialImageUrl = "https://thispersondoesnotexist.com/";
-  String specialProfileFrame = "assets/images/general/profile_frame.png";
-
-  // Host Seat data
-  SeatModel? hostSeatData;
-
-  // Special Seat data
-  SeatModel? specialSeatData;
-
-  // Broadcaster Seat data
-  final List<SeatModel> broadcasterSeatData = [];
-
-  // Total seats - initialized from widget
-  late int totalSeats = widget.numberOfSeats;
-
   void _uiLog(String message) {
     const cyan = '\x1B[36m';
     const reset = '\x1B[0m';
@@ -102,15 +76,14 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     }
   }
 
-  // Selected seat for context menu
-  int? selectedSeatIndex;
-
   final AudioSocketService _socketService = AudioSocketService.instance;
   String? _currentRoomId;
   bool isHost = true;
   String roomId = "default_channel";
   List<JoinedUserModel> activeViewers = [];
   List<String> broadcasterList = [];
+  // Room data for seat initialization
+  AudioRoomDetails? roomData;
   // List<BroadcasterModel> broadcasterModels = [];
   // List<BroadcasterModel> broadcasterDetails = [];
   // List<GiftModel> sentGifts = [];
@@ -156,20 +129,13 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
   // Agora SDK variables
   late final RtcEngine _engine;
-  bool _muted = false;
+  final bool _muted = false;
   final ApiService _apiService = ApiService.instance;
 
   @override
   void initState() {
     super.initState();
-    // _initializeFromRoomData(); // Moved to after userId is loaded
-    // Initialize totalSeats = selected seats + 2 (host + special)
-    // e.g., 6 People = 6 + 2 = 8 total seats
-    totalSeats = widget.numberOfSeats + 2;
-    _initializeSeats();
-    // Update seat-1 with host information immediately
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _updateSeatsWithBroadcasters();
       _loadUidAndInitialize();
     });
   }
@@ -179,8 +145,13 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     if (widget.roomData != null) {
       final roomData = widget.roomData!;
 
+      // Store room data for seat widget
+      this.roomData = roomData;
+
+      setState(() {}); // Trigger rebuild to update SeatWidget with data
+
       // Determine if current user is the host
-      if (userId != null && roomData.hostDetails?.id == userId) {
+      if (userId != null && roomData.hostDetails.id == userId) {
         isHost = true;
         _uiLog("👑 User is the host of this room");
       } else {
@@ -189,50 +160,42 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       }
 
       // Initialize duration and start time based on existing duration
-      if (roomData.duration != null && roomData.duration! > 0) {
-        _streamStartTime = DateTime.now().subtract(Duration(seconds: roomData.duration!));
-        _streamDuration = Duration(seconds: roomData.duration!);
+      if (roomData.duration > 0) {
+        _streamStartTime = DateTime.now().subtract(Duration(seconds: roomData.duration));
+        _streamDuration = Duration(seconds: roomData.duration);
         _uiLog("🕒 Initialized stream with existing duration: ${roomData.duration}s");
       }
 
       // Initialize chat messages if any
-      if (roomData.messages != null && roomData.messages!.isNotEmpty) {
+      if (roomData.messages.isNotEmpty) {
         _chatMessages.clear();
-        for (var messageData in roomData.messages!) {
-          if (messageData is Map<String, dynamic>) {
-            try {
-              final chatMessage = AudioChatModel.fromJson(messageData);
-              _chatMessages.add(chatMessage);
-            } catch (e) {
-              _uiLog("❌ Error parsing message: $e");
-              _uiLog("❌ Message data: $messageData");
-            }
-          }
+        for (var messageData in roomData.messages) {
+          _chatMessages.add(messageData);
         }
         _uiLog("💬 Loaded ${_chatMessages.length} existing messages");
       }
 
       // Initialize members as active viewers (excluding host)
-      if (roomData.membersDetails != null && roomData.membersDetails!.isNotEmpty) {
+      if (roomData.membersDetails.isNotEmpty) {
         activeViewers.clear();
-        for (var memberData in roomData.membersDetails!) {
+        for (var memberData in roomData.membersDetails) {
           if (memberData is Map<String, dynamic>) {
             try {
-              final member = AudioHostDetails.fromJson(memberData);
-              // Don't add host to viewers list
-              if (member.id != roomData.hostDetails?.id) {
-                final viewer = JoinedUserModel(
-                  id: member.id ?? '',
-                  avatar: member.avatar ?? '',
-                  name: member.name ?? 'Unknown',
-                  uid: member.uid ?? '',
-                  currentLevel: member.currentLevel ?? 0,
-                  currentBackground: member.currentBackground ?? '',
-                  currentTag: member.currentTag ?? '',
-                  diamonds: 0, // Initialize with 0, will be updated from gifts
-                );
-                activeViewers.add(viewer);
-              }
+              // final member = AudioHostDetails.fromJson(memberData);
+              // // Don't add host to viewers list
+              // if (member.id != roomData.hostDetails.id) {
+              //   final viewer = JoinedUserModel(
+              //     id: member.id ?? '',
+              //     avatar: member.avatar ?? '',
+              //     name: member.name ?? 'Unknown',
+              //     uid: member.uid ?? '',
+              //     currentLevel: member.currentLevel ?? 0,
+              //     currentBackground: member.currentBackground ?? '',
+              //     currentTag: member.currentTag ?? '',
+              //     diamonds: 0, // Initialize with 0, will be updated from gifts
+              //   );
+              //   activeViewers.add(viewer);
+              // }
             } catch (e) {
               _uiLog("❌ Error parsing member: $e");
               _uiLog("❌ Member data: $memberData");
@@ -243,9 +206,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       }
 
       // Set room ID if not already set
-      if (_currentRoomId == null && roomData.roomId != null) {
+      if (_currentRoomId == null && roomData.roomId.isNotEmpty) {
         _currentRoomId = roomData.roomId;
-        roomId = roomData.roomId!;
+        roomId = roomData.roomId;
         _uiLog("🏠 Set room ID from existing data: ${roomData.roomId}");
       }
 
@@ -363,13 +326,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     if (userId == null) return;
 
     // Create audio room with all required parameters
-    final success = await _socketService.createRoom(
-      userId!,
-      widget.roomTitle,
-      targetId: userId,
-      numberOfSeats: widget.numberOfSeats,
-      seatKey: 'seat-1', // Host always takes seat-1
-    );
+    final success = await _socketService.createRoom(userId!, widget.roomTitle, numberOfSeats: widget.numberOfSeats);
 
     if (success) {
       setState(() {
@@ -389,80 +346,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         _currentRoomId = roomId;
       });
     }
-  }
-
-  void _initializeSeats() {
-    broadcasterSeatData.clear();
-    // Initialize empty seats based on totalSeats configuration
-    // Seats will be filled with real broadcaster data from socket
-    for (int i = 1; i < totalSeats; i++) {
-      broadcasterSeatData.add(
-        SeatModel(
-          id: 'seat-$i',
-          name: null,
-          avatar: null,
-          isLocked: false,
-          // diamonds: null,
-        ),
-      );
-    }
-  }
-
-  // Update seats with real broadcaster data
-  void _updateSeatsWithBroadcasters() {
-    // Get current user info for host seat
-    final authState = context.read<AuthBloc>().state;
-    if (authState is AuthAuthenticated) {
-      // Update host seat (seat 0) with real data
-      // if (isHost) {
-      //   hostSeatData = SeatModel(
-      //     id: 'host',
-      //     name: authState.user.name,
-      //     avatar: authState.user.avatar,
-      //     isLocked: false,
-      //     // diamonds: GiftModel.totalDiamondsForHost(sentGifts, userId).toDouble(),
-      //     userId: userId,
-      //   );
-      // } else if (!isHost) {
-      // Viewer mode - show host from widget data
-      hostSeatData = SeatModel(
-        id: 'host',
-        name: widget.hostName,
-        avatar: widget.hostAvatar,
-        isLocked: false,
-        // diamonds: widget.hostCoins.toDouble(),
-        userId: widget.hostUserId,
-      );
-      // }
-
-      // Update special seat (seat 1) with real data
-      if (specialSeatData != null && broadcasterSeatData.isNotEmpty) {
-        specialSeatData = SeatModel(
-          id: 'special',
-          name: specialName,
-          avatar: specialImageUrl,
-          isLocked: false,
-          // diamonds: specialCoins.toDouble(),
-          userId: specialId,
-        );
-      }
-
-      // Update broadcaster seats
-      int seatIndex = 1; // Start after host and special seat
-      for (var broadcaster in broadcasterSeatData) {
-        broadcasterSeatData[seatIndex] = SeatModel(
-          id: 'seat-$seatIndex',
-          name: broadcaster.name,
-          avatar: broadcaster.avatar,
-          isLocked: false,
-          // diamonds: GiftModel.totalDiamondsForHost(sentGifts, broadcaster.id).toDouble(),
-          userId: broadcaster.id,
-        );
-        seatIndex++;
-      }
-    }
-
-    setState(() {});
   }
 
   // Initialize Agora for audio room
@@ -709,11 +592,11 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     if (!isStreamEnd) return;
 
     final totalMinutes = _streamDuration.inMinutes;
-    int currentMilestone;
+    // int currentMilestone;
 
-    if (isStreamEnd) {
-      currentMilestone = totalMinutes;
-    }
+    // if (isStreamEnd) {
+    //   currentMilestone = totalMinutes;
+    // }
     // else {
     //   currentMilestone = (totalMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
     //   if (currentMilestone <= _lastBonusMilestone || currentMilestone < _bonusIntervalMinutes) {
@@ -879,7 +762,15 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                     child: Column(
                       children: [
                         SizedBox(height: 160.h), // Space for top bar
-                        _buildSeatsGrid(),
+                        SeatWidget(
+                          numberOfSeats: widget.numberOfSeats,
+                          currentUserId: userId,
+                          currentUserName: state.user.name,
+                          currentUserAvatar: state.user.avatar,
+                          hostDetails: roomData?.hostDetails,
+                          premiumSeat: roomData?.premiumSeat,
+                          seatsData: roomData?.seats,
+                        ),
                         Spacer(),
                       ],
                     ),
@@ -902,328 +793,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           }
         },
       ),
-    );
-  }
-
-  Widget _buildSeatsGrid() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Column(
-        children: [
-          // Top row: Host + Special seat (always 2 seats)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: _buildHostOrSpecialSeatItem(broadcasterSeatData[0], true), // Host
-              ),
-              SizedBox(width: 16.w),
-              Expanded(
-                child: _buildHostOrSpecialSeatItem(broadcasterSeatData[1], false), // Special seat
-              ),
-            ],
-          ),
-
-          SizedBox(height: 60.h),
-
-          // Remaining seats in grid
-          if (broadcasterSeatData.length > 2)
-            GridView.builder(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: _getGridColumns(),
-                crossAxisSpacing: 16.w,
-                mainAxisSpacing: 0.h,
-                childAspectRatio: 0.8,
-              ),
-              itemCount: broadcasterSeatData.length - 2, // Exclude host and special seat
-              itemBuilder: (context, index) {
-                return _buildSeatItem(broadcasterSeatData[index + 2], index + 2);
-              },
-            ),
-        ],
-      ),
-    );
-  }
-
-  // Get number of columns based on total seats
-  int _getGridColumns() {
-    switch (totalSeats) {
-      case 8: // 6 people + 2 (host + special)
-        return 3; // 3x2 grid for 6 regular seats
-      case 10: // 8 people + 2 (host + special)
-        return 4; // 4x2 grid for 8 regular seats
-      case 14: // 12 people + 2 (host + special)
-        return 4; // 4x3 grid for 12 regular seats
-      default:
-        return 4; // Default to 4 columns
-    }
-  }
-
-  Widget _buildHostOrSpecialSeatItem(SeatModel hostSeatData, bool isHost) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Stack(
-          alignment: Alignment.center,
-          clipBehavior: Clip.none,
-          children: [
-            // Seat circle
-            Container(
-              width: 70.w,
-              height: 70.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: hostSeatData.name != null ? Colors.white.withOpacity(0.3) : Colors.white.withOpacity(0.5),
-                  width: 2,
-                ),
-                color: hostSeatData.name != null ? Colors.transparent : Colors.white.withOpacity(0.1),
-              ),
-              child: ClipOval(
-                child: hostSeatData.name != null
-                    ? (hostSeatData.avatar != null && hostSeatData.avatar!.isNotEmpty
-                          ? Image.network(
-                              hostSeatData.avatar!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: Colors.grey[800],
-                                  child: Icon(Icons.person, color: Colors.white54, size: 28.sp),
-                                );
-                              },
-                            )
-                          : Container(
-                              color: Colors.grey[800],
-                              child: Icon(Icons.person, color: Colors.white54, size: 28.sp),
-                            ))
-                    : Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          image: DecorationImage(
-                            image: AssetImage(
-                              (!isHost)
-                                  ? "assets/icons/audio_room/special_seat.png"
-                                  : "assets/icons/audio_room/empty_seat.png",
-                            ),
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-              ),
-            ),
-
-            // Crown badge for all occupied seats
-            if (hostSeatData.name != null && isHost)
-              Positioned(
-                top: -25,
-                child: Image.asset(
-                  "assets/icons/audio_room/crown_badge.png",
-                  width: 110.w,
-                  height: 110.h,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 110.w,
-                      height: 110.h,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.orange, width: 3),
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-            // Microphone icon if seat is occupied
-            if (hostSeatData.name != null && isHost)
-              Positioned(
-                bottom: -3,
-                right: -3,
-                child: Container(
-                  width: 24.w,
-                  height: 24.w,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: Offset(0, 2))],
-                  ),
-                  child: Icon(Icons.mic, color: Colors.grey[700], size: 14.sp),
-                ),
-              ),
-          ],
-        ),
-
-        SizedBox(height: 6.h),
-
-        // User name or seat number
-        Text(
-          hostSeatData.name ?? (isHost ? "Host Seat" : "Premium Seat"),
-          style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w500),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSeatItem(SeatModel seat, int index) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedSeatIndex = index;
-        });
-        _showSeatOptions(seat, index);
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Stack(
-            alignment: Alignment.center,
-            clipBehavior: Clip.none,
-            children: [
-              // Seat circle
-              Container(
-                width: 70.w,
-                height: 70.w,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: seat.name != null ? Colors.white.withOpacity(0.3) : Colors.white.withOpacity(0.5),
-                    width: 2,
-                  ),
-                  color: seat.name != null ? Colors.transparent : Colors.white.withOpacity(0.1),
-                ),
-                child: ClipOval(
-                  child: seat.name != null
-                      ? (seat.avatar != null && seat.avatar!.isNotEmpty
-                            ? Image.network(
-                                seat.avatar!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: Colors.grey[800],
-                                    child: Icon(Icons.person, color: Colors.white54, size: 28.sp),
-                                  );
-                                },
-                              )
-                            : Container(
-                                color: Colors.grey[800],
-                                child: Icon(Icons.person, color: Colors.white54, size: 28.sp),
-                              ))
-                      : Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            image: DecorationImage(
-                              image: AssetImage(
-                                seat.isLocked
-                                    ? "assets/icons/audio_room/lock_seat.png"
-                                    : "assets/icons/audio_room/empty_seat.png",
-                              ),
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
-                ),
-              ),
-
-              // Crown badge for all occupied seats
-              if (seat.name != null && !seat.isLocked)
-                Positioned(
-                  top: -25,
-                  child: Image.asset(
-                    "assets/icons/audio_room/crown_badge.png",
-                    width: 110.w,
-                    height: 110.h,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 110.w,
-                        height: 110.h,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.orange, width: 3),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-              // Microphone icon if seat is occupied
-              if (seat.name != null && !seat.isLocked)
-                Positioned(
-                  bottom: -3,
-                  right: -3,
-                  child: Container(
-                    width: 24.w,
-                    height: 24.w,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: Offset(0, 2))],
-                    ),
-                    child: Icon(Icons.mic, color: Colors.grey[700], size: 14.sp),
-                  ),
-                ),
-            ],
-          ),
-
-          SizedBox(height: 6.h),
-
-          // User name or seat number
-          Text(
-            seat.name ?? "Seat ${index + 1}",
-            style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w500),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showSeatOptions(SeatModel seat, int index) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(Icons.lock),
-                title: Text("Seat Lock"),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Implement seat lock functionality
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.event_seat),
-                title: Text("Take Seat"),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Implement take seat functionality
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.settings),
-                title: Text("Manage"),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Implement manage functionality
-                },
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 

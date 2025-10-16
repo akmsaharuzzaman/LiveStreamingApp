@@ -1,0 +1,118 @@
+{
+    "success": true,
+    "message": "Successfully fetched room details",
+    "data": {
+        "numberOfSeats": 6,
+        "roomId": "68ef3237bd1f3139e4b25e24",
+        "hostGifts": 0,
+        "hostBonus": 0,
+        "hostDetails": {
+            "name": "Md. Hasibul Hossain",
+            "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJyL2evVEZGtu833Gf6ABeJt0iXn7310IQKLQFzqcsu8a4M1w=s96-c",
+            "uid": "103143397849486671982",
+            "_id": "68ef3237bd1f3139e4b25e24",
+            "currentLevel": 0,
+            "equipedStoreItems": {},
+            "totalGiftSent": 0,
+            "isMuted": false
+        },
+        "premiumSeat": {
+            "member": {},
+            "available": true
+        },
+        "seats": {
+            "seat-1": {
+                "member": {},
+                "available": true
+            },
+            "seat-2": {
+                "member": {},
+                "available": true
+            },
+            "seat-3": {
+                "member": {},
+                "available": true
+            },
+            "seat-4": {
+                "member": {},
+                "available": true
+            },
+            "seat-5": {
+                "member": {},
+                "available": true
+            },
+            "seat-6": {
+                "member": {},
+                "available": true
+            }
+        },
+        "messages": [
+            {
+                "name": "Md. Hasibul Hossain",
+                "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJyL2evVEZGtu833Gf6ABeJt0iXn7310IQKLQFzqcsu8a4M1w=s96-c",
+                "uid": "103143397849486671982",
+                "_id": "68ef3237bd1f3139e4b25e24",
+                "text": "heloooooooooooo",
+                "currentLevel": 0,
+                "equipedStoreItems": {}
+            },
+            {
+                "name": "Md. Hasibul Hossain",
+                "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJeq52_iltNL8YHBuMp5ediVta-IHn-7jogcklP16zufj5vZ_w6yw=s96-c",
+                "uid": "112354720497797942972",
+                "_id": "68bf1f02d21d6918d27d513a",
+                "text": "joined the room",
+                "currentBackground": "https://res.cloudinary.com/dmpktzr0m/image/upload/v1758734670/level_tag_bg_assets/level_tag_bg_assets/e339ac59362bffeb805c4db58db2086e3494ace8b4670728f00748d7896dfc74.png",
+                "currentTag": "https://res.cloudinary.com/dmpktzr0m/image/upload/v1758734667/level_tag_bg_assets/level_tag_bg_assets/20bbcd089e3948a2a5137dacd0af08cefcfe9c12ad0169014439022d68a4789a.png",
+                "currentLevel": 1,
+                "equipedStoreItems": {}
+            }
+        ],
+        "createdAt": "2025-10-16T16:59:19.815Z",
+        "bannedUsers": [],
+        "members": [
+            "68ef3237bd1f3139e4b25e24",
+            "68bf1f02d21d6918d27d513a"
+        ],
+        "membersDetails": [
+            {
+                "name": "Md. Hasibul Hossain",
+                "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJeq52_iltNL8YHBuMp5ediVta-IHn-7jogcklP16zufj5vZ_w6yw=s96-c",
+                "uid": "112354720497797942972",
+                "_id": "68bf1f02d21d6918d27d513a",
+                "currentBackground": "https://res.cloudinary.com/dmpktzr0m/image/upload/v1758734670/level_tag_bg_assets/level_tag_bg_assets/e339ac59362bffeb805c4db58db2086e3494ace8b4670728f00748d7896dfc74.png",
+                "currentTag": "https://res.cloudinary.com/dmpktzr0m/image/upload/v1758734667/level_tag_bg_assets/level_tag_bg_assets/20bbcd089e3948a2a5137dacd0af08cefcfe9c12ad0169014439022d68a4789a.png",
+                "currentLevel": 1,
+                "equipedStoreItems": {},
+                "totalGiftSent": 0,
+                "isMuted": false
+            }
+        ],
+        "mutedUsers": [],
+        "ranking": [
+            {
+                "name": "Md. Hasibul Hossain",
+                "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJyL2evVEZGtu833Gf6ABeJt0iXn7310IQKLQFzqcsu8a4M1w=s96-c",
+                "uid": "103143397849486671982",
+                "_id": "68ef3237bd1f3139e4b25e24",
+                "currentLevel": 0,
+                "equipedStoreItems": {},
+                "totalGiftSent": 0,
+                "isMuted": false
+            },
+            {
+                "name": "Md. Hasibul Hossain",
+                "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJeq52_iltNL8YHBuMp5ediVta-IHn-7jogcklP16zufj5vZ_w6yw=s96-c",
+                "uid": "112354720497797942972",
+                "_id": "68bf1f02d21d6918d27d513a",
+                "currentBackground": "https://res.cloudinary.com/dmpktzr0m/image/upload/v1758734670/level_tag_bg_assets/level_tag_bg_assets/e339ac59362bffeb805c4db58db2086e3494ace8b4670728f00748d7896dfc74.png",
+                "currentTag": "https://res.cloudinary.com/dmpktzr0m/image/upload/v1758734667/level_tag_bg_assets/level_tag_bg_assets/20bbcd089e3948a2a5137dacd0af08cefcfe9c12ad0169014439022d68a4789a.png",
+                "currentLevel": 1,
+                "equipedStoreItems": {},
+                "totalGiftSent": 0,
+                "isMuted": false
+            }
+        ],
+        "duration": 7686
+    }
+}

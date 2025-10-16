@@ -76,7 +76,7 @@ class ListAudioRooms extends StatelessWidget {
 
               try {
                 // Fetch fresh room details
-                final roomDetails = await socketService.getRoomDetails(availableAudioRooms[index].roomId!);
+                final roomDetails = await socketService.getRoomDetails(availableAudioRooms[index].roomId);
 
                 if (roomDetails != null) {
                   // Navigate to the audio room screen with updated room data
@@ -84,9 +84,9 @@ class ListAudioRooms extends StatelessWidget {
                     'audioLive', // Using audioLive route for joining
                     queryParameters: {
                       'roomId': roomDetails.roomId,
-                      'hostName': roomDetails.hostDetails?.name ?? 'Unknown Host',
-                      'hostUserId': roomDetails.hostDetails?.id ?? 'Unknown User',
-                      'hostAvatar': roomDetails.hostDetails?.avatar ?? 'Unknown Avatar',
+                      'hostName': roomDetails.hostDetails.name ?? 'Unknown Host',
+                      'hostUserId': roomDetails.hostDetails.id ?? 'Unknown User',
+                      'hostAvatar': roomDetails.hostDetails.avatar ?? 'Unknown Avatar',
                     },
                     extra: {
                       'existingViewers': roomDetails.membersDetails,
@@ -131,7 +131,7 @@ class AudioRoomCard extends StatelessWidget {
         children: [
           CustomNetworkImage(
             urlToImage:
-                audioRoomModel.hostDetails?.avatar ??
+                audioRoomModel.hostDetails.avatar ??
                 'https://cdn.dribbble.com/users/3245638/screenshots/15628559/media/21f20574f74b6d6f8e74f92bde7de2fd.png?compress=1&resize=400x300&vertical=top',
             height: 180.sp,
             shape: BoxShape.rectangle,
@@ -183,7 +183,7 @@ class AudioRoomCard extends StatelessWidget {
                                   ),
                                   SizedBox(width: 5.sp),
                                   Text(
-                                    '${audioRoomModel.members?.length ?? 0}',
+                                    '${audioRoomModel.members.length}',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 9.sp,
@@ -216,7 +216,7 @@ class AudioRoomCard extends StatelessWidget {
                       ],
                     ),
                     Text(
-                      '${audioRoomModel.hostDetails?.name ?? 'Unknown Host'} is in audio room',
+                      '${audioRoomModel.hostDetails.name} is in audio room',
                       style: TextStyle(color: Colors.white, fontSize: 11.sp),
                     ),
                   ],
@@ -228,7 +228,7 @@ class AudioRoomCard extends StatelessWidget {
                 children: [
                   CustomNetworkImage(
                     urlToImage:
-                        audioRoomModel.hostDetails?.avatar ??
+                        audioRoomModel.hostDetails.avatar ??
                         'https://cdn.dribbble.com/users/3245638/screenshots/15628559/media/21f20574f74b6d6f8e74f92bde7de2fd.png?compress=1&resize=400x300&vertical=top',
                     height: 30.sp,
                     width: 30.sp,
@@ -240,7 +240,7 @@ class AudioRoomCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          audioRoomModel.hostDetails?.name ?? 'Unknown Host',
+                          audioRoomModel.hostDetails.name ?? 'Unknown Host',
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.black,
@@ -249,7 +249,7 @@ class AudioRoomCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'ID: ${audioRoomModel.hostDetails?.uid?.substring(0, 6) ?? 'Unknown ID'}',
+                          'ID: ${audioRoomModel.hostDetails.uid?.substring(0, 6) ?? 'Unknown ID'}',
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.black,

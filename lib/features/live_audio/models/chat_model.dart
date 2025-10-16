@@ -17,13 +17,25 @@ class AudioChatModel {
     this.currentLevel,
   });
 
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'avatar': avatar,
+      'uid': uid,
+      '_id': id,
+      'text': text,
+      'equipedStoreItems': equipedStoreItems,
+      'currentLevel': currentLevel,
+    };
+  }
+
   factory AudioChatModel.fromJson(Map<String, dynamic> json) {
     return AudioChatModel(
-      name: json['name'] as String,
-      avatar: json['avatar'] as String,
-      uid: json['uid'] as String,
-      id: json['_id'] as String,
-      text: json['text'] as String,
+      name: json['name'] as String? ?? 'Unknown',
+      avatar: json['avatar'] as String? ?? '',
+      uid: json['uid'] as String? ?? '',
+      id: json['_id'] as String? ?? '',
+      text: json['text'] as String? ?? '',
       equipedStoreItems:
           (json['equipedStoreItems'] ?? json['equippedStoreItems'])
               as Map<String, dynamic>?,

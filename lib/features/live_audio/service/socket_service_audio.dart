@@ -1,126 +1,34 @@
 import 'dart:async';
-import 'package:dlstarlive/core/network/models/ban_user_model.dart';
-import 'package:dlstarlive/core/network/models/joined_user_model.dart';
-import 'package:dlstarlive/core/network/models/left_user_model.dart';
-import 'package:flutter/foundation.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
 
+import '../../../core/network/models/ban_user_model.dart';
+import '../../../core/network/models/joined_user_model.dart';
+import '../../../core/network/models/left_user_model.dart';
 import '../../../core/network/models/mute_user_model.dart';
 import '../models/audio_room_details.dart';
 import '../models/chat_model.dart';
 import '../models/seat_model.dart';
+import 'connection_manager.dart';
+import 'socket_event_handler.dart';
+import 'audio_room_operations.dart';
+import 'audio_seat_operations.dart';
+import 'audio_user_operations.dart';
+import 'socket_constants.dart';
 
 /// Comprehensive Socket Service for Audio Live Streaming
 /// Handles all socket operations including room management and real-time events
+/// Uses composition pattern with specialized operation classes
 class AudioSocketService {
   static AudioSocketService? _instance;
-  IO.Socket? _socket;
-  bool _isConnected = false;
-  String? _currentUserId;
-  String? _currentRoomId;
 
-  void _log(String message) {
-    const yellow = '\x1B[33m';
-    const reset = '\x1B[0m';
+  // Specialized operation classes
+  late final AudioSocketConnectionManager _connectionManager;
+  late final AudioSocketEventHandler _eventHandler;
+  late final AudioSocketRoomOperations _roomOperations;
+  late final AudioSocketSeatOperations _seatOperations;
+  late final AudioSocketUserOperations _userOperations;
 
-    if (kDebugMode) {
-      debugPrint('\n$yellow[AUDIO_ROOM] : Socket - $reset $message\n');
-    }
-  }
-
-  // Constants
-  static const String _baseUrl = 'http://31.97.222.97:8000';
-
-  // Event names - Audio room specific events
-  static const String _getAllRoomsEvent = 'get-all-audio-rooms'; // 1
-  static const String _audioRoomDetailsEvent = 'audio-room-details'; // 2
-
-  static const String _createRoomEvent = 'create-audio-room'; // 3
-  // static const String _closeRoomEvent = 'close-audio-room'; // 4
-
-  static const String _joinAudioRoomEvent = 'join-audio-room'; // 5
-  static const String _leaveAudioRoomEvent = 'leave-audio-room'; // 6
-  static const String _userLeftEvent = 'audio-user-left'; // 7
-
-  static const String _joinSeatRequestEvent = 'join-audio-seat'; // 8
-  static const String _leaveSeatRequestEvent = 'leave-audio-seat'; // 9
-  static const String _removeFromSeatEvent = 'remove-from-seat'; // 10
-
-  static const String _sendMessageEvent = 'send-audio-message'; // 11
-  static const String _errorMessageEvent = 'error-message'; // 12
-
-  static const String _muteUnmuteUserEvent = 'audio-mute-unmute'; // 13
-
-  static const String _banUserEvent = 'ban-audio-user'; // 14
-  static const String _unbanUserEvent = 'unban-audio-user'; // 15
-
-  // create-audio-room      join-audio-room   join-audio-seat   leave-audio-room     get-all-audio-rooms ;
-  //    send-audio-message.   error-message.
-  // remove-from-seat.   leave-audio-seat.   audio-room-details.  audio-mute-unmute.   audio-user-left.   ban-audio-user.   unban-audio-user
-
-  // Stream controllers for the 15 events
-
-  // Get all audio rooms stream
-  final StreamController<List<AudioRoomDetails>> _getAllRoomsController = StreamController<List<AudioRoomDetails>>.broadcast(); // 1
-
-  // Audio room details stream
-  final StreamController<AudioRoomDetails?> _audioRoomDetailsController =
-      StreamController<AudioRoomDetails?>.broadcast(); // 2
-
-  // Create audio room stream
-  final StreamController<AudioRoomDetails> _createRoomController =
-      StreamController<AudioRoomDetails>.broadcast(); // 3
-
-  // Close audio room stream
-  final StreamController<List<String>> _closeRoomController =
-      StreamController<List<String>>.broadcast(); // 4
-
-  // Join audio room stream
-  final StreamController<AudioRoomDetails> _joinRoomController =
-      StreamController<AudioRoomDetails>.broadcast(); // 5
-
-  // Leave audio room stream
-  final StreamController<AudioRoomDetails> _leaveRoomController =
-      StreamController<AudioRoomDetails>.broadcast(); // 6
-
-  // User left stream
-  final StreamController<LeftUserModel> _userLeftController = StreamController<LeftUserModel>.broadcast(); // 7
-
-  // Join audio seat stream
-  final StreamController<JoinedUserModel> _joinSeatRequestController =
-      StreamController<JoinedUserModel>.broadcast(); // 8
-
-  // Leave audio seat stream
-  final StreamController<SeatModel> _leaveSeatRequestController =
-      StreamController<SeatModel>.broadcast(); // 9
-
-  // Remove from seat stream
-  final StreamController<SeatModel> _removeFromSeatController =
-      StreamController<SeatModel>.broadcast(); // 10
-
-  // Send Audio Message stream
-  final StreamController<AudioChatModel> _sendMessageController =
-      StreamController<AudioChatModel>.broadcast(); // 11
-
-  // Error message stream
-  final StreamController<Map<String, dynamic>> _errorMessageController =
-      StreamController<Map<String, dynamic>>.broadcast(); // 12
-
-  // Mute/Unmute user stream
-  final StreamController<MuteUserModel> _muteUnmuteUserController =
-      StreamController<MuteUserModel>.broadcast(); // 13
-
-  // Ban user stream
-  final StreamController<BanUserModel> _banUserController =
-      StreamController<BanUserModel>.broadcast(); // 14
-
-  // Unban user stream
-  final StreamController<BanUserModel> _unbanUserController =
-      StreamController<BanUserModel>.broadcast(); // 15
-
-  // Connection status stream
-  final StreamController<bool> _connectionStatusController = StreamController<bool>.broadcast();
-
+  // Error handling
+  late final StreamController<Map<String, dynamic>> _errorController;
 
   /// Singleton instance
   static AudioSocketService get instance {
@@ -128,744 +36,183 @@ class AudioSocketService {
     return _instance!;
   }
 
-  AudioSocketService._internal();
+  AudioSocketService._internal() {
+    _initializeComponents();
+  }
 
-  /// Stream getters for listening to the 15 events
-  Stream<List<AudioRoomDetails>> get getAllRoomsStream => _getAllRoomsController.stream; // 1
-  Stream<AudioRoomDetails?> get audioRoomDetailsStream => _audioRoomDetailsController.stream; // 2
-  Stream<AudioRoomDetails> get createRoomStream => _createRoomController.stream; // 3
-  Stream<List<String>> get closeRoomStream => _closeRoomController.stream; // 4
-  Stream<AudioRoomDetails> get joinRoomStream => _joinRoomController.stream; // 5
-  Stream<AudioRoomDetails> get leaveRoomStream => _leaveRoomController.stream; // 6
-  Stream<LeftUserModel> get userLeftStream => _userLeftController.stream; // 7
-  Stream<JoinedUserModel> get joinSeatRequestStream => _joinSeatRequestController.stream; // 8
-  Stream<SeatModel> get leaveSeatRequestStream => _leaveSeatRequestController.stream; // 9
-  Stream<SeatModel> get removeFromSeatStream => _removeFromSeatController.stream; // 10
-  Stream<AudioChatModel> get sendMessageStream => _sendMessageController.stream; // 11
-  Stream<Map<String, dynamic>> get errorMessageStream => _errorMessageController.stream; // 12
-  Stream<MuteUserModel> get muteUnmuteUserStream => _muteUnmuteUserController.stream; // 13
-  Stream<BanUserModel> get banUserStream => _banUserController.stream; // 14
-  Stream<BanUserModel> get unbanUserStream => _unbanUserController.stream; // 15
+  void _initializeComponents() {
+    // Initialize connection manager first
+    _connectionManager = AudioSocketConnectionManager();
+
+    // Initialize error controller
+    _errorController = StreamController<Map<String, dynamic>>.broadcast();
+
+    // Initialize room operations
+    _roomOperations = AudioSocketRoomOperations(_errorController, null);
+
+    // Initialize event handler with room operations
+    _eventHandler = AudioSocketEventHandler(_errorController, _roomOperations);
+
+    // Set event handler reference in room operations for refresh calls
+    _roomOperations.setEventHandler(_eventHandler);
+
+    // Initialize other operation classes
+    _seatOperations = AudioSocketSeatOperations(_errorController);
+
+    _userOperations = AudioSocketUserOperations(_errorController, () => _connectionManager.currentRoomId);
+
+    // Setup listeners after all components are initialized
+    // _eventHandler.setupListeners(); // Moved to connect method
+  }
+
+  /// Stream getters for listening to events
+  Stream<List<AudioRoomDetails>> get getAllRoomsStream => _eventHandler.getAllRoomsStream;
+  Stream<AudioRoomDetails?> get audioRoomDetailsStream => _eventHandler.audioRoomDetailsStream;
+  Stream<AudioRoomDetails> get createRoomStream => _eventHandler.createRoomStream;
+  Stream<List<String>> get closeRoomStream => _eventHandler.closeRoomStream;
+  Stream<AudioRoomDetails> get joinRoomStream => _eventHandler.joinRoomStream;
+  Stream<AudioRoomDetails> get leaveRoomStream => _eventHandler.leaveRoomStream;
+  Stream<LeftUserModel> get userLeftStream => _eventHandler.userLeftStream;
+  Stream<JoinedUserModel> get joinSeatRequestStream => _eventHandler.joinSeatRequestStream;
+  Stream<SeatModel> get leaveSeatRequestStream => _eventHandler.leaveSeatRequestStream;
+  Stream<SeatModel> get removeFromSeatStream => _eventHandler.removeFromSeatStream;
+  Stream<AudioChatModel> get sendMessageStream => _eventHandler.sendMessageStream;
+  Stream<Map<String, dynamic>> get errorMessageStream => _eventHandler.errorMessageStream;
+  Stream<MuteUserModel> get muteUnmuteUserStream => _eventHandler.muteUnmuteUserStream;
+  Stream<BanUserModel> get banUserStream => _eventHandler.banUserStream;
+  Stream<BanUserModel> get unbanUserStream => _eventHandler.unbanUserStream;
 
   /// Connection status stream
-  Stream<bool> get connectionStatusStream => _connectionStatusController.stream;
+  Stream<bool> get connectionStatusStream => _connectionManager.connectionStatusStream;
 
   /// Getters
-  bool get isConnected => _isConnected;
-  String? get currentUserId => _currentUserId;
-  String? get currentRoomId => _currentRoomId;
+  bool get isConnected => _connectionManager.isConnected;
+  String? get currentUserId => _connectionManager.currentUserId;
+  String? get currentRoomId => _connectionManager.currentRoomId;
 
   /// Initialize and connect to socket
   Future<bool> connect(String userId) async {
-    try {
-      if (_isConnected && _currentUserId == userId) {
-        _log('🔌  Audio Socket already connected for user: $userId');
-        return true;
-      }
+    final result = await _connectionManager.connect(userId);
+    if (result) {
+      // Set the socket in all operations
+      final socket = _connectionManager.socket!;
+      _roomOperations.setSocket(socket);
+      _eventHandler.setSocket(socket);
+      _seatOperations.setSocket(socket);
+      _userOperations.setSocket(socket);
 
-      // Disconnect if already connected with different user
-      if (_isConnected) {
-        await disconnect();
-      }
+      // Setup listeners after socket is set
+      _eventHandler.setupListeners();
 
-      _currentUserId = userId;
-
-      _log('🔌 Audio Socket connecting to socket with userId: $userId');
-
-      // Create socket with userId in query
-      _socket = IO.io(
-        _baseUrl,
-        IO.OptionBuilder()
-            .setTransports(['websocket'])
-            .setQuery({'userId': userId})
-            .disableAutoConnect() // Disable auto connect
-            .enableForceNew() // Force new connection
-            .enableReconnection()
-            .setReconnectionAttempts(5)
-            .setReconnectionDelay(1000)
-            .build(),
-      );
-
-      // Connect to socket
-      final completer = Completer<bool>();
-
-      _socket!.onConnect((_) {
-        _isConnected = true;
-        _connectionStatusController.add(true);
-        _log('✅ Audio Socket connected successfully');
-        if (!completer.isCompleted) {
-          completer.complete(true);
-        }
-      });
-
-      _socket!.onConnectError((error) {
-        _log('❌ Audio Socket connection error: $error');
-        _errorMessageController.add({'status': 'error', 'message': 'Connection failed: $error'});
-        if (!completer.isCompleted) {
-          completer.complete(false);
-        }
-      });
-
-      _setupSocketListeners();
-
-      _socket!.connect();
-
-      // Wait for connection with timeout
-      return await completer.future.timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          _log('⏰ Audio Socket connection timeout');
-          _errorMessageController.add({'status': 'error', 'message': 'Connection timeout'});
-          return false;
-        },
-      );
-    } catch (e) {
-      _log('💥 Audio Socket connection exception: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Connection exception: $e'});
-      return false;
+      // Update room operations with current room ID
+      _connectionManager.setCurrentRoomId(_connectionManager.currentRoomId);
     }
+    return result;
   }
 
-  /// Clear existing socket listeners to prevent duplicates
-  void _clearSocketListeners() {
-    if (_socket == null) return;
+  /// Disconnect from socket
+  Future<void> disconnect() => _connectionManager.disconnect();
 
-    _log('🧹 Clearing existing audio socket listeners');
+  /// Reconnect if disconnected
+  Future<bool> reconnect() => _connectionManager.reconnect();
 
-    // Clear all 15 audio event listeners
-    _socket!.off(_getAllRoomsEvent); // 1
-    _socket!.off(_audioRoomDetailsEvent); // 2
-    _socket!.off(_createRoomEvent); // 3
-    // _socket!.off(_closeRoomEvent); // 4
-    _socket!.off(_joinAudioRoomEvent); // 5
-    _socket!.off(_leaveAudioRoomEvent); // 6
-    _socket!.off(_userLeftEvent); // 7
-    _socket!.off(_joinSeatRequestEvent); // 8
-    _socket!.off(_leaveSeatRequestEvent); // 9
-    _socket!.off(_removeFromSeatEvent); // 10
-    _socket!.off(_sendMessageEvent); // 11
-    _socket!.off(_errorMessageEvent); // 12
-    _socket!.off(_muteUnmuteUserEvent); // 13
-    _socket!.off(_banUserEvent); // 14
-    _socket!.off(_unbanUserEvent); // 15
-  }
+  /// Check if socket is healthy
+  bool get isHealthy => _connectionManager.isHealthy;
 
-  /// Setup socket event listeners
-  void _setupSocketListeners() {
-    _log('🔧 Setting up Audio socket listeners');
-    if (_socket == null) return;
-
-    // Clear any existing listeners to prevent duplicates
-    _clearSocketListeners();
-
-    // Connection events
-    _socket!.onDisconnect((_) {
-      _isConnected = false;
-      _connectionStatusController.add(false);
-      _log('🔌 Audio Socket disconnected');
-    });
-
-    _socket!.onReconnect((_) {
-      _isConnected = true;
-      _connectionStatusController.add(true);
-      _log('🔄 Audio Socket reconnected');
-    });
-
-    _socket!.onReconnectError((error) {
-      _log('❌ Audio Socket reconnection error: $error');
-      _errorMessageController.add({'status': 'error', 'message': 'Reconnection failed: $error'});
-    });
-
-    // Audio room specific events
-    _socket!.on(_errorMessageEvent, (data) {
-      _log('❌ Audio Error message: $data');
-      if (data is Map<String, dynamic>) {
-        _errorMessageController.add(data);
-      }
-    });
-
-    // Room created - refresh room list
-    _socket!.on(_createRoomEvent, (data) {
-      _log('🏠 Audio room created: $data');
-      if (data is Map<String, dynamic>) {
-        _createRoomController.add(AudioRoomDetails.fromJson(data));
-        // Refresh room list after room creation
-        _refreshRoomList();
-      }
-    });
-
-    // User joined room - refresh room list
-    _socket!.on(_joinAudioRoomEvent, (data) {
-      _log('🚪 User joined audio room: $data');
-      if (data is Map<String, dynamic>) {
-        _joinRoomController.add(AudioRoomDetails.fromJson(data));
-        // Refresh room list after user joins
-        _refreshRoomList();
-      }
-    });
-
-    // User left
-    _socket!.on(_userLeftEvent, (data) {
-      _log('👋 Audio user left: $data');
-      if (data is Map<String, dynamic>) {
-        _userLeftController.add(LeftUserModel.fromJson(data));
-        // Refresh room list after user leaves
-        _refreshRoomList();
-      }
-    });
-
-    // Room deleted/left - refresh room list
-    _socket!.on(_leaveAudioRoomEvent, (data) {
-      _log('🚪 Audio room left/deleted: $data');
-      if (data is Map<String, dynamic>) {
-        _leaveRoomController.add(AudioRoomDetails.fromJson(data));
-        // Refresh room list after room is left/deleted
-        _refreshRoomList();
-      }
-    });
-
-    // Remove from seat
-    _socket!.on(_removeFromSeatEvent, (data) {
-      _log('🚫 Remove from seat: $data');
-      if (data is Map<String, dynamic>) {
-        _removeFromSeatController.add(SeatModel.fromJson(data));
-      }
-    });
-
-    // Audio room details
-    _socket!.on(_audioRoomDetailsEvent, (data) {
-      _log('📺 Audio room details response received');
-      _log('📺 Raw response: $data');
-
-      try {
-        if (data is Map<String, dynamic>) {
-          // Check if this is a room closure notification
-          if (data['success'] == true && data['message'] == 'Room has been closed by the host' && data['data'] is Map && (data['data'] as Map).isEmpty) {
-            _log('🏠 Room has been closed by the host - notifying listeners');
-            // Emit an empty/null room details to indicate room closure
-            _audioRoomDetailsController.add(null);
-            return;
-          }
-
-          // Normal room details response
-          if (data.containsKey('data') && data['data'] is Map<String, dynamic>) {
-            final roomData = data['data'] as Map<String, dynamic>;
-            final roomDetails = AudioRoomDetails.fromJson(roomData);
-            _log('✅ Parsed room details for: ${roomDetails.roomId}');
-            _audioRoomDetailsController.add(roomDetails);
-          } else {
-            _log('❌ Invalid room details response format');
-          }
-        } else {
-          _log('❌ Room details response is not a Map');
-        }
-      } catch (e, stackTrace) {
-        _log('💥 Error processing room details response: $e');
-        _log('💥 Stack trace: $stackTrace');
-      }
-    });
-
-    // Get all audio rooms
-    _socket!.on(_getAllRoomsEvent, (data) {
-      _log('🏠 Get all audio rooms response received');
-      _log('🏠 Raw data type: ${data.runtimeType}');
-      _log('🏠 Raw data: $data');
-
-      try {
-        if (data is List) {
-          _log('✅ Data is List with ${data.length} items');
-          // Direct list response - convert each Map to AudioRoomDetails
-          final rooms = data.map((room) => AudioRoomDetails.fromJson(room as Map<String, dynamic>)).toList();
-          _log('✅ Successfully parsed ${rooms.length} rooms');
-          _getAllRoomsController.add(rooms);
-        } else if (data is Map<String, dynamic>) {
-          _log('📦 Data is Map, checking for data key...');
-          if (data.containsKey('data')) {
-            final roomsData = data['data'];
-            _log('📦 Found data key, type: ${roomsData.runtimeType}');
-            if (roomsData is List) {
-              _log('✅ Data.data is List with ${roomsData.length} items');
-              final rooms = roomsData.map((room) => AudioRoomDetails.fromJson(room as Map<String, dynamic>)).toList();
-              _log('✅ Successfully parsed ${rooms.length} rooms from data field');
-              _getAllRoomsController.add(rooms);
-            } else {
-              _log('❌ Invalid audio rooms data format: data field is not a List, got: ${roomsData.runtimeType}');
-            }
-          } else {
-            _log('❌ Map does not contain data key. Available keys: ${data.keys}');
-          }
-        } else {
-          _log('❌ Invalid audio rooms response format: expected List or Map, got ${data.runtimeType}');
-        }
-      } catch (e, stackTrace) {
-        _log('💥 Error processing audio rooms response: $e');
-        _log('💥 Stack trace: $stackTrace');
-        _log('💥 Raw data that caused error: $data');
-      }
-    });
-
-    // Sent messages
-    _socket!.on(_sendMessageEvent, (data) {
-      _log('💬 Audio message response: ${data['message']}');
-      try {
-        if (data is Map<String, dynamic>) {
-          _sendMessageController.add(AudioChatModel.fromJson(data['data']));
-        }
-      } catch (e) {
-        _log('❌ Audio message response error: $e');
-      }
-    });
-
-    //Ban Audio User
-    _socket!.on(_banUserEvent, (data) {
-      _log('🚫 Ban audio user response: $data');
-      if (data is Map<String, dynamic>) {
-        _banUserController.add(BanUserModel.fromJson(data));
-      }
-    });
-
-    //Mute/Unmute Audio User
-    _socket!.on(_muteUnmuteUserEvent, (data) {
-      _log('🔇 Audio mute/unmute user response: $data');
-      if (data is Map<String, dynamic>) {
-        _muteUnmuteUserController.add(MuteUserModel.fromJson(data));
-      }
-    });
-  }
-
-  /// Create a new room
+  /// Room operations
   Future<bool> createRoom(
     String roomId,
     String title, {
-    String? targetId,
-    int numberOfSeats = 6,
-    String seatKey = 'seat-1',
-  }) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
+    int numberOfSeats = AudioSocketConstants.defaultNumberOfSeats,
+  }) => _roomOperations.createRoom(roomId, title, numberOfSeats: numberOfSeats);
 
-    try {
-      _log('🏠 Creating audio room: $roomId with $numberOfSeats seats');
+  Future<bool> deleteRoom(String roomId) => _roomOperations.deleteRoom(roomId);
 
-      final Map<String, dynamic> roomData = {
-        'roomId': roomId,
-        'title': title,
-        // 'roomType': 'audio',
-        'numberOfSeats': numberOfSeats,
-        'seatKey': seatKey,
-      };
-
-      // Add targetId if provided
-      if (targetId != null && targetId.isNotEmpty) {
-        roomData['targetId'] = targetId;
+  Future<bool> joinRoom(String roomId) {
+    final result = _roomOperations.joinRoom(roomId);
+    result.then((success) {
+      if (success) {
+        _connectionManager.setCurrentRoomId(roomId);
       }
-
-      _socket!.emit(_createRoomEvent, roomData);
-      _currentRoomId = roomId;
-      return true;
-    } catch (e) {
-      _log('❌ Error creating room: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to create room: $e'});
-      return false;
-    }
+    });
+    return result;
   }
 
-  /// Delete a room (only host can delete)
-  Future<bool> deleteRoom(String roomId) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('🗑️ Deleting room: $roomId');
-
-      _socket!.emit(_leaveAudioRoomEvent, {'roomId': roomId});
-
-      if (_currentRoomId == roomId) {
-        _currentRoomId = null;
+  Future<bool> leaveRoom(String roomId) {
+    final result = _roomOperations.leaveRoom(roomId);
+    result.then((success) {
+      if (success) {
+        _connectionManager.setCurrentRoomId(null);
       }
-
-      return true;
-    } catch (e) {
-      _log('❌ Error deleting room: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to delete room: $e'});
-      return false;
-    }
+    });
+    return result;
   }
 
-  /// Join a room
-  Future<bool> joinRoom(String roomId) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
+  Future<bool> getRooms() => _roomOperations.getRooms();
 
-    try {
-      _log('🚪 Joining room: $roomId');
+  Future<AudioRoomDetails?> getRoomDetails(String roomId) => _roomOperations.getRoomDetails(roomId);
+  
+  Future<bool> sendMessage(String roomId, String message) => _roomOperations.sendMessage(roomId, message);
 
-      _socket!.emit(_joinAudioRoomEvent, {'roomId': roomId});
-      _currentRoomId = roomId;
-      return true;
-    } catch (e) {
-      _log('❌ Error joining room: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to join room: $e'});
-      return false;
-    }
-  }
-
-  /// Leave a room
-  Future<bool> leaveRoom(String roomId) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('🚪 Leaving room: $roomId');
-
-      _socket!.emit(_leaveAudioRoomEvent, {'roomId': roomId});
-
-      if (_currentRoomId == roomId) {
-        _currentRoomId = null;
-      }
-
-      return true;
-    } catch (e) {
-      _log('❌ Error leaving room: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to leave room: $e'});
-      return false;
-    }
-  }
-
-  /// Refresh room list (called when rooms are created, joined, left, etc.)
-  void _refreshRoomList() {
-    if (_isConnected && _socket != null) {
-      _log('🔄 Refreshing audio room list due to room changes');
-      _socket!.emit(_getAllRoomsEvent, {});
-    }
-  }
-
-  /// Get list of all rooms
-  Future<bool> getRooms() async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('📋 Getting audio rooms list');
-
-      _socket!.emit(_getAllRoomsEvent, {});
-      return true;
-    } catch (e) {
-      _log('❌ Error getting audio rooms: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to get rooms: $e'});
-      return false;
-    }
-  }
-
-  /// Get room details by room ID
-  Future<AudioRoomDetails?> getRoomDetails(String roomId) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return null;
-    }
-
-    try {
-      _log('📋 Getting audio room details for: $roomId');
-
-      // Create a completer to wait for the response
-      final completer = Completer<AudioRoomDetails?>();
-
-      // Listen for the room details response
-      void onRoomDetails(dynamic data) {
-        try {
-          if (data is Map<String, dynamic>) {
-            final roomDetails = AudioRoomDetails.fromJson(data);
-            _log('✅ Received room details for: ${roomDetails.roomId}');
-            completer.complete(roomDetails);
-          } else {
-            _log('❌ Invalid room details format: $data');
-            completer.complete(null);
-          }
-        } catch (e) {
-          _log('❌ Error parsing room details: $e');
-          completer.complete(null);
-        }
-      }
-
-      // Set up one-time listener for room details
-      _socket!.once(_audioRoomDetailsEvent, onRoomDetails);
-
-      // Emit the request
-      _socket!.emit(_audioRoomDetailsEvent, {'roomId': roomId});
-
-      // Wait for response with timeout
-      return await completer.future.timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          _log('⏰ Room details request timeout');
-          _socket!.off(_audioRoomDetailsEvent, onRoomDetails);
-          return null;
-        },
-      );
-    } catch (e) {
-      _log('❌ Error getting room details: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to get room details: $e'});
-      return null;
-    }
-  }
-
-  /// Send Message
-  Future<bool> sendMessage(String roomId, String message) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('💬 Sending audio message: $message');
-
-      _socket!.emit(_sendMessageEvent, {'roomId': roomId, 'text': message});
-      return true;
-    } catch (e) {
-      _log('❌ Error sending audio message: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to send message: $e'});
-      return false;
-    }
-  }
-
-  ///Ban User
-  Future<bool> banUser(String userId) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('🚫 Banning audio user: $userId');
-
-      _socket!.emit(_banUserEvent, {'roomId': _currentRoomId, 'targetId': userId});
-      return true;
-    } catch (e) {
-      _log('❌ Error banning audio user: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to ban user: $e'});
-      return false;
-    }
-  }
-
-  // Unban User
-  Future<bool> unbanUser(String userId) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('🚫 Unbanning audio user: $userId');
-
-      _socket!.emit(_unbanUserEvent, {'roomId': _currentRoomId, 'targetId': userId});
-      return true;
-    } catch (e) {
-      _log('❌ Error unbanning audio user: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to unban user: $e'});
-      return false;
-    }
-  }
-
-  ///Mute/Unmute User
-  Future<bool> muteUnmuteUser(String userId) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('🔇 Muting/Unmuting audio user: $userId');
-
-      _socket!.emit(_muteUnmuteUserEvent, {'roomId': _currentRoomId, 'targetId': userId});
-      return true;
-    } catch (e) {
-      _log('❌ Error muting/Unmuting audio user: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to mute user: $e'});
-      return false;
-    }
-  }
-
-  /// Send custom event
-  void emit(String event, [dynamic data]) {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return;
-    }
-
-    try {
-      _log('📤 Emitting event: $event, data: $data');
-
-      if (data != null) {
-        _socket!.emit(event, data);
-      } else {
-        _socket!.emit(event);
-      }
-    } catch (e) {
-      _log('❌ Error emitting event: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to emit event: $e'});
-    }
-  }
-
-  /// Join a specific seat in audio room
+  /// Seat operations
   Future<bool> joinSeat({
     required String roomId,
     required String seatKey,
     required String targetId,
     int? numberOfSeats,
-  }) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
+  }) => _seatOperations.joinSeat(roomId: roomId, seatKey: seatKey, targetId: targetId, numberOfSeats: numberOfSeats);
+
+  Future<bool> leaveSeat({required String roomId, required String seatKey, required String targetId}) =>
+      _seatOperations.leaveSeat(roomId: roomId, seatKey: seatKey, targetId: targetId);
+
+  Future<bool> removeFromSeat({required String roomId, required String seatKey, required String targetId}) =>
+      _seatOperations.removeFromSeat(roomId: roomId, seatKey: seatKey, targetId: targetId);
+
+  /// User operations
+  Future<bool> banUser(String userId) => _userOperations.banUser(userId);
+  
+  Future<bool> unbanUser(String userId) => _userOperations.unbanUser(userId);
+  
+  Future<bool> muteUnmuteUser(String userId) => _userOperations.muteUnmuteUser(userId);
+
+  /// Send custom event
+  void emit(String event, [dynamic data]) {
+    if (!_connectionManager.isConnected || _connectionManager.socket == null) {
+      _errorController.add({'status': 'error', 'message': 'Socket not connected'});
+      return;
     }
 
     try {
-      _log('🪑 Joining seat: $seatKey in room: $roomId');
-
-      final Map<String, dynamic> data = {'roomId': roomId, 'seatKey': seatKey, 'targetId': targetId};
-
-      if (numberOfSeats != null) {
-        data['numberOfSeats'] = numberOfSeats;
+      if (data != null) {
+        _connectionManager.socket!.emit(event, data);
+      } else {
+        _connectionManager.socket!.emit(event);
       }
-
-      _socket!.emit(_joinSeatRequestEvent, data);
-      return true;
     } catch (e) {
-      _log('❌ Error joining seat: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to join seat: $e'});
-      return false;
-    }
-  }
-
-  /// Leave a specific seat in audio room
-  Future<bool> leaveSeat({required String roomId, required String seatKey, required String targetId}) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('🚪 Leaving seat: $seatKey in room: $roomId');
-
-      _socket!.emit(_leaveSeatRequestEvent, {'roomId': roomId, 'seatKey': seatKey, 'targetId': targetId});
-      return true;
-    } catch (e) {
-      _log('❌ Error leaving seat: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to leave seat: $e'});
-      return false;
-    }
-  }
-
-  /// Remove user from a specific seat (host only)
-  Future<bool> removeFromSeat({required String roomId, required String seatKey, required String targetId}) async {
-    if (!_isConnected || _socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('🚫 Removing user from seat: $seatKey');
-
-      _socket!.emit(_removeFromSeatEvent, {'roomId': roomId, 'seatKey': seatKey, 'targetId': targetId});
-      return true;
-    } catch (e) {
-      _log('❌ Error removing from seat: $e');
-      _errorMessageController.add({'status': 'error', 'message': 'Failed to remove from seat: $e'});
-      return false;
+      _errorController.add({'status': 'error', 'message': 'Failed to emit event: $e'});
     }
   }
 
   /// Listen to custom events
   void on(String event, Function(dynamic) callback) {
-    if (_socket == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'Socket not initialized'});
+    if (_connectionManager.socket == null) {
+      _errorController.add({'status': 'error', 'message': 'Socket not initialized'});
       return;
     }
-
-    _socket!.on(event, callback);
+    _connectionManager.socket!.on(event, callback);
   }
 
   /// Remove event listener
   void off(String event) {
-    if (_socket == null) return;
-    _socket!.off(event);
-  }
-
-  /// Disconnect from socket
-  Future<void> disconnect() async {
-    try {
-      _log('🔌 Disconnecting socket');
-
-      // Leave current room if any
-      if (_currentRoomId != null) {
-        await leaveRoom(_currentRoomId!);
-      }
-
-      if (_socket != null) {
-        _socket!.disconnect();
-        _socket!.dispose();
-        _socket = null;
-      }
-
-      _isConnected = false;
-      _currentUserId = null;
-      _currentRoomId = null;
-      _connectionStatusController.add(false);
-
-      _log('✅ Socket disconnected successfully');
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error disconnecting socket: $e');
-      }
-    }
+    if (_connectionManager.socket == null) return;
+    _connectionManager.socket!.off(event);
   }
 
   /// Dispose all resources
   void dispose() {
-    disconnect();
-
-    // Close all stream controllers for the 15 new events
-    _getAllRoomsController.close(); // 1
-    _audioRoomDetailsController.close(); // 2
-    _createRoomController.close(); // 3
-    _closeRoomController.close(); // 4
-    _joinRoomController.close(); // 5
-    _leaveRoomController.close(); // 6
-    _userLeftController.close(); // 7
-    _joinSeatRequestController.close(); // 8
-    _leaveSeatRequestController.close(); // 9
-    _removeFromSeatController.close(); // 10
-    _sendMessageController.close(); // 11
-    _errorMessageController.close(); // 12
-    _muteUnmuteUserController.close(); // 13
-    _banUserController.close(); // 14
-    _unbanUserController.close(); // 15
-
+    _connectionManager.dispose();
+    _eventHandler.dispose();
+    _errorController.close();
     _instance = null;
-  }
-
-  /// Check if socket is healthy
-  bool get isHealthy {
-    return _isConnected && _socket != null && _socket!.connected;
-  }
-
-  /// Reconnect if disconnected
-  Future<bool> reconnect() async {
-    if (_currentUserId == null) {
-      _errorMessageController.add({'status': 'error', 'message': 'No user ID available for reconnection'});
-      return false;
-    }
-
-    await disconnect();
-    return await connect(_currentUserId!);
   }
 }
