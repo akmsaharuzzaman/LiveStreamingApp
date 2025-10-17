@@ -8,28 +8,28 @@ import 'package:go_router/go_router.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 
 import 'package:dlstarlive/core/network/api_service.dart';
-import 'package:dlstarlive/core/network/models/joined_user_model.dart';
 import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:dlstarlive/routing/app_router.dart';
 
 import 'package:dlstarlive/features/live/presentation/component/agora_token_service.dart';
 import 'package:dlstarlive/features/live/presentation/component/custom_live_button.dart';
 import 'package:dlstarlive/features/live/presentation/component/game_bottomsheet.dart';
-import 'package:dlstarlive/features/live/presentation/component/gift_bottom_sheet.dart';
 import 'package:dlstarlive/features/live/presentation/component/menu_bottom_sheet.dart';
 import 'package:dlstarlive/features/live/presentation/widgets/animated_layer.dart';
 
 import '../../../core/auth/auth_bloc.dart';
-import '../../../core/network/models/ban_user_model.dart';
+import '../models/member.dart';
 import '../models/audio_room_details.dart';
 import '../models/chat_model.dart';
 import '../models/audio_host_details.dart';
+import '../models/joined_seat.dart';
 import '../service/socket_service_audio.dart';
-import '../../live/presentation/component/active_viwers.dart';
+// import '../../live/presentation/component/active_viwers.dart';
 import '../../live/presentation/component/end_stream_overlay.dart';
 import '../../live/presentation/component/host_info.dart';
 import '../../live/presentation/component/send_message_buttonsheet.dart';
 import 'widgets/chat_widget.dart';
+import 'widgets/joind_listeners.dart';
 import 'widgets/seat_widget.dart';
 
 class AudioGoLiveScreen extends StatefulWidget {
@@ -80,19 +80,18 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   String? _currentRoomId;
   bool isHost = true;
   String roomId = "default_channel";
-  List<JoinedUserModel> activeViewers = [];
+  List<AudioMember> listeners = [];
+  List<JoinedSeatModel> seatMembers = [];
   List<String> broadcasterList = [];
   // Room data for seat initialization
   AudioRoomDetails? roomData;
-  // Pending seat requests
-  Set<String> pendingSeats = {};
   // List<BroadcasterModel> broadcasterModels = [];
   // List<BroadcasterModel> broadcasterDetails = [];
   // List<GiftModel> sentGifts = [];
   // Banned users
   List<String> bannedUsers = [];
   // Banned user details
-  List<BanUserModel> bannedUserModels = [];
+  List<AudioMember> bannedUserModels = [];
 
   // Live stream timing
   DateTime? _streamStartTime;
@@ -117,8 +116,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   StreamSubscription? _joinRoomSubscription; // 5
   StreamSubscription? _leaveRoomSubscription; // 6
   StreamSubscription? _userLeftSubscription; // 7
-  StreamSubscription? _joinSeatRequestSubscription; // 8
-  StreamSubscription? _leaveSeatRequestSubscription; // 9
+  StreamSubscription? _joinSeatSubscription; // 8
+  StreamSubscription? _leaveSeatSubscription; // 9
   StreamSubscription? _removeFromSeatSubscription; // 10
   StreamSubscription? _sendMessageSubscription; // 11
   StreamSubscription? _errorMessageSubscription; // 12
@@ -179,7 +178,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
       // Initialize members as active viewers (excluding host)
       if (roomData.membersDetails.isNotEmpty) {
-        activeViewers.clear();
+        listeners.clear();
         for (var memberData in roomData.membersDetails) {
           if (memberData is Map<String, dynamic>) {
             try {
@@ -204,7 +203,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
             }
           }
         }
-        _uiLog("👥 Loaded ${activeViewers.length} existing members as viewers");
+        _uiLog("👥 Loaded ${listeners.length} existing members as viewers");
       }
 
       // Set room ID if not already set
@@ -254,10 +253,11 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
   void _setupSocketListeners() {
     // User joined
-    _joinSeatRequestSubscription = _socketService.joinSeatRequestStream.listen((data) {
-      if (mounted && data.id != widget.hostUserId) {
-        if (!activeViewers.any((user) => user.id == data.id)) {
-          activeViewers.add(data);
+    _joinRoomSubscription = _socketService.joinRoomStream.listen((data) {
+      if (mounted && data.membersDetails.any((member) => member.id != widget.hostUserId)) {
+        AudioHostDetails member = data.membersDetails.firstWhere((member) => member.id != widget.hostUserId);
+        if (!listeners.any((user) => user.id == member.id)) {
+          listeners.add(AudioMember.fromJson(member.toJson()));
           setState(() {});
         }
       }
@@ -266,8 +266,26 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     // User left
     _userLeftSubscription = _socketService.userLeftStream.listen((data) {
       if (mounted) {
-        activeViewers.removeWhere((user) => user.id == data.id);
+        listeners.removeWhere((user) => user.id == data.id);
         broadcasterList.removeWhere((user) => user == data.id);
+        setState(() {});
+      }
+    });
+
+    // Seat joined
+    _joinSeatSubscription = _socketService.joinSeatRequestStream.listen((data) {
+      if (mounted && data.member?.id != widget.hostUserId) {
+        if (!seatMembers.any((user) => user.member?.id == data.member?.id)) {
+          seatMembers.add(data);
+          setState(() {});
+        }
+      }
+    });
+
+    // Seat left
+    _leaveSeatSubscription = _socketService.leaveSeatRequestStream.listen((data) {
+      if (mounted) {
+        seatMembers.removeWhere((user) => user.member?.id == data.id);
         setState(() {});
       }
     });
@@ -299,7 +317,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         }
         setState(() {
           bannedUsers.add(data.targetId);
-          activeViewers.removeWhere((user) => user.id == data.targetId);
+          listeners.removeWhere((user) => user.id == data.targetId);
         });
       }
     });
@@ -466,9 +484,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   void _takeSeat(String seatId) {
     final roomId = _currentRoomId ?? widget.roomId;
     if (roomId != null && !isHost) {
-      setState(() {
-        pendingSeats.add(seatId);
-      });
       _socketService.joinSeat(roomId: roomId, seatKey: seatId, targetId: userId!);
     }
   }
@@ -747,17 +762,15 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           '(cleanup triggered)',
         );
       },
-      child: BlocBuilder<AuthBloc, AuthState>(
-        builder: (context, state) {
-          if (state is! AuthAuthenticated) {
-            return Scaffold(
-              body: Center(
+      child: Scaffold(
+        body: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            if (state is! AuthAuthenticated) {
+              return Center(
                 child: Text('Please log in to start live streaming', style: TextStyle(fontSize: 18.sp)),
-              ),
-            );
-          } else {
-            return Scaffold(
-              body: Stack(
+              );
+            } else {
+              return Stack(
                 children: [
                   // Background
                   Container(
@@ -770,29 +783,46 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   ),
 
                   // Main content with seats grid
-                  SafeArea(
-                    child: Column(
-                      children: [
-                        SizedBox(height: 160.h), // Space for top bar
-                        SeatWidget(
-                          numberOfSeats: widget.numberOfSeats,
-                          currentUserId: userId,
-                          currentUserName: state.user.name,
-                          currentUserAvatar: state.user.avatar,
-                          hostDetails: roomData?.hostDetails,
-                          premiumSeat: roomData?.premiumSeat,
-                          seatsData: roomData?.seats,
-                          onTakeSeat: _takeSeat,
-                          pendingSeats: pendingSeats,
-                          isHost: isHost,
-                        ),
-                        Spacer(),
-                      ],
-                    ),
+                  Column(
+                    children: [
+                      SizedBox(height: 160.h), // Space for top bar
+                      SeatWidget(
+                        numberOfSeats: widget.numberOfSeats,
+                        currentUserId: userId,
+                        currentUserName: state.user.name,
+                        currentUserAvatar: state.user.avatar,
+                        hostDetails: roomData?.hostDetails,
+                        premiumSeat: roomData?.premiumSeat,
+                        seatsData: roomData?.seats,
+                        onTakeSeat: _takeSeat,
+                        isHost: isHost,
+                      ),
+                      Spacer(),
+                    ],
                   ),
 
                   // Stream options overlay (top bar, chat, bottom buttons)
-                  _buildStreamOptions(state),
+                  // IgnorePointer(
+                  //   ignoring: true,
+                  //   child: _buildStreamOptions(state),
+                  // ),
+
+                  // Individual UI components (not blocking the entire screen)
+                  _buildTopBar(state),
+                  _buildChatWidget(),
+                  _buildBottomButtons(state),
+
+                  // Positioned(
+                  //   bottom: 180.h,
+                  //   left: 20.w,
+                  //   right: 20.w,
+                  //   child: ElevatedButton(
+                  //     onPressed: () {
+                  //       debugPrint("\n\n\nSelected seat index: \n\n\n");
+                  //     },
+                  //     child: Text("Take Seat"),
+                  //   ),
+                  // ),
 
                   // Animation layer
                   if (_animationPlaying)
@@ -803,302 +833,224 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                       customSubtitle: _customAnimationSubtitle,
                     ),
                 ],
-              ),
-            );
-          }
-        },
+              );
+            }
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildStreamOptions(AuthAuthenticated state) {
-    return SafeArea(
+  // Remove _buildStreamOptions and use these individual positioned widgets instead:
+
+  Widget _buildTopBar(AuthAuthenticated state) {
+    return Positioned(
+      top: 30.h,
+      left: 20.w,
+      right: 20.w,
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 30.h),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              physics: NeverScrollableScrollPhysics(),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(
-                  child: Column(
-                    children: [
-                      // this is the top row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          if (isHost)
-                            HostInfo(
-                              imageUrl: state.user.avatar ?? "https://thispersondoesnotexist.com/",
-                              name: state.user.name,
-                              id: state.user.id.substring(0, 4),
-                              hostUserId: state.user.id,
-                              currentUserId: state.user.id,
-                            )
-                          else
-                            HostInfo(
-                              imageUrl: widget.hostAvatar ?? "https://thispersondoesnotexist.com/",
-                              name: widget.hostName ?? "Host",
-                              id: widget.hostUserId?.substring(0, 4) ?? "Host",
-                              hostUserId: widget.hostUserId ?? "",
-                              currentUserId: state.user.id,
-                            ),
-                          Spacer(),
-                          // *show the viwers
-                          ActiveViewers(
-                            activeUserList: activeViewers,
-                            hostUserId: isHost ? userId : widget.hostUserId,
-                            hostName: isHost ? state.user.name : widget.hostName,
-                            hostAvatar: isHost ? state.user.avatar : widget.hostAvatar,
-                          ),
-
-                          // * to show the leave button
-                          (isHost)
-                              ? GestureDetector(
-                                  onTap: () {
-                                    EndStreamOverlay.show(
-                                      context,
-                                      onKeepStream: () {
-                                        _uiLog("Keep stream pressed");
-                                      },
-                                      onEndStream: () {
-                                        _endLiveStream();
-                                        _uiLog("End stream pressed");
-                                      },
-                                    );
-                                  },
-                                  child: Image.asset(
-                                    "assets/icons/live_exit_icon.png",
-                                    height: 50.h,
-                                    // width: 40.w,
-                                  ),
-                                )
-                              : InkWell(
-                                  onTap: () {
-                                    _endLiveStream();
-                                    _uiLog("Disconnect pressed");
-                                  },
-                                  child: Image.asset("assets/icons/live_exit_icon.png", height: 50.h),
-                                ),
-                        ],
-                      ),
-                      SizedBox(height: 10.h),
-
-                      //  this is the second row TODO:  diamond and star count display
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // DiamondStarStatus(
-                          //   diamonCount: AppUtils.formatNumber(
-                          //     GiftModel.totalDiamondsForHost(
-                          //       sentGifts,
-                          //       isHost
-                          //           ? userId
-                          //           : widget.hostUserId, // Use userId for host, widget.hostUserId for viewers
-                          //     ),
-                          //   ),
-                          //   starCount: AppUtils.formatNumber(0),
-                          // ),
-                          SizedBox(height: 5.h),
-                          //add another widget to show the bonus
-                          // BonusStatus(
-                          //   bonusCount: AppUtils.formatNumber(
-                          //     _calculateTotalBonusDiamonds(),
-                          //   ),
-                          // ),
-                        ],
-                      ),
-
-                      Spacer(),
-
-                      // Chat widget - positioned at bottom left
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: AudioChatWidget(messages: _chatMessages),
-                      ),
-
-                      SizedBox(height: 10.h),
-
-                      // the bottom buttons
-                      if (isHost)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            InkWell(
-                              onTap: () {
-                                showSendMessageBottomSheet(
-                                  context,
-                                  onSendMessage: (message) {
-                                    _uiLog("Send message pressed");
-                                    _emitMessageToSocket(message);
-                                  },
-                                );
-                              },
-                              child: Stack(
-                                children: [
-                                  Image.asset("assets/icons/message_icon.png", height: 40.h),
-                                  Positioned(
-                                    left: 10.w,
-                                    top: 0,
-                                    bottom: 0,
-                                    child: Row(
-                                      children: [
-                                        Image.asset("assets/icons/message_user_icon.png", height: 20.h),
-                                        SizedBox(width: 5.w),
-                                        Text(
-                                          'Say Hello!',
-                                          style: TextStyle(color: Colors.white, fontSize: 18.sp),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            CustomLiveButton(
-                              iconPath: "assets/icons/gift_user_icon.png",
-                              onTap: () {
-                                _showSnackBar('🎁 Not implemented yet', Colors.red);
-                                // showGiftBottomSheet(
-                                //   context,
-                                //   activeViewers: activeViewers,
-                                //   roomId: _currentRoomId ?? roomId,
-                                //   hostUserId: isHost ? userId : widget.hostUserId,
-                                //   hostName: isHost ? state.user.name : widget.hostName,
-                                //   hostAvatar: isHost ? state.user.avatar : widget.hostAvatar,
-                                // );
-                              },
-                            ),
-                            CustomLiveButton(
-                              iconPath: "assets/icons/emoji_icon.png",
-                              onTap: () {
-                                // _playAnimation();
-                                _showSnackBar('🎶 Not implemented yet', Colors.red);
-                                // showMusicBottomSheet(context);
-                              },
-                            ),
-                            CustomLiveButton(
-                              iconPath: _muted ? "assets/icons/mute_icon.png" : "assets/icons/unmute_icon.png",
-                              onTap: () {
-                                // _toggleMute();
-                                _showSnackBar('🔇 Not implemented yet', Colors.red);
-                              },
-                            ),
-                            CustomLiveButton(
-                              iconPath: "assets/icons/call_icon.png",
-                              onTap: () {
-                                // if (_audioCallerUids.isNotEmpty) {
-                                //   _showSnackBar(
-                                //     '🎤 ${_audioCallerUids.length} audio caller${_audioCallerUids.length > 1 ? 's' : ''} connected',
-                                //     Colors.green,
-                                //   );
-                                // } else {
-                                //   _showSnackBar('📞 Waiting for audio callers to join...', Colors.blue);
-                                // }
-                                _showSnackBar('📞 Not implemented yet', Colors.red);
-                              },
-                            ),
-
-                            CustomLiveButton(
-                              iconPath: "assets/icons/menu_icon.png",
-                              onTap: () {
-                                showGameBottomSheet(
-                                  context,
-                                  userId: userId,
-                                  isHost: isHost,
-                                  streamDuration: _streamDuration,
-                                );
-                              },
-                            ),
-                          ],
-                        )
-                      else
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            InkWell(
-                              onTap: () {
-                                // _showSnackBar(
-                                //   '💬 Not implemented yet',
-                                //   Colors.green,
-                                // );
-                                showSendMessageBottomSheet(
-                                  context,
-                                  onSendMessage: (message) {
-                                    print("Send message pressed");
-                                    _emitMessageToSocket(message);
-                                  },
-                                );
-                              },
-                              child: Stack(
-                                children: [
-                                  Image.asset("assets/icons/message_icon.png", height: 40.h),
-                                  Positioned(
-                                    left: 10,
-                                    top: 0,
-                                    bottom: 0,
-                                    child: Row(
-                                      children: [
-                                        Image.asset("assets/icons/message_user_icon.png", height: 20.h),
-                                        SizedBox(width: 5.w),
-                                        Text(
-                                          'Say Hello!',
-                                          style: TextStyle(color: Colors.white, fontSize: 18.sp),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            CustomLiveButton(
-                              iconPath: "assets/icons/gift_user_icon.png",
-                              onTap: () {
-                                showGiftBottomSheet(
-                                  context,
-                                  activeViewers: activeViewers,
-                                  roomId: _currentRoomId ?? roomId,
-                                  hostUserId: isHost ? userId : widget.hostUserId,
-                                  hostName: isHost ? state.user.name : widget.hostName,
-                                  hostAvatar: isHost ? state.user.avatar : widget.hostAvatar,
-                                );
-                              },
-                              height: 40.h,
-                            ),
-
-                            CustomLiveButton(
-                              iconPath: "assets/icons/game_user_icon.png",
-                              onTap: () {
-                                showGameBottomSheet(context, userId: userId, streamDuration: _streamDuration);
-                              },
-                              height: 40.h,
-                            ),
-                            CustomLiveButton(iconPath: "assets/icons/share_user_icon.png", onTap: () {}, height: 40.h),
-                            CustomLiveButton(
-                              iconPath: "assets/icons/menu_icon.png",
-                              onTap: () {
-                                showMenuBottomSheet(
-                                  context,
-                                  userId: userId,
-                                  isHost: isHost,
-                                  isMuted: _muted,
-                                  isAdminMuted: _isCurrentUserMuted(),
-                                  onToggleMute: _toggleMute,
-                                );
-                              },
-                              height: 40.h,
-                            ),
-                          ],
-                        ),
-                    ],
+        color: Colors.transparent, // Important for hit testing
+        child: Column(
+          children: [
+            // Top row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (isHost)
+                  HostInfo(
+                    imageUrl: state.user.avatar ?? "https://thispersondoesnotexist.com/",
+                    name: state.user.name,
+                    id: state.user.id.substring(0, 4),
+                    hostUserId: state.user.id,
+                    currentUserId: state.user.id,
+                  )
+                else
+                  HostInfo(
+                    imageUrl: widget.hostAvatar ?? "https://thispersondoesnotexist.com/",
+                    name: widget.hostName ?? "Host",
+                    id: widget.hostUserId?.substring(0, 4) ?? "Host",
+                    hostUserId: widget.hostUserId ?? "",
+                    currentUserId: state.user.id,
                   ),
+                Spacer(),
+                JoindListenersPage(
+                  activeUserList: listeners,
+                  hostUserId: isHost ? userId : widget.hostUserId,
+                  hostName: isHost ? state.user.name : widget.hostName,
+                  hostAvatar: isHost ? state.user.avatar : widget.hostAvatar,
                 ),
-              ),
-            );
-          },
+                // Leave button
+                (isHost)
+                    ? GestureDetector(
+                        onTap: () {
+                          EndStreamOverlay.show(
+                            context,
+                            onKeepStream: () {
+                              _uiLog("Keep stream pressed");
+                            },
+                            onEndStream: () {
+                              _endLiveStream();
+                              _uiLog("End stream pressed");
+                            },
+                          );
+                        },
+                        child: Image.asset("assets/icons/live_exit_icon.png", height: 50.h),
+                      )
+                    : InkWell(
+                        onTap: () {
+                          _endLiveStream();
+                          _uiLog("Disconnect pressed");
+                        },
+                        child: Image.asset("assets/icons/live_exit_icon.png", height: 50.h),
+                      ),
+              ],
+            ),
+            SizedBox(height: 10.h),
+            // Second row (diamond/star display if needed)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Your diamond/star widgets here
+              ],
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildChatWidget() {
+    return Positioned(
+      left: 20.w,
+      bottom: 120.h, // Above the bottom buttons
+      child: Container(
+        color: Colors.transparent,
+        child: AudioChatWidget(messages: _chatMessages),
+      ),
+    );
+  }
+
+  Widget _buildBottomButtons(AuthAuthenticated state) {
+    return Positioned(
+      bottom: 30.h,
+      left: 20.w,
+      right: 20.w,
+      child: Container(
+        color: Colors.transparent,
+        child: isHost
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildMessageButton(),
+                  CustomLiveButton(
+                    iconPath: "assets/icons/gift_user_icon.png",
+                    onTap: () {
+                      _showSnackBar('🎁 Not implemented yet', Colors.red);
+                    },
+                  ),
+                  CustomLiveButton(
+                    iconPath: "assets/icons/emoji_icon.png",
+                    onTap: () {
+                      _showSnackBar('🎶 Not implemented yet', Colors.red);
+                    },
+                  ),
+                  CustomLiveButton(
+                    iconPath: _muted ? "assets/icons/mute_icon.png" : "assets/icons/unmute_icon.png",
+                    onTap: () {
+                      _showSnackBar('🔇 Not implemented yet', Colors.red);
+                    },
+                  ),
+                  CustomLiveButton(
+                    iconPath: "assets/icons/call_icon.png",
+                    onTap: () {
+                      _showSnackBar('📞 Not implemented yet', Colors.red);
+                    },
+                  ),
+                  CustomLiveButton(
+                    iconPath: "assets/icons/menu_icon.png",
+                    onTap: () {
+                      showGameBottomSheet(context, userId: userId, isHost: isHost, streamDuration: _streamDuration);
+                    },
+                  ),
+                ],
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildMessageButton(),
+                  CustomLiveButton(
+                    iconPath: "assets/icons/gift_user_icon.png",
+                    onTap: () {
+                      _showSnackBar('🎁 Not implemented yet', Colors.red);
+                      // showGiftBottomSheet(
+                      //   context,
+                      //   activeViewers: listeners,
+                      //   roomId: _currentRoomId ?? roomId,
+                      //   hostUserId: isHost ? userId : widget.hostUserId,
+                      //   hostName: isHost ? state.user.name : widget.hostName,
+                      //   hostAvatar: isHost ? state.user.avatar : widget.hostAvatar,
+                      // );
+                    },
+                    height: 40.h,
+                  ),
+                  CustomLiveButton(
+                    iconPath: "assets/icons/game_user_icon.png",
+                    onTap: () {
+                      showGameBottomSheet(context, userId: userId, streamDuration: _streamDuration);
+                    },
+                    height: 40.h,
+                  ),
+                  CustomLiveButton(iconPath: "assets/icons/share_user_icon.png", onTap: () {}, height: 40.h),
+                  CustomLiveButton(
+                    iconPath: "assets/icons/menu_icon.png",
+                    onTap: () {
+                      showMenuBottomSheet(
+                        context,
+                        userId: userId,
+                        isHost: isHost,
+                        isMuted: _muted,
+                        isAdminMuted: _isCurrentUserMuted(),
+                        onToggleMute: _toggleMute,
+                      );
+                    },
+                    height: 40.h,
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildMessageButton() {
+    return InkWell(
+      onTap: () {
+        showSendMessageBottomSheet(
+          context,
+          onSendMessage: (message) {
+            _uiLog("Send message pressed");
+            _emitMessageToSocket(message);
+          },
+        );
+      },
+      child: Stack(
+        children: [
+          Image.asset("assets/icons/message_icon.png", height: 40.h),
+          Positioned(
+            left: 10.w,
+            top: 0,
+            bottom: 0,
+            child: Row(
+              children: [
+                Image.asset("assets/icons/message_user_icon.png", height: 20.h),
+                SizedBox(width: 5.w),
+                Text(
+                  'Say Hello!',
+                  style: TextStyle(color: Colors.white, fontSize: 18.sp),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1114,8 +1066,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     _joinRoomSubscription?.cancel(); // 5
     _leaveRoomSubscription?.cancel(); // 6
     _userLeftSubscription?.cancel(); // 7
-    _joinSeatRequestSubscription?.cancel(); // 8
-    _leaveSeatRequestSubscription?.cancel(); // 9
+    _joinSeatSubscription?.cancel(); // 8
+    _leaveSeatSubscription?.cancel(); // 9
     _removeFromSeatSubscription?.cancel(); // 10
     _sendMessageSubscription?.cancel(); // 11
     _errorMessageSubscription?.cancel(); // 12

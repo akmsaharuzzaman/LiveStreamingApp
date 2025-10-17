@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import '../../../core/network/models/ban_user_model.dart';
-import '../../../core/network/models/joined_user_model.dart';
 import '../../../core/network/models/left_user_model.dart';
 import '../../../core/network/models/mute_user_model.dart';
 import '../models/audio_room_details.dart';
 import '../models/chat_model.dart';
+import '../models/joined_seat.dart';
 import '../models/seat_model.dart';
 import 'connection_manager.dart';
 import 'socket_event_handler.dart';
@@ -73,7 +73,7 @@ class AudioSocketService {
   Stream<AudioRoomDetails> get joinRoomStream => _eventHandler.joinRoomStream;
   Stream<AudioRoomDetails> get leaveRoomStream => _eventHandler.leaveRoomStream;
   Stream<LeftUserModel> get userLeftStream => _eventHandler.userLeftStream;
-  Stream<JoinedUserModel> get joinSeatRequestStream => _eventHandler.joinSeatRequestStream;
+  Stream<JoinedSeatModel> get joinSeatRequestStream => _eventHandler.joinSeatRequestStream;
   Stream<SeatModel> get leaveSeatRequestStream => _eventHandler.leaveSeatRequestStream;
   Stream<SeatModel> get removeFromSeatStream => _eventHandler.removeFromSeatStream;
   Stream<AudioChatModel> get sendMessageStream => _eventHandler.sendMessageStream;
@@ -151,16 +151,12 @@ class AudioSocketService {
   Future<bool> getRooms() => _roomOperations.getRooms();
 
   Future<AudioRoomDetails?> getRoomDetails(String roomId) => _roomOperations.getRoomDetails(roomId);
-  
+
   Future<bool> sendMessage(String roomId, String message) => _roomOperations.sendMessage(roomId, message);
 
   /// Seat operations
-  Future<bool> joinSeat({
-    required String roomId,
-    required String seatKey,
-    required String targetId,
-    int? numberOfSeats,
-  }) => _seatOperations.joinSeat(roomId: roomId, seatKey: seatKey, targetId: targetId, numberOfSeats: numberOfSeats);
+  Future<bool> joinSeat({required String roomId, required String seatKey, required String targetId}) =>
+      _seatOperations.joinSeat(roomId: roomId, seatKey: seatKey, targetId: targetId);
 
   Future<bool> leaveSeat({required String roomId, required String seatKey, required String targetId}) =>
       _seatOperations.leaveSeat(roomId: roomId, seatKey: seatKey, targetId: targetId);
@@ -170,9 +166,9 @@ class AudioSocketService {
 
   /// User operations
   Future<bool> banUser(String userId) => _userOperations.banUser(userId);
-  
+
   Future<bool> unbanUser(String userId) => _userOperations.unbanUser(userId);
-  
+
   Future<bool> muteUnmuteUser(String userId) => _userOperations.muteUnmuteUser(userId);
 
   /// Send custom event

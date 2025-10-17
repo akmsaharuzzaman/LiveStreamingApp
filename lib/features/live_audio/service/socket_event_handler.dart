@@ -3,11 +3,11 @@ import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 import '../../../core/network/models/ban_user_model.dart';
-import '../../../core/network/models/joined_user_model.dart';
 import '../../../core/network/models/left_user_model.dart';
 import '../../../core/network/models/mute_user_model.dart';
 import '../models/audio_room_details.dart';
 import '../models/chat_model.dart';
+import '../models/joined_seat.dart';
 import '../models/seat_model.dart';
 import 'socket_constants.dart';
 import 'audio_room_operations.dart';
@@ -26,7 +26,7 @@ class AudioSocketEventHandler {
   final StreamController<AudioRoomDetails> _joinRoomController = StreamController<AudioRoomDetails>.broadcast();
   final StreamController<AudioRoomDetails> _leaveRoomController = StreamController<AudioRoomDetails>.broadcast();
   final StreamController<LeftUserModel> _userLeftController = StreamController<LeftUserModel>.broadcast();
-  final StreamController<JoinedUserModel> _joinSeatRequestController = StreamController<JoinedUserModel>.broadcast();
+  final StreamController<JoinedSeatModel> _joinSeatRequestController = StreamController<JoinedSeatModel>.broadcast();
   final StreamController<SeatModel> _leaveSeatRequestController = StreamController<SeatModel>.broadcast();
   final StreamController<SeatModel> _removeFromSeatController = StreamController<SeatModel>.broadcast();
   final StreamController<AudioChatModel> _sendMessageController = StreamController<AudioChatModel>.broadcast();
@@ -57,7 +57,7 @@ class AudioSocketEventHandler {
   Stream<AudioRoomDetails> get joinRoomStream => _joinRoomController.stream;
   Stream<AudioRoomDetails> get leaveRoomStream => _leaveRoomController.stream;
   Stream<LeftUserModel> get userLeftStream => _userLeftController.stream;
-  Stream<JoinedUserModel> get joinSeatRequestStream => _joinSeatRequestController.stream;
+  Stream<JoinedSeatModel> get joinSeatRequestStream => _joinSeatRequestController.stream;
   Stream<SeatModel> get leaveSeatRequestStream => _leaveSeatRequestController.stream;
   Stream<SeatModel> get removeFromSeatStream => _removeFromSeatController.stream;
   Stream<AudioChatModel> get sendMessageStream => _sendMessageController.stream;
@@ -162,14 +162,14 @@ class AudioSocketEventHandler {
   void _handleJoinSeatRequest(dynamic data) {
     _log('🪑 Join seat request: $data');
     if (data is Map<String, dynamic>) {
-      _joinSeatRequestController.add(JoinedUserModel.fromJson(data));
+      _joinSeatRequestController.add(JoinedSeatModel.fromJson(data['data']));
     }
   }
 
   void _handleLeaveSeatRequest(dynamic data) {
     _log('🪑 Leave seat request: $data');
     if (data is Map<String, dynamic>) {
-      _leaveSeatRequestController.add(SeatModel.fromJson(data));
+      _leaveSeatRequestController.add(SeatModel.fromJson(data['data']));
     }
   }
 

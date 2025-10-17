@@ -14,7 +14,6 @@ class SeatWidget extends StatefulWidget {
   final PremiumSeat? premiumSeat;
   final SeatsData? seatsData;
   final Function(String seatId)? onTakeSeat;
-  final Set<String> pendingSeats;
   final bool isHost;
 
   const SeatWidget({
@@ -27,7 +26,6 @@ class SeatWidget extends StatefulWidget {
     this.premiumSeat,
     this.seatsData,
     this.onTakeSeat,
-    this.pendingSeats = const {},
     this.isHost = false,
   });
 
@@ -361,7 +359,7 @@ class _SeatWidgetState extends State<SeatWidget> {
   Widget _buildSeatItem(SeatModel seat, int index) {
     return GestureDetector(
       onTap: () {
-        print("Selected seat index: $index");
+        print("\n\n\n Selected seat index: $index");
         setState(() {
           selectedSeatIndex = index;
         });
@@ -475,12 +473,14 @@ class _SeatWidgetState extends State<SeatWidget> {
   }
 
   void _showSeatOptions(SeatModel seat, int index) {
-    print('_showSeatOptions called for seat: ${seat.id}');
+    print('\n\n_showSeatOptions called for seat: ${seat.id}');
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          height: 200.h,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
@@ -492,20 +492,14 @@ class _SeatWidgetState extends State<SeatWidget> {
                 // print('Non-host options for seat ${seat.id}');
                 if (seat.name == null) ...[
                   // print('Seat is empty');
-                  if (widget.pendingSeats.contains(seat.id)) ...[
-                    // print('Seat is pending');
-                    ListTile(leading: Icon(Icons.hourglass_empty), title: Text("Seat Request Pending"), enabled: false),
-                  ] else ...[
-                    // print('Seat can be requested');
-                    ListTile(
-                      leading: Icon(Icons.event_seat),
-                      title: Text("Request Seat"),
-                      onTap: () {
-                        Navigator.pop(context);
-                        widget.onTakeSeat?.call(seat.id);
-                      },
-                    ),
-                  ],
+                  ListTile(
+                    leading: Icon(Icons.event_seat),
+                    title: Text("Take Seat"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onTakeSeat?.call(seat.id);
+                    },
+                  ),
                 ] else if (seat.userId == widget.currentUserId) ...[
                   // print('Seat is user\'s own');
                   ListTile(
@@ -547,10 +541,6 @@ class _SeatWidgetState extends State<SeatWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return _buildSeatsGrid();
-  }
-
-  Widget _buildSeatsGrid() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
@@ -568,8 +558,6 @@ class _SeatWidgetState extends State<SeatWidget> {
               ),
             ],
           ),
-
-          SizedBox(height: 60.h),
 
           // Remaining seats in grid
           GridView.builder(
