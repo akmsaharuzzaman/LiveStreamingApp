@@ -12,8 +12,8 @@ import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/home/presentation/pages/main_navigation_page.dart';
-import '../features/live_audio/models/audio_host_details.dart';
 import '../features/live_audio/models/audio_room_details.dart';
+import '../features/live_audio/models/audio_member_model.dart';
 import '../features/newsfeed/presentation/pages/newsfeed.dart';
 import '../features/profile/presentation/pages/store_page.dart';
 import '../features/reels/presentation/pages/video_editor_screen.dart';
@@ -112,7 +112,7 @@ final GoRouter appRouter = GoRouter(
         final hostName = state.uri.queryParameters['hostName'] ?? '';
         final hostUserId = state.uri.queryParameters['hostUserId'] ?? '';
         final hostAvatar = state.uri.queryParameters['hostAvatar'] ?? '';
-        final existingViewers = (state.extra as Map<String, dynamic>?)?['existingViewers'] as List<AudioHostDetails>? ?? [];
+        final existingViewers = (state.extra as Map<String, dynamic>?)?['existingViewers'] as List<AudioMember>? ?? [];
         final hostCoins = (state.extra as Map<String, dynamic>?)?['hostCoins'] as int? ?? 0;
         final roomData = (state.extra as Map<String, dynamic>?)?['roomData'] as AudioRoomDetails?;
         final numberOfSeats = (state.extra as Map<String, dynamic>?)?['numberOfSeats'] as int? ?? 6;

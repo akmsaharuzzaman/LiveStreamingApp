@@ -1,4 +1,4 @@
-import 'member.dart';
+import 'audio_member_model.dart';
 
 class JoinedSeatModel {
   String? seatKey;

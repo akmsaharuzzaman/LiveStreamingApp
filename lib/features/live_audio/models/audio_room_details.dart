@@ -1,5 +1,5 @@
+import 'package:dlstarlive/features/live_audio/models/audio_member_model.dart';
 import 'package:flutter/material.dart';
-import 'audio_host_details.dart';
 import 'chat_model.dart';
 
 class AudioRoomDetails {
@@ -8,13 +8,13 @@ class AudioRoomDetails {
   String roomId;
   int hostGifts;
   int hostBonus;
-  AudioHostDetails hostDetails;
+  AudioMember hostDetails;
   PremiumSeat premiumSeat;
-  SeatsData seats;
+  SeatsData seatsData;
   List<AudioChatModel> messages;
   String createdAt;
   List<String> members;
-  List<AudioHostDetails> membersDetails;
+  List<AudioMember> membersDetails;
   List<dynamic> bannedUsers;
   List<dynamic> mutedUsers;
   List<Ranking> ranking;
@@ -28,7 +28,7 @@ class AudioRoomDetails {
     required this.hostBonus,
     required this.hostDetails,
     required this.premiumSeat,
-    required this.seats,
+    required this.seatsData,
     required this.messages,
     required this.createdAt,
     required this.bannedUsers,
@@ -66,12 +66,12 @@ factory AudioRoomDetails.fromJson(Map<String, dynamic> json) {
       } catch (e) {
         throw ArgumentError('Error parsing hostBonus: $e');
       }
-      late final AudioHostDetails hostDetails;
+      late final AudioMember hostDetails;
       try {
         if (json['hostDetails'] != null) {
-          hostDetails = AudioHostDetails.fromJson(json['hostDetails'] as Map<String, dynamic>);
+          hostDetails = AudioMember.fromJson(json['hostDetails'] as Map<String, dynamic>);
         } else {
-          hostDetails = AudioHostDetails(name: 'Host', avatar: '', uid: '', id: '', currentLevel: 0, equipedStoreItems: {}, totalGiftSent: 0, isMuted: false);
+          hostDetails = AudioMember(name: 'Host', avatar: '', uid: '', id: '', currentLevel: 0, equipedStoreItems: null, totalGiftSent: 0, isMuted: false);
         }
       } catch (e) {
         throw ArgumentError('Error parsing hostDetails: $e');
@@ -121,10 +121,10 @@ factory AudioRoomDetails.fromJson(Map<String, dynamic> json) {
       } catch (e) {
         throw ArgumentError('Error parsing members: $e');
       }
-      late final List<AudioHostDetails> membersDetails;
+      late final List<AudioMember> membersDetails;
       try {
         if (json['membersDetails'] != null) {
-          membersDetails = List<AudioHostDetails>.from(json['membersDetails'].map((dynamic e) => AudioHostDetails.fromJson(e as Map<String, dynamic>)));
+          membersDetails = List<AudioMember>.from(json['membersDetails'].map((dynamic e) => AudioMember.fromJson(e as Map<String, dynamic>)));
         } else {
           membersDetails = [];
         }
@@ -162,7 +162,7 @@ factory AudioRoomDetails.fromJson(Map<String, dynamic> json) {
         hostBonus: hostBonus,
         hostDetails: hostDetails,
         premiumSeat: premiumSeat,
-        seats: seats,
+        seatsData: seats,
         messages: messages,
         createdAt: createdAt,
         bannedUsers: bannedUsers,
@@ -188,7 +188,7 @@ factory AudioRoomDetails.fromJson(Map<String, dynamic> json) {
     json['hostBonus'] = hostBonus;
     json['hostDetails'] = hostDetails.toJson();
     json['premiumSeat'] = premiumSeat.toJson();
-    json['seats'] = seats.toJson();
+    json['seats'] = seatsData.toJson();
     json['messages'] = messages;
     json['createdAt'] = createdAt;
     json['bannedUsers'] = bannedUsers;
@@ -227,14 +227,14 @@ class SeatsData {
 }
 
 class SeatInfo {
-  AudioHostDetails? member;
+  AudioMember? member;
   bool? available;
 
   SeatInfo({this.member, this.available});
 
   SeatInfo.fromJson(Map<String, dynamic> json) {
     member = (json['member'] as Map<String, dynamic>?) != null && (json['member'] as Map<String, dynamic>).isNotEmpty
-        ? AudioHostDetails.fromJson(json['member'] as Map<String, dynamic>)
+        ? AudioMember.fromJson(json['member'] as Map<String, dynamic>)
         : null;
     available = json['available'] as bool?;
   }
@@ -248,14 +248,14 @@ class SeatInfo {
 }
 
 class PremiumSeat {
-  AudioHostDetails? member;
+  AudioMember? member;
   bool? available;
 
   PremiumSeat({this.member, this.available});
 
   PremiumSeat.fromJson(Map<String, dynamic> json) {
     member = (json['member'] as Map<String, dynamic>?) != null && (json['member'] as Map<String, dynamic>).isNotEmpty
-        ? AudioHostDetails.fromJson(json['member'] as Map<String, dynamic>)
+        ? AudioMember.fromJson(json['member'] as Map<String, dynamic>)
         : null;
     available = json['available'] as bool?;
   }

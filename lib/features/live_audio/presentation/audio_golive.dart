@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -18,18 +19,16 @@ import 'package:dlstarlive/features/live/presentation/component/menu_bottom_shee
 import 'package:dlstarlive/features/live/presentation/widgets/animated_layer.dart';
 
 import '../../../core/auth/auth_bloc.dart';
-import '../models/member.dart';
+import '../models/audio_member_model.dart';
 import '../models/audio_room_details.dart';
 import '../models/chat_model.dart';
-import '../models/audio_host_details.dart';
-import '../models/joined_seat.dart';
 import '../service/socket_service_audio.dart';
 // import '../../live/presentation/component/active_viwers.dart';
 import '../../live/presentation/component/end_stream_overlay.dart';
 import '../../live/presentation/component/host_info.dart';
 import '../../live/presentation/component/send_message_buttonsheet.dart';
 import 'widgets/chat_widget.dart';
-import 'widgets/joind_listeners.dart';
+import 'widgets/joined_member_page.dart';
 import 'widgets/seat_widget.dart';
 
 class AudioGoLiveScreen extends StatefulWidget {
@@ -37,7 +36,7 @@ class AudioGoLiveScreen extends StatefulWidget {
   final String? hostName;
   final String? hostUserId;
   final String? hostAvatar;
-  final List<AudioHostDetails> existingViewers;
+  final List<AudioMember> existingViewers;
   final int hostCoins;
   final AudioRoomDetails? roomData; // Add room data to load initial state
   final int numberOfSeats; // Number of seats in the audio room
@@ -81,7 +80,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   bool isHost = true;
   String roomId = "default_channel";
   List<AudioMember> listeners = [];
-  List<JoinedSeatModel> seatMembers = [];
   List<String> broadcasterList = [];
   // Room data for seat initialization
   AudioRoomDetails? roomData;
@@ -139,6 +137,15 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUidAndInitialize();
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant AudioGoLiveScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.roomData != widget.roomData) {
+      _initializeFromRoomData();
+      setState(() {});
+    }
   }
 
   /// Initialize state from existing room data (when joining existing live)
@@ -251,13 +258,17 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     }
   }
 
+  /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  /// ############### Socket listeners - This method is used to listen to the socket events ###############
+  /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   void _setupSocketListeners() {
     // User joined
     _joinRoomSubscription = _socketService.joinRoomStream.listen((data) {
+      _uiLog("User joined: ${jsonEncode(data)}");
       if (mounted && data.membersDetails.any((member) => member.id != widget.hostUserId)) {
-        AudioHostDetails member = data.membersDetails.firstWhere((member) => member.id != widget.hostUserId);
+        AudioMember member = data.membersDetails.firstWhere((member) => member.id != widget.hostUserId);
         if (!listeners.any((user) => user.id == member.id)) {
-          listeners.add(AudioMember.fromJson(member.toJson()));
+          listeners.add(member);
           setState(() {});
         }
       }
@@ -265,6 +276,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
     // User left
     _userLeftSubscription = _socketService.userLeftStream.listen((data) {
+      _uiLog("User left: ${jsonEncode(data)}");
       if (mounted) {
         listeners.removeWhere((user) => user.id == data.id);
         broadcasterList.removeWhere((user) => user == data.id);
@@ -274,26 +286,37 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
     // Seat joined
     _joinSeatSubscription = _socketService.joinSeatRequestStream.listen((data) {
+      _uiLog("Seat joined: ${jsonEncode(data)}");
       if (mounted && data.member?.id != widget.hostUserId) {
-        if (!seatMembers.any((user) => user.member?.id == data.member?.id)) {
-          seatMembers.add(data);
-          setState(() {});
-        }
+        _uiLog("UI LOG: ${data.seatKey} is updating with user ${data.member?.name}");
+        // if (!roomData!.seats.seats![data.seatKey!].any((user) => user.id == data.member?.id)) {
+        // setState(() {
+        //   roomData!.seatsData.seats![data.seatKey!] = SeatInfo(member: data.member);
+        // });
+        setState(() {
+          // Create a new SeatsData instance to trigger rebuild
+          roomData!.seatsData = SeatsData(
+            seats: Map<String, SeatInfo>.from(roomData!.seatsData.seats!)
+              ..[data.seatKey!] = SeatInfo(member: data.member),
+          );
+        });
+        // }
       }
     });
 
     // Seat left
     _leaveSeatSubscription = _socketService.leaveSeatRequestStream.listen((data) {
+      _uiLog("Seat left: ${jsonEncode(data)}");
       if (mounted) {
-        seatMembers.removeWhere((user) => user.member?.id == data.id);
+        roomData!.membersDetails.removeWhere((user) => user.id == data.id);
         setState(() {});
       }
     });
 
     // Sent Messages
     _sendMessageSubscription = _socketService.sendMessageStream.listen((data) {
+      _uiLog("User sent a message: ${jsonEncode(data)}");
       if (mounted) {
-        _uiLog("User sent a message: ${data.text}");
         setState(() {
           _chatMessages.add(data);
           if (_chatMessages.length > 50) {
@@ -311,6 +334,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
     // Banned users
     _banUserSubscription = _socketService.banUserStream.listen((data) {
+      _uiLog("User banned: ${jsonEncode(data)}");
       if (mounted) {
         if (data.targetId == userId) {
           _handleHostDisconnection('You have been banned from this room.');
@@ -324,6 +348,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
     // Mute user
     _muteUnmuteUserSubscription = _socketService.muteUnmuteUserStream.listen((data) {
+      _uiLog("User muted: ${jsonEncode(data)}");
       // if (mounted) {
       //   setState(() {
       //     currentMuteState = data;
@@ -336,36 +361,11 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
     // Room closed
     _closeRoomSubscription = _socketService.closeRoomStream.listen((data) {
+      _uiLog("Room closed: ${jsonEncode(data)}");
       if (mounted) {
         _handleHostDisconnection('Audio room ended by host.');
       }
     });
-  }
-
-  Future<void> _createRoom() async {
-    if (userId == null) return;
-
-    // Create audio room with all required parameters
-    final success = await _socketService.createRoom(userId!, widget.roomTitle, numberOfSeats: widget.numberOfSeats);
-
-    if (success) {
-      setState(() {
-        _currentRoomId = userId;
-        roomId = userId!;
-      });
-      await _joinChannelWithDynamicToken();
-    } else {
-      _showSnackBar('Failed to create audio room', Colors.red);
-    }
-  }
-
-  Future<void> _joinRoom(String roomId) async {
-    final success = await _socketService.joinRoom(roomId);
-    if (success) {
-      setState(() {
-        _currentRoomId = roomId;
-      });
-    }
   }
 
   // Initialize Agora for audio room
@@ -481,11 +481,67 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     }
   }
 
+  /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  /// ############## Socket room methods - This method is used to send data to the socket ##############
+  /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Future<void> _createRoom() async {
+    if (userId == null) return;
+
+    // Create audio room with all required parameters
+    final success = await _socketService.createRoom(userId!, widget.roomTitle, numberOfSeats: widget.numberOfSeats);
+
+    if (success) {
+      setState(() {
+        _currentRoomId = userId;
+        roomId = userId!;
+      });
+      await _joinChannelWithDynamicToken();
+    } else {
+      _showSnackBar('Failed to create audio room', Colors.red);
+    }
+  }
+
+  Future<void> _joinRoom(String roomId) async {
+    final success = await _socketService.joinRoom(roomId);
+    if (success) {
+      setState(() {
+        _currentRoomId = roomId;
+      });
+    }
+  }
+
+  Future<void> _leaveRoom() async {
+    if (_currentRoomId != null) {
+      await _socketService.leaveRoom(_currentRoomId!);
+      setState(() {
+        _currentRoomId = null;
+      });
+    }
+  }
+
+  Future<void> _deleteRoom() async {
+    if (_currentRoomId != null) {
+      await _socketService.deleteRoom(_currentRoomId!);
+      setState(() {
+        _currentRoomId = null;
+      });
+    }
+  }
+
   void _takeSeat(String seatId) {
     final roomId = _currentRoomId ?? widget.roomId;
     if (roomId != null && !isHost) {
       _socketService.joinSeat(roomId: roomId, seatKey: seatId, targetId: userId!);
     }
+  }
+
+  Future<void> _leaveSeat() async {
+    // if (_currentRoomId != null) {
+    //   await _socketService.leaveSeat(_currentRoomId!, seatKey: _currentSeatKey!, targetId: userId!);
+    //   setState(() {
+    //     _currentRoomId = null;
+    //   });
+    // }
   }
 
   bool _isCurrentUserMuted() {
@@ -506,24 +562,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     //     _uiLog('❌ Error force muting user: $e');
     //   }
     // }
-  }
-
-  Future<void> _deleteRoom() async {
-    if (_currentRoomId != null) {
-      await _socketService.deleteRoom(_currentRoomId!);
-      setState(() {
-        _currentRoomId = null;
-      });
-    }
-  }
-
-  Future<void> _leaveRoom() async {
-    if (_currentRoomId != null) {
-      await _socketService.leaveRoom(_currentRoomId!);
-      setState(() {
-        _currentRoomId = null;
-      });
-    }
   }
 
   void _showSnackBar(String message, Color color) {
@@ -687,12 +725,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       // Stop the stream timer
       _stopStreamTimer();
 
-      // Reset audio caller state
-      setState(() {
-        // _isAudioCaller = false;
-        // _audioCallerUids.clear();
-      });
-
       if (isHost) {
         // If host, delete the room
         await _deleteRoom();
@@ -705,7 +737,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           final state = context.read<AuthBloc>().state;
           if (state is AuthAuthenticated) {
             // Always call daily bonus API on stream end
-            await _callDailyBonusAPI(isStreamEnd: true);
+            // await _callDailyBonusAPI(isStreamEnd: true);
 
             // Calculate total earned diamonds/coins
             // int earnedDiamonds = GiftModel.totalDiamondsForHost(
@@ -744,14 +776,11 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     }
   }
 
+  /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  /// ###################### Widget build - This method is used to build the UI ######################
+  /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AuthBloc>().state;
-
-    if (state is! AuthAuthenticated) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
@@ -793,7 +822,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                         currentUserAvatar: state.user.avatar,
                         hostDetails: roomData?.hostDetails,
                         premiumSeat: roomData?.premiumSeat,
-                        seatsData: roomData?.seats,
+                        seatsData: roomData?.seatsData,
                         onTakeSeat: _takeSeat,
                         isHost: isHost,
                       ),
@@ -841,8 +870,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     );
   }
 
-  // Remove _buildStreamOptions and use these individual positioned widgets instead:
-
+  /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  /// ###################### Build functions to build UI components ######################
+  /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   Widget _buildTopBar(AuthAuthenticated state) {
     return Positioned(
       top: 30.h,

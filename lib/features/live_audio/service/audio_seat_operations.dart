@@ -37,7 +37,7 @@ class AudioSocketSeatOperations {
 
       final Map<String, dynamic> data = {'roomId': roomId, 'seatKey': seatKey, 'targetId': targetId};
 
-      socket.emit(AudioSocketConstants.joinSeatRequestEvent, data);
+      socket.emit(AudioSocketConstants.joinSeatEvent, data);
       return true;
     } catch (e) {
       _log('❌ Error joining seat: $e');
@@ -56,7 +56,7 @@ class AudioSocketSeatOperations {
     try {
       _log('🚪 Leaving seat: $seatKey in room: $roomId');
 
-      socket.emit(AudioSocketConstants.leaveSeatRequestEvent, {
+      socket.emit(AudioSocketConstants.leaveSeatEvent, {
         'roomId': roomId,
         'seatKey': seatKey,
         'targetId': targetId,

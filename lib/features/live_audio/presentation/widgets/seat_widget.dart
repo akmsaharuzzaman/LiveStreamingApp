@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../models/audio_member_model.dart';
 import '../../models/seat_model.dart';
-import '../../models/audio_host_details.dart';
 import '../../models/audio_room_details.dart';
 
 class SeatWidget extends StatefulWidget {
@@ -10,7 +10,7 @@ class SeatWidget extends StatefulWidget {
   final String? currentUserId;
   final String? currentUserName;
   final String? currentUserAvatar;
-  final AudioHostDetails? hostDetails;
+  final AudioMember? hostDetails;
   final PremiumSeat? premiumSeat;
   final SeatsData? seatsData;
   final Function(String seatId)? onTakeSeat;
@@ -34,23 +34,22 @@ class SeatWidget extends StatefulWidget {
 }
 
 class _SeatWidgetState extends State<SeatWidget> {
-  // Host Seat data
-  late SeatModel hostSeatData;
+  late SeatModel hostSeatData; // Host Seat data
+  late SeatModel specialSeatData; // Special Seat data
+  final List<SeatModel> broadcasterSeatData = []; // Broadcaster Seat data
 
-  // Special Seat data
-  late SeatModel specialSeatData;
+  int? selectedSeatIndex; // Selected seat for context menu
 
-  // Broadcaster Seat data
-  final List<SeatModel> broadcasterSeatData = [];
-
-  // Selected seat for context menu
-  int? selectedSeatIndex;
+  void _uiLog(String message) {
+    const cyan = '\x1B[36m';
+    const reset = '\x1B[0m';
+    debugPrint('\n$cyan[AUDIO_ROOM] : SeatWidget - $reset $message\n');
+  }
 
   @override
   void initState() {
     super.initState();
     _initializeSeats();
-    _updateSeatsWithBroadcasters();
   }
 
   @override
@@ -61,19 +60,28 @@ class _SeatWidgetState extends State<SeatWidget> {
         (oldWidget.premiumSeat != widget.premiumSeat) ||
         (oldWidget.seatsData != widget.seatsData)) {
       _initializeSeats();
-      _updateSeatsWithBroadcasters();
     }
   }
 
   void _initializeSeats() {
     // Initialize host seat
-    hostSeatData = SeatModel(
-      id: 'host',
-      name: widget.hostDetails?.name,
-      avatar: widget.hostDetails?.avatar,
-      userId: widget.hostDetails?.id,
-      isLocked: false,
-    );
+    if (widget.isHost) {
+      hostSeatData = SeatModel(
+        id: 'host',
+        name: widget.currentUserName,
+        avatar: widget.currentUserAvatar,
+        userId: widget.currentUserId,
+        isLocked: false,
+      );
+    } else {
+      hostSeatData = SeatModel(
+        id: 'host',
+        name: widget.hostDetails?.name,
+        avatar: widget.hostDetails?.avatar,
+        userId: widget.hostDetails?.id,
+        isLocked: false,
+      );
+    }
 
     // Initialize special seat (premium seat)
     specialSeatData = SeatModel(
@@ -87,62 +95,27 @@ class _SeatWidgetState extends State<SeatWidget> {
     broadcasterSeatData.clear();
     // Initialize seats from seatsData
     if (widget.seatsData?.seats != null) {
-      widget.seatsData!.seats!.forEach((seatId, seatInfo) {
-        broadcasterSeatData.add(
-          SeatModel(
-            id: seatId,
-            name: seatInfo.member?.name,
-            avatar: seatInfo.member?.avatar,
-            userId: seatInfo.member?.id,
-            isLocked: !(seatInfo.available ?? true),
-          ),
-        );
-      });
+      for (int i = 1; i < widget.numberOfSeats + 1; i++) {
+        broadcasterSeatData.add(SeatModel(id: 'seat-$i', name: null, avatar: null, isLocked: false));
+      }
+      for (int i = 1; i < widget.seatsData!.seats!.length + 1; i++) {
+        _uiLog("Seat-$i is updating with user ${widget.seatsData!.seats!['seat-$i']!.member?.name}");
+        if (widget.seatsData!.seats!['seat-$i']!.member != null) {
+          broadcasterSeatData[i - 1] = SeatModel(
+            id: 'seat-$i',
+            name: widget.seatsData!.seats!['seat-$i']!.member!.name,
+            avatar: widget.seatsData!.seats!['seat-$i']!.member!.avatar,
+            userId: widget.seatsData!.seats!['seat-$i']!.member!.id,
+            isLocked: !(widget.seatsData!.seats!['seat-$i']!.available ?? true),
+          );
+        }
+      }
     } else {
       // Fallback: Initialize empty seats based on totalSeats configuration
       for (int i = 1; i < widget.numberOfSeats + 1; i++) {
         broadcasterSeatData.add(SeatModel(id: 'seat-$i', name: null, avatar: null, isLocked: false));
       }
     }
-  }
-
-  // Update seats with real broadcaster data
-  void _updateSeatsWithBroadcasters() {
-    // Update host seat (seat 0) with real data
-    hostSeatData = SeatModel(
-      id: 'host',
-      name: hostSeatData.name,
-      avatar: hostSeatData.avatar,
-      isLocked: false,
-      // diamonds: GiftModel.totalDiamondsForHost(sentGifts, widget.currentUserId).toDouble(),
-      userId: hostSeatData.userId,
-    );
-
-    // Update special seat (seat 1) with real data
-    if (broadcasterSeatData.isNotEmpty) {
-      specialSeatData = SeatModel(
-        id: 'special',
-        name: specialSeatData.name,
-        avatar: specialSeatData.avatar,
-        isLocked: false,
-        // diamonds: specialCoins.toDouble(),
-        userId: specialSeatData.userId,
-      );
-    }
-
-    // Update broadcaster seats - these start from seat-1 (index 0 in the list)
-    for (int i = 0; i < broadcasterSeatData.length; i++) {
-      final seatNumber = i + 1; // seat-1, seat-2, etc.
-      broadcasterSeatData[i] = SeatModel(
-        id: 'seat-$seatNumber',
-        name: broadcasterSeatData[i].name,
-        avatar: broadcasterSeatData[i].avatar,
-        isLocked: false,
-        // diamonds: GiftModel.totalDiamondsForHost(sentGifts, broadcasterSeatData[i].id).toDouble(),
-        userId: broadcasterSeatData[i].userId,
-      );
-    }
-
     setState(() {});
   }
 

@@ -10,8 +10,8 @@ class AudioSocketConstants {
   static const String joinAudioRoomEvent = 'join-audio-room'; // 5
   static const String leaveAudioRoomEvent = 'leave-audio-room'; // 6
   static const String userLeftEvent = 'audio-user-left'; // 7
-  static const String joinSeatRequestEvent = 'join-audio-seat'; // 8
-  static const String leaveSeatRequestEvent = 'leave-audio-seat'; // 9
+  static const String joinSeatEvent = 'join-audio-seat'; // 8
+  static const String leaveSeatEvent = 'leave-audio-seat'; // 9
   static const String removeFromSeatEvent = 'remove-from-seat'; // 10
   static const String sendMessageEvent = 'send-audio-message'; // 11
   static const String errorMessageEvent = 'error-message'; // 12

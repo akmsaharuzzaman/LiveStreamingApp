@@ -1,4 +1,4 @@
-import 'package:dlstarlive/features/live_audio/models/member.dart';
+import 'package:dlstarlive/features/live_audio/models/audio_member_model.dart';
 import 'package:dlstarlive/features/profile/presentation/widgets/user_profile_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

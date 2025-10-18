@@ -26,8 +26,8 @@ class AudioSocketEventHandler {
   final StreamController<AudioRoomDetails> _joinRoomController = StreamController<AudioRoomDetails>.broadcast();
   final StreamController<AudioRoomDetails> _leaveRoomController = StreamController<AudioRoomDetails>.broadcast();
   final StreamController<LeftUserModel> _userLeftController = StreamController<LeftUserModel>.broadcast();
-  final StreamController<JoinedSeatModel> _joinSeatRequestController = StreamController<JoinedSeatModel>.broadcast();
-  final StreamController<SeatModel> _leaveSeatRequestController = StreamController<SeatModel>.broadcast();
+  final StreamController<JoinedSeatModel> _joinSeatController = StreamController<JoinedSeatModel>.broadcast();
+  final StreamController<SeatModel> _leaveSeatController = StreamController<SeatModel>.broadcast();
   final StreamController<SeatModel> _removeFromSeatController = StreamController<SeatModel>.broadcast();
   final StreamController<AudioChatModel> _sendMessageController = StreamController<AudioChatModel>.broadcast();
   final StreamController<MuteUserModel> _muteUnmuteUserController = StreamController<MuteUserModel>.broadcast();
@@ -57,8 +57,8 @@ class AudioSocketEventHandler {
   Stream<AudioRoomDetails> get joinRoomStream => _joinRoomController.stream;
   Stream<AudioRoomDetails> get leaveRoomStream => _leaveRoomController.stream;
   Stream<LeftUserModel> get userLeftStream => _userLeftController.stream;
-  Stream<JoinedSeatModel> get joinSeatRequestStream => _joinSeatRequestController.stream;
-  Stream<SeatModel> get leaveSeatRequestStream => _leaveSeatRequestController.stream;
+  Stream<JoinedSeatModel> get joinSeatRequestStream => _joinSeatController.stream;
+  Stream<SeatModel> get leaveSeatRequestStream => _leaveSeatController.stream;
   Stream<SeatModel> get removeFromSeatStream => _removeFromSeatController.stream;
   Stream<AudioChatModel> get sendMessageStream => _sendMessageController.stream;
   Stream<Map<String, dynamic>> get errorMessageStream => errorController.stream;
@@ -89,8 +89,8 @@ class AudioSocketEventHandler {
     socket.on(AudioSocketConstants.joinAudioRoomEvent, _handleJoinRoom);
     socket.on(AudioSocketConstants.userLeftEvent, _handleUserLeft);
     socket.on(AudioSocketConstants.leaveAudioRoomEvent, _handleLeaveRoom);
-    socket.on(AudioSocketConstants.joinSeatRequestEvent, _handleJoinSeatRequest);
-    socket.on(AudioSocketConstants.leaveSeatRequestEvent, _handleLeaveSeatRequest);
+    socket.on(AudioSocketConstants.joinSeatEvent, _handleJoinSeat);
+    socket.on(AudioSocketConstants.leaveSeatEvent, _handleLeaveSeat);
     socket.on(AudioSocketConstants.audioRoomDetailsEvent, _handleAudioRoomDetails);
     socket.on(AudioSocketConstants.getAllRoomsEvent, _handleGetAllRooms);
     socket.on(AudioSocketConstants.sendMessageEvent, _handleSendMessage);
@@ -106,8 +106,8 @@ class AudioSocketEventHandler {
     socket.off(AudioSocketConstants.joinAudioRoomEvent);
     socket.off(AudioSocketConstants.leaveAudioRoomEvent);
     socket.off(AudioSocketConstants.userLeftEvent);
-    socket.off(AudioSocketConstants.joinSeatRequestEvent);
-    socket.off(AudioSocketConstants.leaveSeatRequestEvent);
+    socket.off(AudioSocketConstants.joinSeatEvent);
+    socket.off(AudioSocketConstants.leaveSeatEvent);
     socket.off(AudioSocketConstants.removeFromSeatEvent);
     socket.off(AudioSocketConstants.sendMessageEvent);
     socket.off(AudioSocketConstants.errorMessageEvent);
@@ -124,7 +124,7 @@ class AudioSocketEventHandler {
   }
 
   void _handleCreateRoom(dynamic data) {
-    _log('🏠 Audio room created: $data');
+    _log('🏠 Audio room created response: $data');
     if (data is Map<String, dynamic>) {
       _createRoomController.add(AudioRoomDetails.fromJson(data));
       // Refresh room list after room creation
@@ -133,7 +133,7 @@ class AudioSocketEventHandler {
   }
 
   void _handleJoinRoom(dynamic data) {
-    _log('🚪 User joined audio room: $data');
+    _log('🚪 User joined audio room response: $data');
     if (data is Map<String, dynamic>) {
       _joinRoomController.add(AudioRoomDetails.fromJson(data));
       // Refresh room list after user joins
@@ -142,7 +142,7 @@ class AudioSocketEventHandler {
   }
 
   void _handleUserLeft(dynamic data) {
-    _log('👋 Audio user left: $data');
+    _log('👋 Audio user left response: $data');
     if (data is Map<String, dynamic>) {
       _userLeftController.add(LeftUserModel.fromJson(data));
       // Refresh room list after user leaves
@@ -151,7 +151,7 @@ class AudioSocketEventHandler {
   }
 
   void _handleLeaveRoom(dynamic data) {
-    _log('🚪 Audio room left/deleted: $data');
+    _log('🚪 Audio room left/deleted response: $data');
     if (data is Map<String, dynamic>) {
       _leaveRoomController.add(AudioRoomDetails.fromJson(data));
       // Refresh room list after room is left/deleted
@@ -159,22 +159,22 @@ class AudioSocketEventHandler {
     }
   }
 
-  void _handleJoinSeatRequest(dynamic data) {
-    _log('🪑 Join seat request: $data');
+  void _handleJoinSeat(dynamic data) {
+    _log('🪑 Join seat response: $data');
     if (data is Map<String, dynamic>) {
-      _joinSeatRequestController.add(JoinedSeatModel.fromJson(data['data']));
+      _joinSeatController.add(JoinedSeatModel.fromJson(data['data']));
     }
   }
 
-  void _handleLeaveSeatRequest(dynamic data) {
-    _log('🪑 Leave seat request: $data');
+  void _handleLeaveSeat(dynamic data) {
+    _log('🪑 Leave seat response: $data');
     if (data is Map<String, dynamic>) {
-      _leaveSeatRequestController.add(SeatModel.fromJson(data['data']));
+      _leaveSeatController.add(SeatModel.fromJson(data['data']));
     }
   }
 
   void _handleAudioRoomDetails(dynamic data) {
-    _log('📺 Audio room details response received');
+    _log('📺 Audio room details response');
     _log('📺 Raw response: $data');
 
     try {
@@ -283,8 +283,8 @@ class AudioSocketEventHandler {
     _joinRoomController.close();
     _leaveRoomController.close();
     _userLeftController.close();
-    _joinSeatRequestController.close();
-    _leaveSeatRequestController.close();
+    _joinSeatController.close();
+    _leaveSeatController.close();
     _removeFromSeatController.close();
     _sendMessageController.close();
     _muteUnmuteUserController.close();
