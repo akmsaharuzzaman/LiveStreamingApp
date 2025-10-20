@@ -394,9 +394,9 @@ class SocketService {
     });
 
     _socket!.on('get-rooms', (data) {
-      if (kDebugMode) {
-        print('� Get rooms response: $data');
-      }
+      // if (kDebugMode) {
+      //   print('� Get rooms response: $data');
+      // }
       if (data is List) {
         _getRoomsController.add(GetRoomModel.listFromJson(data));
       }
