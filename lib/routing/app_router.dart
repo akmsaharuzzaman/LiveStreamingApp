@@ -4,7 +4,7 @@ import 'package:dlstarlive/features/chat/presentation/pages/chat_settings.dart';
 import 'package:dlstarlive/features/live/presentation/pages/golive_screen.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_page.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_summary_screen.dart';
-import 'package:dlstarlive/features/live_audio/presentation/audio_golive.dart';
+import 'package:dlstarlive/features/live_audio/presentation/audio_golive_screen_refactored.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/view_user_profile.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/friends_list_page.dart';
 import 'package:dlstarlive/features/reels/presentation/pages/reels.dart';
@@ -12,8 +12,8 @@ import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/home/presentation/pages/main_navigation_page.dart';
-import '../features/live_audio/models/audio_room_details.dart';
-import '../features/live_audio/models/audio_member_model.dart';
+import '../features/live_audio/data/models/audio_room_details.dart';
+import '../features/live_audio/data/models/audio_member_model.dart';
 import '../features/newsfeed/presentation/pages/newsfeed.dart';
 import '../features/profile/presentation/pages/store_page.dart';
 import '../features/reels/presentation/pages/video_editor_screen.dart';
@@ -117,7 +117,9 @@ final GoRouter appRouter = GoRouter(
         final roomData = (state.extra as Map<String, dynamic>?)?['roomData'] as AudioRoomDetails?;
         final numberOfSeats = (state.extra as Map<String, dynamic>?)?['numberOfSeats'] as int? ?? 6;
         final roomTitle = (state.extra as Map<String, dynamic>?)?['title'] as String? ?? 'Audio Room';
-        return AudioGoLiveScreen(
+        // Determine if creating room based on whether roomData exists
+        final isCreatingRoom = roomData == null;
+        return AudioGoLiveScreenRefactored(
           roomId: roomId,
           hostName: hostName,
           hostUserId: hostUserId,
@@ -127,6 +129,7 @@ final GoRouter appRouter = GoRouter(
           roomData: roomData, // Pass the complete room data
           numberOfSeats: numberOfSeats, // Pass selected seat count
           roomTitle: roomTitle, // Pass room title
+          isCreatingRoom: isCreatingRoom, // Explicit flag for room creation vs joining
         );
       },
     ),

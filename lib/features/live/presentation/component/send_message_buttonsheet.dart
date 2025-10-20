@@ -1,10 +1,22 @@
+import 'package:dlstarlive/features/live_audio/presentation/bloc/audio_room_bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+import '../../../live_audio/presentation/bloc/audio_room_state.dart';
 
 void showSendMessageBottomSheet(
   BuildContext context, {
   Function(String)? onSendMessage,
 }) {
+    // Check if we have a valid room before showing the bottom sheet
+  final currentState = context.read<AudioRoomBloc>().state;
+  if (currentState is! AudioRoomLoaded || currentState.currentRoomId == null || currentState.currentRoomId!.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Cannot send message - not connected to a room'), backgroundColor: Colors.red)
+    );
+    return;
+  }
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,

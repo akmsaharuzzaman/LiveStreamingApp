@@ -5,10 +5,9 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../../core/network/models/ban_user_model.dart';
 import '../../../core/network/models/left_user_model.dart';
 import '../../../core/network/models/mute_user_model.dart';
-import '../models/audio_room_details.dart';
-import '../models/chat_model.dart';
-import '../models/joined_seat.dart';
-import '../models/seat_model.dart';
+import '../data/models/audio_room_details.dart';
+import '../data/models/chat_model.dart';
+import '../data/models/joined_seat.dart';
 import 'socket_constants.dart';
 import 'audio_room_operations.dart';
 

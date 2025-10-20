@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svga/flutter_svga.dart';
 
-import '../../models/chat_model.dart';
+import '../../data/models/chat_model.dart';
 
 const String _defaultLevelBackgroundUrl =
     'https://res.cloudinary.com/dmpktzr0m/image/upload/v1758734670/level_tag_bg_assets/level_tag_bg_assets/e339ac59362bffeb805c4db58db2086e3494ace8b4670728f00748d7896dfc74.png';

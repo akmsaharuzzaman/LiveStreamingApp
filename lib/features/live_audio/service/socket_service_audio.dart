@@ -1,12 +1,12 @@
 import 'dart:async';
+import 'package:injectable/injectable.dart';
 
 import '../../../core/network/models/ban_user_model.dart';
 import '../../../core/network/models/left_user_model.dart';
 import '../../../core/network/models/mute_user_model.dart';
-import '../models/audio_room_details.dart';
-import '../models/chat_model.dart';
-import '../models/joined_seat.dart';
-import '../models/seat_model.dart';
+import '../data/models/audio_room_details.dart';
+import '../data/models/chat_model.dart';
+import '../data/models/joined_seat.dart';
 import 'connection_manager.dart';
 import 'socket_event_handler.dart';
 import 'audio_room_operations.dart';
@@ -17,8 +17,10 @@ import 'socket_constants.dart';
 /// Comprehensive Socket Service for Audio Live Streaming
 /// Handles all socket operations including room management and real-time events
 /// Uses composition pattern with specialized operation classes
+@injectable
 class AudioSocketService {
-  static AudioSocketService? _instance;
+  // Remove static instance and singleton pattern
+  // static AudioSocketService? _instance;
 
   // Specialized operation classes
   late final AudioSocketConnectionManager _connectionManager;
@@ -30,15 +32,21 @@ class AudioSocketService {
   // Error handling
   late final StreamController<Map<String, dynamic>> _errorController;
 
-  /// Singleton instance
-  static AudioSocketService get instance {
-    _instance ??= AudioSocketService._internal();
-    return _instance!;
-  }
+  /// Remove singleton instance getter
+  // static AudioSocketService get instance {
+  //   _instance ??= AudioSocketService._internal();
+  //   return _instance!;
+  // }
 
-  AudioSocketService._internal() {
+  /// Public constructor for dependency injection
+  AudioSocketService() {
     _initializeComponents();
   }
+
+  /// Remove private constructor
+  // AudioSocketService._internal() {
+  //   _initializeComponents();
+  // }
 
   void _initializeComponents() {
     // Initialize connection manager first
@@ -130,7 +138,15 @@ class AudioSocketService {
     String roomId,
     String title, {
     int numberOfSeats = AudioSocketConstants.defaultNumberOfSeats,
-  }) => _roomOperations.createRoom(roomId, title, numberOfSeats: numberOfSeats);
+  }) {
+    final result = _roomOperations.createRoom(roomId, title, numberOfSeats: numberOfSeats);
+    result.then((success) {
+      if (success) {
+        _connectionManager.setCurrentRoomId(roomId);
+      }
+    });
+    return result;
+  }
 
   Future<bool> deleteRoom(String roomId) => _roomOperations.deleteRoom(roomId);
 
@@ -215,6 +231,6 @@ class AudioSocketService {
     _connectionManager.dispose();
     _eventHandler.dispose();
     _errorController.close();
-    _instance = null;
+    // Remove _instance = null;
   }
 }

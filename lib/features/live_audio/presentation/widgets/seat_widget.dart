@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../models/audio_member_model.dart';
-import '../../models/seat_model.dart';
-import '../../models/audio_room_details.dart';
+import '../../data/models/audio_member_model.dart';
+import '../../data/models/seat_model.dart';
+import '../../data/models/audio_room_details.dart';
 
 class SeatWidget extends StatefulWidget {
   final int numberOfSeats;

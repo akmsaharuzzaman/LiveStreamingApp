@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
-import '../models/audio_room_details.dart';
+import '../data/models/audio_room_details.dart';
 import 'socket_constants.dart';
 import 'socket_event_handler.dart';
 

@@ -30,6 +30,9 @@ import '../../../../core/network/models/ban_user_model.dart';
 import '../../../../core/network/models/joined_user_model.dart';
 import '../../../../core/network/models/mute_user_model.dart';
 import '../../../../core/utils/app_utils.dart';
+import '../../../live_audio/presentation/bloc/audio_room_bloc.dart';
+import '../../../live_audio/presentation/bloc/audio_room_event.dart';
+import '../../../live_audio/presentation/bloc/audio_room_state.dart';
 import '../component/active_viwers.dart';
 import '../component/custom_live_button.dart';
 import '../component/diamond_star_status.dart';
@@ -170,13 +173,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
       // Initialize duration and start time based on existing duration
       if (roomData.duration > 0) {
-        _streamStartTime = DateTime.now().subtract(
-          Duration(seconds: roomData.duration),
-        );
+        _streamStartTime = DateTime.now().subtract(Duration(seconds: roomData.duration));
         _streamDuration = Duration(seconds: roomData.duration);
-        debugPrint(
-          "🕒 Initialized stream with existing duration: ${roomData.duration}s",
-        );
+        debugPrint("🕒 Initialized stream with existing duration: ${roomData.duration}s");
       }
 
       // Initialize bonus data
@@ -185,16 +184,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
       // Calculate last milestone based on existing duration to prevent duplicate API calls
       if (roomData.duration > 0) {
         int existingMinutes = (roomData.duration / 60).floor();
-        _lastBonusMilestone =
-            (existingMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
+        _lastBonusMilestone = (existingMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
         debugPrint(
           "🎯 Set last milestone to: $_lastBonusMilestone minutes based on duration: $existingMinutes minutes",
         );
       }
 
-      debugPrint(
-        "💰 Initialized with existing bonus: ${roomData.hostBonus} diamonds",
-      );
+      debugPrint("💰 Initialized with existing bonus: ${roomData.hostBonus} diamonds");
 
       // Initialize chat messages if any
 
@@ -229,26 +225,15 @@ class _GoliveScreenState extends State<GoliveScreen> {
             broadcasterModels.add(broadcasterModel);
           }
         }
-        debugPrint(
-          "🎤 Loaded ${broadcasterModels.length} existing broadcasters (host excluded)",
-        );
+        debugPrint("🎤 Loaded ${broadcasterModels.length} existing broadcasters (host excluded)");
       }
 
       // Initialize call requests
       if (roomData.callRequests.isNotEmpty) {
         callRequests.clear();
         for (var request in roomData.callRequests) {
-          final userDetails = UserDetails(
-            id: request.id,
-            avatar: request.avatar,
-            name: request.name,
-            uid: request.uid,
-          );
-          final callRequest = CallRequestModel(
-            userId: request.id,
-            userDetails: userDetails,
-            roomId: roomData.roomId,
-          );
+          final userDetails = UserDetails(id: request.id, avatar: request.avatar, name: request.name, uid: request.uid);
+          final callRequest = CallRequestModel(userId: request.id, userDetails: userDetails, roomId: roomData.roomId);
           callRequests.add(callRequest);
         }
         debugPrint("📞 Loaded ${callRequests.length} existing call requests");
@@ -273,9 +258,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
             activeViewers.add(viewer);
           }
         }
-        debugPrint(
-          "👥 Loaded ${activeViewers.length} existing members as viewers",
-        );
+        debugPrint("👥 Loaded ${activeViewers.length} existing members as viewers");
       }
 
       // Set room ID if not already set
@@ -300,22 +283,16 @@ class _GoliveScreenState extends State<GoliveScreen> {
     debugPrint("👥 Active viewers count: ${activeViewers.length}");
 
     for (var viewer in activeViewers) {
-      debugPrint(
-        "👤 ${viewer.name} (${viewer.id}): ${viewer.diamonds} diamonds",
-      );
+      debugPrint("👤 ${viewer.name} (${viewer.id}): ${viewer.diamonds} diamonds");
     }
 
-    debugPrint(
-      "🏆 Host total diamonds: ${GiftModel.totalDiamondsForHost(sentGifts, actualHostId)}",
-    );
+    debugPrint("🏆 Host total diamonds: ${GiftModel.totalDiamondsForHost(sentGifts, actualHostId)}");
     debugPrint("=== END DEBUG ===");
   }
 
   /// Update diamonds for specific users when gifts are received
   void _updateUserDiamonds(GiftModel gift) {
-    debugPrint(
-      "🎁 Processing gift: ${gift.gift.name} - ${gift.diamonds} diamonds",
-    );
+    debugPrint("🎁 Processing gift: ${gift.gift.name} - ${gift.diamonds} diamonds");
     debugPrint("🎯 Gift receiver IDs: ${gift.recieverIds}");
     debugPrint("🏠 Widget host ID: ${widget.hostUserId}");
     debugPrint("� Current user ID: $userId");
@@ -344,30 +321,19 @@ class _GoliveScreenState extends State<GoliveScreen> {
           "💎 Updated ${activeViewers[userIndex].name} diamonds: $oldDiamonds → ${activeViewers[userIndex].diamonds}",
         );
       } else {
-        debugPrint(
-          "⚠️ Receiver ID $receiverId not found in activeViewers list",
-        );
+        debugPrint("⚠️ Receiver ID $receiverId not found in activeViewers list");
         if (receiverId == actualHostId) {
-          debugPrint(
-            "📝 This is normal for host - host is not in activeViewers list",
-          );
+          debugPrint("📝 This is normal for host - host is not in activeViewers list");
         }
         // Print all active viewer IDs for debugging
-        debugPrint(
-          "📋 Active viewer IDs: ${activeViewers.map((v) => v.id).toList()}",
-        );
+        debugPrint("📋 Active viewer IDs: ${activeViewers.map((v) => v.id).toList()}");
       }
     }
 
     // Calculate total host diamonds for verification using correct host ID
     String? hostIdForCalculation = isHost ? userId : widget.hostUserId;
-    int hostDiamonds = GiftModel.totalDiamondsForHost(
-      sentGifts,
-      hostIdForCalculation,
-    );
-    debugPrint(
-      "🏆 Total host diamonds (using $hostIdForCalculation): $hostDiamonds",
-    );
+    int hostDiamonds = GiftModel.totalDiamondsForHost(sentGifts, hostIdForCalculation);
+    debugPrint("🏆 Total host diamonds (using $hostIdForCalculation): $hostDiamonds");
   }
 
   /// Calculate total bonus diamonds earned from daily streaming bonuses (configurable intervals)
@@ -385,22 +351,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
           avatar: hostDetail.avatar,
           name: hostDetail.name,
           uid: hostDetail.uid,
-          diamonds:
-              0, // Initialize with 0, will be updated when gifts are received
+          diamonds: 0, // Initialize with 0, will be updated when gifts are received
         );
       }).toList();
 
       // Then check if host is in the list and remove if found
       if (widget.hostUserId != null) {
         activeViewers.removeWhere((viewer) => viewer.id == widget.hostUserId);
-        debugPrint(
-          "Host (${widget.hostUserId}) removed from active viewers list",
-        );
+        debugPrint("Host (${widget.hostUserId}) removed from active viewers list");
       }
 
-      debugPrint(
-        "Initialized ${activeViewers.length} existing viewers (host excluded)",
-      );
+      debugPrint("Initialized ${activeViewers.length} existing viewers (host excluded)");
     }
 
     // Note: Host coins initialization moved to _loadUidAndDispatchEvent after userId is set
@@ -446,14 +407,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
         );
 
         sentGifts.add(syntheticGift);
-        debugPrint(
-          "✅ Added synthetic gift for host coins: ${widget.hostCoins} to host ID: $hostId",
-        );
+        debugPrint("✅ Added synthetic gift for host coins: ${widget.hostCoins} to host ID: $hostId");
         debugPrint("🏆 Total gifts after initialization: ${sentGifts.length}");
       } else {
-        debugPrint(
-          "⚠️ Could not initialize host coins - host ID is null or empty",
-        );
+        debugPrint("⚠️ Could not initialize host coins - host ID is null or empty");
         debugPrint("   widget.hostUserId: ${widget.hostUserId}");
         debugPrint("   userId: $userId");
         debugPrint("   isHost: $isHost");
@@ -551,34 +508,27 @@ class _GoliveScreenState extends State<GoliveScreen> {
   void _setupSocketListeners() {
     // Connection status
     debugPrint("Setting up socket listeners");
-    _connectionStatusSubscription = _socketService.connectionStatusStream
-        .listen((isConnected) {
-          if (mounted) {
-            if (isConnected) {
-              // _showSnackBar('✅ Connected to server', Colors.green);
-              debugPrint("Connected to server");
-            } else {
-              // _showSnackBar('❌ Disconnected from server', Colors.red);
-              debugPrint("Disconnected from server");
-            }
-          }
-        });
+    _connectionStatusSubscription = _socketService.connectionStatusStream.listen((isConnected) {
+      if (mounted) {
+        if (isConnected) {
+          // _showSnackBar('✅ Connected to server', Colors.green);
+          debugPrint("Connected to server");
+        } else {
+          // _showSnackBar('❌ Disconnected from server', Colors.red);
+          debugPrint("Disconnected from server");
+        }
+      }
+    });
 
     // User events
     _userJoinedSubscription = _socketService.userJoinedStream.listen((data) {
       if (mounted) {
         // Don't add host to activeViewers list (use hostUserId from widget)
-        if (data.id != widget.hostUserId &&
-            !activeViewers.any((user) => user.id == data.id)) {
+        if (data.id != widget.hostUserId && !activeViewers.any((user) => user.id == data.id)) {
           // Ensure new users start with 0 diamonds, but calculate existing diamonds from sentGifts
-          int existingDiamonds = GiftModel.totalDiamondsForUser(
-            sentGifts,
-            data.id,
-          );
+          int existingDiamonds = GiftModel.totalDiamondsForUser(sentGifts, data.id);
 
-          JoinedUserModel userWithDiamonds = data.copyWith(
-            diamonds: existingDiamonds,
-          );
+          JoinedUserModel userWithDiamonds = data.copyWith(diamonds: existingDiamonds);
           activeViewers.add(userWithDiamonds);
 
           debugPrint("👤 User joined: ${data.name} - ${data.uid}");
@@ -588,34 +538,26 @@ class _GoliveScreenState extends State<GoliveScreen> {
     });
 
     //Joined Call Requests List
-    _joinCallRequestSubscription = _socketService.joinCallRequestStream.listen((
-      data,
-    ) {
+    _joinCallRequestSubscription = _socketService.joinCallRequestStream.listen((data) {
       if (mounted) {
         if (!callRequests.any((user) => user.userId == data.userId)) {
           callRequests.add(data);
-          _showSnackBar(
-            '📞 ${data.userDetails.name} wants to join the call',
-            Colors.blue,
-          );
+          _showSnackBar('📞 ${data.userDetails.name} wants to join the call', Colors.blue);
         }
-        debugPrint(
-          "User request to join call: ${data.userDetails.name} - ${data.userDetails.uid}",
-        );
+        debugPrint("User request to join call: ${data.userDetails.name} - ${data.userDetails.uid}");
         // Update bottom sheet if it's open
         _updateCallManageBottomSheet();
       }
     });
 
-    _joinCallRequestListSubscription = _socketService.joinCallRequestListStream
-        .listen((data) {
-          if (mounted) {
-            callDetailRequest = data;
-            debugPrint("Call request list updated: $callDetailRequest");
-            // Update bottom sheet if it's open
-            _updateCallManageBottomSheet();
-          }
-        });
+    _joinCallRequestListSubscription = _socketService.joinCallRequestListStream.listen((data) {
+      if (mounted) {
+        callDetailRequest = data;
+        debugPrint("Call request list updated: $callDetailRequest");
+        // Update bottom sheet if it's open
+        _updateCallManageBottomSheet();
+      }
+    });
 
     // Sent Messages
     _sentMessageSubscription = _socketService.sentMessageStream.listen((data) {
@@ -630,21 +572,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
         final String normalizedMessage = data.text.trim().toLowerCase();
         final dynamic entryAnimation = data.equipedStoreItems?['entry'];
-        if (normalizedMessage == 'joined the room' &&
-            entryAnimation is String &&
-            entryAnimation.isNotEmpty) {
-          _playAnimation(
-            animationUrl: entryAnimation,
-            title: '${data.name} joined the room',
-          );
+        if (normalizedMessage == 'joined the room' && entryAnimation is String && entryAnimation.isNotEmpty) {
+          _playAnimation(animationUrl: entryAnimation, title: '${data.name} joined the room');
         }
       }
     });
 
     // Broadcaster List - in call
-    _broadcasterListSubscription = _socketService.broadcasterListStream.listen((
-      data,
-    ) {
+    _broadcasterListSubscription = _socketService.broadcasterListStream.listen((data) {
       if (mounted) {
         // Now data is already List<BroadcasterModel> from socket
         broadcasterModels = List.from(data);
@@ -679,9 +614,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
         debugPrint("Host ID filtered out: $hostId");
         debugPrint("Current userId: $userId");
         debugPrint("IsHost: $isHost");
-        debugPrint(
-          "Broadcaster models updated: ${broadcasterModels.length} items",
-        );
+        debugPrint("Broadcaster models updated: ${broadcasterModels.length} items");
 
         // Handle non-host broadcaster status changes
         if (!isHost) {
@@ -730,18 +663,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
         debugPrint("📊 Total gifts in list: ${sentGifts.length}");
 
         // Calculate host diamonds separately for verification
-        int hostDiamonds = GiftModel.totalDiamondsForHost(
-          sentGifts,
-          widget.hostUserId,
-        );
+        int hostDiamonds = GiftModel.totalDiamondsForHost(sentGifts, widget.hostUserId);
         debugPrint("🏆 Host total diamonds (calculated): $hostDiamonds");
 
         // For host, also check using current userId
         if (isHost && userId != null) {
-          int hostDiamondsFromUserId = GiftModel.totalDiamondsForUser(
-            sentGifts,
-            userId!,
-          );
+          int hostDiamondsFromUserId = GiftModel.totalDiamondsForUser(sentGifts, userId!);
           debugPrint("🏆 Host diamonds using userId: $hostDiamondsFromUserId");
         }
 
@@ -800,14 +727,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
           currentMuteState = data;
         });
         if (mounted) {
-          _showSnackBar(
-            "An ${data.lastUserIsMuted ? 'user is muted' : 'user is unmuted'} by admin",
-            Colors.red,
-          );
+          _showSnackBar("An ${data.lastUserIsMuted ? 'user is muted' : 'user is unmuted'} by admin", Colors.red);
         }
-        debugPrint(
-          "User muted: ${data.allMutedUsersList} - ${data.lastUserIsMuted}",
-        );
+        debugPrint("User muted: ${data.allMutedUsersList} - ${data.lastUserIsMuted}");
 
         // Check if current user is muted and force mute them
         if (_isCurrentUserMuted()) {
@@ -851,14 +773,25 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   /// Update the CallManageBottomSheet with current data
   void _updateCallManageBottomSheet() {
-    callManageBottomSheetKey.currentState?.updateData(
-      newCallers: callRequests,
-      newInCallList: broadcasterModels,
-    );
+    callManageBottomSheetKey.currentState?.updateData(newCallers: callRequests, newInCallList: broadcasterModels);
   }
 
   /// Create a new room (for hosts)
   Future<void> _createRoom() async {
+    // First check if socket is connected
+    final blocState = context.read<AudioRoomBloc>().state;
+    if (blocState is! AudioRoomConnected) {
+      debugPrint("❌ Cannot create room - socket not connected");
+      _showSnackBar('Cannot create room - socket not connected', Colors.red);
+
+      // Try reconnecting socket
+      if (userId != null) {
+        Future.delayed(Duration(seconds: 1), () {
+          _createRoom(); // Retry after reconnection
+        });
+      }
+      return;
+    }
     if (userId == null) {
       debugPrint('❌ Cannot create room: userId is null');
       // _showSnackBar('❌ User not authenticated', Colors.red);
@@ -869,11 +802,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     final dynamicRoomId = userId!;
     debugPrint('🏠 Creating room with dynamic name: $dynamicRoomId');
 
-    final success = await _socketService.createRoom(
-      dynamicRoomId,
-      "Demo Title",
-      RoomType.live,
-    );
+    final success = await _socketService.createRoom(dynamicRoomId, "Demo Title", RoomType.live);
 
     if (success) {
       setState(() {
@@ -917,8 +846,23 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   //Sent/Send Message
   void _emitMessageToSocket(String message) {
-    if (message.isNotEmpty && _currentRoomId != null) {
-      _socketService.sendMessage(_currentRoomId!, message);
+    final currentState = context.read<AudioRoomBloc>().state;
+
+    // Add detailed logging
+    if (currentState is AudioRoomLoaded) {
+      debugPrint("Emitting message to socket: '$message' for room: '${currentState.currentRoomId}'");
+    } else {
+      debugPrint("❌ Cannot send message - not in AudioRoomLoaded state: ${currentState.runtimeType}");
+      return;
+    }
+
+    if (message.isNotEmpty && currentState is AudioRoomLoaded && currentState.currentRoomId != null) {
+      if (currentState.currentRoomId!.isEmpty) {
+        debugPrint("❌ Cannot send message - roomId is empty");
+        return;
+      }
+
+      context.read<AudioRoomBloc>().add(SendMessageEvent(roomId: currentState.currentRoomId!, message: message));
     }
   }
 
@@ -1010,13 +954,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
       // Remove current snackbar before showing a new one
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: color,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        ..showSnackBar(SnackBar(content: Text(message), backgroundColor: color, duration: const Duration(seconds: 2)));
     }
   }
 
@@ -1044,35 +982,28 @@ class _GoliveScreenState extends State<GoliveScreen> {
     // Don't start multiple timers
     if (_hostActivityTimer != null) return;
 
-    debugPrint(
-      "🔍 No video broadcasters detected - starting $_inactivityTimeoutSeconds second countdown...",
-    );
+    debugPrint("🔍 No video broadcasters detected - starting $_inactivityTimeoutSeconds second countdown...");
 
     // Wait for inactivity timeout before considering host disconnected
-    _hostActivityTimer = Timer(
-      const Duration(seconds: _inactivityTimeoutSeconds),
-      () {
-        if (!mounted) return;
+    _hostActivityTimer = Timer(const Duration(seconds: _inactivityTimeoutSeconds), () {
+      if (!mounted) return;
 
-        // Double check that there are still no video broadcasters
-        List<int> currentBroadcasters = [
-          if (_remoteUid != null) _remoteUid!,
-          ..._videoCallerUids,
-          if (_isAudioCaller && isCameraEnabled) 0,
-        ];
+      // Double check that there are still no video broadcasters
+      List<int> currentBroadcasters = [
+        if (_remoteUid != null) _remoteUid!,
+        ..._videoCallerUids,
+        if (_isAudioCaller && isCameraEnabled) 0,
+      ];
 
-        if (currentBroadcasters.isEmpty) {
-          debugPrint(
-            "🚨 No video broadcasters for $_inactivityTimeoutSeconds seconds - host disconnected",
-          );
-          _handleHostDisconnection("Host disconnected. Live session ended.");
-        } else {
-          debugPrint("✅ Video broadcasters detected - host reconnected");
-        }
+      if (currentBroadcasters.isEmpty) {
+        debugPrint("🚨 No video broadcasters for $_inactivityTimeoutSeconds seconds - host disconnected");
+        _handleHostDisconnection("Host disconnected. Live session ended.");
+      } else {
+        debugPrint("✅ Video broadcasters detected - host reconnected");
+      }
 
-        _hostActivityTimer = null;
-      },
-    );
+      _hostActivityTimer = null;
+    });
   }
 
   /// Initialize host activity monitoring for viewers
@@ -1092,12 +1023,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
       final lastActivity = _lastHostActivity;
 
       // If no activity detected for _inactivityTimeoutSeconds seconds, consider host disconnected
-      if (lastActivity != null &&
-          now.difference(lastActivity).inSeconds >= _inactivityTimeoutSeconds) {
+      if (lastActivity != null && now.difference(lastActivity).inSeconds >= _inactivityTimeoutSeconds) {
         timer.cancel();
-        _handleHostDisconnection(
-          "Host appears to be inactive. Live session ended.",
-        );
+        _handleHostDisconnection("Host appears to be inactive. Live session ended.");
       }
     });
   }
@@ -1132,25 +1060,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
       bool isFrontCamera = prefs.getBool('is_front_camera') ?? true;
 
-      debugPrint(
-        '🔍 Reading camera preference from SharedPreferences (AFTER channel join):',
-      );
+      debugPrint('🔍 Reading camera preference from SharedPreferences (AFTER channel join):');
       debugPrint('📱 Stored value: $isFrontCamera');
-      debugPrint(
-        '🔄 Applying camera preference: ${isFrontCamera ? 'Front' : 'Rear'} camera',
-      );
+      debugPrint('🔄 Applying camera preference: ${isFrontCamera ? 'Front' : 'Rear'} camera');
 
       // If the saved preference is for rear camera, switch to it
       if (!isFrontCamera) {
         debugPrint('🔄 Switching to rear camera AFTER channel join...');
         await _engine.switchCamera();
-        debugPrint(
-          '✅ Applied camera preference: Rear camera (AFTER channel join)',
-        );
+        debugPrint('✅ Applied camera preference: Rear camera (AFTER channel join)');
       } else {
-        debugPrint(
-          '✅ Applied camera preference: Front camera (default - AFTER channel join)',
-        );
+        debugPrint('✅ Applied camera preference: Front camera (default - AFTER channel join)');
       }
     } catch (e) {
       debugPrint('❌ Error applying camera preference AFTER channel join: $e');
@@ -1168,19 +1088,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
       if (!hasPermissions) {
         debugPrint('⚠️ Live streaming permissions not granted, requesting...');
-        _showSnackBar(
-          '📹 Camera and microphone permissions required',
-          Colors.orange,
-        );
+        _showSnackBar('📹 Camera and microphone permissions required', Colors.orange);
 
         // Request permissions and wait for the result
         bool granted = await PermissionHelper.requestLiveStreamPermissions();
         if (!granted) {
           debugPrint('❌ Live streaming permissions denied');
-          _showSnackBar(
-            '❌ Cannot start live stream without permissions',
-            Colors.red,
-          );
+          _showSnackBar('❌ Cannot start live stream without permissions', Colors.red);
           if (mounted) {
             PermissionHelper.showPermissionDialog(context);
           }
@@ -1200,10 +1114,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
       _engine = createAgoraRtcEngine();
       await _engine.initialize(
         RtcEngineContext(
-          logConfig: LogConfig(
-            filePath: 'agora_rtc_engine.log',
-            level: LogLevel.logLevelNone,
-          ),
+          logConfig: LogConfig(filePath: 'agora_rtc_engine.log', level: LogLevel.logLevelNone),
           appId: dotenv.env['AGORA_APP_ID'] ?? '',
           channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
         ),
@@ -1228,9 +1139,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     _engine.registerEventHandler(
       RtcEngineEventHandler(
         onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
-          debugPrint(
-            "local user ${connection.localUid} joined channel: ${connection.channelId}",
-          );
+          debugPrint("local user ${connection.localUid} joined channel: ${connection.channelId}");
           setState(() {
             _localUserJoined = true;
             _isVideoConnecting = true; // Start video connection process
@@ -1240,9 +1149,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
           // Apply camera preference AFTER successfully joining the channel
           debugPrint('🔍 onJoinChannelSuccess - isHost: $isHost');
           if (isHost) {
-            debugPrint(
-              '🔍 Calling _applyCameraPreference() from onJoinChannelSuccess',
-            );
+            debugPrint('🔍 Calling _applyCameraPreference() from onJoinChannelSuccess');
             _applyCameraPreference();
 
             // For hosts, local video should be ready after camera setup
@@ -1298,16 +1205,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
               int elapsed,
             ) {
               // Track remote video state for better user experience
-              debugPrint(
-                '📹 Remote video state changed: $state for UID: $remoteUid',
-              );
+              debugPrint('📹 Remote video state changed: $state for UID: $remoteUid');
 
               setState(() {
                 if (state == RemoteVideoState.remoteVideoStateStarting ||
                     state == RemoteVideoState.remoteVideoStateDecoding) {
                   // User enabled video
-                  if (!_videoCallerUids.contains(remoteUid) &&
-                      remoteUid != _remoteUid) {
+                  if (!_videoCallerUids.contains(remoteUid) && remoteUid != _remoteUid) {
                     _videoCallerUids.add(remoteUid);
                   }
 
@@ -1318,9 +1222,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                     if (!isHost) {
                       _isVideoReady = true;
                       _isVideoConnecting = false;
-                      debugPrint(
-                        '✅ Remote video ready for viewer (UID: $remoteUid)',
-                      );
+                      debugPrint('✅ Remote video ready for viewer (UID: $remoteUid)');
                     }
                   }
                 } else if (state == RemoteVideoState.remoteVideoStateStopped) {
@@ -1359,9 +1261,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                     // For audio-only broadcasters (non-host), mark them as ready immediately
                     // since they won't have video and shouldn't show loading indicators
                     if (remoteUid != _remoteUid && !isHost) {
-                      debugPrint(
-                        '✅ Audio-only broadcaster $remoteUid marked as ready',
-                      );
+                      debugPrint('✅ Audio-only broadcaster $remoteUid marked as ready');
                     }
                   }
                 });
@@ -1371,44 +1271,35 @@ class _GoliveScreenState extends State<GoliveScreen> {
                 });
               }
             },
-        onUserOffline:
-            (
-              RtcConnection connection,
-              int remoteUid,
-              UserOfflineReasonType reason,
-            ) {
-              _debugLog("User $remoteUid left channel");
-              setState(() {
-                // Remove from both audio and video callers if they were callers
-                _audioCallerUids.remove(remoteUid);
-                _videoCallerUids.remove(remoteUid);
+        onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
+          _debugLog("User $remoteUid left channel");
+          setState(() {
+            // Remove from both audio and video callers if they were callers
+            _audioCallerUids.remove(remoteUid);
+            _videoCallerUids.remove(remoteUid);
 
-                // Only set _remoteUid to null if it was the host who left
-                if (_remoteUid == remoteUid) {
-                  _remoteUid = null;
-                }
-                _remoteUsers.remove(remoteUid);
-              });
+            // Only set _remoteUid to null if it was the host who left
+            if (_remoteUid == remoteUid) {
+              _remoteUid = null;
+            }
+            _remoteUsers.remove(remoteUid);
+          });
 
-              // Update viewer count in Firestore
-              if (isHost) {
-                // _firestoreService.updateViewerCount(
-                //   widget.streamId,
-                //   _viewerCount,
-                // );
-              }
-            },
+          // Update viewer count in Firestore
+          if (isHost) {
+            // _firestoreService.updateViewerCount(
+            //   widget.streamId,
+            //   _viewerCount,
+            // );
+          }
+        },
         onTokenPrivilegeWillExpire: (RtcConnection connection, String token) {
-          debugPrint(
-            '[onTokenPrivilegeWillExpire] connection: ${connection.toJson()}, token: $token',
-          );
+          debugPrint('[onTokenPrivilegeWillExpire] connection: ${connection.toJson()}, token: $token');
         },
       ),
     );
     await _engine.setClientRole(
-      role: isHost
-          ? ClientRoleType.clientRoleBroadcaster
-          : ClientRoleType.clientRoleAudience,
+      role: isHost ? ClientRoleType.clientRoleBroadcaster : ClientRoleType.clientRoleAudience,
     );
 
     // Optimize video settings for better performance and stability
@@ -1481,10 +1372,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
         );
       } else {
         debugPrint('Failed to generate token: ${result.success}');
-        _showSnackBar(
-          '❌ Token generation failed, using fallback',
-          Colors.orange,
-        );
+        _showSnackBar('❌ Token generation failed, using fallback', Colors.orange);
         // Fallback to static token
         await _joinChannelWithStaticToken();
       }
@@ -1580,10 +1468,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   /// Check if user can become audio caller
   bool _canJoinAudioCall() {
-    return !isHost &&
-        !_isAudioCaller &&
-        _audioCallerUids.length < _maxAudioCallers &&
-        !_isJoiningAsAudioCaller;
+    return !isHost && !_isAudioCaller && _audioCallerUids.length < _maxAudioCallers && !_isJoiningAsAudioCaller;
   }
 
   /// Get audio caller count text
@@ -1601,10 +1486,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
       }
 
       if (!_isAudioCaller) {
-        _showSnackBar(
-          '🎤 Only audio callers can control camera',
-          Colors.orange,
-        );
+        _showSnackBar('🎤 Only audio callers can control camera', Colors.orange);
         return;
       }
 
@@ -1618,10 +1500,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
       if (isCameraEnabled) {
         debugPrint('📷 Camera turned on');
-        _showSnackBar(
-          '📷 Camera turned on - You are now visible!',
-          Colors.green,
-        );
+        _showSnackBar('📷 Camera turned on - You are now visible!', Colors.green);
       } else {
         debugPrint('📷 Camera turned off');
         _showSnackBar('📷 Camera turned off - Audio only mode', Colors.orange);
@@ -1645,9 +1524,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
       // Configure media settings for audio caller
       await _engine.enableLocalAudio(true); // Enable audio publishing
       await _engine.enableLocalVideo(false); // Start with video disabled
-      await _engine.muteLocalVideoStream(
-        true,
-      ); // Ensure video is muted initially
+      await _engine.muteLocalVideoStream(true); // Ensure video is muted initially
       await _engine.muteLocalAudioStream(false); // Unmute microphone
 
       // Reset camera state to false for audio callers
@@ -1655,9 +1532,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
         isCameraEnabled = false;
       });
 
-      debugPrint(
-        "✅ Switched to audio caller role without channel interruption",
-      );
+      debugPrint("✅ Switched to audio caller role without channel interruption");
     } catch (e) {
       debugPrint("❌ Error switching to audio caller: $e");
       rethrow;
@@ -1680,9 +1555,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
         isCameraEnabled = false;
       });
 
-      debugPrint(
-        "✅ Switched back to audience role without channel interruption",
-      );
+      debugPrint("✅ Switched back to audience role without channel interruption");
     } catch (e) {
       debugPrint("❌ Error switching to audience: $e");
       rethrow;
@@ -1704,10 +1577,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
         _showSnackBar('🎤 Microphone unmuted', Colors.green);
       }
     } else {
-      _showSnackBar(
-        '🎤 Only hosts and audio callers can use microphone',
-        Colors.orange,
-      );
+      _showSnackBar('🎤 Only hosts and audio callers can use microphone', Colors.orange);
     }
   }
 
@@ -1723,12 +1593,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
         });
 
         // Check for bonus milestones for hosts only
-        if (isHost &&
-            _streamDuration.inMinutes >= _bonusIntervalMinutes &&
-            !_isCallingBonusAPI) {
-          int currentMilestone =
-              (_streamDuration.inMinutes ~/ _bonusIntervalMinutes) *
-              _bonusIntervalMinutes;
+        if (isHost && _streamDuration.inMinutes >= _bonusIntervalMinutes && !_isCallingBonusAPI) {
+          int currentMilestone = (_streamDuration.inMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
 
           // Only call API if we've reached a new milestone
           if (currentMilestone > _lastBonusMilestone) {
@@ -1793,11 +1659,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
       currentMilestone = totalMinutes; // Use exact duration for final call
     } else {
       // During stream, call at configured intervals
-      currentMilestone =
-          (totalMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
+      currentMilestone = (totalMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
       // Don't call if we've already processed this milestone or if not at minimum milestone
-      if (currentMilestone <= _lastBonusMilestone ||
-          currentMilestone < _bonusIntervalMinutes) {
+      if (currentMilestone <= _lastBonusMilestone || currentMilestone < _bonusIntervalMinutes) {
         return;
       }
     }
@@ -1825,9 +1689,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
           // Check if response is successful and has result data
           if (data['success'] == true && data['result'] != null) {
             final result = data['result'] as Map<String, dynamic>;
-            final int bonusDiamonds =
-                result['bonus'] ??
-                0; // Fixed: use 'bonus' instead of 'diamonds'
+            final int bonusDiamonds = result['bonus'] ?? 0; // Fixed: use 'bonus' instead of 'diamonds'
 
             if (bonusDiamonds > 0) {
               debugPrint("💎 Received daily bonus: $bonusDiamonds diamonds");
@@ -1862,15 +1724,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
               });
 
               if (isStreamEnd) {
-                _showSnackBar(
-                  '🎉 Stream completed! (Total: ${totalMinutes}m)',
-                  Colors.green,
-                );
+                _showSnackBar('🎉 Stream completed! (Total: ${totalMinutes}m)', Colors.green);
               } else {
-                _showSnackBar(
-                  '🎉 Milestone reached! (${currentMilestone}m)',
-                  Colors.green,
-                );
+                _showSnackBar('🎉 Milestone reached! (${currentMilestone}m)', Colors.green);
               }
             }
           } else {
@@ -1881,15 +1737,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
             });
 
             if (isStreamEnd) {
-              _showSnackBar(
-                '🎉 Stream completed! (Total: ${totalMinutes}m)',
-                Colors.green,
-              );
+              _showSnackBar('🎉 Stream completed! (Total: ${totalMinutes}m)', Colors.green);
             } else {
-              _showSnackBar(
-                '🎉 Milestone reached! (${currentMilestone}m)',
-                Colors.green,
-              );
+              _showSnackBar('🎉 Milestone reached! (${currentMilestone}m)', Colors.green);
             }
           }
         },
@@ -1978,9 +1828,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
               userId, // Use userId for host
             );
 
-            debugPrint(
-              "🏆 Host ending live stream - Total earned diamonds: $earnedDiamonds",
-            );
+            debugPrint("🏆 Host ending live stream - Total earned diamonds: $earnedDiamonds");
             debugPrint("📊 Total gifts received: ${sentGifts.length}");
 
             context.go(
@@ -2028,10 +1876,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
           if (state is! AuthAuthenticated) {
             return Scaffold(
               body: Center(
-                child: Text(
-                  'Please log in to start live streaming',
-                  style: TextStyle(fontSize: 18.sp),
-                ),
+                child: Text('Please log in to start live streaming', style: TextStyle(fontSize: 18.sp)),
               ),
             );
           } else {
@@ -2051,31 +1896,23 @@ class _GoliveScreenState extends State<GoliveScreen> {
                   // * This contaimer holds the livestream options,
                   SafeArea(
                     child: Container(
-                      margin: EdgeInsets.symmetric(
-                        horizontal: 20.w,
-                        vertical: 30.h,
-                      ),
+                      margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 30.h),
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           return SingleChildScrollView(
                             physics: NeverScrollableScrollPhysics(),
                             child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                minHeight: constraints.maxHeight,
-                              ),
+                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
                               child: IntrinsicHeight(
                                 child: Column(
                                   children: [
                                     // this is the top row
                                     Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         if (isHost)
                                           HostInfo(
-                                            imageUrl:
-                                                state.user.avatar ??
-                                                "https://thispersondoesnotexist.com/",
+                                            imageUrl: state.user.avatar ?? "https://thispersondoesnotexist.com/",
                                             name: state.user.name,
                                             id: state.user.id.substring(0, 4),
                                             hostUserId: state.user.id,
@@ -2083,16 +1920,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                           )
                                         else
                                           HostInfo(
-                                            imageUrl:
-                                                widget.hostAvatar ??
-                                                "https://thispersondoesnotexist.com/",
+                                            imageUrl: widget.hostAvatar ?? "https://thispersondoesnotexist.com/",
                                             name: widget.hostName ?? "Host",
-                                            id:
-                                                widget.hostUserId?.substring(
-                                                  0,
-                                                  4,
-                                                ) ??
-                                                "Host",
+                                            id: widget.hostUserId?.substring(0, 4) ?? "Host",
                                             hostUserId: widget.hostUserId ?? "",
                                             currentUserId: state.user.id,
                                           ),
@@ -2100,15 +1930,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                         // *show the viwers
                                         ActiveViewers(
                                           activeUserList: activeViewers,
-                                          hostUserId: isHost
-                                              ? userId
-                                              : widget.hostUserId,
-                                          hostName: isHost
-                                              ? state.user.name
-                                              : widget.hostName,
-                                          hostAvatar: isHost
-                                              ? state.user.avatar
-                                              : widget.hostAvatar,
+                                          hostUserId: isHost ? userId : widget.hostUserId,
+                                          hostName: isHost ? state.user.name : widget.hostName,
+                                          hostAvatar: isHost ? state.user.avatar : widget.hostAvatar,
                                         ),
 
                                         // * to show the leave button
@@ -2118,15 +1942,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                                   EndStreamOverlay.show(
                                                     context,
                                                     onKeepStream: () {
-                                                      debugPrint(
-                                                        "Keep stream pressed",
-                                                      );
+                                                      debugPrint("Keep stream pressed");
                                                     },
                                                     onEndStream: () {
                                                       _endLiveStream();
-                                                      debugPrint(
-                                                        "End stream pressed",
-                                                      );
+                                                      debugPrint("End stream pressed");
                                                     },
                                                   );
                                                 },
@@ -2139,14 +1959,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                             : InkWell(
                                                 onTap: () {
                                                   _endLiveStream();
-                                                  debugPrint(
-                                                    "Disconnect pressed",
-                                                  );
+                                                  debugPrint("Disconnect pressed");
                                                 },
-                                                child: Image.asset(
-                                                  "assets/icons/live_exit_icon.png",
-                                                  height: 50.h,
-                                                ),
+                                                child: Image.asset("assets/icons/live_exit_icon.png", height: 50.h),
                                               ),
                                       ],
                                     ),
@@ -2154,8 +1969,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
                                     //  this is the second row TODO:  diamond and star count display
                                     Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         DiamondStarStatus(
                                           diamonCount: AppUtils.formatNumber(
@@ -2185,8 +1999,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                     Align(
                                       alignment: Alignment.centerLeft,
                                       child: LiveChatWidget(
-                                        isCallingNow:
-                                            broadcasterList.isNotEmpty,
+                                        isCallingNow: broadcasterList.isNotEmpty,
                                         messages: _chatMessages,
                                       ),
                                     ),
@@ -2196,8 +2009,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                     // the bottom buttons
                                     if (isHost)
                                       Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceAround,
+                                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                                         children: [
                                           InkWell(
                                             onTap: () {
@@ -2211,27 +2023,18 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                             },
                                             child: Stack(
                                               children: [
-                                                Image.asset(
-                                                  "assets/icons/message_icon.png",
-                                                  height: 40.h,
-                                                ),
+                                                Image.asset("assets/icons/message_icon.png", height: 40.h),
                                                 Positioned(
                                                   left: 10.w,
                                                   top: 0,
                                                   bottom: 0,
                                                   child: Row(
                                                     children: [
-                                                      Image.asset(
-                                                        "assets/icons/message_user_icon.png",
-                                                        height: 20.h,
-                                                      ),
+                                                      Image.asset("assets/icons/message_user_icon.png", height: 20.h),
                                                       SizedBox(width: 5.w),
                                                       Text(
                                                         'Say Hello!',
-                                                        style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 18.sp,
-                                                        ),
+                                                        style: TextStyle(color: Colors.white, fontSize: 18.sp),
                                                       ),
                                                     ],
                                                   ),
@@ -2240,8 +2043,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                             ),
                                           ),
                                           CustomLiveButton(
-                                            iconPath:
-                                                "assets/icons/gift_user_icon.png",
+                                            iconPath: "assets/icons/gift_user_icon.png",
                                             onTap: () {
                                               // _showSnackBar(
                                               //   '🎁 Not implemented yet',
@@ -2250,29 +2052,18 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                               showGiftBottomSheet(
                                                 context,
                                                 activeViewers: activeViewers,
-                                                roomId:
-                                                    _currentRoomId ?? roomId,
-                                                hostUserId: isHost
-                                                    ? userId
-                                                    : widget.hostUserId,
-                                                hostName: isHost
-                                                    ? state.user.name
-                                                    : widget.hostName,
-                                                hostAvatar: isHost
-                                                    ? state.user.avatar
-                                                    : widget.hostAvatar,
+                                                roomId: _currentRoomId ?? roomId,
+                                                hostUserId: isHost ? userId : widget.hostUserId,
+                                                hostName: isHost ? state.user.name : widget.hostName,
+                                                hostAvatar: isHost ? state.user.avatar : widget.hostAvatar,
                                               );
                                             },
                                           ),
                                           CustomLiveButton(
-                                            iconPath:
-                                                "assets/icons/pk_icon.png",
+                                            iconPath: "assets/icons/pk_icon.png",
                                             onTap: () {
                                               // _playAnimation();
-                                              _showSnackBar(
-                                                '🎶 Not implemented yet',
-                                                Colors.green,
-                                              );
+                                              _showSnackBar('🎶 Not implemented yet', Colors.green);
                                               // showMusicBottomSheet(context);
                                             },
                                           ),
@@ -2285,8 +2076,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                             },
                                           ),
                                           CustomLiveButton(
-                                            iconPath:
-                                                "assets/icons/call_icon.png",
+                                            iconPath: "assets/icons/call_icon.png",
                                             onTap: () {
                                               if (_audioCallerUids.isNotEmpty) {
                                                 _showSnackBar(
@@ -2294,52 +2084,30 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                                   Colors.green,
                                                 );
                                               } else {
-                                                _showSnackBar(
-                                                  '📞 Waiting for audio callers to join...',
-                                                  Colors.blue,
-                                                );
+                                                _showSnackBar('📞 Waiting for audio callers to join...', Colors.blue);
                                               }
                                               showModalBottomSheet(
                                                 context: context,
                                                 isScrollControlled: true,
-                                                backgroundColor:
-                                                    Colors.transparent,
+                                                backgroundColor: Colors.transparent,
                                                 builder: (context) => CallManageBottomSheet(
                                                   key: callManageBottomSheetKey,
                                                   onAcceptCall: (userId) {
-                                                    debugPrint(
-                                                      "Accepting call request from $userId",
-                                                    );
-                                                    _socketService
-                                                        .acceptCallRequest(
-                                                          userId,
-                                                        );
-                                                    callRequests.removeWhere(
-                                                      (call) =>
-                                                          call.userId == userId,
-                                                    );
+                                                    debugPrint("Accepting call request from $userId");
+                                                    _socketService.acceptCallRequest(userId);
+                                                    callRequests.removeWhere((call) => call.userId == userId);
                                                     // Update the bottom sheet with new data
                                                     _updateCallManageBottomSheet();
                                                   },
                                                   onRejectCall: (userId) {
-                                                    debugPrint(
-                                                      "Rejecting call request from $userId",
-                                                    );
-                                                    _socketService
-                                                        .rejectCallRequest(
-                                                          userId,
-                                                        );
+                                                    debugPrint("Rejecting call request from $userId");
+                                                    _socketService.rejectCallRequest(userId);
                                                     // Update the bottom sheet with new data
                                                     _updateCallManageBottomSheet();
                                                   },
                                                   onKickUser: (userId) {
-                                                    _socketService
-                                                        .removeBroadcaster(
-                                                          userId,
-                                                        );
-                                                    debugPrint(
-                                                      "Kicking user $userId from call",
-                                                    );
+                                                    _socketService.removeBroadcaster(userId);
+                                                    debugPrint("Kicking user $userId from call");
                                                     // Update the bottom sheet with new data
                                                     _updateCallManageBottomSheet();
                                                   },
@@ -2351,8 +2119,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                           ),
 
                                           CustomLiveButton(
-                                            iconPath:
-                                                "assets/icons/menu_icon.png",
+                                            iconPath: "assets/icons/menu_icon.png",
                                             onTap: () {
                                               showGameBottomSheet(
                                                 context,
@@ -2366,8 +2133,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                       )
                                     else
                                       Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceAround,
+                                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                                         children: [
                                           InkWell(
                                             onTap: () {
@@ -2385,27 +2151,18 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                             },
                                             child: Stack(
                                               children: [
-                                                Image.asset(
-                                                  "assets/icons/message_icon.png",
-                                                  height: 40.h,
-                                                ),
+                                                Image.asset("assets/icons/message_icon.png", height: 40.h),
                                                 Positioned(
                                                   left: 10,
                                                   top: 0,
                                                   bottom: 0,
                                                   child: Row(
                                                     children: [
-                                                      Image.asset(
-                                                        "assets/icons/message_user_icon.png",
-                                                        height: 20.h,
-                                                      ),
+                                                      Image.asset("assets/icons/message_user_icon.png", height: 20.h),
                                                       SizedBox(width: 5.w),
                                                       Text(
                                                         'Say Hello!',
-                                                        style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 18.sp,
-                                                        ),
+                                                        style: TextStyle(color: Colors.white, fontSize: 18.sp),
                                                       ),
                                                     ],
                                                   ),
@@ -2415,31 +2172,22 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                           ),
 
                                           CustomLiveButton(
-                                            iconPath:
-                                                "assets/icons/gift_user_icon.png",
+                                            iconPath: "assets/icons/gift_user_icon.png",
                                             onTap: () {
                                               showGiftBottomSheet(
                                                 context,
                                                 activeViewers: activeViewers,
-                                                roomId:
-                                                    _currentRoomId ?? roomId,
-                                                hostUserId: isHost
-                                                    ? userId
-                                                    : widget.hostUserId,
-                                                hostName: isHost
-                                                    ? state.user.name
-                                                    : widget.hostName,
-                                                hostAvatar: isHost
-                                                    ? state.user.avatar
-                                                    : widget.hostAvatar,
+                                                roomId: _currentRoomId ?? roomId,
+                                                hostUserId: isHost ? userId : widget.hostUserId,
+                                                hostName: isHost ? state.user.name : widget.hostName,
+                                                hostAvatar: isHost ? state.user.avatar : widget.hostAvatar,
                                               );
                                             },
                                             height: 40.h,
                                           ),
 
                                           CustomLiveButton(
-                                            iconPath:
-                                                "assets/icons/game_user_icon.png",
+                                            iconPath: "assets/icons/game_user_icon.png",
                                             onTap: () {
                                               showGameBottomSheet(
                                                 context,
@@ -2450,22 +2198,19 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                             height: 40.h,
                                           ),
                                           CustomLiveButton(
-                                            iconPath:
-                                                "assets/icons/share_user_icon.png",
+                                            iconPath: "assets/icons/share_user_icon.png",
                                             onTap: () {},
                                             height: 40.h,
                                           ),
                                           CustomLiveButton(
-                                            iconPath:
-                                                "assets/icons/menu_icon.png",
+                                            iconPath: "assets/icons/menu_icon.png",
                                             onTap: () {
                                               showMenuBottomSheet(
                                                 context,
                                                 userId: userId,
                                                 isHost: isHost,
                                                 isMuted: _muted,
-                                                isAdminMuted:
-                                                    _isCurrentUserMuted(),
+                                                isAdminMuted: _isCurrentUserMuted(),
                                                 onToggleMute: _toggleMute,
                                               );
                                             },
@@ -2496,10 +2241,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             WhoAmI checkRole(String broadcasterId) {
                               // Get current user ID from AuthBloc for reliability
                               final authState = context.read<AuthBloc>().state;
-                              final currentUserId =
-                                  authState is AuthAuthenticated
-                                  ? authState.user.id
-                                  : userId;
+                              final currentUserId = authState is AuthAuthenticated ? authState.user.id : userId;
 
                               if (_isCurrentUserAdmin()) {
                                 return WhoAmI.admin;
@@ -2520,18 +2262,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   ? broadcaster.avatar
                                   : null, // null will show placeholder
                               onDisconnect: () {
-                                _socketService.removeBroadcaster(
-                                  broadcaster.id,
-                                );
+                                _socketService.removeBroadcaster(broadcaster.id);
                               },
                               onMute: () {
                                 _muteUser(broadcaster.id);
                               },
                               onManage: () {
                                 // No-op here; bottom sheet handles actions
-                                debugPrint(
-                                  "Open manage for: ${broadcaster.id}",
-                                );
+                                debugPrint("Open manage for: ${broadcaster.id}");
                               },
                               onSetAdmin: (id) {
                                 _makeAdmin(id);
@@ -2539,10 +2277,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               },
                               onRemoveAdmin: (id) {
                                 _removeAdmin(id);
-                                _showSnackBar(
-                                  '👤 Admin removed',
-                                  Colors.orange,
-                                );
+                                _showSnackBar('👤 Admin removed', Colors.orange);
                               },
                               adminModels: adminModels,
                               onMuteUser: (id) {
@@ -2555,10 +2290,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               },
                               onBanUser: (id) {
                                 _banUser(id);
-                                _showSnackBar(
-                                  '⛔ User added to blocklist',
-                                  Colors.red,
-                                );
+                                _showSnackBar('⛔ User added to blocklist', Colors.red);
                               },
                             );
                           }),
@@ -2567,21 +2299,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
                           if (broadcasterList.isNotEmpty)
                             Container(
                               margin: EdgeInsets.only(bottom: 10.h),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 12.w,
-                                vertical: 6.h,
-                              ),
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                               decoration: BoxDecoration(
                                 color: Colors.black54,
                                 borderRadius: BorderRadius.circular(15.r),
                               ),
                               child: Text(
                                 '🎤 ${broadcasterList.length}/$_maxAudioCallers',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                                style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w500),
                               ),
                             ),
 
@@ -2618,10 +2343,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                           GestureDetector(
                             onTap: () {
                               if (_isJoiningAsAudioCaller) {
-                                _showSnackBar(
-                                  '🎤 Please wait...',
-                                  Colors.orange,
-                                );
+                                _showSnackBar('🎤 Please wait...', Colors.orange);
                                 return;
                               }
 
@@ -2629,13 +2351,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                 _socketService.removeBroadcaster(userId ?? '');
                                 debugPrint("Leaving audio caller");
                               } else {
-                                _socketService.joinCallRequest(
-                                  _currentRoomId ?? roomId,
-                                );
-                                _showSnackBar(
-                                  '🎤 Please wait for accept call...',
-                                  Colors.orange,
-                                );
+                                _socketService.joinCallRequest(_currentRoomId ?? roomId);
+                                _showSnackBar('🎤 Please wait for accept call...', Colors.orange);
                                 debugPrint("Join call request sent");
                               }
                             },
@@ -2644,9 +2361,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               width: 80.w,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(8.r),
-                                ),
+                                borderRadius: BorderRadius.all(Radius.circular(8.r)),
                                 color: _isJoiningAsAudioCaller
                                     ? Colors.grey
                                     : _isAudioCaller
@@ -2663,22 +2378,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                       ? SizedBox(
                                           width: 40.w,
                                           height: 40.h,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 3,
-                                          ),
+                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
                                         )
                                       : _isAudioCaller
-                                      ? SvgPicture.asset(
-                                          "assets/icons/join_call_icon.svg",
-                                          height: 40.h,
-                                          width: 40.w,
-                                        )
-                                      : SvgPicture.asset(
-                                          "assets/icons/join_call_icon.svg",
-                                          height: 40.h,
-                                          width: 40.w,
-                                        ),
+                                      ? SvgPicture.asset("assets/icons/join_call_icon.svg", height: 40.h, width: 40.w)
+                                      : SvgPicture.asset("assets/icons/join_call_icon.svg", height: 40.h, width: 40.w),
                                   Text(
                                     _isJoiningAsAudioCaller
                                         ? 'Joining'
@@ -2688,11 +2392,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                         ? _getAudioCallerText()
                                         : 'Call Full',
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18.sp,
-                                      fontWeight: FontWeight.w400,
-                                    ),
+                                    style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.w400),
                                   ),
                                 ],
                               ),
@@ -2714,10 +2414,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                             WhoAmI checkHostRole(String broadcasterId) {
                               // Get current user ID from AuthBloc for reliability
                               final authState = context.read<AuthBloc>().state;
-                              final currentUserId =
-                                  authState is AuthAuthenticated
-                                  ? authState.user.id
-                                  : userId;
+                              final currentUserId = authState is AuthAuthenticated ? authState.user.id : userId;
 
                               if (_isCurrentUserAdmin()) {
                                 return WhoAmI.admin;
@@ -2738,18 +2435,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                   ? broadcaster.avatar
                                   : null, // null will show placeholder
                               onDisconnect: () {
-                                _socketService.removeBroadcaster(
-                                  broadcaster.id,
-                                );
+                                _socketService.removeBroadcaster(broadcaster.id);
                               },
                               onMute: () {
                                 _muteUser(broadcaster.id);
                               },
                               onManage: () {
                                 // No-op; actions are fired from bottom sheet
-                                debugPrint(
-                                  "Open manage for: ${broadcaster.id}",
-                                );
+                                debugPrint("Open manage for: ${broadcaster.id}");
                               },
                               onSetAdmin: (id) {
                                 _makeAdmin(id);
@@ -2757,10 +2450,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               },
                               onRemoveAdmin: (id) {
                                 _removeAdmin(id);
-                                _showSnackBar(
-                                  '👤 Admin removed',
-                                  Colors.orange,
-                                );
+                                _showSnackBar('👤 Admin removed', Colors.orange);
                               },
                               adminModels: adminModels,
                               onMuteUser: (id) {
@@ -2773,10 +2463,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                               },
                               onBanUser: (id) {
                                 _banUser(id);
-                                _showSnackBar(
-                                  '⛔ User added to blocklist',
-                                  Colors.red,
-                                );
+                                _showSnackBar('⛔ User added to blocklist', Colors.red);
                               },
                             );
                           }),
@@ -2799,9 +2486,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     if (_isInitializingCamera) {
       return Container(
         color: Colors.black,
-        child: Center(
-          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-        ),
+        child: Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)),
       );
     }
 
@@ -2809,9 +2494,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     if (_isVideoConnecting && !_isVideoReady) {
       return Container(
         color: Colors.black,
-        child: Center(
-          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-        ),
+        child: Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)),
       );
     }
 
@@ -2864,14 +2547,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
     List<int> allVideoBroadcasters = [
       // Include all remote users as potential video sources
       ..._remoteUsers,
-      if (_isAudioCaller && isCameraEnabled)
-        0, // Own video if audio caller with camera on
+      if (_isAudioCaller && isCameraEnabled) 0, // Own video if audio caller with camera on
     ];
 
     // For viewers, show video if any remote users are present and video is ready
     // OR if we're still connecting but have remote users
-    bool shouldShowVideo =
-        allVideoBroadcasters.isNotEmpty && (_isVideoReady || _localUserJoined);
+    bool shouldShowVideo = allVideoBroadcasters.isNotEmpty && (_isVideoReady || _localUserJoined);
 
     if (!shouldShowVideo) {
       // Start host disconnection monitoring when no video broadcasters are present
@@ -2918,10 +2599,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   }
 
   /// Build dynamic multi-video layout based on number of broadcasters
-  Widget _buildMultiVideoLayout(
-    List<int> broadcasterUids, {
-    required bool isHostView,
-  }) {
+  Widget _buildMultiVideoLayout(List<int> broadcasterUids, {required bool isHostView}) {
     // Since only host shows video and others are audio-only callers,
     // always prioritize host's video and show it in full screen
 
@@ -2946,21 +2624,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
         children: [
           // Video view
           AgoraVideoView(
-            controller: VideoViewController(
-              rtcEngine: _engine,
-              canvas: const VideoCanvas(uid: 0),
-            ),
+            controller: VideoViewController(rtcEngine: _engine, canvas: const VideoCanvas(uid: 0)),
           ),
           // Show loading overlay if local video is not ready
           if (!_isLocalVideoReady && isHost)
             Container(
               color: Colors.black.withValues(alpha: 0.8),
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
-              ),
+              child: Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
             ),
         ],
       );
@@ -2984,12 +2654,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
           if (shouldShowVideoLoading)
             Container(
               color: Colors.black.withValues(alpha: 0.8),
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
-              ),
+              child: Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
             ),
         ],
       );

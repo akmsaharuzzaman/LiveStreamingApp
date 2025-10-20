@@ -14,7 +14,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import '../../data/models/category_model.dart';
 import '../../data/models/user_model.dart';
-import '../../../live_audio/models/audio_room_details.dart';
+import '../../../live_audio/data/models/audio_room_details.dart';
 import '../widgets/custom_networkimage.dart';
 import '../widgets/touchable_opacity_widget.dart';
 import 'ListAudioList.dart';
@@ -30,7 +30,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   final SocketService _socketService = SocketService.instance;
-  final AudioSocketService _audioSocketService = AudioSocketService.instance;
+  late final AudioSocketService _audioSocketService;
   final GenericApiClient _genericApiClient = getIt<GenericApiClient>();
   List<GetRoomModel>? _availableRooms;
   List<AudioRoomDetails>? _availableAudioRooms;
@@ -258,6 +258,9 @@ class _HomePageState extends State<HomePage>
   void initState() {
     // Initialize tab controller with 4 tabs
     _tabController = TabController(length: 4, vsync: this);
+
+    // Get AudioSocketService from dependency injection
+    _audioSocketService = context.read<AudioSocketService>();
 
     _initializeSocket();
     _fetchBanners(); // Fetch banners from API

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../live_audio/models/audio_room_details.dart';
+import '../../../live_audio/data/models/audio_room_details.dart';
 import '../../../live_audio/service/socket_service_audio.dart';
 import '../widgets/custom_networkimage.dart';
 import '../widgets/touchable_opacity_widget.dart';

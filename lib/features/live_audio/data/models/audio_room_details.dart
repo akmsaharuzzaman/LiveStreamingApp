@@ -1,4 +1,4 @@
-import 'package:dlstarlive/features/live_audio/models/audio_member_model.dart';
+import 'package:dlstarlive/features/live_audio/data/models/audio_member_model.dart';
 import 'package:flutter/material.dart';
 import 'chat_model.dart';
 
