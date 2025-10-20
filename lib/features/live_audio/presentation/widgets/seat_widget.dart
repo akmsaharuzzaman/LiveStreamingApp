@@ -14,6 +14,7 @@ class SeatWidget extends StatefulWidget {
   final PremiumSeat? premiumSeat;
   final SeatsData? seatsData;
   final Function(String seatId)? onTakeSeat;
+  final Function(String seatId)? onLeaveSeat;
   final bool isHost;
 
   const SeatWidget({
@@ -26,6 +27,7 @@ class SeatWidget extends StatefulWidget {
     this.premiumSeat,
     this.seatsData,
     this.onTakeSeat,
+    this.onLeaveSeat,
     this.isHost = false,
   });
 
@@ -332,7 +334,7 @@ class _SeatWidgetState extends State<SeatWidget> {
   Widget _buildSeatItem(SeatModel seat, int index) {
     return GestureDetector(
       onTap: () {
-        print("\n\n\n Selected seat index: $index");
+        _uiLog("\n\n\n Selected seat index: $index");
         setState(() {
           selectedSeatIndex = index;
         });
@@ -446,7 +448,7 @@ class _SeatWidgetState extends State<SeatWidget> {
   }
 
   void _showSeatOptions(SeatModel seat, int index) {
-    print('\n\n_showSeatOptions called for seat: ${seat.id}');
+    _uiLog('\n\n_showSeatOptions called for seat: ${seat.id}');
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -480,7 +482,7 @@ class _SeatWidgetState extends State<SeatWidget> {
                     title: Text("Leave Seat"),
                     onTap: () {
                       Navigator.pop(context);
-                      // widget.onLeaveSeat?.call(seat.id);
+                      widget.onLeaveSeat?.call(seat.id);
                     },
                   ),
                 ] else ...[

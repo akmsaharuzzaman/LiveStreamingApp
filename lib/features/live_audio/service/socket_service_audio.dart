@@ -68,16 +68,22 @@ class AudioSocketService {
   /// Stream getters for listening to events
   Stream<List<AudioRoomDetails>> get getAllRoomsStream => _eventHandler.getAllRoomsStream;
   Stream<AudioRoomDetails?> get audioRoomDetailsStream => _eventHandler.audioRoomDetailsStream;
+  // Room events
   Stream<AudioRoomDetails> get createRoomStream => _eventHandler.createRoomStream;
   Stream<List<String>> get closeRoomStream => _eventHandler.closeRoomStream;
   Stream<AudioRoomDetails> get joinRoomStream => _eventHandler.joinRoomStream;
   Stream<AudioRoomDetails> get leaveRoomStream => _eventHandler.leaveRoomStream;
+  // User events
   Stream<LeftUserModel> get userLeftStream => _eventHandler.userLeftStream;
-  Stream<JoinedSeatModel> get joinSeatRequestStream => _eventHandler.joinSeatRequestStream;
-  Stream<SeatModel> get leaveSeatRequestStream => _eventHandler.leaveSeatRequestStream;
-  Stream<SeatModel> get removeFromSeatStream => _eventHandler.removeFromSeatStream;
+  // Seat events
+  Stream<JoinedSeatModel> get joinSeatStream => _eventHandler.joinSeatStream;
+  Stream<JoinedSeatModel> get leaveSeatStream => _eventHandler.leaveSeatStream;
+  Stream<JoinedSeatModel> get removeFromSeatStream => _eventHandler.removeFromSeatStream;
+  // Chat events
   Stream<AudioChatModel> get sendMessageStream => _eventHandler.sendMessageStream;
+  // Error events
   Stream<Map<String, dynamic>> get errorMessageStream => _eventHandler.errorMessageStream;
+  // User events
   Stream<MuteUserModel> get muteUnmuteUserStream => _eventHandler.muteUnmuteUserStream;
   Stream<BanUserModel> get banUserStream => _eventHandler.banUserStream;
   Stream<BanUserModel> get unbanUserStream => _eventHandler.unbanUserStream;

@@ -21,15 +21,20 @@ class AudioSocketEventHandler {
   // Stream controllers for audio events
   final StreamController<List<AudioRoomDetails>> _getAllRoomsController = StreamController<List<AudioRoomDetails>>.broadcast();
   final StreamController<AudioRoomDetails?> _audioRoomDetailsController = StreamController<AudioRoomDetails?>.broadcast();
+  // Room events
   final StreamController<AudioRoomDetails> _createRoomController = StreamController<AudioRoomDetails>.broadcast();
   final StreamController<List<String>> _closeRoomController = StreamController<List<String>>.broadcast();
   final StreamController<AudioRoomDetails> _joinRoomController = StreamController<AudioRoomDetails>.broadcast();
   final StreamController<AudioRoomDetails> _leaveRoomController = StreamController<AudioRoomDetails>.broadcast();
+  // User events
   final StreamController<LeftUserModel> _userLeftController = StreamController<LeftUserModel>.broadcast();
+  // Seat events
   final StreamController<JoinedSeatModel> _joinSeatController = StreamController<JoinedSeatModel>.broadcast();
-  final StreamController<SeatModel> _leaveSeatController = StreamController<SeatModel>.broadcast();
-  final StreamController<SeatModel> _removeFromSeatController = StreamController<SeatModel>.broadcast();
+  final StreamController<JoinedSeatModel> _leaveSeatController = StreamController<JoinedSeatModel>.broadcast();
+  final StreamController<JoinedSeatModel> _removeFromSeatController = StreamController<JoinedSeatModel>.broadcast();
+  // Chat events
   final StreamController<AudioChatModel> _sendMessageController = StreamController<AudioChatModel>.broadcast();
+  // User events
   final StreamController<MuteUserModel> _muteUnmuteUserController = StreamController<MuteUserModel>.broadcast();
   final StreamController<BanUserModel> _banUserController = StreamController<BanUserModel>.broadcast();
   final StreamController<BanUserModel> _unbanUserController = StreamController<BanUserModel>.broadcast();
@@ -52,16 +57,22 @@ class AudioSocketEventHandler {
   /// Stream getters
   Stream<List<AudioRoomDetails>> get getAllRoomsStream => _getAllRoomsController.stream;
   Stream<AudioRoomDetails?> get audioRoomDetailsStream => _audioRoomDetailsController.stream;
+  // Room events
   Stream<AudioRoomDetails> get createRoomStream => _createRoomController.stream;
   Stream<List<String>> get closeRoomStream => _closeRoomController.stream;
   Stream<AudioRoomDetails> get joinRoomStream => _joinRoomController.stream;
   Stream<AudioRoomDetails> get leaveRoomStream => _leaveRoomController.stream;
+  // User events
   Stream<LeftUserModel> get userLeftStream => _userLeftController.stream;
-  Stream<JoinedSeatModel> get joinSeatRequestStream => _joinSeatController.stream;
-  Stream<SeatModel> get leaveSeatRequestStream => _leaveSeatController.stream;
-  Stream<SeatModel> get removeFromSeatStream => _removeFromSeatController.stream;
+  // Seat events
+  Stream<JoinedSeatModel> get joinSeatStream => _joinSeatController.stream;
+  Stream<JoinedSeatModel> get leaveSeatStream => _leaveSeatController.stream;
+  Stream<JoinedSeatModel> get removeFromSeatStream => _removeFromSeatController.stream;
+  // Chat events
   Stream<AudioChatModel> get sendMessageStream => _sendMessageController.stream;
+  // Error events
   Stream<Map<String, dynamic>> get errorMessageStream => errorController.stream;
+  // User events
   Stream<MuteUserModel> get muteUnmuteUserStream => _muteUnmuteUserController.stream;
   Stream<BanUserModel> get banUserStream => _banUserController.stream;
   Stream<BanUserModel> get unbanUserStream => _unbanUserController.stream;
@@ -169,7 +180,7 @@ class AudioSocketEventHandler {
   void _handleLeaveSeat(dynamic data) {
     _log('🪑 Leave seat response: $data');
     if (data is Map<String, dynamic>) {
-      _leaveSeatController.add(SeatModel.fromJson(data['data']));
+      _leaveSeatController.add(JoinedSeatModel.fromJson(data['data']));
     }
   }
 

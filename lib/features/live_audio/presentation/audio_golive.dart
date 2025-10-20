@@ -285,7 +285,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     });
 
     // Seat joined
-    _joinSeatSubscription = _socketService.joinSeatRequestStream.listen((data) {
+    _joinSeatSubscription = _socketService.joinSeatStream.listen((data) {
       _uiLog("Seat joined: ${jsonEncode(data)}");
       if (mounted && data.member?.id != widget.hostUserId) {
         _uiLog("UI LOG: ${data.seatKey} is updating with user ${data.member?.name}");
@@ -305,11 +305,16 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     });
 
     // Seat left
-    _leaveSeatSubscription = _socketService.leaveSeatRequestStream.listen((data) {
+    _leaveSeatSubscription = _socketService.leaveSeatStream.listen((data) {
       _uiLog("Seat left: ${jsonEncode(data)}");
       if (mounted) {
-        roomData!.membersDetails.removeWhere((user) => user.id == data.id);
-        setState(() {});
+        _uiLog("UI LOG: ${data.seatKey} is removing the user");
+        setState(() {
+          roomData!.seatsData = SeatsData(
+            seats: Map<String, SeatInfo>.from(roomData!.seatsData.seats!)
+              ..[data.seatKey!] = SeatInfo(member: null),
+          );
+        });
       }
     });
 
@@ -535,13 +540,11 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     }
   }
 
-  Future<void> _leaveSeat() async {
-    // if (_currentRoomId != null) {
-    //   await _socketService.leaveSeat(_currentRoomId!, seatKey: _currentSeatKey!, targetId: userId!);
-    //   setState(() {
-    //     _currentRoomId = null;
-    //   });
-    // }
+  void _leaveSeat(String seatId) async {
+    final roomId = _currentRoomId ?? widget.roomId;
+    if (roomId != null) {
+      _socketService.leaveSeat(roomId: roomId, seatKey: seatId, targetId: userId!);
+    }
   }
 
   bool _isCurrentUserMuted() {
@@ -824,6 +827,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                         premiumSeat: roomData?.premiumSeat,
                         seatsData: roomData?.seatsData,
                         onTakeSeat: _takeSeat,
+                        onLeaveSeat: _leaveSeat,
                         isHost: isHost,
                       ),
                       Spacer(),

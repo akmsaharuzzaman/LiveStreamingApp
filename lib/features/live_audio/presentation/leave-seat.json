@@ -1,0 +1,8 @@
+{
+    "success": true,
+    "message": "Successfully left the seat",
+    "data": {
+        "seatKey": "seat-1",
+        "member": {}
+    }
+}
