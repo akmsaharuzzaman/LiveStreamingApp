@@ -4,7 +4,7 @@ import 'package:dlstarlive/features/chat/presentation/pages/chat_settings.dart';
 import 'package:dlstarlive/features/live/presentation/pages/golive_screen.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_page.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_summary_screen.dart';
-import 'package:dlstarlive/features/live_audio/presentation/audio_golive_screen_refactored.dart';
+import 'package:dlstarlive/features/live_audio/presentation/audio_golive_screen.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/view_user_profile.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/friends_list_page.dart';
 import 'package:dlstarlive/features/reels/presentation/pages/reels.dart';
@@ -13,7 +13,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/home/presentation/pages/main_navigation_page.dart';
 import '../features/live_audio/data/models/audio_room_details.dart';
-import '../features/live_audio/data/models/audio_member_model.dart';
 import '../features/newsfeed/presentation/pages/newsfeed.dart';
 import '../features/profile/presentation/pages/store_page.dart';
 import '../features/reels/presentation/pages/video_editor_screen.dart';
@@ -108,28 +107,25 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.audioLive,
       name: 'audioLive',
       builder: (context, state) {
-        final roomId = state.uri.queryParameters['roomId'] ?? '';
-        final hostName = state.uri.queryParameters['hostName'] ?? '';
-        final hostUserId = state.uri.queryParameters['hostUserId'] ?? '';
-        final hostAvatar = state.uri.queryParameters['hostAvatar'] ?? '';
-        final existingViewers = (state.extra as Map<String, dynamic>?)?['existingViewers'] as List<AudioMember>? ?? [];
-        final hostCoins = (state.extra as Map<String, dynamic>?)?['hostCoins'] as int? ?? 0;
-        final roomData = (state.extra as Map<String, dynamic>?)?['roomData'] as AudioRoomDetails?;
-        final numberOfSeats = (state.extra as Map<String, dynamic>?)?['numberOfSeats'] as int? ?? 6;
-        final roomTitle = (state.extra as Map<String, dynamic>?)?['title'] as String? ?? 'Audio Room';
-        // Determine if creating room based on whether roomData exists
-        final isCreatingRoom = roomData == null;
-        return AudioGoLiveScreenRefactored(
+        // Extract parameters from extra map
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+
+        // Core parameters (used in both host and viewer modes)
+        final isHost = extra['isHost'] as bool;
+        final roomId = extra['roomId'] as String;
+        final numberOfSeats = extra['numberOfSeats'] as int;
+        final roomTitle = extra['title'] as String;
+
+        final roomDetails = extra['roomDetails'] as AudioRoomDetails?;
+        // Room data (only present when joining as viewer)
+
+        return AudioGoLiveScreen(
+          isHost: isHost,
           roomId: roomId,
-          hostName: hostName,
-          hostUserId: hostUserId,
-          hostAvatar: hostAvatar,
-          existingViewers: existingViewers,
-          hostCoins: hostCoins,
-          roomData: roomData, // Pass the complete room data
-          numberOfSeats: numberOfSeats, // Pass selected seat count
-          roomTitle: roomTitle, // Pass room title
-          isCreatingRoom: isCreatingRoom, // Explicit flag for room creation vs joining
+          numberOfSeats: numberOfSeats,
+          roomTitle: roomTitle,
+          // Pass the complete room data
+          roomDetails: roomDetails,
         );
       },
     ),

@@ -1,5 +1,7 @@
+import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
@@ -528,13 +530,16 @@ class _LivePageState extends State<LivePage> {
                     SizedBox(height: 30.h),
                   ],
 
-                  // Go Live Button
+                  // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                  // ########################## Go Live Button ##########################
+                  // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
                   SizedBox(
                     width: double.infinity,
                     height: 56.h,
                     child: ElevatedButton(
                       onPressed: () async {
                         if (isLiveSelected) {
+                          // ########################## Live mode ##########################
                           print("Going live with title: ${_isFrontCamera ? 'Front Camera' : 'Back Camera'}");
 
                           // Ensure camera preference is saved before navigation
@@ -548,16 +553,36 @@ class _LivePageState extends State<LivePage> {
                             context.push(AppRoutes.onGoingLive);
                           }
                         } else {
-                          // Audio Live mode
+                          // ########################## Audio Live mode ##########################
                           // Extract number from selectedPeopleCount (e.g., "6 People" -> 6)
                           int numberOfSeats = int.parse(selectedPeopleCount.split(' ').first);
 
-                          if (mounted) {
+                          final authState = context.read<AuthBloc>().state;
+                          if (authState is AuthUnauthenticated) {
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(const SnackBar(content: Text('User is not authenticated')));
+                            return;
+                          }
+                          if (authState is AuthAuthenticated) {
+                            if (authState.user.id.isEmpty) {
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(const SnackBar(content: Text('User ID is empty')));
+                              return;
+                            }
+                            final userId = authState.user.id;
+                            debugPrint("🚀 Navigating to audio live with userId: $userId as Host");
                             context.push(
                               AppRoutes.audioLive,
                               extra: {
+                                'isHost': true,
+                                'roomId': "audio_room_$userId",
                                 'numberOfSeats': numberOfSeats,
                                 'title': _titleController.text.isEmpty ? 'Audio Room' : _titleController.text,
+                                'roomDetails': null,
+                                // userId
+                                'userId': userId,
                               },
                             );
                           }

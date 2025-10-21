@@ -3,22 +3,26 @@ import 'package:flutter/material.dart';
 import 'chat_model.dart';
 
 class AudioRoomDetails {
-  String title;
-  int numberOfSeats;
   String roomId;
-  int hostGifts;
-  int hostBonus;
+  int numberOfSeats;
+  String title;
+
   AudioMember hostDetails;
   PremiumSeat premiumSeat;
   SeatsData seatsData;
-  List<AudioChatModel> messages;
-  String createdAt;
+
   List<String> members;
   List<AudioMember> membersDetails;
+
+  List<AudioChatModel> messages;
+
+  int hostGifts;
+  int hostBonus;
   List<dynamic> bannedUsers;
   List<dynamic> mutedUsers;
   List<Ranking> ranking;
   int duration;
+  String createdAt;
 
   AudioRoomDetails({
     required this.title,
@@ -39,7 +43,7 @@ class AudioRoomDetails {
     required this.duration,
   });
 
-factory AudioRoomDetails.fromJson(Map<String, dynamic> json) {
+  factory AudioRoomDetails.fromJson(Map<String, dynamic> json) {
     try {
       final title = json['title'] as String?;
       late final int numberOfSeats;
@@ -71,7 +75,16 @@ factory AudioRoomDetails.fromJson(Map<String, dynamic> json) {
         if (json['hostDetails'] != null) {
           hostDetails = AudioMember.fromJson(json['hostDetails'] as Map<String, dynamic>);
         } else {
-          hostDetails = AudioMember(name: 'Host', avatar: '', uid: '', id: '', currentLevel: 0, equipedStoreItems: null, totalGiftSent: 0, isMuted: false);
+          hostDetails = AudioMember(
+            name: 'Host',
+            avatar: '',
+            uid: '',
+            id: '',
+            currentLevel: 0,
+            equipedStoreItems: null,
+            totalGiftSent: 0,
+            isMuted: false,
+          );
         }
       } catch (e) {
         throw ArgumentError('Error parsing hostDetails: $e');
@@ -124,7 +137,9 @@ factory AudioRoomDetails.fromJson(Map<String, dynamic> json) {
       late final List<AudioMember> membersDetails;
       try {
         if (json['membersDetails'] != null) {
-          membersDetails = List<AudioMember>.from(json['membersDetails'].map((dynamic e) => AudioMember.fromJson(e as Map<String, dynamic>)));
+          membersDetails = List<AudioMember>.from(
+            json['membersDetails'].map((dynamic e) => AudioMember.fromJson(e as Map<String, dynamic>)),
+          );
         } else {
           membersDetails = [];
         }

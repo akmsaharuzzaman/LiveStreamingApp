@@ -1,5 +1,8 @@
 import 'dart:ui';
+import 'package:dlstarlive/core/auth/auth_bloc.dart';
+import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,14 +13,12 @@ import '../widgets/touchable_opacity_widget.dart';
 
 class ListAudioRooms extends StatelessWidget {
   final List<AudioRoomDetails> availableAudioRooms;
-  final AudioSocketService socketService;
-  const ListAudioRooms({super.key, required this.availableAudioRooms, required this.socketService});
+  final AudioSocketService socketService = AudioSocketService();
+  ListAudioRooms({super.key, required this.availableAudioRooms});
 
   @override
   Widget build(BuildContext context) {
-    debugPrint("ListAudioRooms building with ${availableAudioRooms.length} rooms");
     if (availableAudioRooms.isEmpty) {
-      debugPrint("No audio rooms available - showing empty state");
       return Expanded(
         child: Center(
           child: Column(
@@ -27,11 +28,7 @@ class ListAudioRooms extends StatelessWidget {
               SizedBox(height: 20.h),
               Text(
                 'No Audio Rooms Available',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w500, color: Colors.grey.shade600),
               ),
               SizedBox(height: 8.h),
               Text(
@@ -51,12 +48,10 @@ class ListAudioRooms extends StatelessWidget {
       );
     }
 
-    debugPrint("Rendering audio rooms grid with ${availableAudioRooms.length} rooms");
+    debugPrint(" #### ListAudioRooms: building with ${availableAudioRooms.length} rooms  ####");
     return Expanded(
       child: GridView.builder(
-        padding: EdgeInsets.symmetric(
-          horizontal: 16.sp,
-        ).add(EdgeInsets.only(bottom: 80.sp)),
+        padding: EdgeInsets.symmetric(horizontal: 16.sp).add(EdgeInsets.only(bottom: 80.sp)),
         physics: const BouncingScrollPhysics(),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
@@ -69,42 +64,66 @@ class ListAudioRooms extends StatelessWidget {
           return AudioRoomCard(
             audioRoomModel: availableAudioRooms[index],
             onTap: () async {
-              // Show loading indicator
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Loading room details...')),
-              );
-
-              try {
-                // Fetch fresh room details
-                final roomDetails = await socketService.getRoomDetails(availableAudioRooms[index].roomId);
-
-                if (roomDetails != null) {
-                  // Navigate to the audio room screen with updated room data
-                  context.pushNamed(
-                    'audioLive', // Using audioLive route for joining
-                    queryParameters: {
-                      'roomId': roomDetails.roomId,
-                      'hostName': roomDetails.hostDetails.name ?? 'Unknown Host',
-                      'hostUserId': roomDetails.hostDetails.id ?? 'Unknown User',
-                      'hostAvatar': roomDetails.hostDetails.avatar ?? 'Unknown Avatar',
-                    },
-                    extra: {
-                      'existingViewers': roomDetails.membersDetails,
-                      'hostCoins': roomDetails.hostGifts,
-                      'roomData': roomDetails, // Pass fresh room data
-                    },
-                  );
-                } else {
-                  // Fallback to original data if fetch fails
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Failed to load room details')),
-                  );
+              final authState = context.read<AuthBloc>().state;
+              if (authState is AuthUnauthenticated) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User is not authenticated')));
+                return;
+              }
+              if (authState is AuthAuthenticated) {
+                if (authState.user.id.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User ID is empty')));
+                  return;
                 }
-              } catch (e) {
-                // Fallback to original navigation on error
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: $e, using cached data')),
+                final userId = authState.user.id;
+                debugPrint(
+                  "🚀 Navigating to audio room with userId: $userId as Viewer with roomId: ${availableAudioRooms[index].roomId}",
                 );
+
+                // Show loading indicator
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Loading room details...')));
+
+                // context.push(
+                //   AppRoutes.audioLive,
+                //   extra: {
+                //     'isHost': false,
+                //     // Pass fresh room data
+                //     'roomId': availableAudioRooms[index].roomId,
+                //     'numberOfSeats': availableAudioRooms[index].numberOfSeats,
+                //     'title': availableAudioRooms[index].title,
+                //     'roomDetails': availableAudioRooms[index],
+                //     // userId
+                //     'userId': userId,
+                //   },
+                // );
+
+                try {
+                  // Fetch fresh room details
+                  AudioRoomDetails? roomDetails = await socketService.getRoomDetails(availableAudioRooms[index].roomId);
+                  debugPrint("Room details for room ${availableAudioRooms[index].roomId}: $roomDetails");
+
+                  if (roomDetails == null || roomDetails.roomId.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Room details not found')));
+                    return;
+                  }
+
+                  // Navigate to the audio room screen with updated room data
+                  context.push(
+                    AppRoutes.audioLive,
+                    extra: {
+                      'isHost': false,
+                      // Pass fresh room data
+                      'roomId': roomDetails.roomId,
+                      'numberOfSeats': roomDetails.numberOfSeats,
+                      'title': roomDetails.title,
+                      'roomDetails': roomDetails,
+                      // userId
+                      'userId': userId,
+                    },
+                  );
+                } catch (e) {
+                  // Fallback to original navigation on error
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e, using cached data')));
+                }
               }
             },
           );
@@ -117,11 +136,7 @@ class ListAudioRooms extends StatelessWidget {
 class AudioRoomCard extends StatelessWidget {
   final AudioRoomDetails audioRoomModel;
   final Function() onTap;
-  const AudioRoomCard({
-    super.key,
-    required this.audioRoomModel,
-    required this.onTap,
-  });
+  const AudioRoomCard({super.key, required this.audioRoomModel, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -144,10 +159,7 @@ class AudioRoomCard extends StatelessWidget {
                 padding: EdgeInsets.all(8.sp),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.89),
-                    ],
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.89)],
                     end: Alignment.bottomCenter,
                     begin: Alignment.topCenter,
                   ),
@@ -166,29 +178,16 @@ class AudioRoomCard extends StatelessWidget {
                           child: BackdropFilter(
                             filter: ImageFilter.blur(sigmaX: 5, sigmaY: 10),
                             child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 6.sp,
-                                vertical: 2.sp,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.45),
-                              ),
+                              padding: EdgeInsets.symmetric(horizontal: 6.sp, vertical: 2.sp),
+                              decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.45)),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(
-                                    Icons.mic,
-                                    size: 17.sp,
-                                    color: Colors.white,
-                                  ),
+                                  Icon(Icons.mic, size: 17.sp, color: Colors.white),
                                   SizedBox(width: 5.sp),
                                   Text(
                                     '${audioRoomModel.members.length}',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 9.sp,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                    style: TextStyle(color: Colors.white, fontSize: 9.sp, fontWeight: FontWeight.w500),
                                   ),
                                 ],
                               ),
@@ -196,27 +195,20 @@ class AudioRoomCard extends StatelessWidget {
                           ),
                         ),
                         Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8.sp,
-                            vertical: 2.sp,
-                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 8.sp, vertical: 2.sp),
                           decoration: BoxDecoration(
                             color: Colors.blueAccent, // Blue for audio rooms
                             borderRadius: BorderRadius.circular(9.sp),
                           ),
                           child: Text(
                             'Audio',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 9.sp,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: TextStyle(color: Colors.white, fontSize: 9.sp, fontWeight: FontWeight.w500),
                           ),
                         ),
                       ],
                     ),
                     Text(
-                      '${audioRoomModel.hostDetails.name} is in audio room',
+                      '${audioRoomModel.hostDetails.name} is live now',
                       style: TextStyle(color: Colors.white, fontSize: 11.sp),
                     ),
                   ],
@@ -242,20 +234,12 @@ class AudioRoomCard extends StatelessWidget {
                         Text(
                           audioRoomModel.hostDetails.name ?? 'Unknown Host',
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: TextStyle(color: Colors.black, fontSize: 11.sp, fontWeight: FontWeight.w700),
                         ),
                         Text(
                           'ID: ${audioRoomModel.hostDetails.uid?.substring(0, 6) ?? 'Unknown ID'}',
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 9.sp,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: TextStyle(color: Colors.black, fontSize: 9.sp, fontWeight: FontWeight.w500),
                         ),
                       ],
                     ),
@@ -265,59 +249,54 @@ class AudioRoomCard extends StatelessWidget {
                     position: PopupMenuPosition.under,
                     icon: Container(
                       color: Colors.transparent,
-                      child: Icon(
-                        Icons.more_horiz,
-                        size: 20.sp,
-                        color: Colors.black,
-                      ),
+                      child: Icon(Icons.more_horiz, size: 20.sp, color: Colors.black),
                     ),
                     onSelected: (String result) {
                       // Handle your menu selection here
                     },
-                    itemBuilder: (BuildContext context) =>
-                        <PopupMenuEntry<String>>[
-                          PopupMenuItem<String>(
-                            value: 'Option 3',
-                            child: GestureDetector(
-                              onTap: () {},
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Follow",
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 14.sp,
-                                      fontFamily: 'Aeonik',
-                                      fontWeight: FontWeight.w500,
-                                      height: 0,
-                                    ),
-                                  ),
-                                ],
+                    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                      PopupMenuItem<String>(
+                        value: 'Option 3',
+                        child: GestureDetector(
+                          onTap: () {},
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Follow",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 14.sp,
+                                  fontFamily: 'Aeonik',
+                                  fontWeight: FontWeight.w500,
+                                  height: 0,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      PopupMenuItem<String>(
+                        value: 'Option 2',
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Report',
+                              style: TextStyle(
+                                color: Color(0xFFDC3030),
+                                fontSize: 14.sp,
+                                fontFamily: 'Aeonik',
+                                fontWeight: FontWeight.w500,
+                                height: 0,
                               ),
                             ),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'Option 2',
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Report',
-                                  style: TextStyle(
-                                    color: Color(0xFFDC3030),
-                                    fontSize: 14.sp,
-                                    fontFamily: 'Aeonik',
-                                    fontWeight: FontWeight.w500,
-                                    height: 0,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
