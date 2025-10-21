@@ -77,6 +77,22 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
 
     // Error handling
     on<HandleSocketErrorEvent>(_onHandleSocketError);
+
+    // Socket stream events
+    on<UpdateConnectionStatusEvent>(_onUpdateConnectionStatus);
+    on<UpdateRoomDataEvent>(_onUpdateRoomData);
+    on<ClearRoomIdEvent>(_onClearRoomId);
+    on<NewMessageReceivedEvent>(_onNewMessageReceived);
+    on<UserBannedEvent>(_onUserBanned);
+    on<UserMutedEvent>(_onUserMuted);
+    on<RoomClosedEvent>(_onRoomClosed);
+
+    // Helper method events
+    on<UpdateListenersEvent>(_onUpdateListeners);
+    on<SeatJoinedEvent>(_onSeatJoined);
+    on<SeatLeftEvent>(_onSeatLeft);
+    on<UpdateBannedUsersEvent>(_onUpdateBannedUsers);
+    on<UpdateStreamTimeEvent>(_onUpdateStreamTime);
   }
 
   void _setupSocketSubscriptions() {
@@ -86,16 +102,14 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     // Connection status
     _connectionSubscription = _repository.connectionStatusStream.listen((isConnected) {
       if (state is AudioRoomLoaded) {
-        final currentState = state as AudioRoomLoaded;
-        emit(currentState.copyWith(isConnected: isConnected));
+        add(UpdateConnectionStatusEvent(isConnected: isConnected));
       }
     });
 
     // Room details updates
     _roomDetailsSubscription = _repository.audioRoomDetailsStream.listen((roomData) {
-      if (state is AudioRoomLoaded) {
-        final currentState = state as AudioRoomLoaded;
-        emit(currentState.copyWith(roomData: roomData));
+      if (state is AudioRoomLoaded && roomData != null) {
+        add(UpdateRoomDataEvent(roomData: roomData));
       }
     });
 
@@ -103,7 +117,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     _createRoomSubscription = _repository.createRoomStream.listen(
       (roomData) {
         // Validate roomId before emitting state
-        if (roomData.roomId == null || roomData.roomId.isEmpty) {
+        if (roomData.roomId.isEmpty) {
           debugPrint("⚠️ Socket: Received empty roomId in room creation response, ignoring update");
           return; // Don't emit state with empty roomId
         }
@@ -119,18 +133,8 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
           effectiveRoomId = roomData.roomId.isNotEmpty ? roomData.roomId : currentState.currentRoomId ?? '';
         }
 
-        emit(
-          AudioRoomLoaded(
-            roomData: roomData,
-            currentRoomId: effectiveRoomId,
-            isHost: true,
-            isConnected: true,
-            streamStartTime: DateTime.now(),
-            listeners: roomData.membersDetails,
-            chatMessages: roomData.messages,
-          ),
-        );
-        debugPrint("✅ Socket: Emitted AudioRoomLoaded for created room with roomId: '${effectiveRoomId}'");
+        add(InitializeWithRoomDataEvent(roomData: roomData, isHost: true));
+        debugPrint("✅ Socket: Emitted AudioRoomLoaded for created room with roomId: '$effectiveRoomId'");
       },
       onError: (error) {
         debugPrint("❌ Socket: Room creation failed - $error");
@@ -140,7 +144,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     // Room joining
     _joinRoomSubscription = _repository.joinRoomStream.listen((roomData) {
       // Validate roomId before emitting state
-      if (roomData.roomId == null || roomData.roomId.isEmpty) {
+      if (roomData.roomId.isEmpty) {
         debugPrint("⚠️ Socket: Received empty roomId in join room response, ignoring update");
         return; // Don't emit state with empty roomId
       }
@@ -154,24 +158,14 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
         effectiveRoomId = roomData.roomId.isNotEmpty ? roomData.roomId : currentState.currentRoomId ?? '';
       }
 
-      emit(
-        AudioRoomLoaded(
-          roomData: roomData,
-          currentRoomId: effectiveRoomId,
-          isHost: false,
-          isConnected: true,
-          listeners: roomData.membersDetails,
-          chatMessages: roomData.messages,
-        ),
-      );
-      debugPrint("✅ Socket: Emitted AudioRoomLoaded for joined room with roomId: '${effectiveRoomId}'");
+      add(InitializeWithRoomDataEvent(roomData: roomData, isHost: false));
+      debugPrint("✅ Socket: Emitted AudioRoomLoaded for joined room with roomId: '$effectiveRoomId'");
     });
 
     // Room leaving
     _leaveRoomSubscription = _repository.leaveRoomStream.listen((roomData) {
       if (state is AudioRoomLoaded) {
-        final currentState = state as AudioRoomLoaded;
-        emit(currentState.copyWith(currentRoomId: null));
+        add(const ClearRoomIdEvent());
       }
     });
 
@@ -192,31 +186,21 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
 
     // Chat messages
     _sendMessageSubscription = _repository.sendMessageStream.listen((message) {
-      emit(MessageReceived(message: message));
-      if (state is AudioRoomLoaded) {
-        final currentState = state as AudioRoomLoaded;
-        final updatedMessages = List<AudioChatModel>.from(currentState.chatMessages)..add(message);
-        // Keep only last 50 messages
-        if (updatedMessages.length > 50) {
-          updatedMessages.removeAt(0);
-        }
-        emit(currentState.copyWith(chatMessages: updatedMessages));
-      }
+      add(NewMessageReceivedEvent(message: message));
     });
 
     // User management
     _banUserSubscription = _repository.banUserStream.listen((data) {
-      emit(UserBanned(targetId: data.targetId));
-      _handleUserBanned(data.targetId);
+      add(UserBannedEvent(targetId: data.targetId));
     });
 
     _muteUserSubscription = _repository.muteUnmuteUserStream.listen((data) {
-      emit(UserMuted(targetId: data.targetId));
+      add(UserMutedEvent(targetId: data.targetId));
     });
 
     // Room closed
     _closeRoomSubscription = _repository.closeRoomStream.listen((roomIds) {
-      emit(const AudioRoomClosed(reason: 'Room has been closed'));
+      add(const RoomClosedEvent(reason: 'Room has been closed'));
     });
 
     // Errors
@@ -230,13 +214,12 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
 
       // Special handling for "Room Already Exists" error
       if (error['message'] == 'Room Already Exists' && state is AudioRoomLoaded) {
-        final currentState = state as AudioRoomLoaded;
         debugPrint("⚠️ Socket: Room already exists, will continue with current state");
         // Don't emit error state, we're already in a valid state
         return;
       }
 
-      emit(AudioRoomError(message: error['message'] ?? 'Unknown socket error', errorCode: error['status']));
+      add(HandleSocketErrorEvent(error: error));
     });
   }
 
@@ -486,14 +469,94 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     emit(AudioRoomError(message: event.error['message'] ?? 'Unknown socket error', errorCode: event.error['status']));
   }
 
+  // Socket stream event handlers
+  void _onUpdateConnectionStatus(UpdateConnectionStatusEvent event, Emitter<AudioRoomState> emit) {
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      emit(currentState.copyWith(isConnected: event.isConnected));
+    }
+  }
+
+  void _onUpdateRoomData(UpdateRoomDataEvent event, Emitter<AudioRoomState> emit) {
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      emit(currentState.copyWith(roomData: event.roomData));
+    }
+  }
+
+  void _onClearRoomId(ClearRoomIdEvent event, Emitter<AudioRoomState> emit) {
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      emit(currentState.copyWith(currentRoomId: null));
+    }
+  }
+
+  void _onNewMessageReceived(NewMessageReceivedEvent event, Emitter<AudioRoomState> emit) {
+    emit(MessageReceived(message: event.message));
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      final updatedMessages = List<AudioChatModel>.from(currentState.chatMessages)..add(event.message);
+      // Keep only last 20 messages
+      if (updatedMessages.length > 20) {
+        updatedMessages.removeAt(0);
+      }
+      emit(currentState.copyWith(chatMessages: updatedMessages));
+    }
+  }
+
+  void _onUserBanned(UserBannedEvent event, Emitter<AudioRoomState> emit) {
+    emit(UserBanned(targetId: event.targetId));
+    _handleUserBanned(event.targetId);
+  }
+
+  void _onUserMuted(UserMutedEvent event, Emitter<AudioRoomState> emit) {
+    emit(UserMuted(targetId: event.targetId));
+  }
+
+  void _onRoomClosed(RoomClosedEvent event, Emitter<AudioRoomState> emit) {
+    emit(AudioRoomClosed(reason: event.reason));
+  }
+
+  // Helper method event handlers
+  void _onUpdateListeners(UpdateListenersEvent event, Emitter<AudioRoomState> emit) {
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      final updatedListeners = List<AudioMember>.from(currentState.listeners)
+        ..removeWhere((user) => user.id == event.userId);
+      emit(currentState.copyWith(listeners: updatedListeners));
+    }
+  }
+
+  void _onSeatJoined(SeatJoinedEvent event, Emitter<AudioRoomState> emit) {
+    emit(SeatJoined(seatKey: event.seatKey, member: event.member));
+  }
+
+  void _onSeatLeft(SeatLeftEvent event, Emitter<AudioRoomState> emit) {
+    emit(SeatLeft(seatKey: event.seatKey));
+  }
+
+  void _onUpdateBannedUsers(UpdateBannedUsersEvent event, Emitter<AudioRoomState> emit) {
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      final updatedBannedUsers = List<String>.from(currentState.bannedUsers)..add(event.targetId);
+      final updatedListeners = List<AudioMember>.from(currentState.listeners)
+        ..removeWhere((user) => user.id == event.targetId);
+      emit(currentState.copyWith(bannedUsers: updatedBannedUsers, listeners: updatedListeners));
+    }
+  }
+
+  void _onUpdateStreamTime(UpdateStreamTimeEvent event, Emitter<AudioRoomState> emit) {
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      emit(currentState.copyWith(streamStartTime: event.startTime));
+    }
+  }
+
   // Helper methods
   void _handleUserLeft(dynamic data) {
     // Update listeners list
     if (state is AudioRoomLoaded && data is Map<String, dynamic>) {
-      final currentState = state as AudioRoomLoaded;
-      final updatedListeners = List<AudioMember>.from(currentState.listeners)
-        ..removeWhere((user) => user.id == data['id']);
-      emit(currentState.copyWith(listeners: updatedListeners));
+      add(UpdateListenersEvent(userId: data['id']));
     }
   }
 
@@ -502,8 +565,8 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     if (state is AudioRoomLoaded && data is Map<String, dynamic>) {
       final seatData = data['data'];
       if (seatData != null && seatData['seatKey'] != null) {
-        emit(
-          SeatJoined(
+        add(
+          SeatJoinedEvent(
             seatKey: seatData['seatKey'],
             member: seatData['member'] != null ? AudioMember.fromJson(seatData['member']) : null,
           ),
@@ -517,32 +580,27 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     if (data is Map<String, dynamic> && data['data'] != null) {
       final seatData = data['data'];
       if (seatData['seatKey'] != null) {
-        emit(SeatLeft(seatKey: seatData['seatKey']));
+        add(SeatLeftEvent(seatKey: seatData['seatKey']));
       }
     }
   }
 
   void _handleUserBanned(String targetId) {
     if (state is AudioRoomLoaded) {
-      final currentState = state as AudioRoomLoaded;
-      final updatedBannedUsers = List<String>.from(currentState.bannedUsers)..add(targetId);
-      final updatedListeners = List<AudioMember>.from(currentState.listeners)
-        ..removeWhere((user) => user.id == targetId);
-      emit(currentState.copyWith(bannedUsers: updatedBannedUsers, listeners: updatedListeners));
+      add(UpdateBannedUsersEvent(targetId: targetId));
     }
   }
 
-  void _startStreamTimer() {
-    if (state is AudioRoomLoaded) {
-      final currentState = state as AudioRoomLoaded;
-      final startTime = DateTime.now();
-      emit(currentState.copyWith(streamStartTime: startTime));
+  // void _startStreamTimer() {
+  //   if (state is AudioRoomLoaded) {
+  //     final startTime = DateTime.now();
+  //     add(UpdateStreamTimeEvent(startTime: startTime));
 
-      _streamTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        add(UpdateStreamDurationEvent());
-      });
-    }
-  }
+  //     _streamTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+  //       add(UpdateStreamDurationEvent());
+  //     });
+  //   }
+  // }
 
   void _stopStreamTimer() {
     _streamTimer?.cancel();

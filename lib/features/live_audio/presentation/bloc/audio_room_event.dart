@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../data/models/audio_room_details.dart';
+import '../../data/models/audio_member_model.dart';
 
 /// Base event class for AudioRoomBloc
 abstract class AudioRoomEvent extends Equatable {
@@ -214,4 +215,110 @@ class HandleSocketErrorEvent extends AudioRoomEvent {
 
   @override
   List<Object?> get props => [error];
+}
+
+/// Socket Stream Events
+class UpdateConnectionStatusEvent extends AudioRoomEvent {
+  final bool isConnected;
+
+  const UpdateConnectionStatusEvent({required this.isConnected});
+
+  @override
+  List<Object?> get props => [isConnected];
+}
+
+class UpdateRoomDataEvent extends AudioRoomEvent {
+  final AudioRoomDetails roomData;
+
+  const UpdateRoomDataEvent({required this.roomData});
+
+  @override
+  List<Object?> get props => [roomData];
+}
+
+class ClearRoomIdEvent extends AudioRoomEvent {
+  const ClearRoomIdEvent();
+}
+
+class NewMessageReceivedEvent extends AudioRoomEvent {
+  final dynamic message;
+
+  const NewMessageReceivedEvent({required this.message});
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class UserBannedEvent extends AudioRoomEvent {
+  final String targetId;
+
+  const UserBannedEvent({required this.targetId});
+
+  @override
+  List<Object?> get props => [targetId];
+}
+
+class UserMutedEvent extends AudioRoomEvent {
+  final String targetId;
+
+  const UserMutedEvent({required this.targetId});
+
+  @override
+  List<Object?> get props => [targetId];
+}
+
+class RoomClosedEvent extends AudioRoomEvent {
+  final String reason;
+
+  const RoomClosedEvent({required this.reason});
+
+  @override
+  List<Object?> get props => [reason];
+}
+
+/// Helper method events
+class UpdateListenersEvent extends AudioRoomEvent {
+  final String userId;
+
+  const UpdateListenersEvent({required this.userId});
+
+  @override
+  List<Object?> get props => [userId];
+}
+
+class SeatJoinedEvent extends AudioRoomEvent {
+  final String seatKey;
+  final AudioMember? member;
+
+  const SeatJoinedEvent({required this.seatKey, this.member});
+
+  @override
+  List<Object?> get props => [seatKey, member];
+}
+
+class SeatLeftEvent extends AudioRoomEvent {
+  final String seatKey;
+
+  const SeatLeftEvent({required this.seatKey});
+
+  @override
+  List<Object?> get props => [seatKey];
+}
+
+class UpdateBannedUsersEvent extends AudioRoomEvent {
+  final String targetId;
+
+  const UpdateBannedUsersEvent({required this.targetId});
+
+  @override
+  List<Object?> get props => [targetId];
+}
+
+class UpdateStreamTimeEvent extends AudioRoomEvent {
+  final DateTime startTime;
+
+  const UpdateStreamTimeEvent({required this.startTime});
+
+  @override
+  List<Object?> get props => [startTime];
 }
