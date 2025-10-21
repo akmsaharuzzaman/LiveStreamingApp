@@ -60,30 +60,36 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   late final RtcEngine _engine;
   // final ApiService _apiService = ApiService.instance;
   late final AudioRoomBloc _audioRoomBloc;
+  late final AuthBloc _authBloc;
   Timer? _reconnectTimer;
 
+  // UI Log
   void _uiLog(String message) {
     const cyan = '\x1B[36m';
     const reset = '\x1B[0m';
-
-    if (kDebugMode) {
-      debugPrint('\n$cyan[AUDIO_ROOM] : UI - $reset $message\n');
-    }
+    if (kDebugMode) debugPrint('\n$cyan[AUDIO_ROOM] : UI - $reset $message\n');
   }
 
   @override
   void initState() {
     super.initState();
     _audioRoomBloc = context.read<AudioRoomBloc>();
+    _authBloc = context.read<AuthBloc>();
 
     // Get user ID from auth state
-    final authState = context.read<AuthBloc>().state;
+    final authState = _authBloc.state;
     if (authState is AuthAuthenticated) {
       userId = authState.user.id;
       userName = authState.user.name;
       // Connect to socket first
       _connectToAudioSocket();
+    } else {
+      _uiLog("❌ User is not authenticated");
+      _showSnackBar('❌ User is not authenticated', Colors.red);
+      context.read<AuthBloc>().add(AuthLogoutEvent());
+      return;
     }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUidAndInitialize();
     });
@@ -93,70 +99,61 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   void didUpdateWidget(covariant AudioGoLiveScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.roomDetails != widget.roomDetails) {
-      _initializeFromRoomData();
+      _initializeBlocWithRoomData();
       setState(() {});
     }
   }
 
+  // void _refreshRoomData() {
+  //   final currentState = context.read<AudioRoomBloc>().state;
+  //   if (currentState is AudioRoomLoaded && currentState.currentRoomId != null) {
+  //     _uiLog("🔄 Refreshing room data for roomId: ${currentState.currentRoomId}");
+  //     context.read<AudioRoomBloc>().add(GetRoomDetailsEvent(roomId: currentState.currentRoomId!));
+  //   }
+  // }
+
   void _dispatchRoomEventsAfterConnection(BuildContext context) {
-    final uid = widget.roomId;
-    final isHost = widget.isHost;
     _uiLog(
-      "🎯 Dispatching room events after connection - isHost: $isHost, roomId: '${widget.roomId}', hasRoomData: ${widget.roomDetails != null}, uid: $uid",
+      "🎯 Dispatching room events after connection - isHost: ${widget.isHost}, roomId: '${widget.roomId}', hasRoomData: ${widget.roomDetails != null}, uid: $userId",
     );
 
-    if (isHost) {
+    if (widget.isHost) {
+      // Create room
       _uiLog("🏗️ Creating new room with title: ${widget.roomTitle}, seats: ${widget.numberOfSeats}");
-
-      // Verify userId is not null or empty
-      if (uid.isEmpty) {
-        _uiLog("❌ Cannot create room - userId is empty");
-        _showSnackBar('Cannot create room - user ID is missing', Colors.red);
-        return;
-      }
+      _uiLog("Host's ID: $userId");
+      _uiLog("Room ID: ${widget.roomId}");
 
       context.read<AudioRoomBloc>().add(
-        CreateRoomEvent(
-          roomId: uid, // User's ID becomes the room ID
-          roomTitle: widget.roomTitle,
-          numberOfSeats: widget.numberOfSeats,
-        ),
+        CreateRoomEvent(roomId: widget.roomId, roomTitle: widget.roomTitle, numberOfSeats: widget.numberOfSeats),
       );
-    } else if (widget.roomId.isNotEmpty) {
-      // If joining existing room and we have room data, initialize with it
-      if (widget.roomDetails != null) {
-        _uiLog(
-          "📦 Initializing with existing room data - Host: ${widget.roomDetails!.hostDetails.name}, Members: ${widget.roomDetails!.membersDetails.length}, RoomId: ${widget.roomDetails!.roomId}",
-        );
-        // Initialize Bloc with existing room data
-        final isHost = widget.roomDetails!.hostDetails.id == uid;
-        _uiLog("👑 User is host of existing room: $isHost");
-        context.read<AudioRoomBloc>().add(InitializeWithRoomDataEvent(roomData: widget.roomDetails!, isHost: isHost));
-      } else {
-        _uiLog("🔗 Joining room without initial data: ${widget.roomId}");
-        // Join room normally
-        context.read<AudioRoomBloc>().add(JoinRoomEvent(roomId: widget.roomId));
-      }
     } else {
-      _uiLog("❌ Invalid state - not creating room and no valid roomId provided");
+      // Join room
+      _uiLog("🔗 Joining room without initial data: ${widget.roomId}");
+      context.read<AudioRoomBloc>().add(JoinRoomEvent(roomId: widget.roomId));
     }
+    // After joining room, we have room data, initialize with it
+    _initializeBlocWithRoomData();
   }
 
   // Add room data initialization logic like the original
-  void _initializeFromRoomData() {
-    _uiLog("🎯 _initializeFromRoomData called - widget.roomData is null: ${widget.roomDetails == null}");
-    if (widget.roomDetails != null) {
+  void _initializeBlocWithRoomData() {
+    _uiLog("🎯 _initializeFromRoomData called - widget.roomData is null?: ${widget.roomDetails == null}");
+    if (widget.roomDetails != null && widget.roomId.isNotEmpty) {
       final roomData = widget.roomDetails!;
       _uiLog(
         "📦 Initializing with room data - Host: ${roomData.hostDetails.name}, Members: ${roomData.membersDetails.length}, RoomId: ${roomData.roomId}",
       );
 
       // Determine if current user is the host
-      if (widget.roomId.isNotEmpty && roomData.hostDetails.id == widget.roomId) {
+      final isHost = roomData.hostDetails.id == widget.roomId;
+      if (isHost) {
         _uiLog("👑 User is the host of this room");
       } else {
         _uiLog("👤 User is joining as viewer");
       }
+
+      // Initialize Bloc with existing room data
+      context.read<AudioRoomBloc>().add(InitializeWithRoomDataEvent(roomData: roomData, isHost: isHost));
 
       _uiLog("✅ Successfully initialized from existing room data");
     } else {
@@ -184,7 +181,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
       // Initialize from room data after userId is set (only for joining existing rooms)
       if (widget.roomDetails != null) {
-        _initializeFromRoomData();
+        _initializeBlocWithRoomData();
       }
 
       // Initialize Agora
@@ -318,6 +315,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     }
   }
 
+  /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  /// ################## Socket Events ##################
+  /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   void _emitMessageToAudioSocket(String message) {
     _uiLog("Emitting message to audio socket: $message");
     final currentState = context.read<AudioRoomBloc>().state;
@@ -347,28 +347,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     }
   }
 
-  void _showSnackBar(String message, Color color) {
-    // IMPORTANT: Check if widget is still mounted before showing SnackBar
-    if (!mounted) {
-      debugPrint("⚠️ Attempted to show SnackBar but widget is not mounted: $message");
-      return;
-    }
-
-    // Get a safe reference to the ScaffoldMessenger
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-    // Now safely show the SnackBar
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        scaffoldMessenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(content: Text(message), backgroundColor: color, duration: const Duration(seconds: 2)),
-          );
-      }
-    });
-  }
-
   void _handleHostDisconnection(String reason) {
     if (!mounted) return;
     _uiLog("🚨 $reason - Exiting audio room...");
@@ -379,26 +357,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         Navigator.of(context).pop();
       }
     });
-  }
-
-  // Reset Bloc state when user navigates away
-  void _resetBlocState() {
-    _uiLog("Resetting Bloc state for new room creation/joining");
-
-    // First disconnect socket using stored bloc reference
-    _audioRoomBloc.add(DisconnectFromSocket());
-
-    // Then after a short delay, reconnect socket with current user ID
-    // Store the timer so we can cancel it if needed
-    Timer? reconnectTimer = Timer(Duration(milliseconds: 500), () {
-      if (mounted && userId.isNotEmpty) {
-        _uiLog("Reconnecting socket after reset");
-        _audioRoomBloc.add(ConnectToSocket(userId: userId));
-      }
-    });
-
-    // Store the timer in a field so it can be cancelled in dispose if needed
-    _reconnectTimer = reconnectTimer;
   }
 
   void _toggleMute() {
@@ -470,6 +428,49 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         Navigator.of(context).pop();
       }
     }
+  }
+
+  // Reset Bloc state when user navigates away
+  void _resetBlocState() {
+    _uiLog("Resetting Bloc state for new room creation/joining");
+
+    // First disconnect socket using stored bloc reference
+    _audioRoomBloc.add(DisconnectFromSocket());
+
+    // Then after a short delay, reconnect socket with current user ID
+    // Store the timer so we can cancel it if needed
+    Timer? reconnectTimer = Timer(Duration(milliseconds: 500), () {
+      if (mounted && userId.isNotEmpty) {
+        _uiLog("Reconnecting socket after reset");
+        _audioRoomBloc.add(ConnectToSocket(userId: userId));
+      }
+    });
+
+    // Store the timer in a field so it can be cancelled in dispose if needed
+    _reconnectTimer = reconnectTimer;
+  }
+
+  // Show SnackBar
+  void _showSnackBar(String message, Color color) {
+    // IMPORTANT: Check if widget is still mounted before showing SnackBar
+    if (!mounted) {
+      debugPrint("⚠️ Attempted to show SnackBar but widget is not mounted: $message");
+      return;
+    }
+
+    // Get a safe reference to the ScaffoldMessenger
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    // Now safely show the SnackBar
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        scaffoldMessenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(content: Text(message), backgroundColor: color, duration: const Duration(seconds: 2)),
+          );
+      }
+    });
   }
 
   /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
