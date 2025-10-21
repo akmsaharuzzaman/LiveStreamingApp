@@ -114,7 +114,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       if (mounted) {
         setState(() {
           _availableRooms = rooms;
-          debugPrint("Available rooms: ${rooms.map((room) => room.roomId)} from Frontend");
+          // debugPrint("Available rooms: ${rooms.map((room) => room.roomId)} from Frontend");
         });
       }
     });
