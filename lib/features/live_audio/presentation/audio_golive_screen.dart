@@ -8,7 +8,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 
-import 'package:dlstarlive/core/network/api_service.dart';
 import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:dlstarlive/routing/app_router.dart';
 
@@ -18,9 +17,7 @@ import 'package:dlstarlive/features/live/presentation/component/game_bottomsheet
 import 'package:dlstarlive/features/live/presentation/component/menu_bottom_sheet.dart';
 
 import '../../../core/auth/auth_bloc.dart';
-import '../data/models/audio_member_model.dart';
 import '../data/models/audio_room_details.dart';
-// import '../../live/presentation/component/active_viwers.dart';
 import '../../live/presentation/component/end_stream_overlay.dart';
 import '../../live/presentation/component/host_info.dart';
 import '../../live/presentation/component/send_message_buttonsheet.dart';
@@ -31,46 +28,37 @@ import 'widgets/chat_widget.dart';
 import 'widgets/joined_member_page.dart';
 import 'widgets/seat_widget.dart';
 
-class AudioGoLiveScreenRefactored extends StatefulWidget {
-  final String? roomId;
-  final String? hostName;
-  final String? hostUserId;
-  final String? hostAvatar;
-  final List<AudioMember> existingViewers;
-  final int hostCoins;
-  final AudioRoomDetails? roomData; // Add room data to load initial state
-  final int numberOfSeats; // Number of seats in the audio room
-  final String roomTitle; // Title of the audio room
-  final bool isCreatingRoom; // New flag to distinguish between creating and joining
-  const AudioGoLiveScreenRefactored({
+class AudioGoLiveScreen extends StatefulWidget {
+  final bool isHost;
+
+  final String roomId;
+  final int numberOfSeats;
+  final String roomTitle;
+  final AudioRoomDetails? roomDetails;
+
+  const AudioGoLiveScreen({
     super.key,
-    this.roomId,
-    this.hostName,
-    this.hostUserId,
-    this.hostAvatar,
-    this.existingViewers = const [],
-    this.hostCoins = 0,
-    this.roomData, // Optional room data for existing rooms
-    this.numberOfSeats = 6, // Default to 6 seats
-    this.roomTitle = 'Audio Room', // Default title
-    this.isCreatingRoom = false, // Default to joining (safer)
+    required this.isHost,
+    required this.roomId,
+    required this.numberOfSeats,
+    required this.roomTitle,
+    this.roomDetails,
   });
 
   @override
-  State<AudioGoLiveScreenRefactored> createState() => _AudioGoLiveScreenRefactoredState();
+  State<AudioGoLiveScreen> createState() => _AudioGoLiveScreenState();
 }
 
-class _AudioGoLiveScreenRefactoredState extends State<AudioGoLiveScreenRefactored> {
+class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   // User data
+  String userId = "";
   String userName = "You";
-  String? userId;
-  double? userCoins = 0;
-  String userImageUrl = "https://thispersondoesnotexist.com/";
-  String userProfileFrame = "assets/images/general/profile_frame.png";
+  String demoUserImageUrl = "https://thispersondoesnotexist.com/";
+  String demoUserProfileFrame = "assets/images/general/profile_frame.png";
 
   // Agora SDK variables
   late final RtcEngine _engine;
-  final ApiService _apiService = ApiService.instance;
+  // final ApiService _apiService = ApiService.instance;
   late final AudioRoomBloc _audioRoomBloc;
   Timer? _reconnectTimer;
 
@@ -83,17 +71,41 @@ class _AudioGoLiveScreenRefactoredState extends State<AudioGoLiveScreenRefactore
     }
   }
 
-  void _dispatchRoomEventsAfterConnection(BuildContext context) {
-    final uid = userId;
-    if (uid == null) return;
+  @override
+  void initState() {
+    super.initState();
+    _audioRoomBloc = context.read<AudioRoomBloc>();
 
-    // Use the explicit flag instead of inferring from roomId
-    final isCreatingRoom = widget.isCreatingRoom;
+    // Get user ID from auth state
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      userId = authState.user.id;
+      userName = authState.user.name;
+      // Connect to socket first
+      _connectToAudioSocket();
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadUidAndInitialize();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant AudioGoLiveScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.roomDetails != widget.roomDetails) {
+      _initializeFromRoomData();
+      setState(() {});
+    }
+  }
+
+  void _dispatchRoomEventsAfterConnection(BuildContext context) {
+    final uid = widget.roomId;
+    final isHost = widget.isHost;
     _uiLog(
-      "🎯 Dispatching room events after connection - isCreatingRoom: $isCreatingRoom, roomId: '${widget.roomId}', hasRoomData: ${widget.roomData != null}, uid: $uid",
+      "🎯 Dispatching room events after connection - isHost: $isHost, roomId: '${widget.roomId}', hasRoomData: ${widget.roomDetails != null}, uid: $uid",
     );
 
-    if (isCreatingRoom) {
+    if (isHost) {
       _uiLog("🏗️ Creating new room with title: ${widget.roomTitle}, seats: ${widget.numberOfSeats}");
 
       // Verify userId is not null or empty
@@ -110,20 +122,20 @@ class _AudioGoLiveScreenRefactoredState extends State<AudioGoLiveScreenRefactore
           numberOfSeats: widget.numberOfSeats,
         ),
       );
-    } else if (widget.roomId != null && widget.roomId!.isNotEmpty) {
+    } else if (widget.roomId.isNotEmpty) {
       // If joining existing room and we have room data, initialize with it
-      if (widget.roomData != null) {
+      if (widget.roomDetails != null) {
         _uiLog(
-          "📦 Initializing with existing room data - Host: ${widget.roomData!.hostDetails.name}, Members: ${widget.roomData!.membersDetails.length}, RoomId: ${widget.roomData!.roomId}",
+          "📦 Initializing with existing room data - Host: ${widget.roomDetails!.hostDetails.name}, Members: ${widget.roomDetails!.membersDetails.length}, RoomId: ${widget.roomDetails!.roomId}",
         );
         // Initialize Bloc with existing room data
-        final isHost = widget.roomData!.hostDetails.id == uid;
+        final isHost = widget.roomDetails!.hostDetails.id == uid;
         _uiLog("👑 User is host of existing room: $isHost");
-        context.read<AudioRoomBloc>().add(InitializeWithRoomDataEvent(roomData: widget.roomData!, isHost: isHost));
+        context.read<AudioRoomBloc>().add(InitializeWithRoomDataEvent(roomData: widget.roomDetails!, isHost: isHost));
       } else {
         _uiLog("🔗 Joining room without initial data: ${widget.roomId}");
         // Join room normally
-        context.read<AudioRoomBloc>().add(JoinRoomEvent(roomId: widget.roomId!));
+        context.read<AudioRoomBloc>().add(JoinRoomEvent(roomId: widget.roomId));
       }
     } else {
       _uiLog("❌ Invalid state - not creating room and no valid roomId provided");
@@ -132,15 +144,15 @@ class _AudioGoLiveScreenRefactoredState extends State<AudioGoLiveScreenRefactore
 
   // Add room data initialization logic like the original
   void _initializeFromRoomData() {
-    _uiLog("🎯 _initializeFromRoomData called - widget.roomData is null: ${widget.roomData == null}");
-    if (widget.roomData != null) {
-      final roomData = widget.roomData!;
+    _uiLog("🎯 _initializeFromRoomData called - widget.roomData is null: ${widget.roomDetails == null}");
+    if (widget.roomDetails != null) {
+      final roomData = widget.roomDetails!;
       _uiLog(
         "📦 Initializing with room data - Host: ${roomData.hostDetails.name}, Members: ${roomData.membersDetails.length}, RoomId: ${roomData.roomId}",
       );
 
       // Determine if current user is the host
-      if (userId != null && roomData.hostDetails.id == userId) {
+      if (widget.roomId.isNotEmpty && roomData.hostDetails.id == widget.roomId) {
         _uiLog("👑 User is the host of this room");
       } else {
         _uiLog("👤 User is joining as viewer");
@@ -152,40 +164,12 @@ class _AudioGoLiveScreenRefactoredState extends State<AudioGoLiveScreenRefactore
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _audioRoomBloc = context.read<AudioRoomBloc>();
-
-    // Get user ID from auth state
-    final authState = context.read<AuthBloc>().state;
-    if (authState is AuthAuthenticated) {
-      userId = authState.user.id;
-      userName = authState.user.name;
-
-      // Connect to socket first
-      _connectToSocket();
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadUidAndInitialize();
-    });
-  }
-
-  void _connectToSocket() {
-    if (userId != null && userId!.isNotEmpty) {
-      _uiLog("🔌 Connecting to audio socket with userId: $userId");
-      context.read<AudioRoomBloc>().add(ConnectToSocket(userId: userId!));
+  void _connectToAudioSocket() {
+    if (widget.roomId.isNotEmpty) {
+      _uiLog("🔌 Connecting to audio socket with userId: ${widget.roomId}");
+      context.read<AudioRoomBloc>().add(ConnectToSocket(userId: widget.roomId));
     } else {
       _uiLog("❌ Cannot connect to socket - userId is null or empty");
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant AudioGoLiveScreenRefactored oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.roomData != widget.roomData) {
-      _initializeFromRoomData();
-      setState(() {});
     }
   }
 
@@ -199,21 +183,21 @@ class _AudioGoLiveScreenRefactoredState extends State<AudioGoLiveScreenRefactore
       });
 
       // Initialize from room data after userId is set (only for joining existing rooms)
-      if (widget.roomData != null) {
+      if (widget.roomDetails != null) {
         _initializeFromRoomData();
       }
 
       // Initialize Agora
-      await initAgora();
+      await initAudioAgora();
 
       // Connect to socket via Bloc
       if (!mounted) return;
-      context.read<AudioRoomBloc>().add(ConnectToSocket(userId: uid));
+      _connectToAudioSocket();
     }
   }
 
   // Initialize Agora for audio room
-  Future<void> initAgora() async {
+  Future<void> initAudioAgora() async {
     try {
       // Check permissions
       bool hasPermissions = await PermissionHelper.hasAudioStreamPermissions();
@@ -275,25 +259,33 @@ class _AudioGoLiveScreenRefactoredState extends State<AudioGoLiveScreenRefactore
       // Join channel if not host (host joins after room creation)
       final currentState = context.read<AudioRoomBloc>().state;
       if (currentState is AudioRoomLoaded && !currentState.isHost && currentState.currentRoomId != null) {
-        await _joinChannelWithDynamicToken(currentState.currentRoomId!);
+        await _joinAudioChannelWithDynamicToken(currentState.currentRoomId!);
       }
     } catch (e) {
       _uiLog('❌ Error initializing Agora: $e');
-      _showSnackBar('❌ Failed to initialize audio', Colors.red);
+      _showSnackBar('❌ Failed to initialize Agora', Colors.red);
     }
   }
 
   // Generate token and join channel
-  Future<void> _joinChannelWithDynamicToken(String roomId) async {
+  Future<void> _joinAudioChannelWithDynamicToken(String roomId) async {
     // Validate roomId before attempting to join
     if (roomId.isEmpty) {
       _uiLog("❌ Cannot join Agora channel with empty roomId");
       return;
     }
+
+    // Check if socket is connected before proceeding
+    final currentState = context.read<AudioRoomBloc>().state;
+    if (currentState is! AudioRoomLoaded || !currentState.isConnected) {
+      _uiLog("❌ Cannot join Agora channel - socket not connected or room not loaded");
+      _showSnackBar('❌ Cannot join Agora channel - connection issue', Colors.red);
+      return;
+    }
+
     _uiLog("🎯 Joining Agora channel with roomId: '$roomId'");
     try {
-      final currentState = context.read<AudioRoomBloc>().state;
-      final isHost = currentState is AudioRoomLoaded ? currentState.isHost : false;
+      final isHost = currentState.isHost;
 
       final result = await AgoraTokenService.getRtcToken(
         channelName: roomId,
@@ -318,14 +310,16 @@ class _AudioGoLiveScreenRefactoredState extends State<AudioGoLiveScreenRefactore
         _uiLog("✅ Successfully joined Agora channel: $roomId");
       } else {
         _uiLog("❌ Failed to get Agora token for roomId: $roomId");
+        _showSnackBar('❌ Failed to get Agora token', Colors.red);
       }
     } catch (e) {
-      _uiLog('Error joining channel: $e');
+      _uiLog('❌ Error joining Agora channel: $e');
+      _showSnackBar('❌ Error joining Agora channel', Colors.red);
     }
   }
 
-  void _emitMessageToSocket(String message) {
-    _uiLog("Emitting message to socket: $message");
+  void _emitMessageToAudioSocket(String message) {
+    _uiLog("Emitting message to audio socket: $message");
     final currentState = context.read<AudioRoomBloc>().state;
     if (message.isNotEmpty && currentState is AudioRoomLoaded && currentState.currentRoomId != null) {
       context.read<AudioRoomBloc>().add(SendMessageEvent(roomId: currentState.currentRoomId!, message: message));
@@ -337,18 +331,18 @@ class _AudioGoLiveScreenRefactoredState extends State<AudioGoLiveScreenRefactore
     if (currentState is AudioRoomLoaded &&
         currentState.currentRoomId != null &&
         !currentState.isHost &&
-        userId != null) {
+        userId.isNotEmpty) {
       context.read<AudioRoomBloc>().add(
-        JoinSeatEvent(roomId: currentState.currentRoomId!, seatKey: seatId, targetId: userId!),
+        JoinSeatEvent(roomId: currentState.currentRoomId!, seatKey: seatId, targetId: userId),
       );
     }
   }
 
   void _leaveSeat(String seatId) {
     final currentState = context.read<AudioRoomBloc>().state;
-    if (currentState is AudioRoomLoaded && currentState.currentRoomId != null && userId != null) {
+    if (currentState is AudioRoomLoaded && currentState.currentRoomId != null && userId.isNotEmpty) {
       context.read<AudioRoomBloc>().add(
-        LeaveSeatEvent(roomId: currentState.currentRoomId!, seatKey: seatId, targetId: userId!),
+        LeaveSeatEvent(roomId: currentState.currentRoomId!, seatKey: seatId, targetId: userId),
       );
     }
   }
@@ -397,9 +391,9 @@ class _AudioGoLiveScreenRefactoredState extends State<AudioGoLiveScreenRefactore
     // Then after a short delay, reconnect socket with current user ID
     // Store the timer so we can cancel it if needed
     Timer? reconnectTimer = Timer(Duration(milliseconds: 500), () {
-      if (mounted && userId != null) {
+      if (mounted && userId.isNotEmpty) {
         _uiLog("Reconnecting socket after reset");
-        _audioRoomBloc.add(ConnectToSocket(userId: userId!));
+        _audioRoomBloc.add(ConnectToSocket(userId: userId));
       }
     });
 
@@ -431,7 +425,7 @@ class _AudioGoLiveScreenRefactoredState extends State<AudioGoLiveScreenRefactore
 
       if (isHost) {
         // If host, delete the room
-        if (currentState is AudioRoomLoaded && currentState.currentRoomId != null) {
+        if (currentState.currentRoomId != null) {
           context.read<AudioRoomBloc>().add(DeleteRoomEvent(roomId: currentState.currentRoomId!));
         }
       } else {
@@ -447,7 +441,7 @@ class _AudioGoLiveScreenRefactoredState extends State<AudioGoLiveScreenRefactore
       if (isHost) {
         if (mounted) {
           final authState = context.read<AuthBloc>().state;
-          if (authState is AuthAuthenticated && currentState is AudioRoomLoaded) {
+          if (authState is AuthAuthenticated && currentState.currentRoomId != null) {
             context.go(
               AppRoutes.liveSummary,
               extra: {
@@ -500,7 +494,7 @@ class _AudioGoLiveScreenRefactoredState extends State<AudioGoLiveScreenRefactore
           // Join Agora channel when room is loaded and we have a room ID
           if (state.isHost) {
             // Host joins immediately
-            _joinChannelWithDynamicToken(state.currentRoomId!);
+            _joinAudioChannelWithDynamicToken(state.currentRoomId!);
           }
         } else if (state is AudioRoomConnected) {
           // Socket connected, now we can dispatch room events
@@ -633,20 +627,18 @@ class _AudioGoLiveScreenRefactoredState extends State<AudioGoLiveScreenRefactore
                   )
                 else
                   HostInfo(
-                    imageUrl: widget.hostAvatar ?? "https://thispersondoesnotexist.com/",
-                    name: widget.hostName ?? "Host",
-                    id: widget.hostUserId != null && widget.hostUserId!.length >= 4
-                        ? widget.hostUserId!.substring(0, 4)
-                        : widget.hostUserId ?? "Host",
-                    hostUserId: widget.hostUserId ?? "",
+                    imageUrl: widget.roomDetails?.hostDetails.avatar ?? "https://thispersondoesnotexist.com/",
+                    name: widget.roomDetails?.hostDetails.name ?? "Host",
+                    id: widget.roomDetails?.hostDetails.id ?? "",
+                    hostUserId: widget.roomDetails?.hostDetails.id ?? "",
                     currentUserId: authState.user.id,
                   ),
                 Spacer(),
                 JoindListenersPage(
                   activeUserList: roomState.listeners,
-                  hostUserId: roomState.isHost ? userId : widget.hostUserId,
-                  hostName: roomState.isHost ? authState.user.name : widget.hostName,
-                  hostAvatar: roomState.isHost ? authState.user.avatar : widget.hostAvatar,
+                  hostUserId: roomState.isHost ? userId : widget.roomDetails?.hostDetails.id,
+                  hostName: roomState.isHost ? authState.user.name : widget.roomDetails?.hostDetails.name,
+                  hostAvatar: roomState.isHost ? authState.user.avatar : widget.roomDetails?.hostDetails.avatar,
                 ),
                 // Leave button
                 (roomState.isHost)
@@ -802,7 +794,7 @@ class _AudioGoLiveScreenRefactoredState extends State<AudioGoLiveScreenRefactore
           context,
           onSendMessage: (message) {
             _uiLog("Send message pressed");
-            _emitMessageToSocket(message);
+            _emitMessageToAudioSocket(message);
           },
         );
       },
