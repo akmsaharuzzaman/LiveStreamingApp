@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../data/repositories/audio_room_repository.dart';
-import '../service/socket_service_audio.dart';
-import 'bloc/audio_room_bloc.dart';
+import '../../data/repositories/audio_room_repository.dart';
+import '../../service/socket_service_audio.dart';
+import 'audio_room_bloc.dart';
 
 class AudioRoomBlocProvider extends StatelessWidget {
   final Widget child;

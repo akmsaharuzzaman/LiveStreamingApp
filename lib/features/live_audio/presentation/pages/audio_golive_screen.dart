@@ -16,17 +16,17 @@ import 'package:dlstarlive/features/live/presentation/component/custom_live_butt
 import 'package:dlstarlive/features/live/presentation/component/game_bottomsheet.dart';
 import 'package:dlstarlive/features/live/presentation/component/menu_bottom_sheet.dart';
 
-import '../../../core/auth/auth_bloc.dart';
-import '../data/models/audio_room_details.dart';
-import '../../live/presentation/component/end_stream_overlay.dart';
-import '../../live/presentation/component/host_info.dart';
-import '../../live/presentation/component/send_message_buttonsheet.dart';
-import 'bloc/audio_room_bloc.dart';
-import 'bloc/audio_room_event.dart';
-import 'bloc/audio_room_state.dart';
-import 'widgets/chat_widget.dart';
-import 'widgets/joined_member_page.dart';
-import 'widgets/seat_widget.dart';
+import '../../../../core/auth/auth_bloc.dart';
+import '../../data/models/audio_room_details.dart';
+import '../../../live/presentation/component/end_stream_overlay.dart';
+import '../../../live/presentation/component/host_info.dart';
+import '../../../live/presentation/component/send_message_buttonsheet.dart';
+import '../bloc/audio_room_bloc.dart';
+import '../bloc/audio_room_event.dart';
+import '../bloc/audio_room_state.dart';
+import '../widgets/chat_widget.dart';
+import '../widgets/joined_member_page.dart';
+import '../widgets/seat_widget.dart';
 
 class AudioGoLiveScreen extends StatefulWidget {
   final bool isHost;
@@ -112,6 +112,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   //   }
   // }
 
+  /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  /// ################## Socket Connection and Room Initialization ##################
+  /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   void _dispatchRoomEventsAfterConnection(BuildContext context) {
     _uiLog(
       "🎯 Dispatching room events after connection - isHost: ${widget.isHost}, roomId: '${widget.roomId}', hasRoomData: ${widget.roomDetails != null}, uid: $userId",

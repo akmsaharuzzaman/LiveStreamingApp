@@ -4,7 +4,7 @@ import 'package:dlstarlive/features/chat/presentation/pages/chat_settings.dart';
 import 'package:dlstarlive/features/live/presentation/pages/golive_screen.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_page.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_summary_screen.dart';
-import 'package:dlstarlive/features/live_audio/presentation/audio_golive_screen.dart';
+import 'package:dlstarlive/features/live_audio/presentation/pages/audio_golive_screen.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/view_user_profile.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/friends_list_page.dart';
 import 'package:dlstarlive/features/reels/presentation/pages/reels.dart';
