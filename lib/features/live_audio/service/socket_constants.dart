@@ -20,8 +20,8 @@ class AudioSocketConstants {
   static const String unbanUserEvent = 'unban-audio-user'; // 15
 
   // Connection timeouts
-  static const Duration connectionTimeout = Duration(seconds: 10);
-  static const Duration roomDetailsTimeout = Duration(seconds: 10);
+  static const Duration connectionTimeout = Duration(seconds: 30);
+  static const Duration roomDetailsTimeout = Duration(seconds: 30);
 
   // Reconnection settings
   static const int reconnectionAttempts = 5;
