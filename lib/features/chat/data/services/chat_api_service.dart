@@ -40,7 +40,9 @@ class ChatApiService {
           if (data['success'] == true && data['result'] != null) {
             debugPrint('Send message response: ${data['result']}');
             final message = ChatMessage.fromJson(data['result']);
-            debugPrint('Parsed message sender ID: ${message.sender?.id}, sender name: ${message.sender?.name}');
+            debugPrint(
+              'Parsed message sender ID: ${message.sender?.id}, sender name: ${message.sender?.name}',
+            );
             return ApiResult.success(message);
           } else {
             return ApiResult.failure(

@@ -72,10 +72,14 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     if (kDebugMode) {
       debugPrint('=== Chat Detail Page Init ===');
       debugPrint('Current User ID: $currentUserId');
-      debugPrint('Auth BLoC state: ${context.read<AuthBloc>().state.runtimeType}');
-      debugPrint('Auth isAuthenticated: ${context.read<AuthBloc>().isAuthenticated}');
+      debugPrint(
+        'Auth BLoC state: ${context.read<AuthBloc>().state.runtimeType}',
+      );
+      debugPrint(
+        'Auth isAuthenticated: ${context.read<AuthBloc>().isAuthenticated}',
+      );
     }
-    
+
     if (currentUserId != null) {
       context.read<ChatDetailBloc>().add(
         MarkMessagesSeenEvent(
@@ -224,13 +228,15 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   Widget _buildMessagesArea(List<ChatMessage> messages) {
     // Get current user ID from AuthBloc instead of dummy data
     final currentUserId = context.read<AuthBloc>().currentUser?.id;
-    
+
     if (kDebugMode) {
       debugPrint('=== Message Area Debug ===');
       debugPrint('Current User ID: $currentUserId');
       debugPrint('Total messages: ${messages.length}');
       for (var msg in messages.take(3)) {
-        debugPrint('Message ID: ${msg.id}, Sender ID: ${msg.sender?.id}, Sender Name: ${msg.sender?.name}, IsMe: ${msg.sender?.id == currentUserId}');
+        debugPrint(
+          'Message ID: ${msg.id}, Sender ID: ${msg.sender?.id}, Sender Name: ${msg.sender?.name}, IsMe: ${msg.sender?.id == currentUserId}',
+        );
       }
     }
 

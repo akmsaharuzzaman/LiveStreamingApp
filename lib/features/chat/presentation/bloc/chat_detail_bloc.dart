@@ -244,7 +244,7 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
         currentUser = firstMessage.sender;
       }
     }
-    
+
     // If still no user, try AuthBloc approaches
     if (currentUser == null) {
       // Approach 1: Try to get user from state
@@ -266,7 +266,7 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
           isOnline: true,
         );
       }
-      
+
       // Approach 3: Last resort - if we have messages and no user, use sender from messages
       if (currentUser == null && currentMessages.isNotEmpty) {
         if (kDebugMode) {
