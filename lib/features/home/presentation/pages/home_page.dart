@@ -4,6 +4,7 @@ import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:dlstarlive/core/network/socket_service.dart';
 import 'package:dlstarlive/core/network/api_clients.dart';
+import 'package:dlstarlive/features/live_audio/service/socket_constants.dart';
 import 'package:dlstarlive/features/live_audio/service/socket_service_audio.dart';
 import 'package:dlstarlive/injection/injection.dart';
 import 'package:flutter/material.dart';
@@ -42,6 +43,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   // Tab controller for horizontal sliding tabs
   late TabController _tabController;
+  
+  // Timers for periodic checks
+  Timer? _socketHealthCheckTimer;
+  Timer? _socketTestTimer;
 
   // Banner URLs - will be populated from API
   List<String> _bannerUrls = [];
@@ -192,29 +197,68 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     _audioSubscriptions.add(connectionSub);
 
     // Listen for room creation/deletion events to trigger refresh
-    var createRoomSub = _audioSocketService.createRoomStream.listen((_) {
-      _log("🏠 Audio room created - refreshing room list");
-      if (mounted) _audioSocketService.getRooms();
+    var createRoomSub = _audioSocketService.createRoomStream.listen((roomDetails) {
+      _log("🏠 Audio room created - refreshing room list. Room ID: ${roomDetails.roomId}");
+      if (mounted) {
+        _log("🔄 Calling getRooms() after room creation");
+        _audioSocketService.getRooms();
+      }
     });
     _audioSubscriptions.add(createRoomSub);
 
-    var closeRoomSub = _audioSocketService.closeRoomStream.listen((_) {
-      _log("🏠 Audio room closed - refreshing room list");
-      if (mounted) _audioSocketService.getRooms();
+    var closeRoomSub = _audioSocketService.closeRoomStream.listen((roomIds) {
+      _log("🏠 Audio room closed - refreshing room list. Room IDs: $roomIds");
+      if (mounted) {
+        _log("🔄 Calling getRooms() after room closure");
+        _audioSocketService.getRooms();
+      }
     });
     _audioSubscriptions.add(closeRoomSub);
 
-    var joinRoomSub = _audioSocketService.joinRoomStream.listen((_) {
-      _log("👋 User joined audio room - refreshing room list");
-      if (mounted) _audioSocketService.getRooms();
+    var joinRoomSub = _audioSocketService.joinRoomStream.listen((roomDetails) {
+      _log("👋 User joined audio room - refreshing room list. Room ID: ${roomDetails.roomId}");
+      if (mounted) {
+        _log("🔄 Calling getRooms() after user joined room");
+        _audioSocketService.getRooms();
+      }
     });
     _audioSubscriptions.add(joinRoomSub);
 
-    var leaveRoomSub = _audioSocketService.leaveRoomStream.listen((_) {
-      _log("👋 User left audio room - refreshing room list");
-      if (mounted) _audioSocketService.getRooms();
+    var leaveRoomSub = _audioSocketService.leaveRoomStream.listen((roomDetails) {
+      _log("👋 User left audio room - refreshing room list. Room ID: ${roomDetails.roomId}");
+      if (mounted) {
+        _log("🔄 Calling getRooms() after user left room");
+        _audioSocketService.getRooms();
+      }
     });
     _audioSubscriptions.add(leaveRoomSub);
+    
+    // Add direct listeners to socket for debugging
+    _audioSocketService.on(AudioSocketConstants.getAllRoomsEvent, (data) {
+      _log("🎯 Direct socket event 'get-all-rooms' received: ${data != null ? 'data present' : 'no data'}");
+    });
+    
+    _audioSocketService.on(AudioSocketConstants.createRoomEvent, (data) {
+      _log("🎯 Direct socket event 'create-room' received: ${data != null ? 'data present' : 'no data'}");
+    });
+    
+    _audioSocketService.on(AudioSocketConstants.joinAudioRoomEvent, (data) {
+      _log("🎯 Direct socket event 'join-audio-room' received: ${data != null ? 'data present' : 'no data'}");
+    });
+    
+    _audioSocketService.on(AudioSocketConstants.leaveAudioRoomEvent, (data) {
+      _log("🎯 Direct socket event 'leave-audio-room' received: ${data != null ? 'data present' : 'no data'}");
+    });
+    
+    _audioSocketService.on(AudioSocketConstants.userLeftEvent, (data) {
+      _log("🎯 Direct socket event 'user-left' received: ${data != null ? 'data present' : 'no data'}");
+    });
+    
+    // Force a refresh of the room list to ensure we have the latest data
+    if (_audioSocketService.isConnected) {
+      _log("🔄 Initial getRooms() call to ensure latest data");
+      _audioSocketService.getRooms();
+    }
 
     _log("✅ Audio socket listeners setup complete");
   }
@@ -259,30 +303,96 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
   }
 
+  /// Test the audio socket connection by sending a test event
+  Future<void> _testAudioSocketConnection() async {
+    if (_audioSocketService.isConnected) {
+      _log('🚨 Testing audio socket connection with getRooms() call');
+      try {
+        await _audioSocketService.getRooms();
+        _log('✅ Test getRooms() call sent successfully');
+      } catch (e) {
+        _log('❌ Error testing socket connection: $e');
+      }
+    } else {
+      _log('❌ Cannot test socket connection - socket is not connected');
+    }
+  }
+
+  /// Check if audio socket is properly connected and listening to events
+  Future<bool> _ensureAudioSocketConnected() async {
+    _log('🔍 Checking audio socket connection status');
+    
+    if (!_audioSocketService.isConnected) {
+      _log('❌ Audio socket not connected, attempting to reconnect...');
+      
+      // Get user ID from AuthBloc
+      final authBloc = context.read<AuthBloc>();
+      final authState = authBloc.state;
+      String? userId;
+      
+      if (authState is AuthAuthenticated) {
+        userId = authState.user.id;
+      } else if (authState is AuthProfileIncomplete) {
+        userId = authState.user.id;
+      }
+      
+      if (userId == null || userId.isEmpty) {
+        _log('❌ User ID is null or empty, cannot connect to audio socket');
+        return false;
+      }
+      
+      // Connect to audio socket with user ID
+      final connected = await _audioSocketService.connect(userId);
+      
+      if (connected) {
+        _log('✅ Audio socket reconnected successfully');
+        
+        // Clear existing listeners and set up new ones
+        for (var subscription in _audioSubscriptions) {
+          subscription.cancel();
+        }
+        _audioSubscriptions.clear();
+        
+        _setupAudioSocketListeners();
+        return true;
+      } else {
+        _log('❌ Failed to reconnect audio socket');
+        return false;
+      }
+    } else {
+      _log('✅ Audio socket already connected');
+      
+      // Check if we have any active listeners
+      if (_audioSubscriptions.isEmpty) {
+        _log('⚠️ No active audio socket listeners found, setting up listeners again');
+        _setupAudioSocketListeners();
+      }
+      
+      return true;
+    }
+  }
+
   /// Handle audio pull-to-refresh action
   Future<void> _handleAudioRefresh() async {
     try {
       _log('🔄 Audio page refresh triggered - fetching latest audio rooms');
-      if (!_audioSocketService.isConnected) {
-        _log('Audio socket not connected, attempting to reconnect...');
-        // Use the improved _initializeSocket method which handles both sockets
-        final connected = await _initializeSocket();
-
-        if (!connected) {
-          _log('❌ Failed to reconnect sockets');
-          throw Exception('Failed to connect to audio socket');
-        }
-        // No need to call getRooms() here as _initializeSocket already does that
-      } else {
-        _log('Audio socket already connected, calling getRooms...');
-        _log('📡 Calling getRooms on audio socket...');
-        await _audioSocketService.getRooms();
+      
+      // Ensure socket is connected and listeners are set up
+      final socketReady = await _ensureAudioSocketConnected();
+      
+      if (!socketReady) {
+        _log('❌ Failed to ensure audio socket connection');
+        throw Exception('Failed to connect to audio socket');
       }
-
+      
+      // Explicitly request the latest rooms
+      _log('📡 Calling getRooms on audio socket...');
+      await _audioSocketService.getRooms();
+      
       // Add a small delay to ensure the refresh indicator shows
       await Future.delayed(const Duration(milliseconds: 500));
     } catch (e) {
-      _log('Error during audio refresh: $e');
+      _log('❌ Error during audio refresh: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -347,23 +457,67 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     // Get AudioSocketService from dependency injection
     _audioSocketService = context.read<AudioSocketService>();
 
+    // Initialize sockets and fetch initial data
     _initializeSocket().then((connected) {
       if (connected) {
         _log('✅ Both sockets connected successfully');
       } else {
         _log('⚠️ One or both sockets failed to connect');
+        // Try to ensure at least the audio socket is connected
+        _ensureAudioSocketConnected().then((audioConnected) {
+          if (audioConnected) {
+            _log('✅ Audio socket connected successfully after retry');
+          } else {
+            _log('❌ Failed to connect audio socket after retry');
+          }
+        });
       }
     });
+    
     _fetchBanners(); // Fetch banners from API
+
+    // Set up a periodic timer to check socket connections and refresh data
+    _socketHealthCheckTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (mounted) {
+        _log('🕒 Periodic socket health check');
+        _ensureAudioSocketConnected().then((connected) {
+          if (connected) {
+            _log('✅ Audio socket is healthy');
+            _audioSocketService.getRooms(); // Refresh rooms periodically
+          } else {
+            _log('❌ Audio socket is not healthy, attempted reconnection');
+          }
+        });
+      } else {
+        // Cancel the timer if the widget is no longer mounted
+        timer.cancel();
+        _log('🕒 Periodic socket health check timer canceled');
+      }
+    });
 
     // Trigger refresh each time HomePage is created
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _log('🏠 HomePage created - triggering auto-refresh');
       _handleRefresh();
       _handleAudioRefresh();
+      
+      // Test the audio socket connection after a delay
+      Future.delayed(const Duration(seconds: 5), () {
+        if (mounted) {
+          _testAudioSocketConnection();
+        }
+      });
+      
+      // Schedule periodic tests of the audio socket connection
+      _socketTestTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
+        if (mounted) {
+          _testAudioSocketConnection();
+        } else {
+          timer.cancel();
+        }
+      });
     });
 
-    // Removed duplicate _setupSocketListeners() call - it's already called in _initializeSocket()
     super.initState();
   }
 
@@ -383,11 +537,16 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       subscription.cancel();
     }
     _audioSubscriptions.clear();
+    
+    // Cancel all periodic timers
+    _socketHealthCheckTimer?.cancel();
+    _socketTestTimer?.cancel();
+    _log("All periodic timers canceled");
 
     // Dispose tab controller
     _tabController.dispose();
 
-    _log("HomePage disposed - all stream subscriptions canceled");
+    _log("HomePage disposed - all resources released");
     super.dispose();
   }
 
