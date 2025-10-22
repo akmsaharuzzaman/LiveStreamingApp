@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:get_it/get_it.dart';
 
 import '../../../live_audio/data/models/audio_room_details.dart';
 import '../../../live_audio/service/socket_service_audio.dart';
@@ -13,7 +14,8 @@ import '../widgets/touchable_opacity_widget.dart';
 
 class ListAudioRooms extends StatelessWidget {
   final List<AudioRoomDetails> availableAudioRooms;
-  final AudioSocketService socketService = AudioSocketService();
+  // Use GetIt to get the properly initialized instance of AudioSocketService
+  final AudioSocketService socketService = GetIt.instance<AudioSocketService>();
   ListAudioRooms({super.key, required this.availableAudioRooms});
 
   @override
@@ -38,7 +40,18 @@ class ListAudioRooms extends StatelessWidget {
               SizedBox(height: 8.h),
               ElevatedButton(
                 onPressed: () async {
-                  await socketService.getRooms();
+                  final authState = context.read<AuthBloc>().state;
+                  if (authState is AuthAuthenticated) {
+                    // Ensure socket is connected before making API calls
+                    if (!socketService.isConnected) {
+                      await socketService.connect(authState.user.id);
+                    }
+                    await socketService.getRooms();
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please login first')),
+                    );
+                  }
                 },
                 child: Text('Refresh'),
               ),
@@ -97,6 +110,11 @@ class ListAudioRooms extends StatelessWidget {
                 // );
 
                 try {
+                  // Ensure socket is connected before making API calls
+                  if (!socketService.isConnected) {
+                    await socketService.connect(userId);
+                  }
+                  
                   // Fetch fresh room details
                   AudioRoomDetails? roomDetails = await socketService.getRoomDetails(availableAudioRooms[index].roomId);
                   debugPrint("Room details for room ${availableAudioRooms[index].roomId}: $roomDetails");

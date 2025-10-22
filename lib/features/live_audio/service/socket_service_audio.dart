@@ -17,7 +17,7 @@ import 'socket_constants.dart';
 /// Comprehensive Socket Service for Audio Live Streaming
 /// Handles all socket operations including room management and real-time events
 /// Uses composition pattern with specialized operation classes
-@injectable
+@lazySingleton
 class AudioSocketService {
   // Remove static instance and singleton pattern
   // static AudioSocketService? _instance;
