@@ -1,19 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
 import 'socket_constants.dart';
 
 /// Handles user management operations like mute, ban, unban
 class AudioSocketUserOperations {
-  late IO.Socket socket;
+  late socket_io.Socket socket;
   final StreamController<Map<String, dynamic>> errorController;
   final String? Function() getCurrentRoomId;
 
   AudioSocketUserOperations(this.errorController, this.getCurrentRoomId);
 
-  void setSocket(IO.Socket socket) {
+  void setSocket(socket_io.Socket socket) {
     this.socket = socket;
   }
 

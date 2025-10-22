@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
 import '../../../core/network/models/ban_user_model.dart';
 import '../../../core/network/models/left_user_model.dart';
@@ -12,8 +12,8 @@ import 'socket_constants.dart';
 import 'audio_room_operations.dart';
 
 /// Handles socket event listeners and stream controllers
-class AudioSocketEventHandler {
-  late IO.Socket socket;
+class AudioSocketEventListeners {
+  late socket_io.Socket socket;
   final StreamController<Map<String, dynamic>> errorController;
   final AudioSocketRoomOperations? roomOperations;
 
@@ -38,9 +38,9 @@ class AudioSocketEventHandler {
   final StreamController<BanUserModel> _banUserController = StreamController<BanUserModel>.broadcast();
   final StreamController<BanUserModel> _unbanUserController = StreamController<BanUserModel>.broadcast();
 
-  AudioSocketEventHandler(this.errorController, this.roomOperations);
+  AudioSocketEventListeners(this.errorController, this.roomOperations);
 
-  void setSocket(IO.Socket socket) {
+  void setSocket(socket_io.Socket socket) {
     this.socket = socket;
   }
 

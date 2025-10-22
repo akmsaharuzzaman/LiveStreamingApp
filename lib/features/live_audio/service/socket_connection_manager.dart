@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
 import 'socket_constants.dart';
 
 /// Manages socket connection, disconnection, and reconnection
 class AudioSocketConnectionManager {
-  IO.Socket? _socket;
+  socket_io.Socket? _socket;
   bool _isConnected = false;
   String? _currentUserId;
   String? _currentRoomId;
@@ -26,7 +26,7 @@ class AudioSocketConnectionManager {
   bool get isConnected => _isConnected;
   String? get currentUserId => _currentUserId;
   String? get currentRoomId => _currentRoomId;
-  IO.Socket? get socket => _socket;
+  socket_io.Socket? get socket => _socket;
   Stream<bool> get connectionStatusStream => _connectionStatusController.stream;
 
   /// Initialize and connect to socket
@@ -47,9 +47,9 @@ class AudioSocketConnectionManager {
       _log('🔌 Audio Socket connecting to socket with userId: $userId');
 
       // Create socket with userId in query
-      _socket = IO.io(
+      _socket = socket_io.io(
         AudioSocketConstants.baseUrl,
-        IO.OptionBuilder()
+        socket_io.OptionBuilder()
             .setTransports(['websocket'])
             .setQuery({'userId': userId})
             .disableAutoConnect() // Disable auto connect

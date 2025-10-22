@@ -1,25 +1,25 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
 import '../data/models/audio_room_details.dart';
 import 'socket_constants.dart';
-import 'socket_event_handler.dart';
+import 'socket_event_listeners.dart';
 
 /// Handles room-related operations
 class AudioSocketRoomOperations {
-  late IO.Socket socket;
+  late socket_io.Socket socket;
   final StreamController<Map<String, dynamic>> errorController;
-  AudioSocketEventHandler? eventHandler;
+  AudioSocketEventListeners? eventListeners;
 
-  AudioSocketRoomOperations(this.errorController, this.eventHandler);
+  AudioSocketRoomOperations(this.errorController, this.eventListeners);
 
-  void setSocket(IO.Socket socket) {
+  void setSocket(socket_io.Socket socket) {
     this.socket = socket;
   }
 
-  void setEventHandler(AudioSocketEventHandler handler) {
-    eventHandler = handler;
+  void setEventHandler(AudioSocketEventListeners handler) {
+    eventListeners = handler;
   }
 
   void _log(String message) {

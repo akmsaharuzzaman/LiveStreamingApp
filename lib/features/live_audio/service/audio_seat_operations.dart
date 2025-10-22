@@ -1,18 +1,18 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
 import 'socket_constants.dart';
 
 /// Handles seat-related operations
 class AudioSocketSeatOperations {
-  late IO.Socket socket;
+  late socket_io.Socket socket;
   final StreamController<Map<String, dynamic>> errorController;
 
   AudioSocketSeatOperations(this.errorController);
 
-  void setSocket(IO.Socket socket) {
+  void setSocket(socket_io.Socket socket) {
     this.socket = socket;
   }
 

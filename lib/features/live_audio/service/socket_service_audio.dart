@@ -7,8 +7,8 @@ import '../../../core/network/models/mute_user_model.dart';
 import '../data/models/audio_room_details.dart';
 import '../data/models/chat_model.dart';
 import '../data/models/joined_seat.dart';
-import 'connection_manager.dart';
-import 'socket_event_handler.dart';
+import 'socket_connection_manager.dart';
+import 'socket_event_listeners.dart';
 import 'audio_room_operations.dart';
 import 'audio_seat_operations.dart';
 import 'audio_user_operations.dart';
@@ -24,7 +24,7 @@ class AudioSocketService {
 
   // Specialized operation classes
   late final AudioSocketConnectionManager _connectionManager;
-  late final AudioSocketEventHandler _eventHandler;
+  late final AudioSocketEventListeners _eventListeners;
   late final AudioSocketRoomOperations _roomOperations;
   late final AudioSocketSeatOperations _seatOperations;
   late final AudioSocketUserOperations _userOperations;
@@ -59,10 +59,10 @@ class AudioSocketService {
     _roomOperations = AudioSocketRoomOperations(_errorController, null);
 
     // Initialize event handler with room operations
-    _eventHandler = AudioSocketEventHandler(_errorController, _roomOperations);
+    _eventListeners = AudioSocketEventListeners(_errorController, _roomOperations);
 
     // Set event handler reference in room operations for refresh calls
-    _roomOperations.setEventHandler(_eventHandler);
+    _roomOperations.setEventHandler(_eventListeners);
 
     // Initialize other operation classes
     _seatOperations = AudioSocketSeatOperations(_errorController);
@@ -74,27 +74,27 @@ class AudioSocketService {
   }
 
   /// Stream getters for listening to events
-  Stream<List<AudioRoomDetails>> get getAllRoomsStream => _eventHandler.getAllRoomsStream;
-  Stream<AudioRoomDetails?> get audioRoomDetailsStream => _eventHandler.audioRoomDetailsStream;
+  Stream<List<AudioRoomDetails>> get getAllRoomsStream => _eventListeners.getAllRoomsStream;
+  Stream<AudioRoomDetails?> get audioRoomDetailsStream => _eventListeners.audioRoomDetailsStream;
   // Room events
-  Stream<AudioRoomDetails> get createRoomStream => _eventHandler.createRoomStream;
-  Stream<List<String>> get closeRoomStream => _eventHandler.closeRoomStream;
-  Stream<AudioRoomDetails> get joinRoomStream => _eventHandler.joinRoomStream;
-  Stream<AudioRoomDetails> get leaveRoomStream => _eventHandler.leaveRoomStream;
+  Stream<AudioRoomDetails> get createRoomStream => _eventListeners.createRoomStream;
+  Stream<List<String>> get closeRoomStream => _eventListeners.closeRoomStream;
+  Stream<AudioRoomDetails> get joinRoomStream => _eventListeners.joinRoomStream;
+  Stream<AudioRoomDetails> get leaveRoomStream => _eventListeners.leaveRoomStream;
   // User events
-  Stream<LeftUserModel> get userLeftStream => _eventHandler.userLeftStream;
+  Stream<LeftUserModel> get userLeftStream => _eventListeners.userLeftStream;
   // Seat events
-  Stream<JoinedSeatModel> get joinSeatStream => _eventHandler.joinSeatStream;
-  Stream<JoinedSeatModel> get leaveSeatStream => _eventHandler.leaveSeatStream;
-  Stream<JoinedSeatModel> get removeFromSeatStream => _eventHandler.removeFromSeatStream;
+  Stream<JoinedSeatModel> get joinSeatStream => _eventListeners.joinSeatStream;
+  Stream<JoinedSeatModel> get leaveSeatStream => _eventListeners.leaveSeatStream;
+  Stream<JoinedSeatModel> get removeFromSeatStream => _eventListeners.removeFromSeatStream;
   // Chat events
-  Stream<AudioChatModel> get sendMessageStream => _eventHandler.sendMessageStream;
+  Stream<AudioChatModel> get sendMessageStream => _eventListeners.sendMessageStream;
   // Error events
-  Stream<Map<String, dynamic>> get errorMessageStream => _eventHandler.errorMessageStream;
+  Stream<Map<String, dynamic>> get errorMessageStream => _eventListeners.errorMessageStream;
   // User events
-  Stream<MuteUserModel> get muteUnmuteUserStream => _eventHandler.muteUnmuteUserStream;
-  Stream<BanUserModel> get banUserStream => _eventHandler.banUserStream;
-  Stream<BanUserModel> get unbanUserStream => _eventHandler.unbanUserStream;
+  Stream<MuteUserModel> get muteUnmuteUserStream => _eventListeners.muteUnmuteUserStream;
+  Stream<BanUserModel> get banUserStream => _eventListeners.banUserStream;
+  Stream<BanUserModel> get unbanUserStream => _eventListeners.unbanUserStream;
 
   /// Connection status stream
   Stream<bool> get connectionStatusStream => _connectionManager.connectionStatusStream;
@@ -111,12 +111,12 @@ class AudioSocketService {
       // Set the socket in all operations
       final socket = _connectionManager.socket!;
       _roomOperations.setSocket(socket);
-      _eventHandler.setSocket(socket);
+      _eventListeners.setSocket(socket);
       _seatOperations.setSocket(socket);
       _userOperations.setSocket(socket);
 
       // Setup listeners after socket is set
-      _eventHandler.setupListeners();
+      _eventListeners.setupListeners();
 
       // Update room operations with current room ID
       _connectionManager.setCurrentRoomId(_connectionManager.currentRoomId);
@@ -229,7 +229,7 @@ class AudioSocketService {
   /// Dispose all resources
   void dispose() {
     _connectionManager.dispose();
-    _eventHandler.dispose();
+    _eventListeners.dispose();
     _errorController.close();
     // Remove _instance = null;
   }
