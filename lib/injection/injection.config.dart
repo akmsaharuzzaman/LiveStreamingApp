@@ -1,5 +1,5 @@
-// dart format width=80
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// dart format width=80
 
 // **************************************************************************
 // InjectableConfigGenerator
@@ -62,15 +62,15 @@ extension GetItInjectableX on _i174.GetIt {
     _i526.EnvironmentFilter? environmentFilter,
   }) async {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
-    final networkModule = _$NetworkModule();
     final googleAuthModule = _$GoogleAuthModule();
+    final networkModule = _$NetworkModule();
     final sharedPreferencesModule = _$SharedPreferencesModule();
-    gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
-    gh.lazySingleton<_i1041.NetworkInfo>(() => networkModule.networkInfo);
-    gh.lazySingleton<_i10.ApiService>(() => _i10.ApiService());
-    gh.lazySingleton<_i93.ApiService>(() => _i93.ApiService());
     gh.lazySingleton<_i116.GoogleSignIn>(() => googleAuthModule.googleSignIn);
     gh.lazySingleton<_i59.FirebaseAuth>(() => googleAuthModule.firebaseAuth);
+    gh.lazySingleton<_i10.ApiService>(() => _i10.ApiService());
+    gh.lazySingleton<_i93.ApiService>(() => _i93.ApiService());
+    gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
+    gh.lazySingleton<_i1041.NetworkInfo>(() => networkModule.networkInfo);
     await gh.lazySingletonAsync<_i460.SharedPreferences>(
       () => sharedPreferencesModule.sharedPreferences,
       preResolve: true,
@@ -96,11 +96,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i608.FriendsApiService>(
       () => _i608.FriendsApiService(gh<_i10.ApiService>()),
     );
-    gh.factory<_i394.StoreApiService>(
-      () => _i394.StoreApiService(gh<_i10.ApiService>()),
-    );
     gh.factory<_i439.BagApiService>(
       () => _i439.BagApiService(gh<_i10.ApiService>()),
+    );
+    gh.factory<_i394.StoreApiService>(
+      () => _i394.StoreApiService(gh<_i10.ApiService>()),
     );
     gh.lazySingleton<_i207.ApiService>(() => _i207.ApiService(gh<_i361.Dio>()));
     gh.factory<_i291.StoreBloc>(
@@ -129,17 +129,20 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i475.GoogleAuthService>(),
       ),
     );
-    gh.factory<_i684.ChatDetailBloc>(
-      () => _i684.ChatDetailBloc(gh<_i605.ChatApiService>()),
-    );
     gh.factory<_i551.ChatBloc>(
-      () => _i551.ChatBloc(gh<_i605.ChatApiService>()),
+      () => _i551.ChatBloc(gh<_i605.ChatApiService>(), gh<_i477.AuthBloc>()),
     );
-    gh.factory<_i15.IncrementCounter>(
-      () => _i15.IncrementCounter(gh<_i89.CounterRepository>()),
+    gh.factory<_i684.ChatDetailBloc>(
+      () => _i684.ChatDetailBloc(
+        gh<_i605.ChatApiService>(),
+        gh<_i477.AuthBloc>(),
+      ),
     );
     gh.factory<_i298.GetCounter>(
       () => _i298.GetCounter(gh<_i89.CounterRepository>()),
+    );
+    gh.factory<_i15.IncrementCounter>(
+      () => _i15.IncrementCounter(gh<_i89.CounterRepository>()),
     );
     gh.factory<_i208.CounterBloc>(
       () => _i208.CounterBloc(
@@ -151,8 +154,8 @@ extension GetItInjectableX on _i174.GetIt {
   }
 }
 
-class _$NetworkModule extends _i809.NetworkModule {}
-
 class _$GoogleAuthModule extends _i837.GoogleAuthModule {}
+
+class _$NetworkModule extends _i809.NetworkModule {}
 
 class _$SharedPreferencesModule extends _i469.SharedPreferencesModule {}
