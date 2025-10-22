@@ -16,7 +16,8 @@ class ListAudioRooms extends StatelessWidget {
   final List<AudioRoomDetails> availableAudioRooms;
   // Use GetIt to get the properly initialized instance of AudioSocketService
   final AudioSocketService socketService = GetIt.instance<AudioSocketService>();
-  ListAudioRooms({super.key, required this.availableAudioRooms});
+  final Function() onRefreshCallback;
+  ListAudioRooms({super.key, required this.availableAudioRooms, required this.onRefreshCallback});
 
   @override
   Widget build(BuildContext context) {
@@ -39,20 +40,7 @@ class ListAudioRooms extends StatelessWidget {
               ),
               SizedBox(height: 8.h),
               ElevatedButton(
-                onPressed: () async {
-                  final authState = context.read<AuthBloc>().state;
-                  if (authState is AuthAuthenticated) {
-                    // Ensure socket is connected before making API calls
-                    if (!socketService.isConnected) {
-                      await socketService.connect(authState.user.id);
-                    }
-                    await socketService.getRooms();
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please login first')),
-                    );
-                  }
-                },
+                onPressed: onRefreshCallback,
                 child: Text('Refresh'),
               ),
             ],
