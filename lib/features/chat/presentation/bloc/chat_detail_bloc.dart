@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../core/auth/auth_bloc.dart';
+import '../../../../core/models/user_model.dart';
 import '../../data/services/chat_api_service.dart';
 import '../../data/models/chat_models.dart';
 
@@ -26,15 +28,17 @@ class SendMessageEvent extends ChatDetailEvent {
   final String receiverId;
   final String text;
   final File? file;
+  final String? currentUserId; // Optional: pass current user ID from UI
 
   const SendMessageEvent({
     required this.receiverId,
     required this.text,
     this.file,
+    this.currentUserId,
   });
 
   @override
-  List<Object?> get props => [receiverId, text, file];
+  List<Object?> get props => [receiverId, text, file, currentUserId];
 }
 
 class MarkMessagesSeenEvent extends ChatDetailEvent {
@@ -213,26 +217,82 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
       currentMessages = List.from(loadedState.messages);
       currentOtherUserId = loadedState.otherUserId;
     }
+    // If messages haven't been loaded yet, use the receiverId as otherUserId
+    // This ensures we still have proper otherUserId even if list is empty
 
-    // Get current user info from AuthBloc
+    // Get current user info from AuthBloc - try multiple approaches
     ChatUser? currentUser;
     final authState = _authBloc.state;
-    if (authState is AuthAuthenticated) {
-      currentUser = ChatUser(
-        id: authState.user.id,
-        name: authState.user.name,
-        email: authState.user.email,
-        avatar: authState.user.profilePictureUrl ?? authState.user.avatar ?? '',
-        isOnline: true,
+    UserModel? authUser;
+
+    if (kDebugMode) {
+      debugPrint('Auth State Type: ${authState.runtimeType}');
+      debugPrint('Auth BLoC current user: ${_authBloc.currentUser}');
+      debugPrint('Passed currentUserId from event: ${event.currentUserId}');
+    }
+
+    // If currentUserId was passed from UI, we can extract user from messages directly
+    if (event.currentUserId != null && currentMessages.isNotEmpty) {
+      if (kDebugMode) {
+        debugPrint('Using currentUserId from UI: ${event.currentUserId}');
+      }
+      final firstMessage = currentMessages.firstWhere(
+        (msg) => msg.sender?.id == event.currentUserId,
+        orElse: () => currentMessages.first,
       );
-    } else if (authState is AuthProfileIncomplete) {
-      currentUser = ChatUser(
-        id: authState.user.id,
-        name: authState.user.name,
-        email: authState.user.email,
-        avatar: authState.user.profilePictureUrl ?? authState.user.avatar ?? '',
-        isOnline: true,
-      );
+      if (firstMessage.sender != null) {
+        currentUser = firstMessage.sender;
+      }
+    }
+    
+    // If still no user, try AuthBloc approaches
+    if (currentUser == null) {
+      // Approach 1: Try to get user from state
+      if (authState is AuthAuthenticated) {
+        authUser = authState.user;
+      } else if (authState is AuthProfileIncomplete) {
+        authUser = authState.user;
+      } else {
+        // Approach 2: Fallback to getter which might have cached user
+        authUser = _authBloc.currentUser;
+      }
+
+      if (authUser != null) {
+        currentUser = ChatUser(
+          id: authUser.id,
+          name: authUser.name,
+          email: authUser.email,
+          avatar: authUser.profilePictureUrl ?? authUser.avatar ?? '',
+          isOnline: true,
+        );
+      }
+      
+      // Approach 3: Last resort - if we have messages and no user, use sender from messages
+      if (currentUser == null && currentMessages.isNotEmpty) {
+        if (kDebugMode) {
+          debugPrint('Using sender from existing messages as fallback');
+        }
+        // The first message should have sender info
+        final firstMessageSender = currentMessages.first.sender;
+        if (firstMessageSender != null) {
+          currentUser = firstMessageSender;
+        }
+      }
+    }
+
+    // If currentUser is null, we cannot send the message
+    if (currentUser == null) {
+      if (kDebugMode) {
+        debugPrint(
+          'ERROR: User not authenticated. Auth State: ${authState.runtimeType}, User: $authUser, Messages: ${currentMessages.length}',
+        );
+      }
+      emit(ChatDetailError(message: 'User not authenticated'));
+      return;
+    }
+
+    if (kDebugMode) {
+      debugPrint('Sending message as: ${currentUser.id} (${currentUser.name})');
     }
 
     // Create a temporary optimistic message to show immediately
@@ -272,8 +332,20 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
     result.fold(
       (message) {
         // Replace the optimistic message with the real one
+        if (kDebugMode) {
+          debugPrint(
+            'Received message from server - ID: ${message.id}, Sender ID: ${message.sender?.id}, Sender Name: ${message.sender?.name}',
+          );
+          debugPrint(
+            'Looking for temp message to replace: ${optimisticMessage.id}',
+          );
+        }
+
         final updatedMessages = currentMessages.map((msg) {
           if (msg.id == optimisticMessage.id) {
+            if (kDebugMode) {
+              debugPrint('Replaced optimistic message with real message');
+            }
             return message; // Replace with real message from server
           }
           return msg;
