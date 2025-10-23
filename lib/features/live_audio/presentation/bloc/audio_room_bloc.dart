@@ -268,55 +268,6 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
       "🎯 Bloc: Creating room - roomId: ${event.roomId}, title: ${event.roomTitle}, seats: ${event.numberOfSeats}",
     );
 
-    try {
-      // Emit AudioRoomLoaded IMMEDIATELY with the roomId
-      // This ensures UI shows room instantly with the correct roomId
-      debugPrint("✅ Bloc: Emitting immediate AudioRoomLoaded for room creation");
-      final roomLoadedState = AudioRoomLoaded(
-        roomData: AudioRoomDetails(
-          roomId: event.roomId,
-          title: event.roomTitle ?? 'Audio Room',
-          numberOfSeats: event.numberOfSeats,
-          hostGifts: 0,
-          hostBonus: 0,
-          hostDetails: AudioMember(
-            name: 'Host',
-            avatar: '',
-            uid: '',
-            id: event.roomId, // Use roomId as host id for now
-            currentLevel: 0,
-            equipedStoreItems: null,
-            totalGiftSent: 0,
-            isMuted: false,
-          ),
-          premiumSeat: PremiumSeat(member: null, available: true),
-          seatsData: SeatsData(seats: {}),
-          messages: [],
-          createdAt: DateTime.now().toIso8601String(),
-          bannedUsers: [],
-          members: [],
-          membersDetails: [],
-          mutedUsers: [],
-          ranking: [],
-          duration: 0,
-        ),
-        currentRoomId: event.roomId, // CRITICAL: roomId available immediately
-        isHost: true,
-        isConnected: true,
-        streamStartTime: DateTime.now(),
-        listeners: [],
-        chatMessages: [],
-      );
-      debugPrint("✅ Bloc: Created AudioRoomLoaded state, emitting...");
-      emit(roomLoadedState);
-      debugPrint("✅ Bloc: Successfully emitted AudioRoomLoaded for room creation");
-    } catch (e, stackTrace) {
-      debugPrint("❌ Bloc: Failed to emit AudioRoomLoaded: $e");
-      debugPrint("❌ Bloc: Stack trace: $stackTrace");
-      emit(const AudioRoomError(message: 'Failed to create room state'));
-      return;
-    }
-
     // Now make the async API call - UI already shows room
     try {
       final success = await _repository.createRoom(
@@ -331,10 +282,60 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
         debugPrint("⚠️ Bloc: Room creation failed, attempting to join room instead");
         final joinSuccess = await _repository.joinRoom(event.roomId);
         debugPrint("🎯 Bloc: Room join result after failed creation - success: $joinSuccess");
+        emit(const AudioRoomError(message: 'Failed to create room state'));
+      }
+      // emit AudioRoomLoaded
+      try {
+        // Emit AudioRoomLoaded IMMEDIATELY with the roomId
+        // This ensures UI shows room instantly with the correct roomId
+        debugPrint("✅ Bloc: Emitting immediate AudioRoomLoaded for room creation");
+        final roomLoadedState = AudioRoomLoaded(
+          roomData: AudioRoomDetails(
+            roomId: event.roomId,
+            title: event.roomTitle ?? 'Audio Room',
+            numberOfSeats: event.numberOfSeats,
+            hostGifts: 0,
+            hostBonus: 0,
+            hostDetails: AudioMember(
+              name: 'Host',
+              avatar: '',
+              uid: '',
+              id: event.roomId, // Use roomId as host id for now
+              currentLevel: 0,
+              equipedStoreItems: null,
+              totalGiftSent: 0,
+              isMuted: false,
+            ),
+            premiumSeat: PremiumSeat(member: null, available: true),
+            seatsData: SeatsData(seats: {}),
+            messages: [],
+            createdAt: DateTime.now().toIso8601String(),
+            bannedUsers: [],
+            members: [],
+            membersDetails: [],
+            mutedUsers: [],
+            ranking: [],
+            duration: 0,
+          ),
+          currentRoomId: event.roomId, // CRITICAL: roomId available immediately
+          isHost: true,
+          isConnected: true,
+          streamStartTime: DateTime.now(),
+          listeners: [],
+          chatMessages: [],
+        );
+        debugPrint("✅ Bloc: Created AudioRoomLoaded state, emitting...");
+        emit(roomLoadedState);
+        debugPrint("✅ Bloc: Successfully emitted AudioRoomLoaded for room creation");
+      } catch (e, stackTrace) {
+        debugPrint("❌ Bloc: Failed to emit AudioRoomLoaded: $e");
+        debugPrint("❌ Bloc: Stack trace: $stackTrace");
+        emit(const AudioRoomError(message: 'Failed to create room state'));
+        return;
       }
     } catch (e) {
       debugPrint("❌ Bloc: Room creation/join error: $e");
-      // Don't emit error state here as we already have a valid UI state
+      emit(const AudioRoomError(message: 'Failed to create room state'));
     }
   }
 

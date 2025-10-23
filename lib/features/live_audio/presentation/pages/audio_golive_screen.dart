@@ -166,10 +166,10 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
   void _connectToAudioSocket() {
     if (widget.roomId.isNotEmpty) {
-      _uiLog("🔌 Connecting to audio socket with userId: ${widget.roomId}");
-      context.read<AudioRoomBloc>().add(ConnectToSocket(userId: widget.roomId));
+      _uiLog("🔌 Connecting to audio socket with roomId: ${widget.roomId} , userId: $userId");
+      context.read<AudioRoomBloc>().add(ConnectToSocket(userId: userId));
     } else {
-      _uiLog("❌ Cannot connect to socket - userId is null or empty");
+      _uiLog("❌ Cannot connect to socket - roomId is null or empty");
     }
   }
 
@@ -395,6 +395,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           context.read<AudioRoomBloc>().add(LeaveRoomEvent(roomId: currentState.currentRoomId!));
         }
       }
+      // Close Agora
+      await _engine.leaveChannel();
 
       // Reset Bloc state for next room creation/joining
       _resetBlocState();
