@@ -66,8 +66,6 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     on<MuteUnmuteUserEvent>(_onMuteUnmuteUser);
 
     // Agora events
-    on<InitializeAgoraEvent>(_onInitializeAgora);
-    on<JoinAgoraChannelEvent>(_onJoinAgoraChannel);
     on<ToggleMuteEvent>(_onToggleMute);
 
     // UI events
@@ -425,15 +423,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     await _repository.muteUnmuteUser(event.userId);
   }
 
-  void _onInitializeAgora(InitializeAgoraEvent event, Emitter<AudioRoomState> emit) {
-    // Initialize Agora SDK
-    emit(AgoraInitialized());
-  }
 
-  void _onJoinAgoraChannel(JoinAgoraChannelEvent event, Emitter<AudioRoomState> emit) {
-    // Join Agora channel
-    emit(AgoraChannelJoined());
-  }
 
   void _onToggleMute(ToggleMuteEvent event, Emitter<AudioRoomState> emit) {
     if (state is AudioRoomLoaded) {
@@ -494,7 +484,6 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   }
 
   void _onNewMessageReceived(NewMessageReceivedEvent event, Emitter<AudioRoomState> emit) {
-    emit(MessageReceived(message: event.message));
     if (state is AudioRoomLoaded) {
       final currentState = state as AudioRoomLoaded;
       final updatedMessages = List<AudioChatModel>.from(currentState.chatMessages)..add(event.message);
@@ -502,17 +491,36 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
       if (updatedMessages.length > 20) {
         updatedMessages.removeAt(0);
       }
-      emit(currentState.copyWith(chatMessages: updatedMessages));
+
+      // Handle entry animations
+      final message = event.message;
+      final String normalizedMessage = message.text.trim().toLowerCase();
+      final dynamic entryAnimation = message.equipedStoreItems?['entry'];
+      if (normalizedMessage == 'joined the room' && entryAnimation is String && entryAnimation.isNotEmpty) {
+        emit(currentState.copyWith(
+          chatMessages: updatedMessages,
+          animationPlaying: true,
+          animationUrl: entryAnimation,
+          animationTitle: '${message.name} joined the room',
+        ));
+      } else {
+        emit(currentState.copyWith(chatMessages: updatedMessages));
+      }
     }
   }
 
   void _onUserBanned(UserBannedEvent event, Emitter<AudioRoomState> emit) {
-    emit(UserBanned(targetId: event.targetId));
     _handleUserBanned(event.targetId);
   }
 
   void _onUserMuted(UserMutedEvent event, Emitter<AudioRoomState> emit) {
-    emit(UserMuted(targetId: event.targetId));
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      final newRoomData = currentState.roomData?.copyWith(
+        mutedUsers: List<String>.from(currentState.roomData!.mutedUsers)..add(event.targetId),
+      );
+      emit(currentState.copyWith(roomData: newRoomData));
+    }
   }
 
   void _onRoomClosed(RoomClosedEvent event, Emitter<AudioRoomState> emit) {
@@ -530,11 +538,29 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   }
 
   void _onSeatJoined(SeatJoinedEvent event, Emitter<AudioRoomState> emit) {
-    emit(SeatJoined(seatKey: event.seatKey, member: event.member));
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      if (currentState.roomData?.seatsData == null) return;
+      final newSeats = Map<String, SeatInfo>.from(currentState.roomData!.seatsData.seats ?? {});
+      newSeats[event.seatKey] = SeatInfo(member: event.member, available: false);
+      final newRoomData = currentState.roomData!.copyWith(
+        seatsData: currentState.roomData!.seatsData.copyWith(seats: newSeats),
+      );
+      emit(currentState.copyWith(roomData: newRoomData));
+    }
   }
 
   void _onSeatLeft(SeatLeftEvent event, Emitter<AudioRoomState> emit) {
-    emit(SeatLeft(seatKey: event.seatKey));
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      if (currentState.roomData?.seatsData == null) return;
+      final newSeats = Map<String, SeatInfo>.from(currentState.roomData!.seatsData.seats ?? {});
+      newSeats[event.seatKey] = SeatInfo(member: null, available: true);
+      final newRoomData = currentState.roomData!.copyWith(
+        seatsData: currentState.roomData!.seatsData.copyWith(seats: newSeats),
+      );
+      emit(currentState.copyWith(roomData: newRoomData));
+    }
   }
 
   void _onUpdateBannedUsers(UpdateBannedUsersEvent event, Emitter<AudioRoomState> emit) {

@@ -12,7 +12,6 @@ import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/home/presentation/pages/main_navigation_page.dart';
-import '../features/live_audio/data/models/audio_room_details.dart';
 import '../features/newsfeed/presentation/pages/newsfeed.dart';
 import '../features/profile/presentation/pages/store_page.dart';
 import '../features/reels/presentation/pages/video_editor_screen.dart';
@@ -116,16 +115,11 @@ final GoRouter appRouter = GoRouter(
         final numberOfSeats = extra['numberOfSeats'] as int;
         final roomTitle = extra['title'] as String;
 
-        final roomDetails = extra['roomDetails'] as AudioRoomDetails?;
-        // Room data (only present when joining as viewer)
-
         return AudioGoLiveScreen(
           isHost: isHost,
           roomId: roomId,
           numberOfSeats: numberOfSeats,
           roomTitle: roomTitle,
-          // Pass the complete room data
-          roomDetails: roomDetails,
         );
       },
     ),

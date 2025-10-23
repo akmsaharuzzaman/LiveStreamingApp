@@ -214,6 +214,44 @@ class AudioRoomDetails {
     json['duration'] = duration;
     return json;
   }
+
+  AudioRoomDetails copyWith({
+    String? roomId,
+    int? numberOfSeats,
+    String? title,
+    AudioMember? hostDetails,
+    PremiumSeat? premiumSeat,
+    SeatsData? seatsData,
+    List<String>? members,
+    List<AudioMember>? membersDetails,
+    List<AudioChatModel>? messages,
+    int? hostGifts,
+    int? hostBonus,
+    List<dynamic>? bannedUsers,
+    List<dynamic>? mutedUsers,
+    List<Ranking>? ranking,
+    int? duration,
+    String? createdAt,
+  }) {
+    return AudioRoomDetails(
+      roomId: roomId ?? this.roomId,
+      numberOfSeats: numberOfSeats ?? this.numberOfSeats,
+      title: title ?? this.title,
+      hostDetails: hostDetails ?? this.hostDetails,
+      premiumSeat: premiumSeat ?? this.premiumSeat,
+      seatsData: seatsData ?? this.seatsData,
+      members: members ?? this.members,
+      membersDetails: membersDetails ?? this.membersDetails,
+      messages: messages ?? this.messages,
+      hostGifts: hostGifts ?? this.hostGifts,
+      hostBonus: hostBonus ?? this.hostBonus,
+      bannedUsers: bannedUsers ?? this.bannedUsers,
+      mutedUsers: mutedUsers ?? this.mutedUsers,
+      ranking: ranking ?? this.ranking,
+      duration: duration ?? this.duration,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }
 
 class SeatsData {
@@ -238,6 +276,14 @@ class SeatsData {
       json[key] = value.toJson();
     });
     return json;
+  }
+
+  SeatsData copyWith({
+    Map<String, SeatInfo>? seats,
+  }) {
+    return SeatsData(
+      seats: seats ?? this.seats,
+    );
   }
 }
 

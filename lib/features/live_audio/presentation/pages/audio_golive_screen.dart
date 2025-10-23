@@ -18,7 +18,6 @@ import 'package:dlstarlive/features/live/presentation/component/menu_bottom_shee
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/auth/auth_bloc.dart';
-import '../../data/models/audio_room_details.dart';
 import '../../../live/presentation/component/end_stream_overlay.dart';
 import '../../../live/presentation/component/host_info.dart';
 import '../../../live/presentation/component/send_message_buttonsheet.dart';
@@ -35,15 +34,12 @@ class AudioGoLiveScreen extends StatefulWidget {
   final String roomId;
   final int numberOfSeats;
   final String roomTitle;
-  final AudioRoomDetails? roomDetails;
-
   const AudioGoLiveScreen({
     super.key,
     required this.isHost,
     required this.roomId,
     required this.numberOfSeats,
     required this.roomTitle,
-    this.roomDetails,
   });
 
   @override
@@ -98,14 +94,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     });
   }
 
-  @override
-  void didUpdateWidget(covariant AudioGoLiveScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.roomDetails != widget.roomDetails) {
-      _initializeBlocWithRoomData();
-      setState(() {});
-    }
-  }
 
   // void _refreshRoomData() {
   //   final currentState = context.read<AudioRoomBloc>().state;
@@ -120,7 +108,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   void _dispatchRoomEventsAfterConnection(BuildContext context) {
     _uiLog(
-      "🎯 Dispatching room events after connection - isHost: ${widget.isHost}, roomId: '${widget.roomId}', hasRoomData: ${widget.roomDetails != null}, uid: $userId",
+      "🎯 Dispatching room events after connection - isHost: ${widget.isHost}, roomId: '${widget.roomId}', uid: $userId",
     );
 
     if (widget.isHost) {
@@ -130,42 +118,15 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       _uiLog("Room ID: ${widget.roomId}");
 
       context.read<AudioRoomBloc>().add(
-        CreateRoomEvent(roomId: widget.roomId, roomTitle: widget.roomTitle, numberOfSeats: widget.numberOfSeats),
-      );
+            CreateRoomEvent(roomId: widget.roomId, roomTitle: widget.roomTitle, numberOfSeats: widget.numberOfSeats),
+          );
     } else {
       // Join room
       _uiLog("🔗 Joining room without initial data: ${widget.roomId}");
       context.read<AudioRoomBloc>().add(JoinRoomEvent(roomId: widget.roomId));
     }
-    // After joining room, we have room data, initialize with it
-    _initializeBlocWithRoomData();
   }
 
-  // Add room data initialization logic like the original
-  void _initializeBlocWithRoomData() {
-    _uiLog("🎯 _initializeFromRoomData called - widget.roomData is null?: ${widget.roomDetails == null}");
-    if (widget.roomDetails != null && widget.roomId.isNotEmpty) {
-      final roomData = widget.roomDetails!;
-      _uiLog(
-        "📦 Initializing with room data - Host: ${roomData.hostDetails.name}, Members: ${roomData.membersDetails.length}, RoomId: ${roomData.roomId}",
-      );
-
-      // Determine if current user is the host
-      final isHost = roomData.hostDetails.id == widget.roomId;
-      if (isHost) {
-        _uiLog("👑 User is the host of this room");
-      } else {
-        _uiLog("👤 User is joining as viewer");
-      }
-
-      // Initialize Bloc with existing room data
-      context.read<AudioRoomBloc>().add(InitializeWithRoomDataEvent(roomData: roomData, isHost: isHost));
-
-      _uiLog("✅ Successfully initialized from existing room data");
-    } else {
-      _uiLog("❌ No room data available to initialize from");
-    }
-  }
 
   void _connectToAudioSocket() {
     if (widget.roomId.isNotEmpty) {
@@ -184,11 +145,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       setState(() {
         userId = uid;
       });
-
-      // Initialize from room data after userId is set (only for joining existing rooms)
-      if (widget.roomDetails != null) {
-        _initializeBlocWithRoomData();
-      }
 
       // Connect to socket via Bloc
       _connectToAudioSocket();
@@ -411,9 +367,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     return "$hours:$minutes:$seconds";
   }
 
-  void _playAnimation({String? animationUrl, String? title, String? subtitle}) {
-    context.read<AudioRoomBloc>().add(PlayAnimationEvent(animationUrl: animationUrl, title: title, subtitle: subtitle));
-  }
 
   // End live stream
   void _endLiveStream() async {
@@ -549,20 +502,10 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               }
             });
           }
+        } else if (state is AudioRoomLoaded && state.bannedUsers.contains(userId)) {
+          _handleHostDisconnection('You have been banned from this room.');
         } else if (state is AudioRoomClosed) {
           _handleHostDisconnection(state.reason ?? 'Room ended');
-        } else if (state is UserBanned) {
-          if (state.targetId == userId) {
-            _handleHostDisconnection('You have been banned from this room.');
-          }
-        } else if (state is MessageReceived) {
-          // Handle special messages like entry animations
-          final message = state.message;
-          final String normalizedMessage = message.text.trim().toLowerCase();
-          final dynamic entryAnimation = message.equipedStoreItems?['entry'];
-          if (normalizedMessage == 'joined the room' && entryAnimation is String && entryAnimation.isNotEmpty) {
-            _playAnimation(animationUrl: entryAnimation, title: '${message.name} joined the room');
-          }
         } else if (state is AudioRoomError) {
           _showSnackBar('❌ ${state.message}', Colors.red);
         } else if (state is AnimationPlaying) {
@@ -677,18 +620,18 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   )
                 else
                   HostInfo(
-                    imageUrl: widget.roomDetails?.hostDetails.avatar ?? "https://thispersondoesnotexist.com/",
-                    name: widget.roomDetails?.hostDetails.name ?? "Host",
-                    id: widget.roomDetails?.hostDetails.id ?? "",
-                    hostUserId: widget.roomDetails?.hostDetails.id ?? "",
+                    imageUrl: roomState.roomData?.hostDetails.avatar ?? "https://thispersondoesnotexist.com/",
+                    name: roomState.roomData?.hostDetails.name ?? "Host",
+                    id: roomState.roomData?.hostDetails.id ?? "",
+                    hostUserId: roomState.roomData?.hostDetails.id ?? "",
                     currentUserId: authState.user.id,
                   ),
                 Spacer(),
                 JoindListenersPage(
                   activeUserList: roomState.listeners,
-                  hostUserId: roomState.isHost ? userId : widget.roomDetails?.hostDetails.id,
-                  hostName: roomState.isHost ? authState.user.name : widget.roomDetails?.hostDetails.name,
-                  hostAvatar: roomState.isHost ? authState.user.avatar : widget.roomDetails?.hostDetails.avatar,
+                  hostUserId: roomState.roomData?.hostDetails.id,
+                  hostName: roomState.roomData?.hostDetails.name,
+                  hostAvatar: roomState.roomData?.hostDetails.avatar,
                 ),
                 // Leave button
                 (roomState.isHost)

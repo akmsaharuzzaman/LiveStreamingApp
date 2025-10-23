@@ -128,85 +128,6 @@ class AudioRoomLoaded extends AudioRoomState {
       ];
 }
 
-/// Room created state
-class AudioRoomCreated extends AudioRoomState {
-  final AudioRoomDetails roomData;
-  final String roomId;
-
-  const AudioRoomCreated({
-    required this.roomData,
-    required this.roomId,
-  });
-
-  @override
-  List<Object?> get props => [roomData, roomId];
-}
-
-/// Room joined state
-class AudioRoomJoined extends AudioRoomState {
-  final AudioRoomDetails roomData;
-  final String roomId;
-
-  const AudioRoomJoined({
-    required this.roomData,
-    required this.roomId,
-  });
-
-  @override
-  List<Object?> get props => [roomData, roomId];
-}
-
-/// Seat operations states
-class SeatJoined extends AudioRoomState {
-  final String seatKey;
-  final AudioMember? member;
-
-  const SeatJoined({
-    required this.seatKey,
-    this.member,
-  });
-
-  @override
-  List<Object?> get props => [seatKey, member];
-}
-
-class SeatLeft extends AudioRoomState {
-  final String seatKey;
-
-  const SeatLeft({required this.seatKey});
-
-  @override
-  List<Object?> get props => [seatKey];
-}
-
-/// Chat message state
-class MessageReceived extends AudioRoomState {
-  final AudioChatModel message;
-
-  const MessageReceived({required this.message});
-
-  @override
-  List<Object?> get props => [message];
-}
-
-/// User management states
-class UserBanned extends AudioRoomState {
-  final String targetId;
-
-  const UserBanned({required this.targetId});
-
-  @override
-  List<Object?> get props => [targetId];
-}
-
-class UserMuted extends AudioRoomState {
-  final String targetId;
-
-  const UserMuted({required this.targetId});
-
-  @override
-  List<Object?> get props => [targetId];
-}
 
 /// Room closed state
 class AudioRoomClosed extends AudioRoomState {
@@ -218,10 +139,6 @@ class AudioRoomClosed extends AudioRoomState {
   List<Object?> get props => [reason];
 }
 
-/// Agora states
-class AgoraInitialized extends AudioRoomState {}
-
-class AgoraChannelJoined extends AudioRoomState {}
 
 /// Animation state
 class AnimationPlaying extends AudioRoomState {

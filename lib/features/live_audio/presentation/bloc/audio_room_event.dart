@@ -181,9 +181,6 @@ class MuteUnmuteUserEvent extends AudioRoomEvent {
 }
 
 /// Agora/Stream Events
-class InitializeAgoraEvent extends AudioRoomEvent {}
-
-class JoinAgoraChannelEvent extends AudioRoomEvent {}
 
 class ToggleMuteEvent extends AudioRoomEvent {}
 
