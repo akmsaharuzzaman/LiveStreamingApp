@@ -15,6 +15,7 @@ import 'package:dlstarlive/features/live/presentation/component/agora_token_serv
 import 'package:dlstarlive/features/live/presentation/component/custom_live_button.dart';
 import 'package:dlstarlive/features/live/presentation/component/game_bottomsheet.dart';
 import 'package:dlstarlive/features/live/presentation/component/menu_bottom_sheet.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/auth/auth_bloc.dart';
 import '../../data/models/audio_room_details.dart';
@@ -62,6 +63,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   late final AudioRoomBloc _audioRoomBloc;
   late final AuthBloc _authBloc;
   Timer? _reconnectTimer;
+  bool _isAgoraInitialized = false;
+  bool _hasJoinedChannel = false;
 
   // UI Log
   void _uiLog(String message) {
@@ -73,8 +76,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   @override
   void initState() {
     super.initState();
-    _audioRoomBloc = context.read<AudioRoomBloc>();
     _authBloc = context.read<AuthBloc>();
+    _audioRoomBloc = context.read<AudioRoomBloc>();
 
     // Get user ID from auth state
     final authState = _authBloc.state;
@@ -187,12 +190,10 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         _initializeBlocWithRoomData();
       }
 
-      // Initialize Agora
-      await initAudioAgora();
-
       // Connect to socket via Bloc
-      if (!mounted) return;
       _connectToAudioSocket();
+
+      // Socket connection is handled by the BlocListener, which will then trigger Agora initialization.
     }
   }
 
@@ -213,6 +214,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       _engine = createAgoraRtcEngine();
       await _engine.initialize(
         RtcEngineContext(
+          logConfig: LogConfig(filePath: 'agora_rtc_engine.log', level: LogLevel.logLevelNone),
           appId: dotenv.env['AGORA_APP_ID'] ?? '',
           channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
         ),
@@ -230,6 +232,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       await _engine.disableVideo();
 
       // Register event handlers
+      _isAgoraInitialized = true;
+      _uiLog("✅ Agora engine initialized successfully");
+
       _engine.registerEventHandler(
         RtcEngineEventHandler(
           onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
@@ -252,15 +257,15 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                 int elapsed,
               ) {
                 // Handle audio state changes if needed
+                _uiLog("Remote audio state changed for user $remoteUid: $state");
               },
         ),
       );
 
-      // Join channel if not host (host joins after room creation)
-      final currentState = context.read<AudioRoomBloc>().state;
-      if (currentState is AudioRoomLoaded && !currentState.isHost && currentState.currentRoomId != null) {
-        await _joinAudioChannelWithDynamicToken(currentState.currentRoomId!);
-      }
+      await _engine.setClientRole(
+        role: isHost ? ClientRoleType.clientRoleBroadcaster : ClientRoleType.clientRoleAudience,
+      );
+
     } catch (e) {
       _uiLog('❌ Error initializing Agora: $e');
       _showSnackBar('❌ Failed to initialize Agora', Colors.red);
@@ -269,6 +274,15 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
   // Generate token and join channel
   Future<void> _joinAudioChannelWithDynamicToken(String roomId) async {
+    if (_hasJoinedChannel) {
+      _uiLog("⚠️ Already joined channel, skipping...");
+      return;
+    }
+    // Ensure Agora is initialized before joining
+    if (!_isAgoraInitialized) {
+      _uiLog("⚠️ Agora not initialized. Initializing now...");
+      await initAudioAgora();
+    }
     // Validate roomId before attempting to join
     if (roomId.isEmpty) {
       _uiLog("❌ Cannot join Agora channel with empty roomId");
@@ -291,10 +305,15 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         channelName: roomId,
         role: isHost ? 'publisher' : 'subscriber',
       );
-
+      _uiLog("✅ Token generated successfully : ${result.token}");
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('audio_agora_token', result.token);
       if (result.token.isNotEmpty) {
+        final dynamicToken = result.token;
+        _uiLog("✅ Token generated successfully : $dynamicToken");
+        _showSnackBar('📡 Joining live stream...', Colors.blue);
         await _engine.joinChannel(
-          token: result.token,
+          token: dynamicToken,
           channelId: roomId,
           uid: 0,
           options: ChannelMediaOptions(
@@ -307,15 +326,33 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
             autoSubscribeVideo: false, // Don't subscribe to video
           ),
         );
+        _hasJoinedChannel = true;
         _uiLog("✅ Successfully joined Agora channel: $roomId");
       } else {
-        _uiLog("❌ Failed to get Agora token for roomId: $roomId");
+        _uiLog("❌ Failed to get Agora token $result");
         _showSnackBar('❌ Failed to get Agora token', Colors.red);
+        // Fallback to static token
+        await _joinAudioChannelWithStaticToken();
       }
     } catch (e) {
       _uiLog('❌ Error joining Agora channel: $e');
+      _hasJoinedChannel = false; // Reset on error to allow retry
       _showSnackBar('❌ Error joining Agora channel', Colors.red);
+      // Fallback to static token
+      await _joinAudioChannelWithStaticToken();
     }
+  }
+
+  Future<void> _joinAudioChannelWithStaticToken() async {
+    _uiLog("🎯 Joining Agora channel with static token");
+    await _engine.joinChannel(
+      token: dotenv.env['AGORA_TOKEN'] ?? '',
+      channelId: dotenv.env['DEFAULT_CHANNEL'] ?? 'default_channel',
+      uid: 0,
+      options: const ChannelMediaOptions(),
+    );
+    _uiLog("✅ Successfully joined Agora channel: ${dotenv.env['DEFAULT_CHANNEL']}");
+    _showSnackBar('📡 Joining live stream...', Colors.blue);
   }
 
   /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -399,6 +436,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       await _engine.leaveChannel().then((value) {
         _uiLog("✅ Successfully left Agora channel");
       });
+
+      _hasJoinedChannel = false; // Reset channel joined flag
 
       // Reset Bloc state for next room creation/joining
       _resetBlocState();
@@ -498,15 +537,18 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           _showSnackBar('❌ ${state.message}', Colors.red);
         }
 
-        if (state is AudioRoomLoaded && state.currentRoomId != null) {
-          // Join Agora channel when room is loaded and we have a room ID
-          if (state.isHost) {
-            // Host joins immediately
-            _joinAudioChannelWithDynamicToken(state.currentRoomId!);
-          }
+        if (state is AudioRoomLoaded && state.currentRoomId != null && !_hasJoinedChannel) {
+          // Join Agora channel only if we haven't joined already.
+          _joinAudioChannelWithDynamicToken(state.currentRoomId!);
         } else if (state is AudioRoomConnected) {
-          // Socket connected, now we can dispatch room events
-          _dispatchRoomEventsAfterConnection(context);
+          // Socket connected, initialize Agora, then dispatch room events.
+          if (!_isAgoraInitialized) {
+            initAudioAgora().then((_) {
+              if (mounted && _isAgoraInitialized) {
+                _dispatchRoomEventsAfterConnection(context);
+              }
+            });
+          }
         } else if (state is AudioRoomClosed) {
           _handleHostDisconnection(state.reason ?? 'Room ended');
         } else if (state is UserBanned) {
