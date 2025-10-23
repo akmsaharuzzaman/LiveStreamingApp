@@ -396,7 +396,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         }
       }
       // Close Agora
-      await _engine.leaveChannel();
+      await _engine.leaveChannel().then((value) {
+        _uiLog("✅ Successfully left Agora channel");
+      });
 
       // Reset Bloc state for next room creation/joining
       _resetBlocState();
