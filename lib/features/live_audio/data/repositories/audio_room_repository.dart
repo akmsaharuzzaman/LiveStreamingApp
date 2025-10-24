@@ -9,20 +9,6 @@ import '../../service/socket_service_audio.dart';
 @injectable
 class AudioRoomRepository {
   final AudioSocketService _socketService;
-  StreamSubscription? _connectionSubscription;
-  StreamSubscription? _roomDetailsSubscription;
-  StreamSubscription? _createRoomSubscription;
-  StreamSubscription? _joinRoomSubscription;
-  StreamSubscription? _leaveRoomSubscription;
-  StreamSubscription? _userLeftSubscription;
-  StreamSubscription? _joinSeatSubscription;
-  StreamSubscription? _leaveSeatSubscription;
-  StreamSubscription? _sendMessageSubscription;
-  StreamSubscription? _banUserSubscription;
-  StreamSubscription? _muteUserSubscription;
-  StreamSubscription? _closeRoomSubscription;
-  StreamSubscription? _errorSubscription;
-
   AudioRoomRepository(this._socketService);
 
   /// Connection status stream
@@ -86,8 +72,7 @@ class AudioRoomRepository {
       _socketService.removeFromSeat(roomId: roomId, seatKey: seatKey, targetId: targetId);
 
   /// Chat operations
-  Future<bool> sendMessage(String roomId, String message) =>
-      _socketService.sendMessage(roomId, message);
+  Future<bool> sendMessage(String roomId, String message) => _socketService.sendMessage(roomId, message);
 
   /// User operations
   Future<bool> banUser(String userId) => _socketService.banUser(userId);
@@ -96,20 +81,6 @@ class AudioRoomRepository {
 
   /// Dispose all subscriptions
   void dispose() {
-    _connectionSubscription?.cancel();
-    _roomDetailsSubscription?.cancel();
-    _createRoomSubscription?.cancel();
-    _joinRoomSubscription?.cancel();
-    _leaveRoomSubscription?.cancel();
-    _userLeftSubscription?.cancel();
-    _joinSeatSubscription?.cancel();
-    _leaveSeatSubscription?.cancel();
-    _sendMessageSubscription?.cancel();
-    _banUserSubscription?.cancel();
-    _muteUserSubscription?.cancel();
-    _closeRoomSubscription?.cancel();
-    _errorSubscription?.cancel();
-
     _socketService.dispose();
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:dlstarlive/features/live/presentation/widgets/animated_layer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -94,7 +95,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     });
   }
 
-
   // void _refreshRoomData() {
   //   final currentState = context.read<AudioRoomBloc>().state;
   //   if (currentState is AudioRoomLoaded && currentState.currentRoomId != null) {
@@ -118,15 +118,14 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       _uiLog("Room ID: ${widget.roomId}");
 
       context.read<AudioRoomBloc>().add(
-            CreateRoomEvent(roomId: widget.roomId, roomTitle: widget.roomTitle, numberOfSeats: widget.numberOfSeats),
-          );
+        CreateRoomEvent(roomId: widget.roomId, roomTitle: widget.roomTitle, numberOfSeats: widget.numberOfSeats),
+      );
     } else {
       // Join room
       _uiLog("🔗 Joining room without initial data: ${widget.roomId}");
       context.read<AudioRoomBloc>().add(JoinRoomEvent(roomId: widget.roomId));
     }
   }
-
 
   void _connectToAudioSocket() {
     if (widget.roomId.isNotEmpty) {
@@ -221,7 +220,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       await _engine.setClientRole(
         role: isHost ? ClientRoleType.clientRoleBroadcaster : ClientRoleType.clientRoleAudience,
       );
-
     } catch (e) {
       _uiLog('❌ Error initializing Agora: $e');
       _showSnackBar('❌ Failed to initialize Agora', Colors.red);
@@ -267,7 +265,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       if (result.token.isNotEmpty) {
         final dynamicToken = result.token;
         _uiLog("✅ Token generated successfully : $dynamicToken");
-        _showSnackBar('📡 Joining live stream...', Colors.blue);
+        // _showSnackBar('📡 Joining live stream...', Colors.blue);
         await _engine.joinChannel(
           token: dynamicToken,
           channelId: roomId,
@@ -308,7 +306,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       options: const ChannelMediaOptions(),
     );
     _uiLog("✅ Successfully joined Agora channel: ${dotenv.env['DEFAULT_CHANNEL']}");
-    _showSnackBar('📡 Joining live stream...', Colors.blue);
+    // _showSnackBar('📡 Joining live stream...', Colors.blue);
   }
 
   /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -366,7 +364,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     String seconds = twoDigits(duration.inSeconds.remainder(60));
     return "$hours:$minutes:$seconds";
   }
-
 
   // End live stream
   void _endLiveStream() async {
@@ -485,6 +482,28 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           return;
         }
 
+        if (state is AudioRoomLoaded) {
+          _uiLog("✅ Room loaded: ${jsonEncode(state.roomData)}");
+          if (state.roomData?.seatsData == null) return;
+          final seatsData = state.roomData!.seatsData;
+          _uiLog("✅ SeatsData: ${jsonEncode(seatsData)}");
+          if (seatsData.seats != null) {
+            _uiLog("✅ Seats: ${jsonEncode(seatsData.seats)}");
+          }
+          final seatKey = seatsData.seats?.keys.first;
+          if (seatKey != null) {
+            _uiLog("✅ Seat key: $seatKey");
+          }
+          final seatInfo = seatsData.seats?.values.first;
+          if (seatInfo != null) {
+            _uiLog("✅ Seat info: ${jsonEncode(seatInfo)}");
+          }
+          final seatMember = seatInfo?.member;
+          if (seatMember != null) {
+            _uiLog("✅ Seat member: ${jsonEncode(seatMember)}");
+          }
+        }
+
         // Now your existing code is safe to run
         if (state is AudioRoomError) {
           _showSnackBar('❌ ${state.message}', Colors.red);
@@ -529,60 +548,64 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               } else {
                 return BlocBuilder<AudioRoomBloc, AudioRoomState>(
                   builder: (context, roomState) {
-                    if (roomState is AudioRoomInitial || roomState is AudioRoomLoading) {
+                    if (roomState is AudioRoomError) {
+                      return Center(child: Text('Failed to load audio room'));
+                    } else if (roomState is AudioRoomClosed) {
+                      return Center(child: Text('Room closed'));
+                    } else if (roomState is AudioRoomInitial || roomState is AudioRoomLoading) {
                       return const Center(child: CircularProgressIndicator());
-                    } else if (roomState is AudioRoomLoaded) {
-                      return Stack(
-                        children: [
-                          // Background
-                          Container(
-                            decoration: BoxDecoration(
-                              image: DecorationImage(
-                                image: AssetImage("assets/icons/audio_room/audio_room_background.png"),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-
-                          // Main content with seats grid
-                          Column(
-                            children: [
-                              SizedBox(height: 160.h), // Space for top bar
-                              SeatWidget(
-                                numberOfSeats: widget.numberOfSeats,
-                                currentUserId: userId,
-                                currentUserName: authState.user.name,
-                                currentUserAvatar: authState.user.avatar,
-                                hostDetails: roomState.roomData?.hostDetails,
-                                premiumSeat: roomState.roomData?.premiumSeat,
-                                seatsData: roomState.roomData?.seatsData,
-                                onTakeSeat: _takeSeat,
-                                onLeaveSeat: _leaveSeat,
-                                isHost: roomState.isHost,
-                              ),
-                              Spacer(),
-                            ],
-                          ),
-
-                          // Individual UI components (not blocking the entire screen)
-                          _buildTopBar(authState, roomState),
-                          _buildChatWidget(roomState),
-                          _buildBottomButtons(authState, roomState),
-
-                          // Animation layer
-                          if (roomState.animationPlaying)
-                            AnimatedLayer(
-                              gifts: [], // sentGifts,
-                              customAnimationUrl: roomState.animationUrl,
-                              customTitle: roomState.animationTitle,
-                              customSubtitle: roomState.animationSubtitle,
-                            ),
-                        ],
-                      );
                     } else {
-                      return Center(
-                        child: Text('Failed to load audio room', style: TextStyle(fontSize: 18.sp)),
-                      );
+                      if (roomState is AudioRoomLoaded) {
+                        return Stack(
+                          children: [
+                            // Background
+                            Container(
+                              decoration: BoxDecoration(
+                                image: DecorationImage(
+                                  image: AssetImage("assets/icons/audio_room/audio_room_background.png"),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+
+                            // Main content with seats grid
+                            Column(
+                              children: [
+                                SizedBox(height: 160.h), // Space for top bar
+                                SeatWidget(
+                                  numberOfSeats: widget.numberOfSeats,
+                                  currentUserId: userId,
+                                  currentUserName: authState.user.name,
+                                  currentUserAvatar: authState.user.avatar,
+                                  hostDetails: roomState.roomData?.hostDetails,
+                                  premiumSeat: roomState.roomData?.premiumSeat,
+                                  seatsData: roomState.roomData?.seatsData,
+                                  onTakeSeat: _takeSeat,
+                                  onLeaveSeat: _leaveSeat,
+                                  isHost: roomState.isHost,
+                                ),
+                                Spacer(),
+                              ],
+                            ),
+
+                            // Individual UI components (not blocking the entire screen)
+                            _buildTopBar(authState, roomState),
+                            _buildChatWidget(roomState),
+                            _buildBottomButtons(authState, roomState),
+
+                            // Animation layer
+                            if (roomState.animationPlaying)
+                              AnimatedLayer(
+                                gifts: [], // sentGifts,
+                                customAnimationUrl: roomState.animationUrl,
+                                customTitle: roomState.animationTitle,
+                                customSubtitle: roomState.animationSubtitle,
+                              ),
+                          ],
+                        );
+                      } else {
+                        return const Center(child: CircularProgressIndicator());
+                      }
                     }
                   },
                 );

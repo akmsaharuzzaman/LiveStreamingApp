@@ -16,17 +16,22 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
 
   // Stream subscriptions
   StreamSubscription? _connectionSubscription;
+  // Room events
   StreamSubscription? _roomDetailsSubscription;
   StreamSubscription? _createRoomSubscription;
   StreamSubscription? _joinRoomSubscription;
   StreamSubscription? _leaveRoomSubscription;
   StreamSubscription? _userLeftSubscription;
+  // Seat events
   StreamSubscription? _joinSeatSubscription;
   StreamSubscription? _leaveSeatSubscription;
+  // Chat events
   StreamSubscription? _sendMessageSubscription;
+  // User management events
   StreamSubscription? _banUserSubscription;
   StreamSubscription? _muteUserSubscription;
   StreamSubscription? _closeRoomSubscription;
+  // Error handling
   StreamSubscription? _errorSubscription;
 
   // Timers
@@ -266,55 +271,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
       "🎯 Bloc: Creating room - roomId: ${event.roomId}, title: ${event.roomTitle}, seats: ${event.numberOfSeats}",
     );
 
-    // emit AudioRoomLoaded
-    try {
-      // Emit AudioRoomLoaded IMMEDIATELY with the roomId
-      // This ensures UI shows room instantly with the correct roomId
-      debugPrint("✅ Bloc: Emitting immediate AudioRoomLoaded for room creation");
-      final roomLoadedState = AudioRoomLoaded(
-        roomData: AudioRoomDetails(
-          roomId: event.roomId,
-          title: event.roomTitle ?? 'Audio Room',
-          numberOfSeats: event.numberOfSeats,
-          hostGifts: 0,
-          hostBonus: 0,
-          hostDetails: AudioMember(
-            name: 'Host',
-            avatar: '',
-            uid: '',
-            id: event.roomId, // Use roomId as host id for now
-            currentLevel: 0,
-            equipedStoreItems: null,
-            totalGiftSent: 0,
-            isMuted: false,
-          ),
-          premiumSeat: PremiumSeat(member: null, available: true),
-          seatsData: SeatsData(seats: {}),
-          messages: [],
-          createdAt: DateTime.now().toIso8601String(),
-          bannedUsers: [],
-          members: [],
-          membersDetails: [],
-          mutedUsers: [],
-          ranking: [],
-          duration: 0,
-        ),
-        currentRoomId: event.roomId, // CRITICAL: roomId available immediately
-        isHost: true,
-        isConnected: true,
-        streamStartTime: DateTime.now(),
-        listeners: [],
-        chatMessages: [],
-      );
-      debugPrint("✅ Bloc: Created AudioRoomLoaded state, emitting...");
-      emit(roomLoadedState);
-      debugPrint("✅ Bloc: Successfully emitted AudioRoomLoaded for room creation");
-    } catch (e, stackTrace) {
-      debugPrint("❌ Bloc: Failed to emit AudioRoomLoaded: $e");
-      debugPrint("❌ Bloc: Stack trace: $stackTrace");
-      emit(const AudioRoomError(message: 'Failed to create room state'));
-      return;
-    }
+    emit(AudioRoomLoading());
 
     // Now make the async API call - UI already shows room
     try {
@@ -331,6 +288,24 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
         final joinSuccess = await _repository.joinRoom(event.roomId);
         debugPrint("🎯 Bloc: Room join result after failed creation - success: $joinSuccess");
         emit(const AudioRoomError(message: 'Failed to create room state'));
+      } else {
+        debugPrint("🎯 Bloc: Room created successfully");
+        // get room details
+        final roomDetails = await _repository.getRoomDetails(event.roomId);
+        debugPrint("🎯 Bloc: Room details: $roomDetails");
+        if (roomDetails != null) {
+          emit(
+            AudioRoomLoaded(
+              roomData: roomDetails,
+              currentRoomId: event.roomId,
+              isHost: true,
+              isConnected: true,
+              listeners: [],
+              chatMessages: [],
+            ),
+          );
+        }
+        debugPrint("🎯 Bloc: Room loaded successfully");
       }
     } catch (e) {
       debugPrint("❌ Bloc: Room creation/join error: $e");
@@ -423,8 +398,6 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     await _repository.muteUnmuteUser(event.userId);
   }
 
-
-
   void _onToggleMute(ToggleMuteEvent event, Emitter<AudioRoomState> emit) {
     if (state is AudioRoomLoaded) {
       final currentState = state as AudioRoomLoaded;
@@ -497,12 +470,14 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
       final String normalizedMessage = message.text.trim().toLowerCase();
       final dynamic entryAnimation = message.equipedStoreItems?['entry'];
       if (normalizedMessage == 'joined the room' && entryAnimation is String && entryAnimation.isNotEmpty) {
-        emit(currentState.copyWith(
-          chatMessages: updatedMessages,
-          animationPlaying: true,
-          animationUrl: entryAnimation,
-          animationTitle: '${message.name} joined the room',
-        ));
+        emit(
+          currentState.copyWith(
+            chatMessages: updatedMessages,
+            animationPlaying: true,
+            animationUrl: entryAnimation,
+            animationTitle: '${message.name} joined the room',
+          ),
+        );
       } else {
         emit(currentState.copyWith(chatMessages: updatedMessages));
       }
@@ -540,7 +515,10 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   void _onSeatJoined(SeatJoinedEvent event, Emitter<AudioRoomState> emit) {
     if (state is AudioRoomLoaded) {
       final currentState = state as AudioRoomLoaded;
-      if (currentState.roomData?.seatsData == null) return;
+      if (currentState.roomData?.seatsData == null) {
+        debugPrint("❌ Socket: Received null seatsData in seat joined response, ignoring update");
+        return;
+      }
       final newSeats = Map<String, SeatInfo>.from(currentState.roomData!.seatsData.seats ?? {});
       newSeats[event.seatKey] = SeatInfo(member: event.member, available: false);
       final newRoomData = currentState.roomData!.copyWith(
@@ -553,7 +531,10 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   void _onSeatLeft(SeatLeftEvent event, Emitter<AudioRoomState> emit) {
     if (state is AudioRoomLoaded) {
       final currentState = state as AudioRoomLoaded;
-      if (currentState.roomData?.seatsData == null) return;
+      if (currentState.roomData?.seatsData == null) {
+        debugPrint("❌ Socket: Received null seatsData in seat left response, ignoring update");
+        return;
+      }
       final newSeats = Map<String, SeatInfo>.from(currentState.roomData!.seatsData.seats ?? {});
       newSeats[event.seatKey] = SeatInfo(member: null, available: true);
       final newRoomData = currentState.roomData!.copyWith(
