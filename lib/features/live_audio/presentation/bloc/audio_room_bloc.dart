@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:dlstarlive/features/live_audio/data/models/audio_member_model.dart';
+import 'package:dlstarlive/features/live_audio/data/models/joined_seat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
@@ -569,28 +571,26 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     }
   }
 
-  void _handleSeatJoined(dynamic data) {
+  void _handleSeatJoined(JoinedSeatModel seatData) {
+    debugPrint('🪑 Join seat Bloc response: ${jsonEncode(seatData)}');
     // Update room data with new seat occupant
-    if (state is AudioRoomLoaded && data is Map<String, dynamic>) {
-      final seatData = data['data'];
-      if (seatData != null && seatData['seatKey'] != null) {
+    if (state is AudioRoomLoaded) {
+      if (seatData.seatKey != null) {
         add(
           SeatJoinedEvent(
-            seatKey: seatData['seatKey'],
-            member: seatData['member'] != null ? AudioMember.fromJson(seatData['member']) : null,
+            seatKey: seatData.seatKey!,
+            member: seatData.member!,
           ),
         );
       }
     }
   }
 
-  void _handleSeatLeft(dynamic data) {
+  void _handleSeatLeft(JoinedSeatModel seatData) {
+    debugPrint('🪑 Leave seat Bloc response: ${jsonEncode(seatData)}');
     // Update room data to remove seat occupant
-    if (data is Map<String, dynamic> && data['data'] != null) {
-      final seatData = data['data'];
-      if (seatData['seatKey'] != null) {
-        add(SeatLeftEvent(seatKey: seatData['seatKey']));
-      }
+    if (seatData.seatKey != null) {
+      add(SeatLeftEvent(seatKey: seatData.seatKey!));
     }
   }
 
