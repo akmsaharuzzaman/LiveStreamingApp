@@ -1,9 +1,12 @@
+import 'package:dlstarlive/features/live_audio/presentation/bloc/audio_room_bloc.dart';
+import 'package:dlstarlive/features/live_audio/service/socket_service_audio.dart';
 import 'package:dlstarlive/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/wakelock_service.dart';
 import 'injection/injection.dart';
@@ -46,9 +49,9 @@ class MyApp extends StatelessWidget {
           providers: [
             BlocProvider<AuthBloc>(create: (context) => getIt<AuthBloc>()),
             BlocProvider<ChatBloc>(create: (context) => getIt<ChatBloc>()),
-            BlocProvider<ChatDetailBloc>(
-              create: (context) => getIt<ChatDetailBloc>(),
-            ),
+            BlocProvider<ChatDetailBloc>(create: (context) => getIt<ChatDetailBloc>()),
+            Provider<AudioSocketService>(create: (context) => getIt<AudioSocketService>()),
+            BlocProvider<AudioRoomBloc>(create: (context) => getIt<AudioRoomBloc>()),
           ],
           child: MaterialApp.router(
             title: 'DL Star',

@@ -126,9 +126,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
   Timer? _hostActivityTimer;
   DateTime? _lastHostActivity;
   bool _animationPlaying = false;
-  String? _customAnimationUrl;
-  String? _customAnimationTitle;
-  String? _customAnimationSubtitle;
 
   // Stream subscriptions for proper cleanup
   StreamSubscription? _connectionStatusSubscription;
@@ -627,17 +624,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
             _chatMessages.removeAt(0);
           }
         });
-
-        final String normalizedMessage = data.text.trim().toLowerCase();
-        final dynamic entryAnimation = data.equipedStoreItems?['entry'];
-        if (normalizedMessage == 'joined the room' &&
-            entryAnimation is String &&
-            entryAnimation.isNotEmpty) {
-          _playAnimation(
-            animationUrl: entryAnimation,
-            title: '${data.name} joined the room',
-          );
-        }
       }
     });
 
@@ -1754,23 +1740,16 @@ class _GoliveScreenState extends State<GoliveScreen> {
     return "$hours:$minutes:$seconds";
   }
 
-  // Play animation for entry effects or gifts
-  void _playAnimation({String? animationUrl, String? title, String? subtitle}) {
+  // Play animation for two seconds
+  void _playAnimation() {
     setState(() {
-      _customAnimationUrl = animationUrl;
-      _customAnimationTitle = title;
-      _customAnimationSubtitle = subtitle;
       _animationPlaying = true;
     });
 
     // Stop the animation after inactivity timeout
-    Future.delayed(const Duration(seconds: 9), () {
-      if (!mounted) return;
+    Future.delayed(const Duration(seconds: _inactivityTimeoutSeconds), () {
       setState(() {
         _animationPlaying = false;
-        _customAnimationUrl = null;
-        _customAnimationTitle = null;
-        _customAnimationSubtitle = null;
       });
     });
   }
@@ -2040,13 +2019,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                 children: [
                   _buildVideoView(),
 
-                  if (_animationPlaying)
-                    AnimatedLayer(
-                      gifts: sentGifts,
-                      customAnimationUrl: _customAnimationUrl,
-                      customTitle: _customAnimationTitle,
-                      customSubtitle: _customAnimationSubtitle,
-                    ),
+                  if (_animationPlaying) AnimatedLayer(gifts: sentGifts),
 
                   // * This contaimer holds the livestream options,
                   SafeArea(

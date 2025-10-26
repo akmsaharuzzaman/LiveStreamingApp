@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
@@ -12,11 +11,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_carousel_widget/flutter_carousel_widget.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:go_router/go_router.dart';
 import '../../data/models/category_model.dart';
 import '../../data/models/user_model.dart';
 import '../widgets/custom_networkimage.dart';
 import '../widgets/touchable_opacity_widget.dart';
+import 'ListAudioList.dart';
+import 'ListLiveStram.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -25,8 +25,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage>
-    with SingleTickerProviderStateMixin {
+class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
   final SocketService _socketService = SocketService.instance;
   final GenericApiClient _genericApiClient = getIt<GenericApiClient>();
   List<GetRoomModel>? _availableRooms;
@@ -43,8 +42,15 @@ class _HomePageState extends State<HomePage>
   List<String> _bannerUrls = [];
   bool _isBannersLoading = true;
 
-  /// Initialize socket connection when entering live streaming page
-  Future<void> _initializeSocket() async {
+  void _log(String message) {
+    const cyan = '\x1B[36m';
+    const reset = '\x1B[0m';
+    debugPrint('\n$cyan[HOME_PAGE] - $reset $message\n');
+  }
+
+  /// Initialize video socket connection when entering live streaming page
+  /// Returns true if the video socket is connected successfully
+  Future<bool> _initializeVideoSocket() async {
     try {
       // Get user ID from AuthBloc instead of SharedPreferences
       final authBloc = context.read<AuthBloc>();
@@ -58,48 +64,57 @@ class _HomePageState extends State<HomePage>
       }
 
       if (userId == null || userId.isEmpty) {
-        debugPrint('User ID is null or empty, cannot connect to socket');
-        return;
+        _log('User ID is null or empty, cannot connect to socket');
+        return false;
       }
 
-      debugPrint('Connecting to socket with user ID: $userId');
-      final connected = await _socketService.connect(userId);
-
-      if (connected) {
-        _setupSocketListeners();
-        // Get list of available rooms
-        await _socketService.getRooms();
+      // Initialize video socket
+      _log('🔌 Connecting to video socket with user ID: $userId');
+      bool videoConnected = false;
+      if (!_socketService.isConnected) {
+        videoConnected = await _socketService.connect(userId);
+        if (videoConnected) {
+          _log('✅ Video socket connected successfully');
+          _setupSocketListeners();
+          // Get list of available rooms
+          await _socketService.getRooms();
+        } else {
+          _log('❌ Failed to connect to video server');
+        }
       } else {
-        debugPrint('Failed to connect to server');
+        _log('✅ Video socket already connected');
+        videoConnected = true;
       }
+
+      // Audio socket is now handled in ListAudioRooms widget
+
+      return videoConnected;
     } catch (e) {
-      debugPrint('Connection error: $e');
+      _log('❌ Connection error: $e');
+      return false;
     }
   }
 
   /// Setup socket event listeners
   void _setupSocketListeners() {
     // Connection status
-    debugPrint("Setting up socket listeners");
-    _connectionStatusSubscription = _socketService.connectionStatusStream
-        .listen((isConnected) {
-          if (mounted) {
-            if (isConnected) {
-              // _showSnackBar('✅ Connected to server', Colors.green);
-              debugPrint("Connected to server");
-            } else {
-              // _showSnackBar('❌ Disconnected from server', Colors.red);
-              debugPrint("Disconnected from server");
-            }
-          }
-        }); // Room list updates
+    _log("Setting up socket listeners");
+    _connectionStatusSubscription = _socketService.connectionStatusStream.listen((isConnected) {
+      if (mounted) {
+        if (isConnected) {
+          // _showSnackBar('✅ Connected to server', Colors.green);
+          _log("Connected to server");
+        } else {
+          // _showSnackBar('❌ Disconnected from server', Colors.red);
+          _log("Disconnected from server");
+        }
+      }
+    }); // Room list updates
     _getRoomListSubscription = _socketService.getRoomsStream.listen((rooms) {
       if (mounted) {
         setState(() {
           _availableRooms = rooms;
-          debugPrint(
-            "Available rooms: ${rooms.map((room) => room.roomId)} from Frontend",
-          );
+          // _log("Available rooms: ${rooms.map((room) => room.roomId)} from Frontend");
         });
       }
     });
@@ -108,17 +123,18 @@ class _HomePageState extends State<HomePage>
   /// Handle pull-to-refresh action
   Future<void> _handleRefresh() async {
     try {
-      debugPrint(
-        '🔄 Home page refresh triggered - fetching latest rooms and banners',
-      );
+      _log('🔄 Home page refresh triggered - fetching latest rooms and banners');
 
       // Refresh both rooms and banners simultaneously
       await Future.wait([
         // Check if socket is connected and get rooms
         () async {
           if (!_socketService.isConnected) {
-            debugPrint('Socket not connected, attempting to reconnect...');
-            await _initializeSocket();
+            _log('Socket not connected, attempting to reconnect...');
+            bool connected = await _initializeVideoSocket();
+            if (!connected) {
+              _log('⚠️ Failed to reconnect video socket during refresh');
+            }
           } else {
             // If already connected, just get the rooms
             await _socketService.getRooms();
@@ -131,7 +147,7 @@ class _HomePageState extends State<HomePage>
       // Add a small delay to ensure the refresh indicator shows
       await Future.delayed(const Duration(milliseconds: 500));
     } catch (e) {
-      debugPrint('Error during refresh: $e');
+      _log('Error during refresh: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -144,14 +160,14 @@ class _HomePageState extends State<HomePage>
     }
   }
 
+  // Audio-related functionality has been moved to ListAudioList.dart
+
   /// Fetch banner images from API
   Future<void> _fetchBanners() async {
     try {
-      debugPrint('🎨 Fetching banners from API');
+      _log('🎨 Fetching banners from API');
 
-      final response = await _genericApiClient.get<Map<String, dynamic>>(
-        '/api/admin/banners',
-      );
+      final response = await _genericApiClient.get<Map<String, dynamic>>('/api/admin/banners');
 
       if (response.isSuccess && response.data != null) {
         final data = response.data!;
@@ -166,7 +182,7 @@ class _HomePageState extends State<HomePage>
             });
           }
 
-          debugPrint('✅ Loaded ${urls.length} banners from API');
+          _log('✅ Loaded ${urls.length} banners from API');
         } else {
           throw Exception('API response indicates failure');
         }
@@ -174,14 +190,14 @@ class _HomePageState extends State<HomePage>
         throw Exception('Failed to get banners: ${response.message}');
       }
     } catch (e) {
-      debugPrint('❌ Error fetching banners: $e');
+      _log('❌ Error fetching banners: $e');
       // Use fallback banners if API fails
       if (mounted) {
         setState(() {
           _isBannersLoading = false;
         });
       }
-      debugPrint('🔄 Using fallback banners');
+      _log('🔄 Using fallback banners');
     }
   }
 
@@ -195,16 +211,23 @@ class _HomePageState extends State<HomePage>
     // Initialize tab controller with 4 tabs
     _tabController = TabController(length: 4, vsync: this);
 
-    _initializeSocket();
+    // Initialize video socket and fetch initial data
+    _initializeVideoSocket().then((connected) {
+      if (connected) {
+        _log('✅ Video socket connected successfully');
+      } else {
+        _log('⚠️ Video socket failed to connect');
+      }
+    });
+
     _fetchBanners(); // Fetch banners from API
 
     // Trigger refresh each time HomePage is created
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      debugPrint('🏠 HomePage created - triggering auto-refresh');
+      _log('🏠 HomePage created - triggering auto-refresh');
       _handleRefresh();
     });
 
-    // Removed duplicate _setupSocketListeners() call - it's already called in _initializeSocket()
     super.initState();
   }
 
@@ -218,7 +241,7 @@ class _HomePageState extends State<HomePage>
     // Dispose tab controller
     _tabController.dispose();
 
-    debugPrint("HomePage disposed - stream subscriptions canceled");
+    _log("HomePage disposed - all resources released");
     super.dispose();
   }
 
@@ -242,11 +265,7 @@ class _HomePageState extends State<HomePage>
         title: Row(
           children: [
             // Logo
-            SvgPicture.asset(
-              'assets/icons/dl_star_logo.svg',
-              height: 16,
-              width: 40,
-            ),
+            SvgPicture.asset('assets/icons/dl_star_logo.svg', height: 16, width: 40),
             SizedBox(width: 12.w),
             // Tab Bar
             Expanded(
@@ -256,19 +275,10 @@ class _HomePageState extends State<HomePage>
                   controller: _tabController,
                   labelColor: Colors.black,
                   unselectedLabelColor: Colors.black54,
-                  labelStyle: TextStyle(
-                    fontSize: 17.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  unselectedLabelStyle: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  labelStyle: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w600),
+                  unselectedLabelStyle: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w500),
                   indicator: const UnderlineTabIndicator(
-                    borderSide: BorderSide(
-                      width: 3.0,
-                      color: Color(0xFFFE82A7),
-                    ),
+                    borderSide: BorderSide(width: 3.0, color: Color(0xFFFE82A7)),
                     insets: EdgeInsets.symmetric(horizontal: 16.0),
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
@@ -277,7 +287,7 @@ class _HomePageState extends State<HomePage>
                   tabs: const [
                     Tab(text: 'Popular'),
                     Tab(text: 'Live'),
-                    Tab(text: 'Party'),
+                    Tab(text: 'Audio'),
                     Tab(text: 'PK'),
                   ],
                 ),
@@ -285,17 +295,9 @@ class _HomePageState extends State<HomePage>
             ),
             SizedBox(width: 16.w),
             // Search and notification icons
-            SvgPicture.asset(
-              'assets/icons/search_icon.svg',
-              height: 22.sp,
-              width: 22.sp,
-            ),
+            SvgPicture.asset('assets/icons/search_icon.svg', height: 22.sp, width: 22.sp),
             SizedBox(width: 12.sp),
-            Icon(
-              Icons.notifications_active_rounded,
-              size: 22.sp,
-              color: Colors.black,
-            ),
+            Icon(Icons.notifications_active_rounded, size: 22.sp, color: Colors.black),
           ],
         ),
       ),
@@ -308,8 +310,8 @@ class _HomePageState extends State<HomePage>
             _buildPopularTab(),
             // Live Tab - Live stream grid only
             _buildLiveTab(),
-            // Party Tab - Dummy content
-            _buildDummyTab('Party', Icons.party_mode),
+            // Audio Tab - Audio rooms grid
+            _buildAudioTab(),
             // PK Tab - Dummy content
             _buildDummyTab('PK', Icons.sports_kabaddi),
           ],
@@ -336,23 +338,14 @@ class _HomePageState extends State<HomePage>
               width: double.infinity,
               child: _isBannersLoading
                   ? Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
+                      decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8.0)),
                       child: const Center(child: CircularProgressIndicator()),
                     )
                   : _bannerUrls.isEmpty
                   ? Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
+                      decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8.0)),
                       child: const Center(
-                        child: Text(
-                          'No banners available',
-                          style: TextStyle(color: Colors.grey, fontSize: 16),
-                        ),
+                        child: Text('No banners available', style: TextStyle(color: Colors.grey, fontSize: 16)),
                       ),
                     )
                   : FlutterCarousel(
@@ -368,9 +361,7 @@ class _HomePageState extends State<HomePage>
                           slideIndicatorOptions: SlideIndicatorOptions(
                             alignment: Alignment.bottomCenter,
                             currentIndicatorColor: Colors.white,
-                            indicatorBackgroundColor: Colors.white.withValues(
-                              alpha: 0.5,
-                            ),
+                            indicatorBackgroundColor: Colors.white.withValues(alpha: 0.5),
                             indicatorBorderColor: Colors.transparent,
                             indicatorBorderWidth: 0.5,
                             indicatorRadius: 3.8,
@@ -386,9 +377,7 @@ class _HomePageState extends State<HomePage>
                           builder: (BuildContext context) {
                             return Container(
                               width: double.infinity,
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 8.0,
-                              ),
+                              margin: const EdgeInsets.symmetric(horizontal: 8.0),
                               decoration: BoxDecoration(
                                 color: Colors.grey.shade200,
                                 borderRadius: BorderRadius.circular(8.0),
@@ -399,33 +388,18 @@ class _HomePageState extends State<HomePage>
                                     ? CachedNetworkImage(
                                         imageUrl: url,
                                         fit: BoxFit.cover,
-                                        placeholder: (context, url) =>
-                                            const Center(
-                                              child:
-                                                  CircularProgressIndicator(),
-                                            ),
+                                        placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
                                         errorWidget: (context, url, error) =>
-                                            const Center(
-                                              child: Icon(
-                                                Icons.broken_image,
-                                                size: 50,
-                                                color: Colors.red,
-                                              ),
-                                            ),
+                                            const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.red)),
                                       )
                                     : Image.asset(
                                         url,
                                         fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                              return const Center(
-                                                child: Icon(
-                                                  Icons.broken_image,
-                                                  size: 50,
-                                                  color: Colors.red,
-                                                ),
-                                              );
-                                            },
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return const Center(
+                                            child: Icon(Icons.broken_image, size: 50, color: Colors.red),
+                                          );
+                                        },
                                       ),
                               ),
                             );
@@ -477,6 +451,17 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  // Audio tab with audio rooms grid
+  Widget _buildAudioTab() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 18.sp),
+        ListAudioRooms(),
+      ],
+    );
+  }
+
   // Dummy tab content for other tabs
   Widget _buildDummyTab(String title, IconData icon) {
     return Center(
@@ -487,11 +472,7 @@ class _HomePageState extends State<HomePage>
           SizedBox(height: 20.h),
           Text(
             '$title Page',
-            style: TextStyle(
-              fontSize: 24.sp,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
           ),
           SizedBox(height: 10.h),
           Text(
@@ -499,84 +480,6 @@ class _HomePageState extends State<HomePage>
             style: TextStyle(fontSize: 16.sp, color: Colors.grey.shade500),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class ListLiveStream extends StatelessWidget {
-  final List<GetRoomModel> availableRooms;
-  const ListLiveStream({super.key, required this.availableRooms});
-
-  @override
-  Widget build(BuildContext context) {
-    if (availableRooms.isEmpty) {
-      return Expanded(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.live_tv, size: 80.sp, color: Colors.grey.shade400),
-              SizedBox(height: 20.h),
-              Text(
-                'No Live Streams Available',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              SizedBox(height: 8.h),
-              Text(
-                'No one has started live streaming yet',
-                style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade500),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Expanded(
-      child: GridView.builder(
-        padding: EdgeInsets.symmetric(
-          horizontal: 16.sp,
-        ).add(EdgeInsets.only(bottom: 80.sp)),
-        physics: const BouncingScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 0.sp,
-          crossAxisSpacing: 10.sp,
-          childAspectRatio: 0.70,
-        ),
-        // itemCount: listLiveStreamFake.length,
-        itemCount: availableRooms.length,
-        itemBuilder: (context, index) {
-          return LiveStreamCard(
-            liveStreamModel: availableRooms[index],
-            onTap: () {
-              // Navigate to the live stream screen with the room ID using the named route
-              context.pushNamed(
-                'onGoingLive',
-                queryParameters: {
-                  'roomId': availableRooms[index].roomId,
-                  'hostName':
-                      availableRooms[index].hostDetails?.name ?? 'Unknown Host',
-                  'hostUserId':
-                      availableRooms[index].hostDetails?.id ?? 'Unknown User',
-                  'hostAvatar':
-                      availableRooms[index].hostDetails?.avatar ??
-                      'Unknown Avatar',
-                },
-                extra: {
-                  'existingViewers': availableRooms[index].membersDetails,
-                  'hostCoins': availableRooms[index].hostCoins,
-                  'roomData': availableRooms[index], // Pass complete room data
-                },
-              );
-            },
-          );
-        },
       ),
     );
   }
@@ -607,28 +510,16 @@ class ListUserFollow extends StatelessWidget {
           onTap: () {
             // Navigate to the leaderboard page
             // context.pushNamed('leaderBoard');
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Leaderboard feature coming soon!'),
-                duration: Duration(seconds: 2),
-              ),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Leaderboard feature coming soon!'), duration: Duration(seconds: 2)));
           },
           child: Column(
             children: [
               Padding(
-                padding: EdgeInsets.only(
-                  bottom: 8.sp,
-                  top: 8.sp,
-                  left: 8.sp,
-                  right: 8.sp,
-                ),
+                padding: EdgeInsets.only(bottom: 8.sp, top: 8.sp, left: 8.sp, right: 8.sp),
 
-                child: Image.asset(
-                  'assets/images/general/rank_icon.png',
-                  height: 40.sp,
-                  width: 40.sp,
-                ),
+                child: Image.asset('assets/images/general/rank_icon.png', height: 40.sp, width: 40.sp),
               ),
               SizedBox(height: 24.sp),
             ],
@@ -644,12 +535,7 @@ class CategoryCard extends StatelessWidget {
   final CategoryModel categoryModel;
   final Function() onTap;
   final bool isCheck;
-  const CategoryCard({
-    super.key,
-    required this.categoryModel,
-    required this.onTap,
-    required this.isCheck,
-  });
+  const CategoryCard({super.key, required this.categoryModel, required this.onTap, required this.isCheck});
 
   @override
   Widget build(BuildContext context) {
@@ -668,10 +554,7 @@ class CategoryCard extends StatelessWidget {
           children: [
             Text(
               categoryModel.title,
-              style: TextStyle(
-                color: isCheck ? Colors.white : Colors.black,
-                fontSize: 10.sp,
-              ),
+              style: TextStyle(color: isCheck ? Colors.white : Colors.black, fontSize: 10.sp),
             ),
           ],
         ),
@@ -719,241 +602,17 @@ class UserWidget extends StatelessWidget {
               child: Container(
                 alignment: Alignment.center,
                 child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.redAccent,
-                    borderRadius: BorderRadius.circular(10.sp),
-                  ),
+                  decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(10.sp)),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),
                     child: Text(
                       'Live',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class LiveStreamCard extends StatelessWidget {
-  final GetRoomModel liveStreamModel;
-  final Function() onTap;
-  const LiveStreamCard({
-    super.key,
-    required this.liveStreamModel,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TouchableOpacity(
-      onTap: onTap,
-      child: Stack(
-        children: [
-          CustomNetworkImage(
-            urlToImage:
-                liveStreamModel.hostDetails?.avatar ??
-                'https://cdn.dribbble.com/users/3245638/screenshots/15628559/media/21f20574f74b6d6f8e74f92bde7de2fd.png?compress=1&resize=400x300&vertical=top',
-            height: 180.sp,
-            shape: BoxShape.rectangle,
-            borderRadius: BorderRadius.circular(13.sp),
-            // fit: BoxFit.cover,
-          ),
-          Column(
-            children: [
-              Container(
-                height: 180.sp,
-                padding: EdgeInsets.all(8.sp),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.89),
-                    ],
-                    end: Alignment.bottomCenter,
-                    begin: Alignment.topCenter,
-                  ),
-                  borderRadius: BorderRadius.circular(13.sp),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10.sp),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 10),
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 6.sp,
-                                vertical: 2.sp,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.45),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.voice_chat,
-                                    size: 17.sp,
-                                    color: Colors.white,
-                                  ),
-                                  SizedBox(width: 5.sp),
-                                  Text(
-                                    '${liveStreamModel.members.length}',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 9.sp,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8.sp,
-                            vertical: 2.sp,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                Colors.redAccent, // Always red for live streams
-                            borderRadius: BorderRadius.circular(9.sp),
-                          ),
-                          child: Text(
-                            'Live',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 9.sp,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      '${liveStreamModel.hostDetails?.name ?? 'Unknown Host'} is live now',
-                      style: TextStyle(color: Colors.white, fontSize: 11.sp),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 8.sp),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  CustomNetworkImage(
-                    urlToImage:
-                        liveStreamModel.hostDetails?.avatar ??
-                        'https://cdn.dribbble.com/users/3245638/screenshots/15628559/media/21f20574f74b6d6f8e74f92bde7de2fd.png?compress=1&resize=400x300&vertical=top',
-                    height: 30.sp,
-                    width: 30.sp,
-                    shape: BoxShape.circle,
-                  ),
-                  SizedBox(width: 5.sp),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          liveStreamModel.hostDetails?.name ?? 'Unknown Host',
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Text(
-                          'ID: ${liveStreamModel.hostDetails?.uid.substring(0, 6) ?? 'Unknown ID'}',
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 9.sp,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    color: Colors.white,
-                    position: PopupMenuPosition.under,
-                    icon: Container(
-                      color: Colors.transparent,
-                      child: Icon(
-                        Icons.more_horiz,
-                        size: 20.sp,
-                        color: Colors.black,
-                      ),
-                    ),
-                    onSelected: (String result) {
-                      // Handle your menu selection here
-                    },
-                    itemBuilder: (BuildContext context) =>
-                        <PopupMenuEntry<String>>[
-                          PopupMenuItem<String>(
-                            value: 'Option 3',
-                            child: GestureDetector(
-                              onTap: () {},
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Follow",
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 14.sp,
-                                      fontFamily: 'Aeonik',
-                                      fontWeight: FontWeight.w500,
-                                      height: 0,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'Option 2',
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Report',
-                                  style: TextStyle(
-                                    color: Color(0xFFDC3030),
-                                    fontSize: 14.sp,
-                                    fontFamily: 'Aeonik',
-                                    fontWeight: FontWeight.w500,
-                                    height: 0,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                  ),
-                ],
-              ),
-            ],
           ),
         ],
       ),

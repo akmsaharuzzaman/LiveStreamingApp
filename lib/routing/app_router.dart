@@ -4,6 +4,7 @@ import 'package:dlstarlive/features/chat/presentation/pages/chat_settings.dart';
 import 'package:dlstarlive/features/live/presentation/pages/golive_screen.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_page.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_summary_screen.dart';
+import 'package:dlstarlive/features/live_audio/presentation/pages/audio_golive_screen.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/view_user_profile.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/friends_list_page.dart';
 import 'package:dlstarlive/features/reels/presentation/pages/reels.dart';
@@ -36,6 +37,7 @@ class AppRoutes {
   static const String reels = '/reels';
   static const String live = '/live';
   static const String onGoingLive = '/on-going-live';
+  static const String audioLive = '/audio-live';
   static const String liveSummary = '/live-summary';
   static const String chatDetail = '/chat-details';
   static const String chats = '/chats';
@@ -49,41 +51,13 @@ class AppRoutes {
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.splash,
   routes: [
-    GoRoute(
-      path: AppRoutes.splash,
-      name: 'splash',
-      builder: (context, state) => const SplashScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.login,
-      name: 'login',
-      builder: (context, state) => const LoginPage(),
-    ),
-    GoRoute(
-      path: AppRoutes.register,
-      name: 'register',
-      builder: (context, state) => const RegisterPage(),
-    ),
-    GoRoute(
-      path: AppRoutes.home,
-      name: 'home',
-      builder: (context, state) => const MainNavigationPage(),
-    ),
-    GoRoute(
-      path: AppRoutes.newsfeed,
-      name: 'newsfeed',
-      builder: (context, state) => const NewsfeedPage(),
-    ),
-    GoRoute(
-      path: AppRoutes.settings,
-      name: 'settings',
-      builder: (context, state) => const SettingsPage(),
-    ),
-    GoRoute(
-      path: AppRoutes.editVideo,
-      name: 'editVideo',
-      builder: (context, state) => const VideoEditorScreen(),
-    ),
+    GoRoute(path: AppRoutes.splash, name: 'splash', builder: (context, state) => const SplashScreen()),
+    GoRoute(path: AppRoutes.login, name: 'login', builder: (context, state) => const LoginPage()),
+    GoRoute(path: AppRoutes.register, name: 'register', builder: (context, state) => const RegisterPage()),
+    GoRoute(path: AppRoutes.home, name: 'home', builder: (context, state) => const MainNavigationPage()),
+    GoRoute(path: AppRoutes.newsfeed, name: 'newsfeed', builder: (context, state) => const NewsfeedPage()),
+    GoRoute(path: AppRoutes.settings, name: 'settings', builder: (context, state) => const SettingsPage()),
+    GoRoute(path: AppRoutes.editVideo, name: 'editVideo', builder: (context, state) => const VideoEditorScreen()),
     GoRoute(
       path: AppRoutes.profileCompletion,
       name: 'profileCompletion',
@@ -94,11 +68,7 @@ final GoRouter appRouter = GoRouter(
       name: 'profileUpdate',
       builder: (context, state) => const ProfileUpdatePage(),
     ),
-    GoRoute(
-      path: AppRoutes.chatSettings,
-      name: 'chatSettings',
-      builder: (context, state) => const InboxSettings(),
-    ),
+    GoRoute(path: AppRoutes.chatSettings, name: 'chatSettings', builder: (context, state) => const InboxSettings()),
     GoRoute(
       path: AppRoutes.viewProfile,
       name: 'viewProfile',
@@ -107,21 +77,9 @@ final GoRouter appRouter = GoRouter(
         return ViewUserProfile(userId: userId);
       },
     ),
-    GoRoute(
-      path: AppRoutes.reels,
-      name: 'reels',
-      builder: (context, state) => const ReelsScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.live,
-      name: 'live',
-      builder: (context, state) => const LivePage(),
-    ),
-    GoRoute(
-      path: AppRoutes.chats,
-      name: 'chats',
-      builder: (context, state) => const ChatPage(),
-    ),
+    GoRoute(path: AppRoutes.reels, name: 'reels', builder: (context, state) => const ReelsScreen()),
+    GoRoute(path: AppRoutes.live, name: 'live', builder: (context, state) => const LivePage()),
+    GoRoute(path: AppRoutes.chats, name: 'chats', builder: (context, state) => const ChatPage()),
     GoRoute(
       path: AppRoutes.onGoingLive,
       name: 'onGoingLive',
@@ -130,15 +88,9 @@ final GoRouter appRouter = GoRouter(
         final hostName = state.uri.queryParameters['hostName'] ?? '';
         final hostUserId = state.uri.queryParameters['hostUserId'] ?? '';
         final hostAvatar = state.uri.queryParameters['hostAvatar'] ?? '';
-        final existingViewers =
-            (state.extra as Map<String, dynamic>?)?['existingViewers']
-                as List<HostDetails>? ??
-            [];
-        final hostCoins =
-            (state.extra as Map<String, dynamic>?)?['hostCoins'] as int? ?? 0;
-        final roomData =
-            (state.extra as Map<String, dynamic>?)?['roomData']
-                as GetRoomModel?;
+        final existingViewers = (state.extra as Map<String, dynamic>?)?['existingViewers'] as List<HostDetails>? ?? [];
+        final hostCoins = (state.extra as Map<String, dynamic>?)?['hostCoins'] as int? ?? 0;
+        final roomData = (state.extra as Map<String, dynamic>?)?['roomData'] as GetRoomModel?;
         return GoliveScreen(
           roomId: roomId,
           hostName: hostName,
@@ -147,6 +99,27 @@ final GoRouter appRouter = GoRouter(
           existingViewers: existingViewers,
           hostCoins: hostCoins,
           roomData: roomData, // Pass the complete room data
+        );
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.audioLive,
+      name: 'audioLive',
+      builder: (context, state) {
+        // Extract parameters from extra map
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+
+        // Core parameters (used in both host and viewer modes)
+        final isHost = extra['isHost'] as bool;
+        final roomId = extra['roomId'] as String;
+        final numberOfSeats = extra['numberOfSeats'] as int;
+        final roomTitle = extra['title'] as String;
+
+        return AudioGoLiveScreen(
+          isHost: isHost,
+          roomId: roomId,
+          numberOfSeats: numberOfSeats,
+          roomTitle: roomTitle,
         );
       },
     ),
@@ -183,11 +156,7 @@ final GoRouter appRouter = GoRouter(
         return FriendsListPage(userId: userId, title: title);
       },
     ),
-    GoRoute(
-      path: AppRoutes.store,
-      name: 'store',
-      builder: (context, state) => const StorePage(),
-    ),
+    GoRoute(path: AppRoutes.store, name: 'store', builder: (context, state) => const StorePage()),
     GoRoute(
       path: AppRoutes.liveHistory,
       name: 'liveHistory',
@@ -205,20 +174,11 @@ final GoRouter appRouter = GoRouter(
         children: [
           const Icon(Icons.error_outline, size: 64, color: Colors.red),
           const SizedBox(height: 16),
-          Text(
-            'Page not found',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
+          Text('Page not found', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
-          Text(
-            'The page you\'re looking for doesn\'t exist.',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          Text('The page you\'re looking for doesn\'t exist.', style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 16),
-          FilledButton(
-            onPressed: () => context.go(AppRoutes.home),
-            child: const Text('Go Home'),
-          ),
+          FilledButton(onPressed: () => context.go(AppRoutes.home), child: const Text('Go Home')),
         ],
       ),
     ),

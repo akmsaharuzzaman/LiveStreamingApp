@@ -35,7 +35,7 @@ coverage/
 
 # Local configuration and environment
 *.local
-.env
+# .env
 
 # Flutter plugin files
 .flutter-plugins

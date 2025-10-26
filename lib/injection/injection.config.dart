@@ -39,6 +39,12 @@ import 'package:dlstarlive/features/home/domain/usecases/increment_counter.dart'
     as _i15;
 import 'package:dlstarlive/features/home/presentation/bloc/counter_bloc.dart'
     as _i208;
+import 'package:dlstarlive/features/live_audio/data/repositories/audio_room_repository.dart'
+    as _i155;
+import 'package:dlstarlive/features/live_audio/presentation/bloc/audio_room_bloc.dart'
+    as _i557;
+import 'package:dlstarlive/features/live_audio/service/socket_service_audio.dart'
+    as _i502;
 import 'package:dlstarlive/features/profile/data/services/friends_api_service.dart'
     as _i608;
 import 'package:dlstarlive/features/store/data/services/bag_api_service.dart'
@@ -74,6 +80,12 @@ extension GetItInjectableX on _i174.GetIt {
     await gh.lazySingletonAsync<_i460.SharedPreferences>(
       () => sharedPreferencesModule.sharedPreferences,
       preResolve: true,
+    );
+    gh.lazySingleton<_i502.AudioSocketService>(
+      () => _i502.AudioSocketService(),
+    );
+    gh.factory<_i155.AudioRoomRepository>(
+      () => _i155.AudioRoomRepository(gh<_i502.AudioSocketService>()),
     );
     gh.lazySingleton<_i475.GoogleAuthService>(
       () => _i475.GoogleAuthServiceImpl(
@@ -122,12 +134,15 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i89.CounterRepository>(
       () => _i756.CounterRepositoryImpl(gh<_i618.CounterLocalDataSource>()),
     );
-    gh.factory<_i477.AuthBloc>(
+    gh.lazySingleton<_i477.AuthBloc>(
       () => _i477.AuthBloc(
         gh<_i622.AuthApiClient>(),
         gh<_i622.UserApiClient>(),
         gh<_i475.GoogleAuthService>(),
       ),
+    );
+    gh.factory<_i557.AudioRoomBloc>(
+      () => _i557.AudioRoomBloc(gh<_i155.AudioRoomRepository>()),
     );
     gh.factory<_i551.ChatBloc>(
       () => _i551.ChatBloc(gh<_i605.ChatApiService>(), gh<_i477.AuthBloc>()),
