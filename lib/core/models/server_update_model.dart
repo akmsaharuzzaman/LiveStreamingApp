@@ -11,9 +11,9 @@ class ServerUpdateModel {
 
   factory ServerUpdateModel.fromJson(Map<String, dynamic> json) {
     return ServerUpdateModel(
-      version: json['Version'] as String,
-      releaseNote: json['Release_note'] as String,
-      downloadURL: json['DownloadURL'] as String,
+      version: json['Version'] ?? "1.0.0",
+      releaseNote: json['Release_note'] ?? "No release notes available",
+      downloadURL: json['DownloadURL'] ?? "No download URL available",
     );
   }
 
