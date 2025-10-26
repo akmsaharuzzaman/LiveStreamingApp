@@ -147,24 +147,11 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     );
 
     // Room joining
-    _joinRoomSubscription = _repository.joinRoomStream.listen((roomData) {
-      // Validate roomId before emitting state
-      if (roomData.roomId.isEmpty) {
-        debugPrint("⚠️ Socket: Received empty roomId in join room response, ignoring update");
-        return; // Don't emit state with empty roomId
-      }
-
-      debugPrint("🔌 Socket: Room joined - Host: ${roomData.hostDetails.name}, RoomId: '${roomData.roomId}'");
-
-      // Get current roomId if available
-      String effectiveRoomId = roomData.roomId;
+    _joinRoomSubscription = _repository.joinRoomStream.listen((member) {
+      debugPrint("🔌  Join Room: Room joined - User: ${member.name}");
       if (state is AudioRoomLoaded) {
-        final currentState = state as AudioRoomLoaded;
-        effectiveRoomId = roomData.roomId.isNotEmpty ? roomData.roomId : currentState.currentRoomId ?? '';
+        add(JoinRoomEvent(memberID: member.id!));
       }
-
-      add(InitializeWithRoomDataEvent(roomData: roomData, isHost: false));
-      debugPrint("✅ Socket: Emitted AudioRoomLoaded for joined room with roomId: '$effectiveRoomId'");
     });
 
     // Room leaving
@@ -335,14 +322,14 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   }
 
   Future<void> _onJoinRoom(JoinRoomEvent event, Emitter<AudioRoomState> emit) async {
-    final success = await _repository.joinRoom(event.roomId);
+    final success = await _repository.joinRoom(event.memberID);
     if (!success) {
       emit(const AudioRoomError(message: 'Failed to join room'));
     }
   }
 
   Future<void> _onLeaveRoom(LeaveRoomEvent event, Emitter<AudioRoomState> emit) async {
-    final success = await _repository.leaveRoom(event.roomId);
+    final success = await _repository.leaveRoom(event.memberID);
     if (success && state is AudioRoomLoaded) {
       final currentState = state as AudioRoomLoaded;
       emit(currentState.copyWith(currentRoomId: null));
@@ -576,12 +563,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     // Update room data with new seat occupant
     if (state is AudioRoomLoaded) {
       if (seatData.seatKey != null) {
-        add(
-          SeatJoinedEvent(
-            seatKey: seatData.seatKey!,
-            member: seatData.member!,
-          ),
-        );
+        add(SeatJoinedEvent(seatKey: seatData.seatKey!, member: seatData.member!));
       }
     }
   }

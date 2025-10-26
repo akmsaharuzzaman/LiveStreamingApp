@@ -123,7 +123,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     } else {
       // Join room
       _uiLog("🔗 Joining Audio room without initial data: ${widget.roomId}");
-      context.read<AudioRoomBloc>().add(JoinRoomEvent(roomId: widget.roomId));
+      context.read<AudioRoomBloc>().add(JoinRoomEvent(memberID: widget.roomId));
     }
   }
 
@@ -379,7 +379,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       } else {
         // If viewer, leave the room
         if (currentState is AudioRoomLoaded && currentState.currentRoomId != null) {
-          context.read<AudioRoomBloc>().add(LeaveRoomEvent(roomId: currentState.currentRoomId!));
+          context.read<AudioRoomBloc>().add(LeaveRoomEvent(memberID: userId));
         }
       }
       // Close Agora

@@ -55,21 +55,21 @@ class InitializeWithRoomDataEvent extends AudioRoomEvent {
 }
 
 class JoinRoomEvent extends AudioRoomEvent {
-  final String roomId;
+  final String memberID;
 
-  const JoinRoomEvent({required this.roomId});
+  const JoinRoomEvent({required this.memberID});
 
   @override
-  List<Object?> get props => [roomId];
+  List<Object?> get props => [memberID];
 }
 
 class LeaveRoomEvent extends AudioRoomEvent {
-  final String roomId;
+  final String memberID;
 
-  const LeaveRoomEvent({required this.roomId});
+  const LeaveRoomEvent({required this.memberID});
 
   @override
-  List<Object?> get props => [roomId];
+  List<Object?> get props => [memberID];
 }
 
 class DeleteRoomEvent extends AudioRoomEvent {
