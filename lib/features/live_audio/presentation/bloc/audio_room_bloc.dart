@@ -106,7 +106,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
 
     // Connection status
     _connectionSubscription = _repository.connectionStatusStream.listen((isConnected) {
-      if (state is AudioRoomLoaded) {
+      if (state is AudioRoomConnected) {
         add(UpdateConnectionStatusEvent(isConnected: isConnected));
       }
     });

@@ -86,12 +86,12 @@ class AudioSocketRoomOperations {
     }
 
     try {
-      _log('🚪 Joining room: $roomId');
+      _log('🚪 Joining Audio room: $roomId');
       socket.emit(AudioSocketConstants.joinAudioRoomEvent, {'roomId': roomId});
       return true;
     } catch (e) {
-      _log('❌ Error joining room: $e');
-      errorController.add({'status': 'error', 'message': 'Failed to join room: $e'});
+      _log('❌ Error joining Audio room: $e');
+      errorController.add({'status': 'error', 'message': 'Failed to join Audio room: $e'});
       return false;
     }
   }
@@ -104,12 +104,12 @@ class AudioSocketRoomOperations {
     }
 
     try {
-      _log('🚪 Leaving room: $roomId');
+      _log('🚪 Leaving Audio room: $roomId');
       socket.emit(AudioSocketConstants.leaveAudioRoomEvent, {'roomId': roomId});
       return true;
     } catch (e) {
-      _log('❌ Error leaving room: $e');
-      errorController.add({'status': 'error', 'message': 'Failed to leave room: $e'});
+      _log('❌ Error leaving Audio room: $e');
+      errorController.add({'status': 'error', 'message': 'Failed to leave Audio room: $e'});
       return false;
     }
   }
@@ -135,7 +135,7 @@ class AudioSocketRoomOperations {
       return true;
     } catch (e) {
       _log('❌ Error getting audio rooms: $e');
-      errorController.add({'status': 'error', 'message': 'Failed to get rooms: $e'});
+      errorController.add({'status': 'error', 'message': 'Failed to get audio rooms: $e'});
       return false;
     }
   }
@@ -193,8 +193,8 @@ class AudioSocketRoomOperations {
         },
       );
     } catch (e) {
-      _log('❌ Error getting room details: $e');
-      errorController.add({'status': 'error', 'message': 'Failed to get room details: $e'});
+      _log('❌ Error getting audio room details: $e');
+      errorController.add({'status': 'error', 'message': 'Failed to get audio room details: $e'});
       return null;
     }
   }
@@ -212,7 +212,7 @@ class AudioSocketRoomOperations {
       return true;
     } catch (e) {
       _log('❌ Error sending audio message: $e');
-      errorController.add({'status': 'error', 'message': 'Failed to send message: $e'});
+      errorController.add({'status': 'error', 'message': 'Failed to send audio message: $e'});
       return false;
     }
   }

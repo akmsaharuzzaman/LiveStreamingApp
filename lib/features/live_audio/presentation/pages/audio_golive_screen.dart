@@ -122,7 +122,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       );
     } else {
       // Join room
-      _uiLog("🔗 Joining room without initial data: ${widget.roomId}");
+      _uiLog("🔗 Joining Audio room without initial data: ${widget.roomId}");
       context.read<AudioRoomBloc>().add(JoinRoomEvent(roomId: widget.roomId));
     }
   }
