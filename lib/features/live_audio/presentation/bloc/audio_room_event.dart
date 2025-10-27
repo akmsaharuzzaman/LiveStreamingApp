@@ -44,23 +44,26 @@ class CreateRoomEvent extends AudioRoomEvent {
 class InitializeWithRoomDataEvent extends AudioRoomEvent {
   final AudioRoomDetails roomData;
   final bool isHost;
+  final String userId;
 
   const InitializeWithRoomDataEvent({
     required this.roomData,
     required this.isHost,
+    required this.userId,
   });
 
   @override
-  List<Object?> get props => [roomData, isHost];
+  List<Object?> get props => [roomData, isHost, userId];
 }
 
 class JoinRoomEvent extends AudioRoomEvent {
+  final String roomId;
   final String memberID;
 
-  const JoinRoomEvent({required this.memberID});
+  const JoinRoomEvent({required this.roomId, required this.memberID});
 
   @override
-  List<Object?> get props => [memberID];
+  List<Object?> get props => [roomId, memberID];
 }
 
 class LeaveRoomEvent extends AudioRoomEvent {
@@ -271,6 +274,15 @@ class RoomClosedEvent extends AudioRoomEvent {
 
   @override
   List<Object?> get props => [reason];
+}
+
+class UserJoinedEvent extends AudioRoomEvent {
+  final AudioMember member;
+
+  const UserJoinedEvent({required this.member});
+
+  @override
+  List<Object?> get props => [member];
 }
 
 /// Helper method events

@@ -31,6 +31,7 @@ class AudioRoomConnected extends AudioRoomState {
   List<Object?> get props => [userId, isConnected];
 }
 
+
 /// Room loaded state
 class AudioRoomLoaded extends AudioRoomState {
   final AudioRoomDetails? roomData;
@@ -38,6 +39,7 @@ class AudioRoomLoaded extends AudioRoomState {
   final List<AudioMember> listeners;
   final List<String> bannedUsers;
   final String? currentRoomId;
+  final String? userId;
   final bool isHost;
   final bool isConnected;
   final bool isMuted;
@@ -56,6 +58,7 @@ class AudioRoomLoaded extends AudioRoomState {
     this.listeners = const [],
     this.bannedUsers = const [],
     this.currentRoomId,
+    this.userId,
     this.isHost = false,
     this.isConnected = false,
     this.isMuted = false,
@@ -75,6 +78,7 @@ class AudioRoomLoaded extends AudioRoomState {
     List<AudioMember>? listeners,
     List<String>? bannedUsers,
     String? currentRoomId,
+    String? userId,
     bool? isHost,
     bool? isConnected,
     bool? isMuted,
@@ -93,6 +97,7 @@ class AudioRoomLoaded extends AudioRoomState {
       listeners: listeners ?? this.listeners,
       bannedUsers: bannedUsers ?? this.bannedUsers,
       currentRoomId: currentRoomId ?? this.currentRoomId,
+      userId: userId ?? this.userId,
       isHost: isHost ?? this.isHost,
       isConnected: isConnected ?? this.isConnected,
       isMuted: isMuted ?? this.isMuted,
@@ -114,6 +119,7 @@ class AudioRoomLoaded extends AudioRoomState {
         listeners,
         bannedUsers,
         currentRoomId,
+        userId,
         isHost,
         isConnected,
         isMuted,

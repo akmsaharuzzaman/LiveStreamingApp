@@ -4,6 +4,7 @@ import 'package:dlstarlive/features/chat/presentation/pages/chat_settings.dart';
 import 'package:dlstarlive/features/live/presentation/pages/golive_screen.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_page.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_summary_screen.dart';
+import 'package:dlstarlive/features/live_audio/data/models/audio_room_details.dart';
 import 'package:dlstarlive/features/live_audio/presentation/pages/audio_golive_screen.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/view_user_profile.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/friends_list_page.dart';
@@ -115,11 +116,13 @@ final GoRouter appRouter = GoRouter(
         final numberOfSeats = extra['numberOfSeats'] as int;
         final roomTitle = extra['title'] as String;
 
+        final roomDetails = extra['roomDetails'] as AudioRoomDetails?;
         return AudioGoLiveScreen(
           isHost: isHost,
           roomId: roomId,
           numberOfSeats: numberOfSeats,
           roomTitle: roomTitle,
+          roomDetails: roomDetails,
         );
       },
     ),

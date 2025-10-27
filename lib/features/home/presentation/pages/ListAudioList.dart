@@ -355,11 +355,6 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
                               "🚀 Navigating to audio room with userId: $userId as Viewer with roomId: ${_availableAudioRooms[index].roomId}",
                             );
 
-                            // Show loading indicator
-                            ScaffoldMessenger.of(
-                              context,
-                            ).showSnackBar(const SnackBar(content: Text('Loading room details...')));
-
                             try {
                               // Ensure socket is connected before making API calls
                               if (!socketService.isConnected) {
@@ -388,9 +383,8 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
                                   'roomId': roomDetails.roomId,
                                   'numberOfSeats': roomDetails.numberOfSeats,
                                   'title': roomDetails.title,
+                                  //'userId': userId,
                                   'roomDetails': roomDetails,
-                                  // userId
-                                  'userId': userId,
                                 },
                               );
                             } catch (e) {
