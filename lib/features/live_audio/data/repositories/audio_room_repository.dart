@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dlstarlive/features/live_audio/data/models/audio_member_model.dart';
 import 'package:injectable/injectable.dart';
 import '../models/audio_room_details.dart';
 import '../models/chat_model.dart';
@@ -19,7 +20,7 @@ class AudioRoomRepository {
   Stream<AudioRoomDetails?> get audioRoomDetailsStream => _socketService.audioRoomDetailsStream;
   Stream<AudioRoomDetails> get createRoomStream => _socketService.createRoomStream;
   Stream<List<String>> get closeRoomStream => _socketService.closeRoomStream;
-  Stream<AudioRoomDetails> get joinRoomStream => _socketService.joinRoomStream;
+  Stream<AudioMember> get joinRoomStream => _socketService.joinRoomStream;
   Stream<AudioRoomDetails> get leaveRoomStream => _socketService.leaveRoomStream;
 
   /// User streams

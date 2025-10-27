@@ -163,24 +163,6 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
     });
     _audioSubscriptions.add(closeRoomSub);
 
-    var joinRoomSub = socketService.joinRoomStream.listen((roomDetails) {
-      _log("👋 User joined audio room - refreshing room list. Room ID: ${roomDetails.roomId}");
-      if (mounted) {
-        _log("🔄 Calling getRooms() after user joined room");
-        _safeGetRooms();
-      }
-    });
-    _audioSubscriptions.add(joinRoomSub);
-
-    var leaveRoomSub = socketService.leaveRoomStream.listen((roomDetails) {
-      _log("👋 User left audio room - refreshing room list. Room ID: ${roomDetails.roomId}");
-      if (mounted) {
-        _log("🔄 Calling getRooms() after user left room");
-        _safeGetRooms();
-      }
-    });
-    _audioSubscriptions.add(leaveRoomSub);
-
     // Add direct listeners to socket for debugging
     socketService.on(AudioSocketConstants.getAllRoomsEvent, (data) {
       _log("🎯 Direct socket event 'get-all-rooms' received: ${data != null ? 'data present' : 'no data'}");
@@ -188,18 +170,6 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
 
     socketService.on(AudioSocketConstants.createRoomEvent, (data) {
       _log("🎯 Direct socket event 'create-room' received: ${data != null ? 'data present' : 'no data'}");
-    });
-
-    socketService.on(AudioSocketConstants.joinAudioRoomEvent, (data) {
-      _log("🎯 Direct socket event 'join-audio-room' received: ${data != null ? 'data present' : 'no data'}");
-    });
-
-    socketService.on(AudioSocketConstants.leaveAudioRoomEvent, (data) {
-      _log("🎯 Direct socket event 'leave-audio-room' received: ${data != null ? 'data present' : 'no data'}");
-    });
-
-    socketService.on(AudioSocketConstants.userLeftEvent, (data) {
-      _log("🎯 Direct socket event 'user-left' received: ${data != null ? 'data present' : 'no data'}");
     });
 
     // Force a refresh of the room list to ensure we have the latest data
@@ -385,11 +355,6 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
                               "🚀 Navigating to audio room with userId: $userId as Viewer with roomId: ${_availableAudioRooms[index].roomId}",
                             );
 
-                            // Show loading indicator
-                            ScaffoldMessenger.of(
-                              context,
-                            ).showSnackBar(const SnackBar(content: Text('Loading room details...')));
-
                             try {
                               // Ensure socket is connected before making API calls
                               if (!socketService.isConnected) {
@@ -418,9 +383,8 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
                                   'roomId': roomDetails.roomId,
                                   'numberOfSeats': roomDetails.numberOfSeats,
                                   'title': roomDetails.title,
+                                  //'userId': userId,
                                   'roomDetails': roomDetails,
-                                  // userId
-                                  'userId': userId,
                                 },
                               );
                             } catch (e) {

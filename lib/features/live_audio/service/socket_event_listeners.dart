@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dlstarlive/features/live_audio/data/models/audio_member_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
@@ -23,7 +24,7 @@ class AudioSocketEventListeners {
   // Room events
   final StreamController<AudioRoomDetails> _createRoomController = StreamController<AudioRoomDetails>.broadcast();
   final StreamController<List<String>> _closeRoomController = StreamController<List<String>>.broadcast();
-  final StreamController<AudioRoomDetails> _joinRoomController = StreamController<AudioRoomDetails>.broadcast();
+  final StreamController<AudioMember> _joinRoomController = StreamController<AudioMember>.broadcast();
   final StreamController<AudioRoomDetails> _leaveRoomController = StreamController<AudioRoomDetails>.broadcast();
   // User events
   final StreamController<LeftUserModel> _userLeftController = StreamController<LeftUserModel>.broadcast();
@@ -59,7 +60,7 @@ class AudioSocketEventListeners {
   // Room events
   Stream<AudioRoomDetails> get createRoomStream => _createRoomController.stream;
   Stream<List<String>> get closeRoomStream => _closeRoomController.stream;
-  Stream<AudioRoomDetails> get joinRoomStream => _joinRoomController.stream;
+  Stream<AudioMember> get joinRoomStream => _joinRoomController.stream;
   Stream<AudioRoomDetails> get leaveRoomStream => _leaveRoomController.stream;
   // User events
   Stream<LeftUserModel> get userLeftStream => _userLeftController.stream;
@@ -145,7 +146,7 @@ class AudioSocketEventListeners {
   void _handleJoinRoom(dynamic data) {
     _log('🚪 User joined audio room listener response: $data');
     if (data is Map<String, dynamic>) {
-      _joinRoomController.add(AudioRoomDetails.fromJson(data));
+      _joinRoomController.add(AudioMember.fromJson(data['data']));
       // Refresh room list after user joins
       roomOperations?.refreshRoomList();
     }
