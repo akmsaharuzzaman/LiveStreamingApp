@@ -27,6 +27,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   // Seat events
   StreamSubscription? _joinSeatSubscription;
   StreamSubscription? _leaveSeatSubscription;
+  StreamSubscription? _removeFromSeatSubscription;
   // Chat events
   StreamSubscription? _sendMessageSubscription;
   // User management events
@@ -74,6 +75,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
 
     // Agora events
     on<ToggleMuteEvent>(_onToggleMute);
+    on<UpdateBroadcasterStatusEvent>(_onUpdateBroadcasterStatus);
 
     // UI events
     on<EndLiveStreamEvent>(_onEndLiveStream);
@@ -188,7 +190,11 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     });
 
     _leaveSeatSubscription = _repository.leaveSeatStream.listen((data) {
-      _handleSeatLeft(data);
+      _handleSeatLeft(data, isRemoval: false);
+    });
+
+    _removeFromSeatSubscription = _repository.removeFromSeatStream.listen((data) {
+      _handleSeatLeft(data, isRemoval: true);
     });
 
     // Chat messages
@@ -239,6 +245,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     _userLeftSubscription?.cancel();
     _joinSeatSubscription?.cancel();
     _leaveSeatSubscription?.cancel();
+    _removeFromSeatSubscription?.cancel();
     _sendMessageSubscription?.cancel();
     _banUserSubscription?.cancel();
     _muteUserSubscription?.cancel();
@@ -366,12 +373,12 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     await _repository.getRooms();
   }
 
-  Future<void> _onJoinSeat(JoinSeatEvent event, Emitter<AudioRoomState> emit) async {
-    await _repository.joinSeat(roomId: event.roomId, seatKey: event.seatKey, targetId: event.targetId);
+  void _onJoinSeat(JoinSeatEvent event, Emitter<AudioRoomState> emit) {
+    _repository.joinSeat(roomId: event.roomId, seatKey: event.seatKey, targetId: event.targetId);
   }
 
-  Future<void> _onLeaveSeat(LeaveSeatEvent event, Emitter<AudioRoomState> emit) async {
-    await _repository.leaveSeat(roomId: event.roomId, seatKey: event.seatKey, targetId: event.targetId);
+  void _onLeaveSeat(LeaveSeatEvent event, Emitter<AudioRoomState> emit) {
+    _repository.leaveSeat(roomId: event.roomId, seatKey: event.seatKey, targetId: event.targetId);
   }
 
   Future<void> _onRemoveFromSeat(RemoveFromSeatEvent event, Emitter<AudioRoomState> emit) async {
@@ -400,6 +407,13 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
 
   Future<void> _onMuteUnmuteUser(MuteUnmuteUserEvent event, Emitter<AudioRoomState> emit) async {
     await _repository.muteUnmuteUser(event.userId);
+  }
+
+  void _onUpdateBroadcasterStatus(UpdateBroadcasterStatusEvent event, Emitter<AudioRoomState> emit) {
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      emit(currentState.copyWith(isBroadcaster: event.isBroadcaster));
+    }
   }
 
   void _onToggleMute(ToggleMuteEvent event, Emitter<AudioRoomState> emit) {
@@ -449,8 +463,12 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   void _onUpdateRoomData(UpdateRoomDataEvent event, Emitter<AudioRoomState> emit) {
     final currentState = state;
     if (currentState is AudioRoomLoaded) {
+      // Determine if the current user is a broadcaster
+      final seats = event.roomData.seatsData.seats?.values ?? [];
+      final isBroadcaster = seats.any((seat) => seat.member?.id == currentState.userId);
+
       // If already loaded, just update the data
-      emit(currentState.copyWith(roomData: event.roomData));
+      emit(currentState.copyWith(roomData: event.roomData, isBroadcaster: isBroadcaster));
     } else if (currentState is AudioRoomConnected) {
       // If we are connected but not yet loaded, emit a new Loaded state
       final isHost = event.roomData.hostDetails.id == currentState.userId;
@@ -599,16 +617,25 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   void _handleSeatJoined(JoinedSeatModel seatData) {
     debugPrint('🪑 Join seat Bloc response: ${jsonEncode(seatData)}');
     // Update room data with new seat occupant
-    if (state is AudioRoomLoaded) {
-      if (seatData.seatKey != null) {
-        add(SeatJoinedEvent(seatKey: seatData.seatKey!, member: seatData.member!));
-      }
+    final currentState = state;
+    if (currentState is AudioRoomLoaded && seatData.member?.id == currentState.userId) {
+      add(const UpdateBroadcasterStatusEvent(isBroadcaster: true));
+    }
+    if (seatData.seatKey != null) {
+      add(SeatJoinedEvent(seatKey: seatData.seatKey!, member: seatData.member));
     }
   }
 
-  void _handleSeatLeft(JoinedSeatModel seatData) {
+  void _handleSeatLeft(JoinedSeatModel seatData, {required bool isRemoval}) {
     debugPrint('🪑 Leave seat Bloc response: ${jsonEncode(seatData)}');
     // Update room data to remove seat occupant
+    final currentState = state;
+    if (currentState is AudioRoomLoaded) {
+      final seatToUpdate = currentState.roomData?.seatsData.seats?[seatData.seatKey];
+      if (seatToUpdate?.member?.id == currentState.userId) {
+        add(const UpdateBroadcasterStatusEvent(isBroadcaster: false));
+      }
+    }
     if (seatData.seatKey != null) {
       add(SeatLeftEvent(seatKey: seatData.seatKey!));
     }

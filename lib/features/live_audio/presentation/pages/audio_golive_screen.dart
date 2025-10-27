@@ -191,13 +191,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         ),
       );
 
-      // Set client role based on current state
-      final blocState = context.read<AudioRoomBloc>().state;
-      final isHost = blocState is AudioRoomLoaded ? blocState.isHost : false;
-      await _engine.setClientRole(
-        role: isHost ? ClientRoleType.clientRoleBroadcaster : ClientRoleType.clientRoleAudience,
-      );
-
       // Audio-only setup - no video
       await _engine.enableAudio();
       await _engine.disableVideo();
@@ -242,12 +235,30 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         ),
       );
 
-      await _engine.setClientRole(
-        role: isHost ? ClientRoleType.clientRoleBroadcaster : ClientRoleType.clientRoleAudience,
-      );
     } catch (e) {
       _uiLog('❌ Error initializing Agora: $e');
       _showSnackBar('❌ Failed to initialize Agora', Colors.red);
+    }
+  }
+
+  // Update client role to broadcaster
+  Future<void> _updateClientRoleToAudience() async {
+    _uiLog('🎧 Attempting to update client role to Audience...');
+    try {
+      await _engine.setClientRole(role: ClientRoleType.clientRoleAudience);
+      _uiLog('✅ Client role updated to Audience');
+    } catch (e) {
+      _uiLog('❌ Error updating client role to Audience: $e');
+    }
+  }
+
+  Future<void> _updateClientRoleToBroadcaster() async {
+    _uiLog('👑 Attempting to update client role to Broadcaster...');
+    try {
+      await _engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
+      _uiLog('✅ Client role updated to Broadcaster');
+    } catch (e) {
+      _uiLog('❌ Error updating client role to Broadcaster: $e');
     }
   }
 
@@ -290,6 +301,12 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       if (result.token.isNotEmpty) {
         final dynamicToken = result.token;
         _uiLog("✅ Token generated successfully : $dynamicToken");
+
+        // Set client role before joining
+        final role = isHost ? ClientRoleType.clientRoleBroadcaster : ClientRoleType.clientRoleAudience;
+        await _engine.setClientRole(role: role);
+        _uiLog("👑 Setting client role to: $role");
+
         // _showSnackBar('📡 Joining live stream...', Colors.blue);
         await _engine.joinChannel(
           token: dynamicToken,
@@ -297,7 +314,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           uid: 0,
           options: ChannelMediaOptions(
             channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
-            clientRoleType: isHost ? ClientRoleType.clientRoleBroadcaster : ClientRoleType.clientRoleAudience,
+            clientRoleType: role,
             // Audio-only settings
             publishMicrophoneTrack: true,
             publishCameraTrack: false, // Disable camera
@@ -500,6 +517,12 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   @override
   Widget build(BuildContext context) {
     return BlocListener<AudioRoomBloc, AudioRoomState>(
+      listenWhen: (previous, current) {
+        if (previous is AudioRoomLoaded && current is AudioRoomLoaded) {
+          return previous.isBroadcaster != current.isBroadcaster;
+        }
+        return true;
+      },
       listener: (context, state) {
         // CRITICAL: Check if widget is still mounted before processing ANY state changes
         if (!mounted) {
@@ -571,6 +594,13 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           }
         } else if (state is AudioRoomLoaded && state.bannedUsers.contains(authUserId)) {
           _handleHostDisconnection('You have been banned from this room.');
+        } else if (state is AudioRoomLoaded && !state.isHost) {
+          // Only update role for non-hosts based on seat status
+          if (state.isBroadcaster) {
+            _updateClientRoleToBroadcaster();
+          } else {
+            _updateClientRoleToAudience();
+          }
         } else if (state is AudioRoomClosed) {
           _handleHostDisconnection(state.reason ?? 'Room ended');
         } else if (state is AudioRoomError) {

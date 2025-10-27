@@ -178,10 +178,10 @@ class AudioSocketService {
   Future<bool> sendMessage(String roomId, String message) => _roomOperations.sendMessage(roomId, message);
 
   /// Seat operations
-  Future<bool> joinSeat({required String roomId, required String seatKey, required String targetId}) =>
+  void joinSeat({required String roomId, required String seatKey, required String targetId}) =>
       _seatOperations.joinSeat(roomId: roomId, seatKey: seatKey, targetId: targetId);
 
-  Future<bool> leaveSeat({required String roomId, required String seatKey, required String targetId}) =>
+  void leaveSeat({required String roomId, required String seatKey, required String targetId}) =>
       _seatOperations.leaveSeat(roomId: roomId, seatKey: seatKey, targetId: targetId);
 
   Future<bool> removeFromSeat({required String roomId, required String seatKey, required String targetId}) =>

@@ -187,6 +187,15 @@ class MuteUnmuteUserEvent extends AudioRoomEvent {
 
 class ToggleMuteEvent extends AudioRoomEvent {}
 
+class UpdateBroadcasterStatusEvent extends AudioRoomEvent {
+  final bool isBroadcaster;
+
+  const UpdateBroadcasterStatusEvent({required this.isBroadcaster});
+
+  @override
+  List<Object?> get props => [isBroadcaster];
+}
+
 class EndLiveStreamEvent extends AudioRoomEvent {}
 
 /// UI Events

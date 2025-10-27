@@ -51,6 +51,7 @@ class AudioRoomLoaded extends AudioRoomState {
   final String? animationUrl;
   final String? animationTitle;
   final String? animationSubtitle;
+  final bool isBroadcaster;
 
   const AudioRoomLoaded({
     this.roomData,
@@ -70,6 +71,7 @@ class AudioRoomLoaded extends AudioRoomState {
     this.animationUrl,
     this.animationTitle,
     this.animationSubtitle,
+    this.isBroadcaster = false,
   });
 
   AudioRoomLoaded copyWith({
@@ -90,6 +92,7 @@ class AudioRoomLoaded extends AudioRoomState {
     String? animationUrl,
     String? animationTitle,
     String? animationSubtitle,
+    bool? isBroadcaster,
   }) {
     return AudioRoomLoaded(
       roomData: roomData ?? this.roomData,
@@ -109,6 +112,7 @@ class AudioRoomLoaded extends AudioRoomState {
       animationUrl: animationUrl ?? this.animationUrl,
       animationTitle: animationTitle ?? this.animationTitle,
       animationSubtitle: animationSubtitle ?? this.animationSubtitle,
+      isBroadcaster: isBroadcaster ?? this.isBroadcaster,
     );
   }
 
@@ -131,6 +135,7 @@ class AudioRoomLoaded extends AudioRoomState {
         animationUrl,
         animationTitle,
         animationSubtitle,
+        isBroadcaster,
       ];
 }
 

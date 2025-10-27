@@ -26,44 +26,34 @@ class AudioSocketSeatOperations {
   }
 
   /// Join a specific seat in audio room
-  Future<bool> joinSeat({required String roomId, required String seatKey, required String targetId}) async {
+  void joinSeat({required String roomId, required String seatKey, required String targetId}) {
     if (!_isConnected) {
       errorController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
+      return;
     }
-
     try {
       _log('🪑 Joining seat: $seatKey in room: $roomId');
-
       final Map<String, dynamic> data = {'roomId': roomId, 'seatKey': seatKey, 'targetId': targetId};
-
       socket.emit(AudioSocketConstants.joinSeatEvent, data);
-      return true;
     } catch (e) {
       _log('❌ Error joining seat: $e');
       errorController.add({'status': 'error', 'message': 'Failed to join seat: $e'});
-      return false;
     }
   }
 
   /// Leave a specific seat in audio room
-  Future<bool> leaveSeat({required String roomId, required String seatKey, required String targetId}) async {
+  void leaveSeat({required String roomId, required String seatKey, required String targetId}) {
     if (!_isConnected) {
       errorController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
+      return;
     }
-
     try {
       _log('🚪 Leaving seat: $seatKey in room: $roomId');
-
       final Map<String, dynamic> data = {'roomId': roomId, 'seatKey': seatKey, 'targetId': targetId};
-
       socket.emit(AudioSocketConstants.leaveSeatEvent, data);
-      return true;
     } catch (e) {
       _log('❌ Error leaving seat: $e');
       errorController.add({'status': 'error', 'message': 'Failed to leave seat: $e'});
-      return false;
     }
   }
 
