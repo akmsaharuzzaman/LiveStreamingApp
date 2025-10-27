@@ -4,6 +4,7 @@ import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:dlstarlive/core/network/socket_service.dart';
 import 'package:dlstarlive/core/network/api_clients.dart';
+import 'package:dlstarlive/features/home/presentation/pages/ListPopularList.dart';
 import 'package:dlstarlive/injection/injection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -431,7 +432,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           //   ),
           // ),
           SizedBox(height: 18.sp),
-          ListLiveStream(availableRooms: _availableRooms ?? []),
+          ListPopularRooms(availableVideoRooms: _availableRooms ?? [], handleVideoRefresh: _handleRefresh),
         ],
       ),
     );
