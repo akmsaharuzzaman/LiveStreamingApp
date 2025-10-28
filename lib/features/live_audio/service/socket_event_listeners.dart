@@ -19,8 +19,10 @@ class AudioSocketEventListeners {
   final AudioSocketRoomOperations? roomOperations;
 
   // Stream controllers for audio events
-  final StreamController<List<AudioRoomDetails>> _getAllRoomsController = StreamController<List<AudioRoomDetails>>.broadcast();
-  final StreamController<AudioRoomDetails?> _audioRoomDetailsController = StreamController<AudioRoomDetails?>.broadcast();
+  final StreamController<List<AudioRoomDetails>> _getAllRoomsController =
+      StreamController<List<AudioRoomDetails>>.broadcast();
+  final StreamController<AudioRoomDetails?> _audioRoomDetailsController =
+      StreamController<AudioRoomDetails?>.broadcast();
   // Room events
   final StreamController<AudioRoomDetails> _createRoomController = StreamController<AudioRoomDetails>.broadcast();
   final StreamController<List<String>> _closeRoomController = StreamController<List<String>>.broadcast();
@@ -127,110 +129,6 @@ class AudioSocketEventListeners {
     socket.off(AudioSocketConstants.unbanUserEvent);
   }
 
-  void _handleErrorMessage(dynamic data) {
-    _log('❌ Audio Error listener message: $data');
-    if (data is Map<String, dynamic>) {
-      errorController.add(data);
-    }
-  }
-
-  void _handleCreateRoom(dynamic data) {
-    _log('🏠 Audio room created listener response: $data');
-    if (data is Map<String, dynamic>) {
-      _createRoomController.add(AudioRoomDetails.fromJson(data));
-      // Refresh room list after room creation
-      roomOperations?.refreshRoomList();
-    }
-  }
-
-  void _handleJoinRoom(dynamic data) {
-    _log('🚪 User joined audio room listener response: $data');
-    if (data is Map<String, dynamic>) {
-      _joinRoomController.add(AudioMember.fromJson(data['data']));
-      // Refresh room list after user joins
-      roomOperations?.refreshRoomList();
-    }
-  }
-
-  void _handleUserLeft(dynamic data) {
-    _log('👋 Audio user left listener response: $data');
-    if (data is Map<String, dynamic>) {
-      _userLeftController.add(LeftUserModel.fromJson(data));
-      // Refresh room list after user leaves
-      roomOperations?.refreshRoomList();
-    }
-  }
-
-  void _handleLeaveRoom(dynamic data) {
-    _log('🚪 Audio room left/deleted listener response: $data');
-    if (data is Map<String, dynamic>) {
-      _leaveRoomController.add(AudioRoomDetails.fromJson(data));
-      // Refresh room list after room is left/deleted
-      roomOperations?.refreshRoomList();
-    }
-  }
-
-  void _handleJoinSeat(dynamic data) {
-    _log('🪑 Join seat listener response: $data');
-    try {
-      if (data is Map<String, dynamic>) {
-        _joinSeatController.add(JoinedSeatModel.fromJson(data['data']));
-      }
-    } catch (e) {
-      _log('🪑 Join seat listener error: $e');
-    }
-  }
-
-  void _handleLeaveSeat(dynamic data) {
-    _log('🪑 Leave seat listener response: $data');
-    try {
-      if (data is Map<String, dynamic>) {
-        _leaveSeatController.add(JoinedSeatModel.fromJson(data['data']));
-      }
-    } catch (e) {
-      _log('🪑 Leave seat listener error: $e');
-    }
-  }
-
-  void _handleAudioRoomDetails(dynamic data) {
-    _log('📺 Audio room details listener response');
-    _log('📺 Raw response: $data');
-
-    try {
-      if (data is Map<String, dynamic>) {
-        // Check if this is a room closure notification
-        if (data['success'] == true && data['message'] == 'Room has been closed by the host' && data['data'] is Map && (data['data'] as Map).isEmpty) {
-          _log('🏠 Room has been closed by the host - notifying listeners');
-          _audioRoomDetailsController.add(null);
-          return;
-        }
-
-        // Normal room details response
-        if (data.containsKey('data') && data['data'] is Map<String, dynamic>) {
-          final roomData = data['data'] as Map<String, dynamic>;
-
-          // Check if room doesn't exist (roomId is null)
-          if (roomData['roomId'] == null) {
-            _log('🏠 Room does not exist - notifying listeners');
-            _audioRoomDetailsController.add(null);
-            return;
-          }
-
-          final roomDetails = AudioRoomDetails.fromJson(roomData);
-          _log('✅ Parsed room details for: ${roomDetails.roomId}');
-          _audioRoomDetailsController.add(roomDetails);
-        } else {
-          _log('❌ Invalid room details response format');
-        }
-      } else {
-        _log('❌ Room details response is not a Map');
-      }
-    } catch (e, stackTrace) {
-      _log('💥 Error processing room details listener response: $e');
-      _log('💥 Stack trace: $stackTrace');
-    }
-  }
-
   void _handleGetAllRooms(dynamic data) {
     _log('🏠 Get all audio rooms listener response received');
     _log('🏠 Raw data type: ${data.runtimeType}');
@@ -268,6 +166,106 @@ class AudioSocketEventListeners {
     }
   }
 
+  void _handleAudioRoomDetails(dynamic data) {
+    _log('📺 Audio room details listener response');
+    _log('📺 Raw response: $data');
+
+    try {
+      if (data is Map<String, dynamic>) {
+        // Check if this is a room closure notification
+        if (data['success'] == true &&
+            data['message'] == 'Room has been closed by the host' &&
+            data['data'] is Map &&
+            (data['data'] as Map).isEmpty) {
+          _log('🏠 Room has been closed by the host - notifying listeners');
+          _audioRoomDetailsController.add(null);
+          return;
+        }
+
+        // Normal room details response
+        if (data.containsKey('data') && data['data'] is Map<String, dynamic>) {
+          final roomData = data['data'] as Map<String, dynamic>;
+
+          // Check if room doesn't exist (roomId is null)
+          if (roomData['roomId'] == null) {
+            _log('🏠 Room does not exist - notifying listeners');
+            _audioRoomDetailsController.add(null);
+            return;
+          }
+
+          final roomDetails = AudioRoomDetails.fromJson(roomData);
+          _log('✅ Parsed room details for: ${roomDetails.roomId}');
+          _audioRoomDetailsController.add(roomDetails);
+        } else {
+          _log('❌ Invalid room details response format');
+        }
+      } else {
+        _log('❌ Room details response is not a Map');
+      }
+    } catch (e, stackTrace) {
+      _log('💥 Error processing room details listener response: $e');
+      _log('💥 Stack trace: $stackTrace');
+    }
+  }
+
+  void _handleCreateRoom(dynamic data) {
+    _log('🏠 Audio room created listener response: $data');
+    if (data is Map<String, dynamic>) {
+      _createRoomController.add(AudioRoomDetails.fromJson(data));
+      // Refresh room list after room creation
+      roomOperations?.refreshRoomList();
+    }
+  }
+
+  void _handleJoinRoom(dynamic data) {
+    _log('🚪 User joined audio room listener response: $data');
+    if (data is Map<String, dynamic>) {
+      _joinRoomController.add(AudioMember.fromJson(data['data']));
+      // Refresh room list after user joins
+      roomOperations?.refreshRoomList();
+    }
+  }
+
+  void _handleLeaveRoom(dynamic data) {
+    _log('🚪 Audio room left/deleted listener response: $data');
+    if (data is Map<String, dynamic>) {
+      _leaveRoomController.add(AudioRoomDetails.fromJson(data));
+      // Refresh room list after room is left/deleted
+      roomOperations?.refreshRoomList();
+    }
+  }
+
+  void _handleUserLeft(dynamic data) {
+    _log('👋 Audio user left listener response: $data');
+    if (data is Map<String, dynamic>) {
+      _userLeftController.add(LeftUserModel.fromJson(data));
+      // Refresh room list after user leaves
+      roomOperations?.refreshRoomList();
+    }
+  }
+
+  void _handleJoinSeat(dynamic data) {
+    _log('🪑 Join seat listener response: $data');
+    try {
+      if (data is Map<String, dynamic>) {
+        _joinSeatController.add(JoinedSeatModel.fromJson(data['data']));
+      }
+    } catch (e) {
+      _log('🪑 Join seat listener error: $e');
+    }
+  }
+
+  void _handleLeaveSeat(dynamic data) {
+    _log('🪑 Leave seat listener response: $data');
+    try {
+      if (data is Map<String, dynamic>) {
+        _leaveSeatController.add(JoinedSeatModel.fromJson(data['data']));
+      }
+    } catch (e) {
+      _log('🪑 Leave seat listener error: $e');
+    }
+  }
+
   void _handleSendMessage(dynamic data) {
     _log('💬 Audio message listener response: ${data['message']}');
     try {
@@ -276,6 +274,13 @@ class AudioSocketEventListeners {
       }
     } catch (e) {
       _log('❌ Audio message listener response error: $e');
+    }
+  }
+
+  void _handleErrorMessage(dynamic data) {
+    _log('❌ Audio Error listener message: $data');
+    if (data is Map<String, dynamic>) {
+      errorController.add(data);
     }
   }
 

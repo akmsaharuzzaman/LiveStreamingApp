@@ -31,11 +31,9 @@ import '../widgets/seat_widget.dart';
 
 class AudioGoLiveScreen extends StatefulWidget {
   final bool isHost;
-
   final String roomId;
   final int numberOfSeats;
   final String roomTitle;
-
   final AudioRoomDetails? roomDetails;
 
   const AudioGoLiveScreen({
@@ -134,8 +132,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         // If the room does not exist, create it.
         _uiLog("🏗️ Creating new room with title: ${widget.roomTitle}, seats: ${widget.numberOfSeats}");
         context.read<AudioRoomBloc>().add(
-        CreateRoomEvent(roomId: widget.roomId, roomTitle: widget.roomTitle, numberOfSeats: widget.numberOfSeats),
-      );
+          CreateRoomEvent(roomId: widget.roomId, roomTitle: widget.roomTitle, numberOfSeats: widget.numberOfSeats),
+        );
       }
       _hasAttemptedToJoin = true;
     } else {
@@ -244,7 +242,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               },
         ),
       );
-
     } catch (e) {
       _uiLog('❌ Error initializing Agora: $e');
       _showSnackBar('❌ Failed to initialize Agora', Colors.red);
@@ -393,6 +390,23 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     }
   }
 
+  void _removeUserFromSeat(String seatId, String targetId) {
+    final currentState = context.read<AudioRoomBloc>().state;
+    if (currentState is AudioRoomLoaded && currentState.currentRoomId != null) {
+      context.read<AudioRoomBloc>().add(
+        RemoveFromSeatEvent(roomId: currentState.currentRoomId!, seatKey: seatId, targetId: targetId),
+      );
+    }
+  }
+
+  void _toggleMute() {
+    context.read<AudioRoomBloc>().add(ToggleMuteEvent());
+  }
+
+  /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  /// ################## Others ##################
+  /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
   void _handleHostDisconnection(String reason) {
     if (!mounted) return;
     _uiLog("🚨 $reason - Exiting audio room...");
@@ -405,10 +419,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     });
   }
 
-  void _toggleMute() {
-    context.read<AudioRoomBloc>().add(ToggleMuteEvent());
-  }
-
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     String hours = twoDigits(duration.inHours);
@@ -417,7 +427,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     return "$hours:$minutes:$seconds";
   }
 
-  // End live stream
   void _endLiveStream() async {
     try {
       final currentState = context.read<AudioRoomBloc>().state;
@@ -498,7 +507,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     _reconnectTimer = reconnectTimer;
   }
 
-  // Show SnackBar
   void _showSnackBar(String message, Color color) {
     // IMPORTANT: Check if widget is still mounted before showing SnackBar
     if (!mounted) {
@@ -580,7 +588,11 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           _showSnackBar('❌ ${state.message}', Colors.red);
         }
 
-        if (state is AudioRoomLoaded && state.currentRoomId != null && !_hasJoinedChannel && _hasAttemptedToJoin && !_isJoiningAgoraChannel) {
+        if (state is AudioRoomLoaded &&
+            state.currentRoomId != null &&
+            !_hasJoinedChannel &&
+            _hasAttemptedToJoin &&
+            !_isJoiningAgoraChannel) {
           setState(() {
             _isJoiningAgoraChannel = true;
           });
@@ -664,6 +676,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                                 seatsData: roomState.roomData?.seatsData,
                                 onTakeSeat: _takeSeat,
                                 onLeaveSeat: _leaveSeat,
+                                onRemoveUserFromSeat: _removeUserFromSeat,
                                 isHost: roomState.isHost,
                               ),
                               Spacer(),

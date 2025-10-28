@@ -15,6 +15,7 @@ class SeatWidget extends StatefulWidget {
   final SeatsData? seatsData;
   final Function(String seatId)? onTakeSeat;
   final Function(String seatId)? onLeaveSeat;
+  final Function(String seatId, String targetId)? onRemoveUserFromSeat;
   final bool isHost;
 
   const SeatWidget({
@@ -28,6 +29,7 @@ class SeatWidget extends StatefulWidget {
     this.seatsData,
     this.onTakeSeat,
     this.onLeaveSeat,
+    this.onRemoveUserFromSeat,
     this.isHost = false,
   });
 
@@ -135,6 +137,133 @@ class _SeatWidgetState extends State<SeatWidget> {
     }
   }
 
+  void _showHostSeatOptions(SeatModel seat, int index) {
+    _uiLog('\n\n_showSeatOptions called for seat: ${seat.id}');
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          height: 200.h,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (seat.isLocked == false && seat.userId == null)
+                ListTile(
+                  leading: Icon(Icons.lock),
+                  title: Text("Seat Lock"),
+                  onTap: () {
+                    Navigator.pop(context);
+                    // Implement seat lock functionality
+                    _uiLog("Seat Lock functionality not implemented");
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Seat lock functionality not implemented")),
+                    );
+                  },
+                ),
+              if (seat.userId != null)
+                ListTile(
+                  leading: Icon(Icons.settings),
+                  title: Text("Remove from seat"),
+                  onTap: () {
+                    Navigator.pop(context);
+                    widget.onRemoveUserFromSeat?.call(seat.id, seat.userId!);
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showViewerSeatOptions(SeatModel seat, int index) {
+    _uiLog('\n\n_showSeatOptions called for seat: ${seat.id}');
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          height: 200.h,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (seat.name == null) ...[
+                // Seat is empty
+                ListTile(
+                  leading: Icon(Icons.event_seat),
+                  title: Text("Take Seat"),
+                  onTap: () {
+                    Navigator.pop(context);
+                    widget.onTakeSeat?.call(seat.id);
+                  },
+                ),
+              ] else if (seat.userId == widget.currentUserId) ...[
+                // Seat is user's own
+                ListTile(
+                  leading: Icon(Icons.exit_to_app),
+                  title: Text("Leave Seat"),
+                  onTap: () {
+                    Navigator.pop(context);
+                    widget.onLeaveSeat?.call(seat.id);
+                  },
+                ),
+              ] else ...[
+                // Seat occupied by others, no options
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Column(
+        children: [
+          // Top row: Host + Special seat (always 2 seats)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(child: _buildHostSeat(hostSeatData)),
+              SizedBox(width: 16.w),
+              Expanded(child: _buildPremiumSeat(specialSeatData)),
+            ],
+          ),
+
+          // Remaining seats in grid
+          GridView.builder(
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: _getGridColumns(),
+              crossAxisSpacing: 16.w,
+              mainAxisSpacing: 0.h,
+              childAspectRatio: 0.8,
+            ),
+            itemCount: broadcasterSeatData.length, // Exclude host and special seat
+            itemBuilder: (context, index) {
+              return _buildSeatItem(broadcasterSeatData[index], index);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHostSeat(SeatModel hostSeatData) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -181,8 +310,8 @@ class _SeatWidgetState extends State<SeatWidget> {
                 child: Image.asset("assets/icons/audio_room/crown_badge.png", width: 120.w, height: 120.h),
               ),
 
-            // Microphone icon if seat is occupied
-            if (hostSeatData.name != null)
+            // Microphone icon if seat is not muted
+            if (hostSeatData.isMuted == false)
               Positioned(
                 bottom: -3,
                 right: -3,
@@ -195,6 +324,21 @@ class _SeatWidgetState extends State<SeatWidget> {
                     boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: Offset(0, 2))],
                   ),
                   child: Icon(Icons.mic, color: Colors.grey[700], size: 14.sp),
+                ),
+              )
+            else
+              Positioned(
+                bottom: -3,
+                right: -3,
+                child: Container(
+                  width: 24.w,
+                  height: 24.w,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: Offset(0, 2))],
+                  ),
+                  child: Icon(Icons.mic_off, color: Colors.grey[700], size: 14.sp),
                 ),
               ),
           ],
@@ -324,7 +468,11 @@ class _SeatWidgetState extends State<SeatWidget> {
         setState(() {
           selectedSeatIndex = index;
         });
-        _showSeatOptions(seat, index);
+        if (widget.isHost) {
+          _showHostSeatOptions(seat, index);
+        } else {
+          _showViewerSeatOptions(seat, index);
+        }
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -386,21 +534,42 @@ class _SeatWidgetState extends State<SeatWidget> {
                 ),
 
               // Microphone icon if seat is occupied
-              if (seat.name != null)
-                Positioned(
-                  bottom: -3,
-                  right: -3,
-                  child: Container(
-                    width: 24.w,
-                    height: 24.w,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: Offset(0, 2))],
+              if (seat.userId != null) ...[
+                if (seat.isMuted == false)
+                  Positioned(
+                    bottom: -3,
+                    right: -3,
+                    child: Container(
+                      width: 24.w,
+                      height: 24.w,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: Offset(0, 2)),
+                        ],
+                      ),
+                      child: Icon(Icons.mic, color: Colors.grey[700], size: 14.sp),
                     ),
-                    child: Icon(Icons.mic, color: Colors.grey[700], size: 14.sp),
+                  )
+                else
+                  Positioned(
+                    bottom: -3,
+                    right: -3,
+                    child: Container(
+                      width: 24.w,
+                      height: 24.w,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: Offset(0, 2)),
+                        ],
+                      ),
+                      child: Icon(Icons.mic_off, color: Colors.grey[700], size: 14.sp),
+                    ),
                   ),
-                ),
+              ],
             ],
           ),
 
@@ -413,113 +582,6 @@ class _SeatWidgetState extends State<SeatWidget> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showSeatOptions(SeatModel seat, int index) {
-    _uiLog('\n\n_showSeatOptions called for seat: ${seat.id}');
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          height: 200.h,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (widget.isHost != true) ...[
-                // print('Non-host options for seat ${seat.id}');
-                if (seat.name == null) ...[
-                  // print('Seat is empty');
-                  ListTile(
-                    leading: Icon(Icons.event_seat),
-                    title: Text("Take Seat"),
-                    onTap: () {
-                      Navigator.pop(context);
-                      widget.onTakeSeat?.call(seat.id);
-                    },
-                  ),
-                ] else if (seat.userId == widget.currentUserId) ...[
-                  // print('Seat is user\'s own');
-                  ListTile(
-                    leading: Icon(Icons.exit_to_app),
-                    title: Text("Leave Seat"),
-                    onTap: () {
-                      Navigator.pop(context);
-                      widget.onLeaveSeat?.call(seat.id);
-                    },
-                  ),
-                ] else ...[
-                  // print('Seat occupied by others, no options');
-                ],
-              ] else ...[
-                // print('Host options');
-                ListTile(
-                  leading: Icon(Icons.lock),
-                  title: Text("Seat Lock"),
-                  onTap: () {
-                    Navigator.pop(context);
-                    // Implement seat lock functionality
-                  },
-                ),
-                ListTile(
-                  leading: Icon(Icons.settings),
-                  title: Text("Manage"),
-                  onTap: () {
-                    Navigator.pop(context);
-                    // Implement manage functionality
-                  },
-                ),
-              ],
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Column(
-        children: [
-          // Top row: Host + Special seat (always 2 seats)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: _buildHostSeat(hostSeatData), // Host
-              ),
-              SizedBox(width: 16.w),
-              Expanded(
-                child: _buildPremiumSeat(specialSeatData), // Special seat
-              ),
-            ],
-          ),
-
-          // Remaining seats in grid
-          GridView.builder(
-            shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: _getGridColumns(),
-              crossAxisSpacing: 16.w,
-              mainAxisSpacing: 0.h,
-              childAspectRatio: 0.8,
-            ),
-            itemCount: broadcasterSeatData.length, // Exclude host and special seat
-            itemBuilder: (context, index) {
-              return _buildSeatItem(broadcasterSeatData[index], index);
-            },
           ),
         ],
       ),

@@ -3,6 +3,7 @@ class SeatModel {
   final String? name;
   final String? avatar;
   final bool isLocked;
+  final bool isMuted;
   //  final double? diamonds;
   final String? userId; // User ID occupying this seat
 
@@ -14,6 +15,7 @@ class SeatModel {
     this.name,
     this.avatar,
     this.isLocked = false,
+    this.isMuted = false,
     // this.diamonds,
     this.userId,
   });
@@ -24,6 +26,7 @@ class SeatModel {
       name: json['name'] as String?,
       avatar: json['avatar'] as String?,
       isLocked: json['isLocked'] as bool,
+      isMuted: json['isMuted'] as bool,
       // diamonds: json['diamonds'] as double?,
       userId: json['userId'] as String?,
     );
@@ -35,6 +38,7 @@ class SeatModel {
       'name': name,
       'avatar': avatar,
       'isLocked': isLocked,
+      'isMuted': isMuted,
       // 'diamonds': diamonds,
       'userId': userId,
     };
