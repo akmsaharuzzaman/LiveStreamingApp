@@ -3,7 +3,6 @@ import 'package:dlstarlive/features/live_audio/data/models/audio_member_model.da
 import 'package:injectable/injectable.dart';
 
 import '../../../core/network/models/ban_user_model.dart';
-import '../../../core/network/models/left_user_model.dart';
 import '../../../core/network/models/mute_user_model.dart';
 import '../data/models/audio_room_details.dart';
 import '../data/models/chat_model.dart';
@@ -83,7 +82,7 @@ class AudioSocketService {
   Stream<AudioMember> get joinRoomStream => _eventListeners.joinRoomStream;
   Stream<AudioRoomDetails> get leaveRoomStream => _eventListeners.leaveRoomStream;
   // User events
-  Stream<LeftUserModel> get userLeftStream => _eventListeners.userLeftStream;
+  Stream<String> get userLeftStream => _eventListeners.userLeftStream;
   // Seat events
   Stream<JoinedSeatModel> get joinSeatStream => _eventListeners.joinSeatStream;
   Stream<JoinedSeatModel> get leaveSeatStream => _eventListeners.leaveSeatStream;

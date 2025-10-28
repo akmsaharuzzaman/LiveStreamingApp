@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
 import '../../../core/network/models/ban_user_model.dart';
-import '../../../core/network/models/left_user_model.dart';
 import '../../../core/network/models/mute_user_model.dart';
 import '../data/models/audio_room_details.dart';
 import '../data/models/chat_model.dart';
@@ -29,7 +28,7 @@ class AudioSocketEventListeners {
   final StreamController<AudioMember> _joinRoomController = StreamController<AudioMember>.broadcast();
   final StreamController<AudioRoomDetails> _leaveRoomController = StreamController<AudioRoomDetails>.broadcast();
   // User events
-  final StreamController<LeftUserModel> _userLeftController = StreamController<LeftUserModel>.broadcast();
+  final StreamController<String> _userLeftController = StreamController<String>.broadcast();
   // Seat events
   final StreamController<JoinedSeatModel> _joinSeatController = StreamController<JoinedSeatModel>.broadcast();
   final StreamController<JoinedSeatModel> _leaveSeatController = StreamController<JoinedSeatModel>.broadcast();
@@ -65,7 +64,7 @@ class AudioSocketEventListeners {
   Stream<AudioMember> get joinRoomStream => _joinRoomController.stream;
   Stream<AudioRoomDetails> get leaveRoomStream => _leaveRoomController.stream;
   // User events
-  Stream<LeftUserModel> get userLeftStream => _userLeftController.stream;
+  Stream<String> get userLeftStream => _userLeftController.stream;
   // Seat events
   Stream<JoinedSeatModel> get joinSeatStream => _joinSeatController.stream;
   Stream<JoinedSeatModel> get leaveSeatStream => _leaveSeatController.stream;
@@ -210,37 +209,53 @@ class AudioSocketEventListeners {
 
   void _handleCreateRoom(dynamic data) {
     _log('🏠 Audio room created listener response: $data');
-    if (data is Map<String, dynamic>) {
-      _createRoomController.add(AudioRoomDetails.fromJson(data));
-      // Refresh room list after room creation
-      roomOperations?.refreshRoomList();
+    try {
+      if (data is Map<String, dynamic>) {
+        _createRoomController.add(AudioRoomDetails.fromJson(data));
+        // Refresh room list after room creation
+        // roomOperations?.refreshRoomList();
+      }
+    } catch (e) {
+      _log('❌ Error processing room creation listener response: $e');
     }
   }
 
   void _handleJoinRoom(dynamic data) {
     _log('🚪 User joined audio room listener response: $data');
-    if (data is Map<String, dynamic>) {
-      _joinRoomController.add(AudioMember.fromJson(data['data']));
-      // Refresh room list after user joins
-      roomOperations?.refreshRoomList();
+    try {
+      if (data is Map<String, dynamic>) {
+        _joinRoomController.add(AudioMember.fromJson(data['data']));
+        // Refresh room list after user joins
+        // roomOperations?.refreshRoomList();
+      }
+    } catch (e) {
+      _log('❌ Error processing user join listener response: $e');
     }
   }
 
   void _handleLeaveRoom(dynamic data) {
     _log('🚪 Audio room left/deleted listener response: $data');
-    if (data is Map<String, dynamic>) {
-      _leaveRoomController.add(AudioRoomDetails.fromJson(data));
-      // Refresh room list after room is left/deleted
-      roomOperations?.refreshRoomList();
+    try {
+      if (data is Map<String, dynamic>) {
+        _leaveRoomController.add(AudioRoomDetails.fromJson(data));
+        // Refresh room list after room is left/deleted
+        // roomOperations?.refreshRoomList();
+      }
+    } catch (e) {
+      _log('❌ Error processing room leave listener response: $e');
     }
   }
 
   void _handleUserLeft(dynamic data) {
     _log('👋 Audio user left listener response: $data');
-    if (data is Map<String, dynamic>) {
-      _userLeftController.add(LeftUserModel.fromJson(data));
-      // Refresh room list after user leaves
-      roomOperations?.refreshRoomList();
+    try {
+      if (data is Map<String, dynamic>) {
+        _userLeftController.add(data['data']['_id']); // data['data']['_id'] is the user id
+        // Refresh room list after user leaves
+        // roomOperations?.refreshRoomList();
+      }
+    } catch (e) {
+      _log('❌ Error processing user leave listener response: $e');
     }
   }
 
@@ -279,22 +294,34 @@ class AudioSocketEventListeners {
 
   void _handleErrorMessage(dynamic data) {
     _log('❌ Audio Error listener message: $data');
-    if (data is Map<String, dynamic>) {
-      errorController.add(data);
+    try {
+      if (data is Map<String, dynamic>) {
+        errorController.add(data);
+      }
+    } catch (e) {
+      _log('❌ Error processing error message listener response: $e');
     }
   }
 
   void _handleBanUser(dynamic data) {
     _log('🚫 Ban audio user listener response: $data');
-    if (data is Map<String, dynamic>) {
-      _banUserController.add(BanUserModel.fromJson(data));
+    try {
+      if (data is Map<String, dynamic>) {
+        _banUserController.add(BanUserModel.fromJson(data));
+      }
+    } catch (e) {
+      _log('🚫 Ban audio user listener error: $e');
     }
   }
 
   void _handleMuteUnmuteUser(dynamic data) {
     _log('🔇 Audio mute/unmute user listener response: $data');
-    if (data is Map<String, dynamic>) {
-      _muteUnmuteUserController.add(MuteUserModel.fromJson(data));
+    try {
+      if (data is Map<String, dynamic>) {
+        _muteUnmuteUserController.add(MuteUserModel.fromJson(data));
+      }
+    } catch (e) {
+      _log('🔇 Audio mute/unmute user listener error: $e');
     }
   }
 

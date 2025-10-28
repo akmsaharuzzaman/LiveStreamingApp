@@ -22,15 +22,11 @@ class AudioRoomConnected extends AudioRoomState {
   final String userId;
   final bool isConnected;
 
-  const AudioRoomConnected({
-    required this.userId,
-    required this.isConnected,
-  });
+  const AudioRoomConnected({required this.userId, required this.isConnected});
 
   @override
   List<Object?> get props => [userId, isConnected];
 }
-
 
 /// Room loaded state
 class AudioRoomLoaded extends AudioRoomState {
@@ -118,27 +114,26 @@ class AudioRoomLoaded extends AudioRoomState {
 
   @override
   List<Object?> get props => [
-        roomData,
-        chatMessages,
-        listeners,
-        bannedUsers,
-        currentRoomId,
-        userId,
-        isHost,
-        isConnected,
-        isMuted,
-        isAudioCaller,
-        audioCallerUids,
-        streamStartTime,
-        streamDuration,
-        animationPlaying,
-        animationUrl,
-        animationTitle,
-        animationSubtitle,
-        isBroadcaster,
-      ];
+    roomData,
+    chatMessages,
+    listeners,
+    bannedUsers,
+    currentRoomId,
+    userId,
+    isHost,
+    isConnected,
+    isMuted,
+    isAudioCaller,
+    audioCallerUids,
+    streamStartTime,
+    streamDuration,
+    animationPlaying,
+    animationUrl,
+    animationTitle,
+    animationSubtitle,
+    isBroadcaster,
+  ];
 }
-
 
 /// Room closed state
 class AudioRoomClosed extends AudioRoomState {
@@ -150,18 +145,13 @@ class AudioRoomClosed extends AudioRoomState {
   List<Object?> get props => [reason];
 }
 
-
 /// Animation state
 class AnimationPlaying extends AudioRoomState {
   final String? animationUrl;
   final String? title;
   final String? subtitle;
 
-  const AnimationPlaying({
-    this.animationUrl,
-    this.title,
-    this.subtitle,
-  });
+  const AnimationPlaying({this.animationUrl, this.title, this.subtitle});
 
   @override
   List<Object?> get props => [animationUrl, title, subtitle];
@@ -172,21 +162,8 @@ class AudioRoomError extends AudioRoomState {
   final String message;
   final String? errorCode;
 
-  const AudioRoomError({
-    required this.message,
-    this.errorCode,
-  });
+  const AudioRoomError({required this.message, this.errorCode});
 
   @override
   List<Object?> get props => [message, errorCode];
-}
-
-/// All rooms loaded state (for room list)
-class AudioRoomsLoaded extends AudioRoomState {
-  final List<AudioRoomDetails> rooms;
-
-  const AudioRoomsLoaded({required this.rooms});
-
-  @override
-  List<Object?> get props => [rooms];
 }

@@ -114,14 +114,6 @@ class AudioSocketRoomOperations {
     }
   }
 
-  /// Refresh room list (called when rooms are created, joined, left, etc.)
-  void refreshRoomList() {
-    if (_isConnected) {
-      _log('🔄 Refreshing audio room list due to room changes');
-      socket.emit(AudioSocketConstants.getAllRoomsEvent, {});
-    }
-  }
-
   /// Get list of all rooms
   Future<bool> getRooms() async {
     if (!_isConnected) {

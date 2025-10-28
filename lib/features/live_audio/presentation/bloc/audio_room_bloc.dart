@@ -468,7 +468,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
       final isBroadcaster = seats.any((seat) => seat.member?.id == currentState.userId);
 
       // If already loaded, just update the data
-      emit(currentState.copyWith(roomData: event.roomData, isBroadcaster: isBroadcaster));
+      emit(currentState.copyWith(roomData: event.roomData, isBroadcaster: isBroadcaster, listeners: event.roomData.membersDetails));
     } else if (currentState is AudioRoomConnected) {
       // If we are connected but not yet loaded, emit a new Loaded state
       final isHost = event.roomData.hostDetails.id == currentState.userId;
@@ -607,10 +607,10 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   }
 
   // Helper methods
-  void _handleUserLeft(dynamic data) {
+  void _handleUserLeft(String userId) {
     // Update listeners list
-    if (state is AudioRoomLoaded && data is Map<String, dynamic>) {
-      add(UpdateListenersEvent(userId: data['id']));
+    if (state is AudioRoomLoaded) {
+      add(UpdateListenersEvent(userId: userId));
     }
   }
 
