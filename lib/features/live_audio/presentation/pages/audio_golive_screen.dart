@@ -124,9 +124,19 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       _uiLog("Host's ID: $authUserId");
       _uiLog("Room ID: ${widget.roomId}");
 
-      context.read<AudioRoomBloc>().add(
+      if (widget.roomDetails != null) {
+        // If the room already exists, initialize the state and join immediately.
+        _uiLog("✅ Room already exists. Joining room with provided room data.");
+        context.read<AudioRoomBloc>().add(
+          InitializeWithRoomDataEvent(roomData: widget.roomDetails!, isHost: widget.isHost, userId: authUserId),
+        );
+      } else {
+        // If the room does not exist, create it.
+        _uiLog("🏗️ Creating new room with title: ${widget.roomTitle}, seats: ${widget.numberOfSeats}");
+        context.read<AudioRoomBloc>().add(
         CreateRoomEvent(roomId: widget.roomId, roomTitle: widget.roomTitle, numberOfSeats: widget.numberOfSeats),
       );
+      }
       _hasAttemptedToJoin = true;
     } else {
       // For non-hosts, we first ensure room data is available, then join.
