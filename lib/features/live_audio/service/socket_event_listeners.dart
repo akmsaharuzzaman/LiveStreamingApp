@@ -177,7 +177,7 @@ class AudioSocketEventListeners {
             data['data'] is Map &&
             (data['data'] as Map).isEmpty) {
           _log('🏠 Room has been closed by the host - notifying listeners');
-          _audioRoomDetailsController.add(null);
+          _closeRoomController.add([]);
           return;
         }
 
@@ -188,7 +188,7 @@ class AudioSocketEventListeners {
           // Check if room doesn't exist (roomId is null)
           if (roomData['roomId'] == null) {
             _log('🏠 Room does not exist - notifying listeners');
-            _audioRoomDetailsController.add(null);
+            _closeRoomController.add([]);
             return;
           }
 
