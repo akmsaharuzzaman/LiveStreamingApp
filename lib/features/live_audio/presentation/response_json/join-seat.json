@@ -1,0 +1,19 @@
+{
+    "success": true,
+    "message": "Successfully joined the seat",
+    "data": {
+        "seatKey": "seat-1",
+        "member": {
+            "name": "Md. Hasibul Hossain",
+            "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJeq52_iltNL8YHBuMp5ediVta-IHn-7jogcklP16zufj5vZ_w6yw=s96-c",
+            "uid": "112354720497797942972",
+            "_id": "68bf1f02d21d6918d27d513a",
+            "currentBackground": "https://res.cloudinary.com/dmpktzr0m/image/upload/v1758734670/level_tag_bg_assets/level_tag_bg_assets/e339ac59362bffeb805c4db58db2086e3494ace8b4670728f00748d7896dfc74.png",
+            "currentTag": "https://res.cloudinary.com/dmpktzr0m/image/upload/v1758734667/level_tag_bg_assets/level_tag_bg_assets/20bbcd089e3948a2a5137dacd0af08cefcfe9c12ad0169014439022d68a4789a.png",
+            "currentLevel": 1,
+            "equipedStoreItems": {},
+            "totalGiftSent": 0,
+            "isMuted": false
+        }
+    }
+}

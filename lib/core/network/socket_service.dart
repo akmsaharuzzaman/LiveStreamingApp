@@ -9,7 +9,7 @@ import 'package:dlstarlive/core/network/models/gift_model.dart';
 import 'package:dlstarlive/core/network/models/joined_user_model.dart';
 import 'package:dlstarlive/core/network/models/left_user_model.dart';
 import 'package:flutter/foundation.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
 import 'models/admin_details_model.dart';
 import 'models/mute_user_model.dart';
@@ -20,7 +20,7 @@ enum RoomType { live, pk, audio, party }
 /// Handles all socket operations including room management and real-time events
 class SocketService {
   static SocketService? _instance;
-  IO.Socket? _socket;
+  socket_io.Socket? _socket;
   bool _isConnected = false;
   String? _currentUserId;
   String? _currentRoomId;
@@ -153,9 +153,9 @@ class SocketService {
       }
 
       // Create socket with userId in query
-      _socket = IO.io(
+      _socket = socket_io.io(
         _baseUrl,
-        IO.OptionBuilder()
+        socket_io.OptionBuilder()
             .setTransports(['websocket'])
             .setQuery({'userId': userId})
             .disableAutoConnect() // Disable auto connect
@@ -394,9 +394,9 @@ class SocketService {
     });
 
     _socket!.on('get-rooms', (data) {
-      if (kDebugMode) {
-        print('� Get rooms response: $data');
-      }
+      // if (kDebugMode) {
+      //   print('� Get rooms response: $data');
+      // }
       if (data is List) {
         _getRoomsController.add(GetRoomModel.listFromJson(data));
       }

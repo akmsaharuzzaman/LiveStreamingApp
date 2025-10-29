@@ -1,7 +1,10 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:injectable/injectable.dart';
+import '../../../../core/auth/auth_bloc.dart';
+import '../../../../core/models/user_model.dart';
 import '../../data/services/chat_api_service.dart';
 import '../../data/models/chat_models.dart';
 
@@ -25,15 +28,17 @@ class SendMessageEvent extends ChatDetailEvent {
   final String receiverId;
   final String text;
   final File? file;
+  final String? currentUserId; // Optional: pass current user ID from UI
 
   const SendMessageEvent({
     required this.receiverId,
     required this.text,
     this.file,
+    this.currentUserId,
   });
 
   @override
-  List<Object?> get props => [receiverId, text, file];
+  List<Object?> get props => [receiverId, text, file, currentUserId];
 }
 
 class MarkMessagesSeenEvent extends ChatDetailEvent {
@@ -105,6 +110,10 @@ class ChatDetailMessagesLoaded extends ChatDetailState {
   List<Object?> get props => [messages, otherUserId];
 }
 
+class ChatDetailSendingMessage extends ChatDetailState {
+  const ChatDetailSendingMessage();
+}
+
 class ChatDetailMessageSent extends ChatDetailState {
   final ChatMessage message;
 
@@ -158,8 +167,10 @@ class ChatDetailError extends ChatDetailState {
 @injectable
 class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
   final ChatApiService _chatApiService;
+  final AuthBloc _authBloc;
 
-  ChatDetailBloc(this._chatApiService) : super(const ChatDetailInitial()) {
+  ChatDetailBloc(this._chatApiService, this._authBloc)
+    : super(const ChatDetailInitial()) {
     on<LoadMessagesEvent>(_onLoadMessages);
     on<SendMessageEvent>(_onSendMessage);
     on<MarkMessagesSeenEvent>(_onMarkMessagesSeen);
@@ -197,6 +208,121 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
     SendMessageEvent event,
     Emitter<ChatDetailState> emit,
   ) async {
+    // Get the current messages from state
+    List<ChatMessage> currentMessages = [];
+    String currentOtherUserId = event.receiverId;
+
+    if (state is ChatDetailMessagesLoaded) {
+      final loadedState = state as ChatDetailMessagesLoaded;
+      currentMessages = List.from(loadedState.messages);
+      currentOtherUserId = loadedState.otherUserId;
+    }
+    // If messages haven't been loaded yet, use the receiverId as otherUserId
+    // This ensures we still have proper otherUserId even if list is empty
+
+    // Get current user info from AuthBloc - try multiple approaches
+    ChatUser? currentUser;
+    final authState = _authBloc.state;
+    UserModel? authUser;
+
+    if (kDebugMode) {
+      debugPrint('Auth State Type: ${authState.runtimeType}');
+      debugPrint('Auth BLoC current user: ${_authBloc.currentUser}');
+      debugPrint('Passed currentUserId from event: ${event.currentUserId}');
+    }
+
+    // If currentUserId was passed from UI, we can extract user from messages directly
+    if (event.currentUserId != null && currentMessages.isNotEmpty) {
+      if (kDebugMode) {
+        debugPrint('Using currentUserId from UI: ${event.currentUserId}');
+      }
+      final firstMessage = currentMessages.firstWhere(
+        (msg) => msg.sender?.id == event.currentUserId,
+        orElse: () => currentMessages.first,
+      );
+      if (firstMessage.sender != null) {
+        currentUser = firstMessage.sender;
+      }
+    }
+
+    // If still no user, try AuthBloc approaches
+    if (currentUser == null) {
+      // Approach 1: Try to get user from state
+      if (authState is AuthAuthenticated) {
+        authUser = authState.user;
+      } else if (authState is AuthProfileIncomplete) {
+        authUser = authState.user;
+      } else {
+        // Approach 2: Fallback to getter which might have cached user
+        authUser = _authBloc.currentUser;
+      }
+
+      if (authUser != null) {
+        currentUser = ChatUser(
+          id: authUser.id,
+          name: authUser.name,
+          email: authUser.email,
+          avatar: authUser.profilePictureUrl ?? authUser.avatar ?? '',
+          isOnline: true,
+        );
+      }
+
+      // Approach 3: Last resort - if we have messages and no user, use sender from messages
+      if (currentUser == null && currentMessages.isNotEmpty) {
+        if (kDebugMode) {
+          debugPrint('Using sender from existing messages as fallback');
+        }
+        // The first message should have sender info
+        final firstMessageSender = currentMessages.first.sender;
+        if (firstMessageSender != null) {
+          currentUser = firstMessageSender;
+        }
+      }
+    }
+
+    // If currentUser is null, we cannot send the message
+    if (currentUser == null) {
+      if (kDebugMode) {
+        debugPrint(
+          'ERROR: User not authenticated. Auth State: ${authState.runtimeType}, User: $authUser, Messages: ${currentMessages.length}',
+        );
+      }
+      emit(ChatDetailError(message: 'User not authenticated'));
+      return;
+    }
+
+    if (kDebugMode) {
+      debugPrint('Sending message as: ${currentUser.id} (${currentUser.name})');
+    }
+
+    // Create a temporary optimistic message to show immediately
+    final optimisticMessage = ChatMessage(
+      id: 'temp_${DateTime.now().millisecondsSinceEpoch}', // Temporary ID
+      text: event.text,
+      sender: currentUser, // Current user info
+      receiver: null,
+      timestamp: DateTime.now(),
+      time: _formatTime(DateTime.now()),
+      seen: false,
+      roomId: null,
+      fileUrl: event.file?.path,
+      type: event.file != null ? MessageType.image : MessageType.text,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    // Add the optimistic message to the list (at the beginning since messages are reversed)
+    currentMessages.insert(0, optimisticMessage);
+
+    // Emit the updated state with the optimistic message immediately
+    emit(
+      ChatDetailMessagesLoaded(
+        messages: currentMessages,
+        otherUserId: currentOtherUserId,
+      ),
+    );
+
+    // Now send the actual message in the background
     final result = await _chatApiService.sendMessage(
       receiverId: event.receiverId,
       text: event.text,
@@ -205,14 +331,72 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
 
     result.fold(
       (message) {
+        // Replace the optimistic message with the real one
+        if (kDebugMode) {
+          debugPrint(
+            'Received message from server - ID: ${message.id}, Sender ID: ${message.sender?.id}, Sender Name: ${message.sender?.name}',
+          );
+          debugPrint(
+            'Looking for temp message to replace: ${optimisticMessage.id}',
+          );
+        }
+
+        final updatedMessages = currentMessages.map((msg) {
+          if (msg.id == optimisticMessage.id) {
+            if (kDebugMode) {
+              debugPrint('Replaced optimistic message with real message');
+            }
+            return message; // Replace with real message from server
+          }
+          return msg;
+        }).toList();
+
+        emit(
+          ChatDetailMessagesLoaded(
+            messages: updatedMessages,
+            otherUserId: currentOtherUserId,
+          ),
+        );
+
+        // Emit success state for UI feedback (like clearing input)
         emit(ChatDetailMessageSent(message: message));
-        // Reload messages after sending to show the new message
-        add(LoadMessagesEvent(otherUserId: event.receiverId));
+
+        // Restore the messages state
+        emit(
+          ChatDetailMessagesLoaded(
+            messages: updatedMessages,
+            otherUserId: currentOtherUserId,
+          ),
+        );
       },
       (error) {
+        // On error, remove the optimistic message and show error
+        currentMessages.removeWhere((msg) => msg.id == optimisticMessage.id);
+
+        emit(
+          ChatDetailMessagesLoaded(
+            messages: currentMessages,
+            otherUserId: currentOtherUserId,
+          ),
+        );
+
         emit(ChatDetailError(message: error));
+
+        // Restore the messages state
+        emit(
+          ChatDetailMessagesLoaded(
+            messages: currentMessages,
+            otherUserId: currentOtherUserId,
+          ),
+        );
       },
     );
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
   Future<void> _onMarkMessagesSeen(

@@ -22,6 +22,8 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     _tabController = TabController(length: 3, vsync: this);
     // Load conversations when page is initialized
     _refreshConversations();
+    // Start auto-refresh timer
+    context.read<ChatBloc>().add(const StartAutoRefreshEvent());
   }
 
   @override
@@ -42,6 +44,8 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   @override
   void dispose() {
     _tabController.dispose();
+    // Stop auto-refresh when leaving the page
+    context.read<ChatBloc>().add(const StopAutoRefreshEvent());
     super.dispose();
   }
 
@@ -226,21 +230,33 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
 
     // Convert API conversations to display format
     final displayChats = conversations.map((conversation) {
-      // Show the OTHER person's information (not the sender)
-      // If I'm the sender, show receiver info; if I'm the receiver, show sender info
-      final isCurrentUserSender = conversation.sender?.id == currentUserId;
-      final otherUser = isCurrentUserSender
+      // Determine the OTHER person in the conversation
+      // The top-level senderId/receiverId are just fixed participant info
+      final isCurrentUserFirst = conversation.sender?.id == currentUserId;
+      final otherUser = isCurrentUserFirst
           ? conversation.receiver
           : conversation.sender;
 
+      // CORRECT LOGIC: Use lstMsg.senderId to determine who ACTUALLY sent the last message
+      // Use lstMsg.sender.id if available, fallback to top-level sender.id
+      final actualSenderId =
+          conversation.lstMsg?.sender?.id ?? conversation.sender?.id;
+      final iSentThisMessage = actualSenderId == currentUserId;
+      final hasUnreadMessage = !iSentThisMessage && !conversation.seenStatus;
+
       return ChatConversation(
         id: conversation.id,
+        roomId: conversation.roomId, // Pass the roomId
         sender: otherUser, // Show the other person's info
         text: conversation.lastMessage,
         time: _formatTime(conversation.updatedAt),
-        unreadCount: conversation.seenStatus ? 0 : 1,
+        unreadCount: hasUnreadMessage
+            ? 1
+            : 0, // Only unread if friend sent and I haven't seen
         avatar: otherUser?.avatar ?? '',
         lastMessageTime: conversation.updatedAt,
+        isSentByMe: iSentThisMessage, // Track who sent the message
+        isSeen: conversation.seenStatus, // Track if message was seen
       );
     }).toList();
 
@@ -262,18 +278,13 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
 
           // Chat List
           Expanded(
-            child: RefreshIndicator(
-              onRefresh: () async {
-                context.read<ChatBloc>().add(const RefreshConversationsEvent());
+            child: ListView.builder(
+              padding: EdgeInsets.zero,
+              itemCount: displayChats.length,
+              itemBuilder: (context, index) {
+                final chat = displayChats[index];
+                return _buildChatListItem(chat);
               },
-              child: ListView.builder(
-                padding: EdgeInsets.zero,
-                itemCount: displayChats.length,
-                itemBuilder: (context, index) {
-                  final chat = displayChats[index];
-                  return _buildChatListItem(chat);
-                },
-              ),
             ),
           ),
         ],
@@ -320,7 +331,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
           ),
         ),
         subtitle: Text(
-          chat.text ?? "",
+          chat.isSentByMe ? "You: ${chat.text ?? ""}" : chat.text ?? "",
           style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -352,13 +363,14 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
           ],
         ),
         onTap: () {
-          // Pass the other user's ID and their information
+          // Pass the other user's ID, roomId and their information
           context.push(
             '/chat-details/${chat.sender!.id}',
             extra: {
               'userName': chat.sender!.name,
               'userAvatar': chat.sender!.avatar,
               'userEmail': chat.sender!.email,
+              'roomId': chat.roomId, // Pass roomId for message fetching
             },
           );
         },

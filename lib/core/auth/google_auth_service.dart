@@ -1,5 +1,4 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:injectable/injectable.dart';
 import '../models/google_response_model.dart';
@@ -50,32 +49,6 @@ class GoogleAuthServiceImpl implements GoogleAuthService {
   Future<void> _ensureGoogleSignInInitialized() async {
     if (!_isGoogleSignInInitialized) {
       await initialize();
-    }
-  }
-
-  /// Attempt silent authentication
-  Future<void> _attemptSilentSignIn() async {
-    try {
-      final result = _googleSignIn.attemptLightweightAuthentication();
-
-      // Handle both sync and async returns
-      GoogleSignInAccount? account;
-      if (result is Future<GoogleSignInAccount?>) {
-        account = await result;
-      } else {
-        account = result as GoogleSignInAccount?;
-      }
-
-      if (account != null) {
-        _currentGoogleUser = account;
-        // Optionally restore Firebase session here
-        debugPrint(
-          "Accout id debugPrint here; ${account.id}",
-        ); // For debugging, remove in production
-      }
-    } catch (e) {
-      // Silent sign-in failed, which is expected if user hasn't signed in before
-      _currentGoogleUser = null;
     }
   }
 

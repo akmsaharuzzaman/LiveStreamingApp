@@ -166,7 +166,7 @@ class AuthProfileIncomplete extends AuthState {
 }
 
 // BLoC
-@injectable
+@lazySingleton
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthApiClient _authApiClient;
   final UserApiClient _userApiClient;

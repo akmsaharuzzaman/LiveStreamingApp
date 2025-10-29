@@ -162,6 +162,7 @@ class ChatMessage extends Equatable {
 /// Chat conversation model for chat list
 class ChatConversation extends Equatable {
   final String id;
+  final String? roomId; // Room ID for fetching messages
   final ChatUser? sender;
   final String? text;
   final String? time;
@@ -169,9 +170,12 @@ class ChatConversation extends Equatable {
   final String avatar;
   final DateTime lastMessageTime;
   final bool isActive;
+  final bool isSentByMe; // Whether the last message was sent by current user
+  final bool isSeen; // Whether the last message was seen
 
   const ChatConversation({
     required this.id,
+    this.roomId,
     required this.sender,
     required this.text,
     required this.time,
@@ -179,11 +183,14 @@ class ChatConversation extends Equatable {
     required this.avatar,
     required this.lastMessageTime,
     this.isActive = true,
+    this.isSentByMe = false,
+    this.isSeen = false,
   });
 
   @override
   List<Object?> get props => [
     id,
+    roomId,
     sender,
     text,
     time,
@@ -191,11 +198,14 @@ class ChatConversation extends Equatable {
     avatar,
     lastMessageTime,
     isActive,
+    isSentByMe,
+    isSeen,
   ];
 
   factory ChatConversation.fromJson(Map<String, dynamic> json) {
     return ChatConversation(
       id: json['id'] ?? '',
+      roomId: json['roomId'],
       sender: json['sender'] != null ? ChatUser.fromJson(json['sender']) : null,
       text: json['text'],
       time: json['time'],
@@ -205,12 +215,15 @@ class ChatConversation extends Equatable {
         json['lastMessageTime'] ?? DateTime.now().toIso8601String(),
       ),
       isActive: json['isActive'] ?? true,
+      isSentByMe: json['isSentByMe'] ?? false,
+      isSeen: json['isSeen'] ?? false,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'roomId': roomId,
       'sender': sender?.toJson(),
       'text': text,
       'time': time,
@@ -218,6 +231,8 @@ class ChatConversation extends Equatable {
       'avatar': avatar,
       'lastMessageTime': lastMessageTime.toIso8601String(),
       'isActive': isActive,
+      'isSentByMe': isSentByMe,
+      'isSeen': isSeen,
     };
   }
 }
@@ -236,6 +251,7 @@ class Conversation extends Equatable {
   final List<String> deletedFor;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final ChatMessage? lstMsg; // The actual last message object
 
   const Conversation({
     required this.id,
@@ -247,6 +263,7 @@ class Conversation extends Equatable {
     required this.deletedFor,
     required this.createdAt,
     required this.updatedAt,
+    this.lstMsg,
   });
 
   @override
@@ -260,6 +277,7 @@ class Conversation extends Equatable {
     deletedFor,
     createdAt,
     updatedAt,
+    lstMsg,
   ];
 
   factory Conversation.fromJson(Map<String, dynamic> json) {
@@ -274,13 +292,22 @@ class Conversation extends Equatable {
           : null,
       lastMessage: json['lastMessage'] ?? '',
       seenStatus: json['seenStatus'] ?? false,
-      deletedFor: List<String>.from(json['deletedFor'] ?? []),
+      deletedFor:
+          (json['deletedFor'] as List<dynamic>?)
+              ?.map(
+                (item) => (item is String) ? item : item['userId'] as String,
+              )
+              .toList() ??
+          [],
       createdAt: DateTime.parse(
         json['createdAt'] ?? DateTime.now().toIso8601String(),
       ),
       updatedAt: DateTime.parse(
         json['updatedAt'] ?? DateTime.now().toIso8601String(),
       ),
+      lstMsg: json['lstMsg'] != null
+          ? ChatMessage.fromJson(json['lstMsg'])
+          : null,
     );
   }
 
@@ -295,6 +322,7 @@ class Conversation extends Equatable {
       'deletedFor': deletedFor,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      'lstMsg': lstMsg?.toJson(),
     };
   }
 }
