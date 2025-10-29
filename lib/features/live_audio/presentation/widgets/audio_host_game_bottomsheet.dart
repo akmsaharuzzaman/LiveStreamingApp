@@ -6,7 +6,7 @@ import 'package:dlstarlive/features/live/presentation/component/local_game_confi
 import 'package:dlstarlive/features/live/presentation/component/local_game_manager.dart';
 import 'package:dlstarlive/features/live/presentation/pages/local_game_page.dart';
 
-void showAudioGameBottomSheet(BuildContext context, {String? userId, bool isHost = false}) {
+void showHostAudioMenuBottomSheet(BuildContext context, {String? userId, bool isHost = false}) {
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
@@ -164,24 +164,6 @@ class _AudioGameBottomSheetState extends State<AudioGameBottomSheet> {
                             onTap: () {
                               Navigator.pop(context);
                               // Handle coin bag
-                            },
-                          ),
-
-                          _buildControlOption(
-                            iconPath: "assets/icons/camera_flip_grid_icon.png",
-                            label: 'Flip Camera',
-                            onTap: () {
-                              Navigator.pop(context);
-                              // Handle flip camera
-                            },
-                          ),
-
-                          _buildControlOption(
-                            iconPath: "assets/icons/beauty_cam_grid_icon.png",
-                            label: 'Beauty Camera',
-                            onTap: () {
-                              Navigator.pop(context);
-                              // Handle beauty camera
                             },
                           ),
                           _buildControlOption(

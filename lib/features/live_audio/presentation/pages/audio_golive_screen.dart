@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:dlstarlive/core/network/models/gift_model.dart';
+import 'package:dlstarlive/core/utils/app_utils.dart';
+import 'package:dlstarlive/features/live/presentation/component/diamond_star_status.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -18,15 +21,15 @@ import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/features/live/presentation/widgets/animated_layer.dart';
 import 'package:dlstarlive/features/live/presentation/component/agora_token_service.dart';
 import 'package:dlstarlive/features/live/presentation/component/custom_live_button.dart';
-import 'package:dlstarlive/features/live/presentation/component/menu_bottom_sheet.dart';
 import 'package:dlstarlive/features/live/presentation/component/end_stream_overlay.dart';
 import 'package:dlstarlive/features/live/presentation/component/host_info.dart';
 import 'package:dlstarlive/features/live/presentation/component/send_message_buttonsheet.dart';
 
 // From Audio Live
 import 'package:dlstarlive/features/live_audio/data/models/audio_room_details.dart';
-import 'package:dlstarlive/features/live_audio/presentation/widgets/audio_game_bottomsheet.dart';
+import 'package:dlstarlive/features/live_audio/presentation/widgets/audio_host_game_bottomsheet.dart';
 import 'package:dlstarlive/features/live_audio/presentation/widgets/joined_member_page.dart';
+import 'package:dlstarlive/features/live_audio/presentation/widgets/audio_audiance_menu_bottom_sheet.dart';
 
 import '../bloc/audio_room_bloc.dart';
 import '../bloc/audio_room_event.dart';
@@ -72,6 +75,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   bool _isJoiningAgoraChannel = false;
   bool _hasJoinedChannel = false;
   bool _hasAttemptedToJoin = false;
+
+  // Diamond and bonus
+  List<GiftModel> sentGifts = [];
 
   // UI Log
   void _uiLog(String message) {
@@ -769,7 +775,25 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                DiamondStarStatus(
+                  diamonCount: AppUtils.formatNumber(
+                    GiftModel.totalDiamondsForHost(
+                      sentGifts,
+                      roomState.isHost
+                          ? authState.user.id
+                          : roomState.roomData?.hostDetails.id, // Use userId for host, widget.hostUserId for viewers
+                    ),
+                  ),
+                  starCount: AppUtils.formatNumber(0),
+                ),
                 // Your diamond/star widgets here
+                SizedBox(height: 5.h),
+                //add another widget to show the bonus
+                // BonusStatus(
+                //   bonusCount: AppUtils.formatNumber(
+                //     _calculateTotalBonusDiamonds(),
+                //   ),
+                // ),
               ],
             ),
           ],
@@ -822,7 +846,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   CustomLiveButton(
                     iconPath: "assets/icons/menu_icon.png",
                     onTap: () {
-                      showAudioGameBottomSheet(context, userId: authUserId, isHost: roomState.isHost);
+                      showHostAudioMenuBottomSheet(context, userId: authUserId, isHost: roomState.isHost);
                     },
                   ),
                 ],
@@ -849,7 +873,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   CustomLiveButton(
                     iconPath: "assets/icons/game_user_icon.png",
                     onTap: () {
-                      showAudioGameBottomSheet(context, userId: authUserId, isHost: roomState.isHost);
+                      showHostAudioMenuBottomSheet(context, userId: authUserId, isHost: roomState.isHost);
                     },
                     height: 40.h,
                   ),
@@ -857,7 +881,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   CustomLiveButton(
                     iconPath: "assets/icons/menu_icon.png",
                     onTap: () {
-                      showMenuBottomSheet(
+                      showAudianceAudioMenuBottomSheet(
                         context,
                         userId: authUserId,
                         isHost: roomState.isHost,
