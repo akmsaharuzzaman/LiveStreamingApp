@@ -1,29 +1,33 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:dlstarlive/features/live/presentation/widgets/animated_layer.dart';
-import 'package:dlstarlive/features/live_audio/data/models/audio_room_details.dart';
-import 'package:dlstarlive/features/live_audio/presentation/widgets/joined_member_page.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 
 import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:dlstarlive/routing/app_router.dart';
+import 'package:dlstarlive/core/auth/auth_bloc.dart';
 
+// From Video Live
+import 'package:dlstarlive/features/live/presentation/widgets/animated_layer.dart';
 import 'package:dlstarlive/features/live/presentation/component/agora_token_service.dart';
 import 'package:dlstarlive/features/live/presentation/component/custom_live_button.dart';
-import 'package:dlstarlive/features/live/presentation/component/game_bottomsheet.dart';
 import 'package:dlstarlive/features/live/presentation/component/menu_bottom_sheet.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dlstarlive/features/live/presentation/component/end_stream_overlay.dart';
+import 'package:dlstarlive/features/live/presentation/component/host_info.dart';
+import 'package:dlstarlive/features/live/presentation/component/send_message_buttonsheet.dart';
 
-import '../../../../core/auth/auth_bloc.dart';
-import '../../../live/presentation/component/end_stream_overlay.dart';
-import '../../../live/presentation/component/host_info.dart';
-import '../../../live/presentation/component/send_message_buttonsheet.dart';
+// From Audio Live
+import 'package:dlstarlive/features/live_audio/data/models/audio_room_details.dart';
+import 'package:dlstarlive/features/live_audio/presentation/widgets/audio_game_bottomsheet.dart';
+import 'package:dlstarlive/features/live_audio/presentation/widgets/joined_member_page.dart';
+
 import '../bloc/audio_room_bloc.dart';
 import '../bloc/audio_room_event.dart';
 import '../bloc/audio_room_state.dart';
@@ -216,7 +220,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               _hasJoinedChannel = true;
               _isJoiningAgoraChannel = false;
             });
-            context.read<AudioRoomBloc>().add(UpdateStreamDurationEvent());
           },
           onError: (ErrorCodeType err, String msg) {
             _uiLog('❌ Agora Error: $msg');
@@ -420,13 +423,13 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     });
   }
 
-  String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    String hours = twoDigits(duration.inHours);
-    String minutes = twoDigits(duration.inMinutes.remainder(60));
-    String seconds = twoDigits(duration.inSeconds.remainder(60));
-    return "$hours:$minutes:$seconds";
-  }
+  // String _formatDuration(Duration duration) {
+  //   String twoDigits(int n) => n.toString().padLeft(2, '0');
+  //   String hours = twoDigits(duration.inHours);
+  //   String minutes = twoDigits(duration.inMinutes.remainder(60));
+  //   String seconds = twoDigits(duration.inSeconds.remainder(60));
+  //   return "$hours:$minutes:$seconds";
+  // }
 
   void _endLiveStream() async {
     try {
@@ -459,13 +462,10 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           final authState = context.read<AuthBloc>().state;
           if (authState is AuthAuthenticated && currentState.currentRoomId != null) {
             context.go(
-              AppRoutes.liveSummary,
+              AppRoutes.audioLiveSummary,
               extra: {
                 'userName': authState.user.name,
                 'userId': authState.user.id.substring(0, 6),
-                'earnedPoints': 0,
-                'newFollowers': 0,
-                'totalDuration': _formatDuration(currentState.streamDuration),
                 'userAvatar': authState.user.avatar,
               },
             );
@@ -820,20 +820,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                     },
                   ),
                   CustomLiveButton(
-                    iconPath: "assets/icons/call_icon.png",
-                    onTap: () {
-                      _showSnackBar('📞 Not implemented yet', Colors.red);
-                    },
-                  ),
-                  CustomLiveButton(
                     iconPath: "assets/icons/menu_icon.png",
                     onTap: () {
-                      showGameBottomSheet(
-                        context,
-                        userId: authUserId,
-                        isHost: roomState.isHost,
-                        streamDuration: roomState.streamDuration,
-                      );
+                      showAudioGameBottomSheet(context, userId: authUserId, isHost: roomState.isHost);
                     },
                   ),
                 ],
@@ -860,7 +849,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   CustomLiveButton(
                     iconPath: "assets/icons/game_user_icon.png",
                     onTap: () {
-                      showGameBottomSheet(context, userId: authUserId, streamDuration: roomState.streamDuration);
+                      showAudioGameBottomSheet(context, userId: authUserId, isHost: roomState.isHost);
                     },
                     height: 40.h,
                   ),

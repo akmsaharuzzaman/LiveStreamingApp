@@ -6,6 +6,7 @@ import 'package:dlstarlive/features/live/presentation/pages/live_page.dart';
 import 'package:dlstarlive/features/live/presentation/pages/live_summary_screen.dart';
 import 'package:dlstarlive/features/live_audio/data/models/audio_room_details.dart';
 import 'package:dlstarlive/features/live_audio/presentation/pages/audio_golive_screen.dart';
+import 'package:dlstarlive/features/live_audio/presentation/widgets/audio_live_summary_screen.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/view_user_profile.dart';
 import 'package:dlstarlive/features/profile/presentation/pages/friends_list_page.dart';
 import 'package:dlstarlive/features/reels/presentation/pages/reels.dart';
@@ -40,6 +41,7 @@ class AppRoutes {
   static const String onGoingLive = '/on-going-live';
   static const String audioLive = '/audio-live';
   static const String liveSummary = '/live-summary';
+  static const String audioLiveSummary = '/audio-live-summary';
   static const String chatDetail = '/chat-details';
   static const String chats = '/chats';
   static const String friendsList = '/friends-list';
@@ -137,6 +139,18 @@ final GoRouter appRouter = GoRouter(
           earnedPoints: extra?['earnedPoints'] ?? 0,
           newFollowers: extra?['newFollowers'] ?? 0,
           totalDuration: extra?['totalDuration'] ?? "0:0:0",
+          userAvatar: extra?['userAvatar'],
+        );
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.audioLiveSummary,
+      name: 'audioLiveSummary',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return AudioLiveSummaryScreen(
+          userName: extra?['userName'] ?? "User",
+          userId: extra?['userId'] ?? "123456",
           userAvatar: extra?['userAvatar'],
         );
       },

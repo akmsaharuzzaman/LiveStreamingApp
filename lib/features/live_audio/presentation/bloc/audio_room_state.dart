@@ -41,8 +41,6 @@ class AudioRoomLoaded extends AudioRoomState {
   final bool isMuted;
   final bool isAudioCaller;
   final List<int> audioCallerUids;
-  final DateTime? streamStartTime;
-  final Duration streamDuration;
   final bool animationPlaying;
   final String? animationUrl;
   final String? animationTitle;
@@ -61,8 +59,6 @@ class AudioRoomLoaded extends AudioRoomState {
     this.isMuted = false,
     this.isAudioCaller = false,
     this.audioCallerUids = const [],
-    this.streamStartTime,
-    this.streamDuration = Duration.zero,
     this.animationPlaying = false,
     this.animationUrl,
     this.animationTitle,
@@ -102,8 +98,6 @@ class AudioRoomLoaded extends AudioRoomState {
       isMuted: isMuted ?? this.isMuted,
       isAudioCaller: isAudioCaller ?? this.isAudioCaller,
       audioCallerUids: audioCallerUids ?? this.audioCallerUids,
-      streamStartTime: streamStartTime ?? this.streamStartTime,
-      streamDuration: streamDuration ?? this.streamDuration,
       animationPlaying: animationPlaying ?? this.animationPlaying,
       animationUrl: animationUrl ?? this.animationUrl,
       animationTitle: animationTitle ?? this.animationTitle,
@@ -125,8 +119,6 @@ class AudioRoomLoaded extends AudioRoomState {
     isMuted,
     isAudioCaller,
     audioCallerUids,
-    streamStartTime,
-    streamDuration,
     animationPlaying,
     animationUrl,
     animationTitle,

@@ -199,8 +199,6 @@ class UpdateBroadcasterStatusEvent extends AudioRoomEvent {
 class EndLiveStreamEvent extends AudioRoomEvent {}
 
 /// UI Events
-class UpdateStreamDurationEvent extends AudioRoomEvent {}
-
 class PlayAnimationEvent extends AudioRoomEvent {
   final String? animationUrl;
   final String? title;

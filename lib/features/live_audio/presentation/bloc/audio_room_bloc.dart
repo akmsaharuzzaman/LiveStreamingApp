@@ -79,7 +79,6 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
 
     // UI events
     on<EndLiveStreamEvent>(_onEndLiveStream);
-    on<UpdateStreamDurationEvent>(_onUpdateStreamDuration);
     on<PlayAnimationEvent>(_onPlayAnimation);
 
     // Error handling
@@ -426,14 +425,6 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   void _onEndLiveStream(EndLiveStreamEvent event, Emitter<AudioRoomState> emit) {
     _stopStreamTimer();
     emit(const AudioRoomClosed(reason: 'Live stream ended'));
-  }
-
-  void _onUpdateStreamDuration(UpdateStreamDurationEvent event, Emitter<AudioRoomState> emit) {
-    if (state is AudioRoomLoaded) {
-      final currentState = state as AudioRoomLoaded;
-      final newDuration = currentState.streamDuration + const Duration(seconds: 1);
-      emit(currentState.copyWith(streamDuration: newDuration));
-    }
   }
 
   void _onPlayAnimation(PlayAnimationEvent event, Emitter<AudioRoomState> emit) {
