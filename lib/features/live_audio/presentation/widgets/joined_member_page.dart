@@ -1,4 +1,3 @@
-import 'package:dlstarlive/core/utils/app_utils.dart';
 import 'package:dlstarlive/features/live_audio/data/models/audio_member_model.dart';
 import 'package:dlstarlive/features/profile/presentation/widgets/user_profile_bottom_sheet.dart';
 import 'package:flutter/material.dart';
@@ -7,18 +6,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'listeners_list_page.dart';
 
 class JoindListenersPage extends StatelessWidget {
-  const JoindListenersPage({
-    super.key,
-    required this.activeUserList,
-    this.hostUserId,
-    this.hostName,
-    this.hostAvatar,
-  });
-
   final List<AudioMember> activeUserList;
   final String? hostUserId;
   final String? hostName;
   final String? hostAvatar;
+
+  const JoindListenersPage({super.key, required this.activeUserList, this.hostUserId, this.hostName, this.hostAvatar});
 
   @override
   Widget build(BuildContext context) {
@@ -38,8 +31,7 @@ class JoindListenersPage extends StatelessWidget {
                     context: context,
                     isScrollControlled: true,
                     backgroundColor: Colors.transparent,
-                    builder: (context) =>
-                        UserProfileBottomSheet(userId: user.id),
+                    builder: (context) => UserProfileBottomSheet(userId: user.id),
                   );
                 },
                 child: ClipRRect(
@@ -62,11 +54,9 @@ class JoindListenersPage extends StatelessWidget {
                           child: Center(
                             child: Text(
                               //This is basically gift amount , if if matched upate this text from the sentGifts
-                              AppUtils.formatNumber(user.diamonds),
-                              style: TextStyle(
-                                fontSize: 10.sp,
-                                color: Colors.white,
-                              ),
+                              //AppUtils.formatNumber(user.diamonds),
+                              "0",
+                              style: TextStyle(fontSize: 10.sp, color: Colors.white),
                             ),
                           ),
                         ),
@@ -102,28 +92,17 @@ class JoindListenersPage extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Color(0xff888686),
                   borderRadius: BorderRadius.circular(8.r),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
-                    width: 1,
-                  ),
+                  border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       activeUserList.length.toString(),
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(fontSize: 18.sp, color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                     SizedBox(width: 2.w),
-                    Icon(
-                      Icons.keyboard_arrow_right,
-                      color: Colors.white.withOpacity(0.8),
-                      size: 16.sp,
-                    ),
+                    Icon(Icons.keyboard_arrow_right, color: Colors.white.withOpacity(0.8), size: 16.sp),
                   ],
                 ),
               ),

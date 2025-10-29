@@ -1,28 +1,33 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:dlstarlive/features/live/presentation/widgets/animated_layer.dart';
-import 'package:dlstarlive/features/live_audio/data/models/audio_room_details.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 
 import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:dlstarlive/routing/app_router.dart';
+import 'package:dlstarlive/core/auth/auth_bloc.dart';
 
+// From Video Live
+import 'package:dlstarlive/features/live/presentation/widgets/animated_layer.dart';
 import 'package:dlstarlive/features/live/presentation/component/agora_token_service.dart';
 import 'package:dlstarlive/features/live/presentation/component/custom_live_button.dart';
-import 'package:dlstarlive/features/live/presentation/component/game_bottomsheet.dart';
 import 'package:dlstarlive/features/live/presentation/component/menu_bottom_sheet.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dlstarlive/features/live/presentation/component/end_stream_overlay.dart';
+import 'package:dlstarlive/features/live/presentation/component/host_info.dart';
+import 'package:dlstarlive/features/live/presentation/component/send_message_buttonsheet.dart';
 
-import '../../../../core/auth/auth_bloc.dart';
-import '../../../live/presentation/component/end_stream_overlay.dart';
-import '../../../live/presentation/component/host_info.dart';
-import '../../../live/presentation/component/send_message_buttonsheet.dart';
+// From Audio Live
+import 'package:dlstarlive/features/live_audio/data/models/audio_room_details.dart';
+import 'package:dlstarlive/features/live_audio/presentation/widgets/audio_game_bottomsheet.dart';
+import 'package:dlstarlive/features/live_audio/presentation/widgets/joined_member_page.dart';
+
 import '../bloc/audio_room_bloc.dart';
 import '../bloc/audio_room_event.dart';
 import '../bloc/audio_room_state.dart';
@@ -31,11 +36,9 @@ import '../widgets/seat_widget.dart';
 
 class AudioGoLiveScreen extends StatefulWidget {
   final bool isHost;
-
   final String roomId;
   final int numberOfSeats;
   final String roomTitle;
-
   final AudioRoomDetails? roomDetails;
 
   const AudioGoLiveScreen({
@@ -124,9 +127,19 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       _uiLog("Host's ID: $authUserId");
       _uiLog("Room ID: ${widget.roomId}");
 
-      context.read<AudioRoomBloc>().add(
-        CreateRoomEvent(roomId: widget.roomId, roomTitle: widget.roomTitle, numberOfSeats: widget.numberOfSeats),
-      );
+      if (widget.roomDetails != null) {
+        // If the room already exists, initialize the state and join immediately.
+        _uiLog("✅ Room already exists. Joining room with provided room data.");
+        context.read<AudioRoomBloc>().add(
+          InitializeWithRoomDataEvent(roomData: widget.roomDetails!, isHost: widget.isHost, userId: authUserId),
+        );
+      } else {
+        // If the room does not exist, create it.
+        _uiLog("🏗️ Creating new room with title: ${widget.roomTitle}, seats: ${widget.numberOfSeats}");
+        context.read<AudioRoomBloc>().add(
+          CreateRoomEvent(roomId: widget.roomId, roomTitle: widget.roomTitle, numberOfSeats: widget.numberOfSeats),
+        );
+      }
       _hasAttemptedToJoin = true;
     } else {
       // For non-hosts, we first ensure room data is available, then join.
@@ -191,13 +204,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         ),
       );
 
-      // Set client role based on current state
-      final blocState = context.read<AudioRoomBloc>().state;
-      final isHost = blocState is AudioRoomLoaded ? blocState.isHost : false;
-      await _engine.setClientRole(
-        role: isHost ? ClientRoleType.clientRoleBroadcaster : ClientRoleType.clientRoleAudience,
-      );
-
       // Audio-only setup - no video
       await _engine.enableAudio();
       await _engine.disableVideo();
@@ -214,7 +220,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               _hasJoinedChannel = true;
               _isJoiningAgoraChannel = false;
             });
-            context.read<AudioRoomBloc>().add(UpdateStreamDurationEvent());
           },
           onError: (ErrorCodeType err, String msg) {
             _uiLog('❌ Agora Error: $msg');
@@ -241,13 +246,30 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               },
         ),
       );
-
-      await _engine.setClientRole(
-        role: isHost ? ClientRoleType.clientRoleBroadcaster : ClientRoleType.clientRoleAudience,
-      );
     } catch (e) {
       _uiLog('❌ Error initializing Agora: $e');
       _showSnackBar('❌ Failed to initialize Agora', Colors.red);
+    }
+  }
+
+  // Update client role to broadcaster
+  Future<void> _updateClientRoleToAudience() async {
+    _uiLog('🎧 Attempting to update client role to Audience...');
+    try {
+      await _engine.setClientRole(role: ClientRoleType.clientRoleAudience);
+      _uiLog('✅ Client role updated to Audience');
+    } catch (e) {
+      _uiLog('❌ Error updating client role to Audience: $e');
+    }
+  }
+
+  Future<void> _updateClientRoleToBroadcaster() async {
+    _uiLog('👑 Attempting to update client role to Broadcaster...');
+    try {
+      await _engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
+      _uiLog('✅ Client role updated to Broadcaster');
+    } catch (e) {
+      _uiLog('❌ Error updating client role to Broadcaster: $e');
     }
   }
 
@@ -290,6 +312,12 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       if (result.token.isNotEmpty) {
         final dynamicToken = result.token;
         _uiLog("✅ Token generated successfully : $dynamicToken");
+
+        // Set client role before joining
+        final role = isHost ? ClientRoleType.clientRoleBroadcaster : ClientRoleType.clientRoleAudience;
+        await _engine.setClientRole(role: role);
+        _uiLog("👑 Setting client role to: $role");
+
         // _showSnackBar('📡 Joining live stream...', Colors.blue);
         await _engine.joinChannel(
           token: dynamicToken,
@@ -297,7 +325,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           uid: 0,
           options: ChannelMediaOptions(
             channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
-            clientRoleType: isHost ? ClientRoleType.clientRoleBroadcaster : ClientRoleType.clientRoleAudience,
+            clientRoleType: role,
             // Audio-only settings
             publishMicrophoneTrack: true,
             publishCameraTrack: false, // Disable camera
@@ -366,6 +394,23 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     }
   }
 
+  void _removeUserFromSeat(String seatId, String targetId) {
+    final currentState = context.read<AudioRoomBloc>().state;
+    if (currentState is AudioRoomLoaded && currentState.currentRoomId != null) {
+      context.read<AudioRoomBloc>().add(
+        RemoveFromSeatEvent(roomId: currentState.currentRoomId!, seatKey: seatId, targetId: targetId),
+      );
+    }
+  }
+
+  void _toggleMute() {
+    context.read<AudioRoomBloc>().add(ToggleMuteEvent());
+  }
+
+  /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  /// ################## Others ##################
+  /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
   void _handleHostDisconnection(String reason) {
     if (!mounted) return;
     _uiLog("🚨 $reason - Exiting audio room...");
@@ -378,19 +423,14 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     });
   }
 
-  void _toggleMute() {
-    context.read<AudioRoomBloc>().add(ToggleMuteEvent());
-  }
+  // String _formatDuration(Duration duration) {
+  //   String twoDigits(int n) => n.toString().padLeft(2, '0');
+  //   String hours = twoDigits(duration.inHours);
+  //   String minutes = twoDigits(duration.inMinutes.remainder(60));
+  //   String seconds = twoDigits(duration.inSeconds.remainder(60));
+  //   return "$hours:$minutes:$seconds";
+  // }
 
-  String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    String hours = twoDigits(duration.inHours);
-    String minutes = twoDigits(duration.inMinutes.remainder(60));
-    String seconds = twoDigits(duration.inSeconds.remainder(60));
-    return "$hours:$minutes:$seconds";
-  }
-
-  // End live stream
   void _endLiveStream() async {
     try {
       final currentState = context.read<AudioRoomBloc>().state;
@@ -422,13 +462,10 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           final authState = context.read<AuthBloc>().state;
           if (authState is AuthAuthenticated && currentState.currentRoomId != null) {
             context.go(
-              AppRoutes.liveSummary,
+              AppRoutes.audioLiveSummary,
               extra: {
                 'userName': authState.user.name,
                 'userId': authState.user.id.substring(0, 6),
-                'earnedPoints': 0,
-                'newFollowers': 0,
-                'totalDuration': _formatDuration(currentState.streamDuration),
                 'userAvatar': authState.user.avatar,
               },
             );
@@ -471,7 +508,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     _reconnectTimer = reconnectTimer;
   }
 
-  // Show SnackBar
   void _showSnackBar(String message, Color color) {
     // IMPORTANT: Check if widget is still mounted before showing SnackBar
     if (!mounted) {
@@ -499,168 +535,165 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AudioRoomBloc, AudioRoomState>(
-      listener: (context, state) {
-        // CRITICAL: Check if widget is still mounted before processing ANY state changes
-        if (!mounted) {
-          debugPrint("⚠️ Ignoring state change because widget is not mounted: ${state.runtimeType}");
-          return;
-        }
-
-        if (state is AudioRoomLoaded) {
-          _uiLog("✅ Room loaded: ${jsonEncode(state.roomData)}");
-          if (state.roomData?.seatsData == null) return;
-          final seatsData = state.roomData!.seatsData;
-          _uiLog("✅ SeatsData: ${jsonEncode(seatsData)}");
-          if (seatsData.seats != null) {
-            _uiLog("✅ Seats: ${jsonEncode(seatsData.seats)}");
-          }
-          final seatKey = seatsData.seats?.keys.first;
-          if (seatKey != null) {
-            _uiLog("✅ Seat key: $seatKey");
-          }
-          final seatInfo = seatsData.seats?.values.first;
-          if (seatInfo != null) {
-            _uiLog("✅ Seat info: ${jsonEncode(seatInfo)}");
-          }
-          final seatMember = seatInfo?.member;
-          if (seatMember != null) {
-            _uiLog("✅ Seat member: ${jsonEncode(seatMember)}");
-          }
-
-          // If the user is not the host and the room data has just been loaded,
-          // it's time to join the room.
-          if (widget.isHost == false && _hasAttemptedToJoin == false && state.currentRoomId != null) {
-            _hasAttemptedToJoin = true; // Set the flag immediately to prevent re-entry
-            final isAlreadyInRoom = state.listeners.any((member) => member.id == authUserId);
-            if (!isAlreadyInRoom) {
-              _uiLog("✅ Room details fetched. User not in room yet. Now joining room: ${state.currentRoomId}");
-              context.read<AudioRoomBloc>().add(JoinRoomEvent(roomId: state.currentRoomId!, memberID: authUserId));
-            } else {
-              _uiLog("✅ User is already in the room. No need to join again.");
-            }
-          }
-        }
-
-        // Now your existing code is safe to run
-        if (state is AudioRoomError) {
-          _showSnackBar('❌ ${state.message}', Colors.red);
-        }
-
-        if (state is AudioRoomLoaded && state.currentRoomId != null && !_hasJoinedChannel && _hasAttemptedToJoin && !_isJoiningAgoraChannel) {
-          setState(() {
-            _isJoiningAgoraChannel = true;
-          });
-          // Join Agora channel only if we haven't joined already.
-          _uiLog("Attempting to join Agora channel...");
-          _joinAudioChannelWithDynamicToken(state.currentRoomId!);
-        } else if (state is AudioRoomConnected) {
-          // Socket connected, initialize Agora, then dispatch room events.
-          if (!_isAgoraInitialized && !_isInitializingAgora) {
-            setState(() {
-              _isInitializingAgora = true;
-            });
-            initAudioAgora().then((_) {
-              if (mounted && _isAgoraInitialized) {
-                _dispatchRoomEventsAfterConnection(context);
-              }
-              setState(() {
-                _isInitializingAgora = false;
-              });
-            });
-          }
-        } else if (state is AudioRoomLoaded && state.bannedUsers.contains(authUserId)) {
-          _handleHostDisconnection('You have been banned from this room.');
-        } else if (state is AudioRoomClosed) {
-          _handleHostDisconnection(state.reason ?? 'Room ended');
-        } else if (state is AudioRoomError) {
-          _showSnackBar('❌ ${state.message}', Colors.red);
-        } else if (state is AnimationPlaying) {
-          // Animation handled in UI
-        }
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        // Always trigger cleanup when back navigation is invoked
+        _endLiveStream();
+        debugPrint('Back navigation invoked: (cleanup triggered)');
       },
-      child: PopScope(
-        canPop: true,
-        onPopInvokedWithResult: (bool didPop, Object? result) {
-          // Always trigger cleanup when back navigation is invoked
-          _endLiveStream();
-          debugPrint('Back navigation invoked: (cleanup triggered)');
-        },
-        child: Scaffold(
-          body: BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, authState) {
-              if (authState is! AuthAuthenticated) {
-                return Center(
-                  child: Text('Please log in to start live streaming', style: TextStyle(fontSize: 18.sp)),
-                );
-              } else {
-                return BlocBuilder<AudioRoomBloc, AudioRoomState>(
-                  builder: (context, roomState) {
-                    if (roomState is AudioRoomLoaded) {
-                      _uiLog("Audio Room Loaded");
-                      return Stack(
-                        children: [
-                          // Background
-                          Container(
-                            decoration: BoxDecoration(
-                              image: DecorationImage(
-                                image: AssetImage("assets/icons/audio_room/audio_room_background.png"),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
+      child: Scaffold(
+        body: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, authState) {
+            if (authState is! AuthAuthenticated) {
+              return Center(
+                child: Text('Please log in to start live streaming', style: TextStyle(fontSize: 18.sp)),
+              );
+            }
+            return BlocConsumer<AudioRoomBloc, AudioRoomState>(
+              listenWhen: (previous, current) {
+                if (previous is AudioRoomLoaded && current is AudioRoomLoaded) {
+                  return previous.isBroadcaster != current.isBroadcaster;
+                }
+                return true;
+              },
+              listener: (context, state) {
+                // CRITICAL: Check if widget is still mounted before processing ANY state changes
+                if (!mounted) {
+                  debugPrint("⚠️ Ignoring state change because widget is not mounted: ${state.runtimeType}");
+                  return;
+                }
 
-                          // Main content with seats grid
-                          Column(
-                            children: [
-                              SizedBox(height: 160.h), // Space for top bar
-                              SeatWidget(
-                                numberOfSeats: widget.numberOfSeats,
-                                currentUserId: authUserId,
-                                currentUserName: authState.user.name,
-                                currentUserAvatar: authState.user.avatar,
-                                hostDetails: roomState.roomData?.hostDetails,
-                                premiumSeat: roomState.roomData?.premiumSeat,
-                                seatsData: roomState.roomData?.seatsData,
-                                onTakeSeat: _takeSeat,
-                                onLeaveSeat: _leaveSeat,
-                                isHost: roomState.isHost,
-                              ),
-                              Spacer(),
-                            ],
-                          ),
+                if (state is AudioRoomLoaded) {
+                  _uiLog("✅ Room loaded: ${jsonEncode(state.roomData)}");
+                  if (state.roomData?.seatsData == null) return;
+                  final seatsData = state.roomData!.seatsData;
+                  _uiLog("✅ SeatsData: ${jsonEncode(seatsData)}");
 
-                          // Individual UI components (not blocking the entire screen)
-                          _buildTopBar(authState, roomState),
-                          _buildChatWidget(roomState),
-                          _buildBottomButtons(authState, roomState),
-
-                          // Animation layer
-                          if (roomState.animationPlaying)
-                            AnimatedLayer(
-                              gifts: [], // sentGifts,
-                              customAnimationUrl: roomState.animationUrl,
-                              customTitle: roomState.animationTitle,
-                              customSubtitle: roomState.animationSubtitle,
-                            ),
-                        ],
+                  // If the user is not the host and the room data has just been loaded,
+                  // it's time to join the room.
+                  if (widget.isHost == false && _hasAttemptedToJoin == false && state.currentRoomId != null) {
+                    _hasAttemptedToJoin = true; // Set the flag immediately to prevent re-entry
+                    final isAlreadyInRoom = state.listeners.any((member) => member.id == authUserId);
+                    if (!isAlreadyInRoom) {
+                      _uiLog("✅ Room details fetched. User not in room yet. Now joining room: ${state.currentRoomId}");
+                      context.read<AudioRoomBloc>().add(
+                        JoinRoomEvent(roomId: state.currentRoomId!, memberID: authUserId),
                       );
-                    } else if (roomState is AudioRoomError) {
-                      _uiLog("Audio Room Error");
-                      return Center(child: Text('Failed to load audio room: ${roomState.message}'));
-                    } else if (roomState is AudioRoomClosed) {
-                      _uiLog("Audio Room Closed");
-                      return Center(child: Text('Room closed: ${roomState.reason}'));
                     } else {
-                      _uiLog("Audio Room Loading or Not found");
-                      // For AudioRoomInitial, AudioRoomLoading, or any other intermediate state
-                      return const Center(child: CircularProgressIndicator());
+                      _uiLog("✅ User is already in the room. No need to join again.");
                     }
-                  },
-                );
-              }
-            },
-          ),
+                  }
+                }
+
+                if (state is AudioRoomLoaded &&
+                    state.currentRoomId != null &&
+                    !_hasJoinedChannel &&
+                    _hasAttemptedToJoin &&
+                    !_isJoiningAgoraChannel) {
+                  setState(() {
+                    _isJoiningAgoraChannel = true;
+                  });
+                  // Join Agora channel only if we haven't joined already.
+                  _uiLog("Attempting to join Agora channel...");
+                  _joinAudioChannelWithDynamicToken(state.currentRoomId!);
+                } else if (state is AudioRoomConnected) {
+                  // Socket connected, initialize Agora, then dispatch room events.
+                  if (!_isAgoraInitialized && !_isInitializingAgora) {
+                    setState(() {
+                      _isInitializingAgora = true;
+                    });
+                    initAudioAgora().then((_) {
+                      if (mounted && _isAgoraInitialized) {
+                        _dispatchRoomEventsAfterConnection(context);
+                      }
+                      setState(() {
+                        _isInitializingAgora = false;
+                      });
+                    });
+                  }
+                } else if (state is AudioRoomLoaded && state.bannedUsers.contains(authUserId)) {
+                  _handleHostDisconnection('You have been banned from this room.');
+                } else if (state is AudioRoomLoaded && !state.isHost) {
+                  // Only update role for non-hosts based on seat status
+                  if (state.isBroadcaster) {
+                    _updateClientRoleToBroadcaster();
+                  } else {
+                    _updateClientRoleToAudience();
+                  }
+                } else if (state is AudioRoomClosed) {
+                  _handleHostDisconnection(state.reason ?? 'Room ended');
+                } else if (state is AudioRoomError) {
+                  _showSnackBar('❌ ${state.message}', Colors.red);
+                } else if (state is AnimationPlaying) {
+                  // Animation handled in UI
+                }
+              },
+              builder: (context, roomState) {
+                if (roomState is AudioRoomLoaded) {
+                  _uiLog("Audio Room Loaded");
+                  return Stack(
+                    children: [
+                      // Background
+                      Container(
+                        decoration: BoxDecoration(
+                          image: DecorationImage(
+                            image: AssetImage("assets/icons/audio_room/audio_room_background.png"),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+
+                      // Main content with seats grid
+                      Column(
+                        children: [
+                          SizedBox(height: 160.h), // Space for top bar
+                          SeatWidget(
+                            numberOfSeats: widget.numberOfSeats,
+                            currentUserId: authUserId,
+                            currentUserName: authState.user.name,
+                            currentUserAvatar: authState.user.avatar,
+                            hostDetails: roomState.roomData?.hostDetails,
+                            premiumSeat: roomState.roomData?.premiumSeat,
+                            seatsData: roomState.roomData?.seatsData,
+                            onTakeSeat: _takeSeat,
+                            onLeaveSeat: _leaveSeat,
+                            onRemoveUserFromSeat: _removeUserFromSeat,
+                            isHost: roomState.isHost,
+                          ),
+                          Spacer(),
+                        ],
+                      ),
+
+                      // Individual UI components (not blocking the entire screen)
+                      _buildTopBar(authState, roomState),
+                      _buildChatWidget(roomState),
+                      _buildBottomButtons(authState, roomState),
+
+                      // Animation layer
+                      if (roomState.animationPlaying)
+                        AnimatedLayer(
+                          gifts: [], // sentGifts,
+                          customAnimationUrl: roomState.animationUrl,
+                          customTitle: roomState.animationTitle,
+                          customSubtitle: roomState.animationSubtitle,
+                        ),
+                    ],
+                  );
+                } else if (roomState is AudioRoomError) {
+                  _uiLog("Audio Room Error");
+                  return Center(child: Text('Failed to load audio room: ${roomState.message}'));
+                } else if (roomState is AudioRoomClosed) {
+                  _uiLog("Audio Room Closed");
+                  return Center(child: Text('Room closed: ${roomState.reason}'));
+                } else {
+                  _uiLog("Audio Room Loading or Not found");
+                  // For AudioRoomInitial, AudioRoomLoading, or any other intermediate state
+                  return const Center(child: CircularProgressIndicator());
+                }
+              },
+            );
+          },
         ),
       ),
     );
@@ -699,12 +732,12 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                     currentUserId: authState.user.id,
                   ),
                 Spacer(),
-                // JoindListenersPage(
-                //   activeUserList: roomState.listeners,
-                //   hostUserId: roomState.roomData?.hostDetails.id,
-                //   hostName: roomState.roomData?.hostDetails.name,
-                //   hostAvatar: roomState.roomData?.hostDetails.avatar,
-                // ),
+                JoindListenersPage(
+                  activeUserList: roomState.listeners,
+                  hostUserId: roomState.roomData?.hostDetails.id,
+                  hostName: roomState.roomData?.hostDetails.name,
+                  hostAvatar: roomState.roomData?.hostDetails.avatar,
+                ),
                 // Leave button
                 (roomState.isHost)
                     ? GestureDetector(
@@ -748,7 +781,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   Widget _buildChatWidget(AudioRoomLoaded roomState) {
     return Positioned(
       left: 20.w,
-      bottom: 120.h, // Above the bottom buttons
+      bottom: 180.h, // Above the bottom buttons
       child: Container(
         color: Colors.transparent,
         child: AudioChatWidget(messages: roomState.chatMessages),
@@ -787,20 +820,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                     },
                   ),
                   CustomLiveButton(
-                    iconPath: "assets/icons/call_icon.png",
-                    onTap: () {
-                      _showSnackBar('📞 Not implemented yet', Colors.red);
-                    },
-                  ),
-                  CustomLiveButton(
                     iconPath: "assets/icons/menu_icon.png",
                     onTap: () {
-                      showGameBottomSheet(
-                        context,
-                        userId: authUserId,
-                        isHost: roomState.isHost,
-                        streamDuration: roomState.streamDuration,
-                      );
+                      showAudioGameBottomSheet(context, userId: authUserId, isHost: roomState.isHost);
                     },
                   ),
                 ],
@@ -827,7 +849,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   CustomLiveButton(
                     iconPath: "assets/icons/game_user_icon.png",
                     onTap: () {
-                      showGameBottomSheet(context, userId: authUserId, streamDuration: roomState.streamDuration);
+                      showAudioGameBottomSheet(context, userId: authUserId, isHost: roomState.isHost);
                     },
                     height: 40.h,
                   ),
