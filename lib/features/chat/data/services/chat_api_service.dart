@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../core/network/merged_api_service.dart';
 import '../models/chat_models.dart';
@@ -26,7 +27,7 @@ class ChatApiService {
         if (file != null) 'file': await MultipartFile.fromFile(file.path),
       });
 
-      print('Sending message to $receiverId: $text');
+      debugPrint('Sending message to $receiverId: $text');
 
       // Use post with FormData
       final result = await _apiService.post(
@@ -37,7 +38,11 @@ class ChatApiService {
       return result.fold(
         (data) {
           if (data['success'] == true && data['result'] != null) {
+            debugPrint('Send message response: ${data['result']}');
             final message = ChatMessage.fromJson(data['result']);
+            debugPrint(
+              'Parsed message sender ID: ${message.sender?.id}, sender name: ${message.sender?.name}',
+            );
             return ApiResult.success(message);
           } else {
             return ApiResult.failure(
@@ -46,12 +51,12 @@ class ChatApiService {
           }
         },
         (error) {
-          print('Send message error: $error');
+          debugPrint('Send message error: $error');
           return ApiResult.failure(error);
         },
       );
     } catch (e) {
-      print('Send message exception: $e');
+      debugPrint('Send message exception: $e');
       return ApiResult.failure('Failed to send message: ${e.toString()}');
     }
   }
@@ -184,6 +189,89 @@ class ChatApiService {
       }, (error) => ApiResult.failure(error));
     } catch (e) {
       return ApiResult.failure('Failed to delete message: ${e.toString()}');
+    }
+  }
+
+  /// Delete a full conversation
+  Future<ApiResult<bool>> deleteConversation({
+    required String conversationId,
+  }) async {
+    try {
+      final result = await _apiService.delete(
+        '$_baseUrl/delete-conversation/$conversationId',
+      );
+
+      return result.fold((data) {
+        if (data['success'] == true) {
+          return const ApiResult.success(true);
+        } else {
+          return ApiResult.failure(
+            data['message'] ?? 'Failed to delete conversation',
+          );
+        }
+      }, (error) => ApiResult.failure(error));
+    } catch (e) {
+      return ApiResult.failure(
+        'Failed to delete conversation: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Block a user
+  Future<ApiResult<Map<String, dynamic>>> blockUser({
+    required String userId,
+  }) async {
+    try {
+      final result = await _apiService.post('$_baseUrl/block-user/$userId');
+
+      return result.fold((data) {
+        if (data['success'] == true) {
+          return ApiResult.success(data['result'] ?? {});
+        } else {
+          return ApiResult.failure(data['message'] ?? 'Failed to block user');
+        }
+      }, (error) => ApiResult.failure(error));
+    } catch (e) {
+      return ApiResult.failure('Failed to block user: ${e.toString()}');
+    }
+  }
+
+  /// Unblock a user
+  Future<ApiResult<Map<String, dynamic>>> unblockUser({
+    required String userId,
+  }) async {
+    try {
+      final result = await _apiService.delete('$_baseUrl/block-user/$userId');
+
+      return result.fold((data) {
+        if (data['success'] == true) {
+          return ApiResult.success(data['result'] ?? {});
+        } else {
+          return ApiResult.failure(data['message'] ?? 'Failed to unblock user');
+        }
+      }, (error) => ApiResult.failure(error));
+    } catch (e) {
+      return ApiResult.failure('Failed to unblock user: ${e.toString()}');
+    }
+  }
+
+  /// Get block status for a user
+  Future<ApiResult<bool>> getBlockStatus({required String userId}) async {
+    try {
+      final result = await _apiService.get('$_baseUrl/block-status/$userId');
+
+      return result.fold((data) {
+        if (data['success'] == true && data['result'] != null) {
+          final isBlocked = data['result']['isBlocked'] ?? false;
+          return ApiResult.success(isBlocked);
+        } else {
+          return ApiResult.failure(
+            data['message'] ?? 'Failed to get block status',
+          );
+        }
+      }, (error) => ApiResult.failure(error));
+    } catch (e) {
+      return ApiResult.failure('Failed to get block status: ${e.toString()}');
     }
   }
 }
