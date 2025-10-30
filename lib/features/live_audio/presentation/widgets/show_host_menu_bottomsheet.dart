@@ -6,7 +6,7 @@ import 'package:dlstarlive/features/live/presentation/component/local_game_confi
 import 'package:dlstarlive/features/live/presentation/component/local_game_manager.dart';
 import 'package:dlstarlive/features/live/presentation/pages/local_game_page.dart';
 
-void showHostAudioMenuBottomSheet(BuildContext context, {String? userId, bool isHost = false}) {
+void showHostMenuBottomSheet(BuildContext context, {String? userId, bool isHost = false}) {
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
