@@ -651,6 +651,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                         ),
                       ),
 
+                      if (roomState.animationPlaying) AnimatedLayer(gifts: sentGifts),
+
                       // Main content with seats grid
                       Column(
                         children: [
