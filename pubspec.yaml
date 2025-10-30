@@ -152,8 +152,8 @@ flutter:
     - assets/games/teenpatty/index.html
     - assets/games/teenpatty/bg.png
     - assets/games/teenpatty/game-icon.png
-    - assets/games/teenpatty/Build/TeenPatty V3.jpg
-    - assets/games/teenpatty/Build/396b08c57ecdf705a51bb0db874ac84f.loader.js
-    - assets/games/teenpatty/Build/32f003745b633b435f0f9e1ff24a85bb.data
-    - assets/games/teenpatty/Build/5bc02a926db619f520ab8851b88e64ca.framework.js
-    - assets/games/teenpatty/Build/ab12d88d9afba56143772d2bdab4b0d7.wasm
+    - assets/games/teenpatty/Build/TeenPatty V5.jpg
+    - assets/games/teenpatty/Build/bc2f559fbd0b87cfbb4a2414fc3cd99d.loader.js
+    - assets/games/teenpatty/Build/d24fba371edec7ed1a51165dc36908bf.framework.js
+    - assets/games/teenpatty/Build/ddea481e295f15076328e70a88d6933f.wasm
+    - assets/games/teenpatty/Build/f1608839abc2c62e4d2836e8cc771940.data
