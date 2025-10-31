@@ -95,6 +95,8 @@ class AudioSocketService {
   Stream<MuteUserModel> get muteUnmuteUserStream => _eventListeners.muteUnmuteUserStream;
   Stream<BanUserModel> get banUserStream => _eventListeners.banUserStream;
   Stream<BanUserModel> get unbanUserStream => _eventListeners.unbanUserStream;
+  // Host bonus events
+  Stream<int> get updateHostBonusStream => _eventListeners.updateHostBonusStream;
 
   /// Connection status stream
   Stream<bool> get connectionStatusStream => _connectionManager.connectionStatusStream;

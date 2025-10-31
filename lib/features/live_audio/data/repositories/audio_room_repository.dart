@@ -39,6 +39,9 @@ class AudioRoomRepository {
   Stream<dynamic> get banUserStream => _socketService.banUserStream;
   Stream<dynamic> get unbanUserStream => _socketService.unbanUserStream;
 
+  /// Host bonus stream
+  Stream<int> get updateHostBonusStream => _socketService.updateHostBonusStream;
+
   /// Error stream
   Stream<Map<String, dynamic>> get errorMessageStream => _socketService.errorMessageStream;
 

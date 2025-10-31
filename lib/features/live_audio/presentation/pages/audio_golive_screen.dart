@@ -13,7 +13,6 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:dlstarlive/routing/app_router.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
-import 'package:dlstarlive/core/network/models/gift_model.dart';
 import 'package:dlstarlive/core/utils/app_utils.dart';
 
 // From Video Live
@@ -76,9 +75,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   bool _isJoiningAgoraChannel = false;
   bool _hasJoinedChannel = false;
   bool _hasAttemptedToJoin = false;
-
-  // Diamond and bonus
-  List<GiftModel> sentGifts = [];
 
   // UI Log
   void _uiLog(String message) {
@@ -651,8 +647,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                         ),
                       ),
 
-                      if (roomState.animationPlaying) AnimatedLayer(gifts: sentGifts),
-
                       // Main content with seats grid
                       Column(
                         children: [
@@ -780,12 +774,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               children: [
                 DiamondStarStatus(
                   diamonCount: AppUtils.formatNumber(
-                    GiftModel.totalDiamondsForHost(
-                      sentGifts,
-                      roomState.isHost
-                          ? authState.user.id
-                          : roomState.roomData?.hostDetails.id, // Use userId for host, widget.hostUserId for viewers
-                    ),
+                    roomState.roomData?.hostBonus ?? 0,
                   ),
                   starCount: AppUtils.formatNumber(0),
                 ),
