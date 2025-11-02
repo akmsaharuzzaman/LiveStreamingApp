@@ -15,6 +15,7 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   late TabController _tabController;
+  late ChatBloc _chatBloc;
 
   @override
   void initState() {
@@ -29,8 +30,8 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Only refresh conversations on initial load, not on every dependency change
-    // This prevents conflicts with chat detail page states
+    // Save reference to ChatBloc while widget tree is stable
+    _chatBloc = context.read<ChatBloc>();
   }
 
   void _refreshConversations() {
@@ -45,7 +46,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   void dispose() {
     _tabController.dispose();
     // Stop auto-refresh when leaving the page
-    context.read<ChatBloc>().add(const StopAutoRefreshEvent());
+    _chatBloc.add(const StopAutoRefreshEvent());
     super.dispose();
   }
 

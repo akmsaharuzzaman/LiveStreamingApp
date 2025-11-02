@@ -102,6 +102,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     on<SeatLeftEvent>(_onSeatLeft);
     on<UpdateBannedUsersEvent>(_onUpdateBannedUsers);
     on<UpdateStreamTimeEvent>(_onUpdateStreamTime);
+    on<UpdateActiveSpeakerEvent>(_onUpdateActiveSpeaker);
   }
 
   void _setupSocketSubscriptions() {
@@ -616,6 +617,17 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     if (state is AudioRoomLoaded) {
       final currentState = state as AudioRoomLoaded;
       emit(currentState.copyWith(streamStartTime: event.startTime));
+    }
+  }
+
+  // Handle active speaker updates
+  void _onUpdateActiveSpeaker(UpdateActiveSpeakerEvent event, Emitter<AudioRoomState> emit) {
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      emit(currentState.copyWith(
+        activeSpeakerUserId: event.userId,
+        clearActiveSpeaker: event.userId == null,
+      ));
     }
   }
 

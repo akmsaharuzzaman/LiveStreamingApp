@@ -17,6 +17,7 @@ class SeatWidget extends StatefulWidget {
   final Function(String seatId)? onLeaveSeat;
   final Function(String seatId, String targetId)? onRemoveUserFromSeat;
   final bool isHost;
+  final String? activeSpeakerUserId;
 
   const SeatWidget({
     super.key,
@@ -31,6 +32,7 @@ class SeatWidget extends StatefulWidget {
     this.onLeaveSeat,
     this.onRemoveUserFromSeat,
     this.isHost = false,
+    this.activeSpeakerUserId,
   });
 
   @override
@@ -265,6 +267,7 @@ class _SeatWidgetState extends State<SeatWidget> {
   }
 
   Widget _buildHostSeat(SeatModel hostSeatData) {
+    final isActiveSpeaker = widget.activeSpeakerUserId != null && hostSeatData.userId == widget.activeSpeakerUserId;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -272,6 +275,27 @@ class _SeatWidgetState extends State<SeatWidget> {
           alignment: Alignment.center,
           clipBehavior: Clip.none,
           children: [
+            // Glow background when speaking
+            if (isActiveSpeaker)
+              Container(
+                width: 90.w,
+                height: 90.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.cyan.withOpacity(0.6),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.4),
+                      blurRadius: 30,
+                      spreadRadius: 10,
+                    ),
+                  ],
+                ),
+              ),
             // Seat circle
             Container(
               width: 70.w,
@@ -359,6 +383,7 @@ class _SeatWidgetState extends State<SeatWidget> {
   }
 
   Widget _buildPremiumSeat(SeatModel premiumSeatData) {
+    final isActiveSpeaker = widget.activeSpeakerUserId != null && premiumSeatData.userId == widget.activeSpeakerUserId;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -366,6 +391,27 @@ class _SeatWidgetState extends State<SeatWidget> {
           alignment: Alignment.center,
           clipBehavior: Clip.none,
           children: [
+            // Glow background when speaking
+            if (isActiveSpeaker)
+              Container(
+                width: 90.w,
+                height: 90.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.cyan.withOpacity(0.6),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.4),
+                      blurRadius: 30,
+                      spreadRadius: 10,
+                    ),
+                  ],
+                ),
+              ),
             // Seat circle
             Container(
               width: 70.w,
@@ -462,6 +508,7 @@ class _SeatWidgetState extends State<SeatWidget> {
   }
 
   Widget _buildSeatItem(SeatModel seat, int index) {
+    final isActiveSpeaker = widget.activeSpeakerUserId != null && seat.userId == widget.activeSpeakerUserId;
     return GestureDetector(
       onTap: () {
         _uiLog("\n\n\n Selected seat index: $index");
@@ -481,6 +528,27 @@ class _SeatWidgetState extends State<SeatWidget> {
             alignment: Alignment.center,
             clipBehavior: Clip.none,
             children: [
+              // Glow background when speaking
+              if (isActiveSpeaker)
+                Container(
+                  width: 70.w,
+                  height: 70.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.cyan.withOpacity(0.6),
+                        blurRadius: 20,
+                        spreadRadius: 5,
+                      ),
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(0.4),
+                        blurRadius: 30,
+                        spreadRadius: 10,
+                      ),
+                    ],
+                  ),
+                ),
               // Seat circle
               Container(
                 width: 70.w,

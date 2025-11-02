@@ -60,6 +60,7 @@ class AudioGoLiveScreen extends StatefulWidget {
 class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   // User data
   String authUserId = "";
+  int authUID = 0; // Converted from uid string for Agora
   String userName = "You";
   String demoUserImageUrl = "https://thispersondoesnotexist.com/";
   String demoUserProfileFrame = "assets/images/general/profile_frame.png";
@@ -75,6 +76,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   bool _isJoiningAgoraChannel = false;
   bool _hasJoinedChannel = false;
   bool _hasAttemptedToJoin = false;
+
+  // Map to track Agora UID to User ID mapping
+  final Map<int, String?> _uidToUserIdMap = {};
 
   // UI Log
   void _uiLog(String message) {
@@ -93,6 +97,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     final authState = _authBloc.state;
     if (authState is AuthAuthenticated) {
       authUserId = authState.user.id;
+      // Convert uid string to int for Agora, use hashCode as fallback
+      authUID = int.tryParse(authState.user.uid ?? '') ?? authState.user.uid?.hashCode ?? 0;
       userName = authState.user.name;
       // Connect to socket first
       _connectToAudioSocket();
@@ -211,6 +217,21 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       await _engine.enableAudio();
       await _engine.disableVideo();
 
+      // Pre-map local user (UID 0) with auth user ID
+      if (authUserId.isNotEmpty) {
+        _uidToUserIdMap[0] = authUserId;
+        _uiLog("✅ Pre-mapped local user UID 0 → UserID: $authUserId");
+      } else {
+        _uiLog("⚠️ Could not pre-map local user - auth user ID not available");
+      }
+
+      // Enable audio volume indication for speaker detection
+      await _engine.enableAudioVolumeIndication(
+        interval: 300, // Callback interval in milliseconds - 1 second
+        smooth: 3, // Smoothing factor
+        reportVad: true, // Report voice activity detection
+      );
+
       // Register event handlers
       _isAgoraInitialized = true;
       _uiLog("✅ Agora engine initialized successfully");
@@ -231,10 +252,13 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
             });
           },
           onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
-            _uiLog("User $remoteUid joined audio channel");
+            _uiLog("👤 User $remoteUid joined Agora channel");
+            // Don't map remote users here - wait for audio events to identify them
+            // Remote users will be mapped when they speak via onRemoteAudioStateChanged
           },
           onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
-            _uiLog("User $remoteUid left audio channel");
+            _uiLog("User $remoteUid left");
+            _uidToUserIdMap.remove(remoteUid);
           },
           onRemoteAudioStateChanged:
               (
@@ -244,8 +268,77 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                 RemoteAudioStateReason reason,
                 int elapsed,
               ) {
-                // Handle audio state changes if needed
-                _uiLog("Remote audio state changed for user $remoteUid: $state");
+                // Just log state changes, volume indication handles UI updates
+                _uiLog("🔊 Audio State Change - UID: $remoteUid, State: $state");
+              },
+          onAudioVolumeIndication:
+              (RtcConnection connection, List<AudioVolumeInfo> speakers, int totalVolume, int elapsed) {
+                // Find the speaker with highest volume (actual speaker)
+                if (speakers.isNotEmpty) {
+                  // Filter speakers with volume > 10 (includes local user UID 0)
+                  final activeSpeakers = speakers.where((s) => (s.volume ?? 0) > 10).toList();
+
+                  if (activeSpeakers.isNotEmpty) {
+                    // Sort by volume to get the loudest speaker
+                    activeSpeakers.sort((a, b) => (b.volume ?? 0).compareTo(a.volume ?? 0));
+                    final loudestSpeaker = activeSpeakers.first;
+
+                    // Get userId from mapping
+                    var userId = _uidToUserIdMap[loudestSpeaker.uid];
+
+                    // If remote user not yet mapped, try to map them now
+                    if (userId == null && loudestSpeaker.uid != null && loudestSpeaker.uid != 0) {
+                      final currentState = context.read<AudioRoomBloc>().state;
+                      if (currentState is AudioRoomLoaded && currentState.roomData != null) {
+                        // Try to find unmapped user in seats
+                        final seatsData = currentState.roomData!.seatsData.seats;
+                        if (seatsData != null) {
+                          for (var seat in seatsData.values) {
+                            if (seat.member != null && !_uidToUserIdMap.containsValue(seat.member!.id)) {
+                              _uidToUserIdMap[loudestSpeaker.uid!] = seat.member!.id;
+                              userId = seat.member!.id;
+                              _uiLog("   ✅ Mapped UID ${loudestSpeaker.uid} → UserID: $userId (from seat)");
+                              break;
+                            }
+                          }
+                        }
+                        // If still not found, try listeners
+                        if (userId == null && currentState.listeners.isNotEmpty) {
+                          for (var listener in currentState.listeners) {
+                            if (!_uidToUserIdMap.containsValue(listener.id)) {
+                              _uidToUserIdMap[loudestSpeaker.uid!] = listener.id;
+                              userId = listener.id;
+                              _uiLog("   ✅ Mapped UID ${loudestSpeaker.uid} → UserID: $userId (from listeners)");
+                              break;
+                            }
+                          }
+                        }
+                      }
+                    }
+
+                    if (loudestSpeaker.uid == 0) {
+                      _uiLog(
+                        "🔊 Volume Indication - LOCAL USER (UID: 0), Volume: ${loudestSpeaker.volume}, UserID: $userId",
+                      );
+                    } else {
+                      _uiLog(
+                        "🔊 Volume Indication - REMOTE USER (UID: ${loudestSpeaker.uid}), Volume: ${loudestSpeaker.volume}, UserID: $userId",
+                      );
+                    }
+
+                    if (userId != null) {
+                      // Update active speaker for any volume > 10
+                      _uiLog("   📢 Updating active speaker to: $userId (volume: ${loudestSpeaker.volume})");
+                      context.read<AudioRoomBloc>().add(UpdateActiveSpeakerEvent(userId: userId));
+                    } else {
+                      _uiLog("   ❌ Could not determine user for UID: ${loudestSpeaker.uid}");
+                    }
+                  } else {
+                    // No one speaking
+                    _uiLog("🔇 No active speakers detected");
+                    context.read<AudioRoomBloc>().add(const UpdateActiveSpeakerEvent(userId: null));
+                  }
+                }
               },
         ),
       );
@@ -320,12 +413,13 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         final role = isHost ? ClientRoleType.clientRoleBroadcaster : ClientRoleType.clientRoleAudience;
         await _engine.setClientRole(role: role);
         _uiLog("👑 Setting client role to: $role");
+        _uiLog("👑 Setting uid to: $authUID");
 
         // _showSnackBar('📡 Joining live stream...', Colors.blue);
         await _engine.joinChannel(
           token: dynamicToken,
           channelId: roomId,
-          uid: 0,
+          uid: authUID,
           options: ChannelMediaOptions(
             channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
             clientRoleType: role,
@@ -554,12 +648,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               );
             }
             return BlocConsumer<AudioRoomBloc, AudioRoomState>(
-              listenWhen: (previous, current) {
-                if (previous is AudioRoomLoaded && current is AudioRoomLoaded) {
-                  return previous.isBroadcaster != current.isBroadcaster;
-                }
-                return true;
-              },
               listener: (context, state) {
                 // CRITICAL: Check if widget is still mounted before processing ANY state changes
                 if (!mounted) {
@@ -663,6 +751,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                             onLeaveSeat: _leaveSeat,
                             onRemoveUserFromSeat: _removeUserFromSeat,
                             isHost: roomState.isHost,
+                            activeSpeakerUserId: roomState.activeSpeakerUserId,
                           ),
                           Spacer(),
                         ],
@@ -773,9 +862,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 DiamondStarStatus(
-                  diamonCount: AppUtils.formatNumber(
-                    roomState.roomData?.hostBonus ?? 0,
-                  ),
+                  diamonCount: AppUtils.formatNumber(roomState.roomData?.hostBonus ?? 0),
                   starCount: AppUtils.formatNumber(0),
                 ),
                 // Your diamond/star widgets here

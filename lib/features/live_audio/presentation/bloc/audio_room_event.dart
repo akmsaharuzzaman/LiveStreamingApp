@@ -338,3 +338,12 @@ class UpdateStreamTimeEvent extends AudioRoomEvent {
   @override
   List<Object?> get props => [startTime];
 }
+
+class UpdateActiveSpeakerEvent extends AudioRoomEvent {
+  final String? userId;
+
+  const UpdateActiveSpeakerEvent({this.userId});
+
+  @override
+  List<Object?> get props => [userId];
+}
