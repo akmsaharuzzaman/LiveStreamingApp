@@ -1,3 +1,4 @@
+import 'package:dlstarlive/core/network/models/gift_model.dart';
 import 'package:equatable/equatable.dart';
 import '../../data/models/audio_room_details.dart';
 import '../../data/models/audio_member_model.dart';
@@ -46,11 +47,7 @@ class InitializeWithRoomDataEvent extends AudioRoomEvent {
   final bool isHost;
   final String userId;
 
-  const InitializeWithRoomDataEvent({
-    required this.roomData,
-    required this.isHost,
-    required this.userId,
-  });
+  const InitializeWithRoomDataEvent({required this.roomData, required this.isHost, required this.userId});
 
   @override
   List<Object?> get props => [roomData, isHost, userId];
@@ -101,11 +98,7 @@ class JoinSeatEvent extends AudioRoomEvent {
   final String seatKey;
   final String targetId;
 
-  const JoinSeatEvent({
-    required this.roomId,
-    required this.seatKey,
-    required this.targetId,
-  });
+  const JoinSeatEvent({required this.roomId, required this.seatKey, required this.targetId});
 
   @override
   List<Object?> get props => [roomId, seatKey, targetId];
@@ -116,11 +109,7 @@ class LeaveSeatEvent extends AudioRoomEvent {
   final String seatKey;
   final String targetId;
 
-  const LeaveSeatEvent({
-    required this.roomId,
-    required this.seatKey,
-    required this.targetId,
-  });
+  const LeaveSeatEvent({required this.roomId, required this.seatKey, required this.targetId});
 
   @override
   List<Object?> get props => [roomId, seatKey, targetId];
@@ -131,11 +120,7 @@ class RemoveFromSeatEvent extends AudioRoomEvent {
   final String seatKey;
   final String targetId;
 
-  const RemoveFromSeatEvent({
-    required this.roomId,
-    required this.seatKey,
-    required this.targetId,
-  });
+  const RemoveFromSeatEvent({required this.roomId, required this.seatKey, required this.targetId});
 
   @override
   List<Object?> get props => [roomId, seatKey, targetId];
@@ -146,10 +131,7 @@ class SendMessageEvent extends AudioRoomEvent {
   final String roomId;
   final String message;
 
-  const SendMessageEvent({
-    required this.roomId,
-    required this.message,
-  });
+  const SendMessageEvent({required this.roomId, required this.message});
 
   @override
   List<Object?> get props => [roomId, message];
@@ -200,18 +182,12 @@ class EndLiveStreamEvent extends AudioRoomEvent {}
 
 /// UI Events
 class PlayAnimationEvent extends AudioRoomEvent {
-  final String? animationUrl;
-  final String? title;
-  final String? subtitle;
+  final GiftModel giftDetails;
 
-  const PlayAnimationEvent({
-    this.animationUrl,
-    this.title,
-    this.subtitle,
-  });
+  const PlayAnimationEvent({required this.giftDetails});
 
   @override
-  List<Object?> get props => [animationUrl, title, subtitle];
+  List<Object?> get props => [giftDetails];
 }
 
 /// Error Handling

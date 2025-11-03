@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-void showAudianceAudioMenuBottomSheet(
+void showAudianceMenuBottomSheet(
   BuildContext context, {
   String? userId,
   bool isHost = false,

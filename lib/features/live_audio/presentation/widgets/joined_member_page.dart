@@ -1,3 +1,4 @@
+import 'package:dlstarlive/core/utils/app_utils.dart';
 import 'package:dlstarlive/features/live_audio/data/models/audio_member_model.dart';
 import 'package:dlstarlive/features/profile/presentation/widgets/user_profile_bottom_sheet.dart';
 import 'package:flutter/material.dart';
@@ -17,10 +18,10 @@ class JoindListenersPage extends StatelessWidget {
   Widget build(BuildContext context) {
     bool isLarge = MediaQuery.of(context).size.width > 400.w;
     int maxVisible = isLarge ? 3 : 2;
-    List visibleUsers = activeUserList.take(maxVisible).toList();
+    List<AudioMember> visibleUsers = activeUserList.take(maxVisible).toList();
     return Row(
       children: [
-        for (var user in visibleUsers)
+        for (AudioMember user in visibleUsers)
           Row(
             children: [
               SizedBox(width: 6.w),
@@ -31,7 +32,7 @@ class JoindListenersPage extends StatelessWidget {
                     context: context,
                     isScrollControlled: true,
                     backgroundColor: Colors.transparent,
-                    builder: (context) => UserProfileBottomSheet(userId: user.id),
+                    builder: (context) => UserProfileBottomSheet(userId: user.id!),
                   );
                 },
                 child: ClipRRect(
@@ -40,7 +41,7 @@ class JoindListenersPage extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 20.r,
-                        child: Image.network(user.avatar, fit: BoxFit.cover),
+                        child: Image.network(user.avatar!, fit: BoxFit.cover),
                       ),
                       Positioned(
                         bottom: 0,
@@ -53,9 +54,8 @@ class JoindListenersPage extends StatelessWidget {
                           ),
                           child: Center(
                             child: Text(
-                              //This is basically gift amount , if if matched upate this text from the sentGifts
-                              //AppUtils.formatNumber(user.diamonds),
-                              "0",
+                              // This is basically gift amount , if if matched upate this text from the sentGifts
+                              AppUtils.formatNumber(user.diamonds ?? 0),
                               style: TextStyle(fontSize: 10.sp, color: Colors.white),
                             ),
                           ),

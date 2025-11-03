@@ -1,9 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:dlstarlive/core/network/models/gift_model.dart';
-import 'package:dlstarlive/core/utils/app_utils.dart';
-import 'package:dlstarlive/features/live/presentation/component/diamond_star_status.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -16,6 +13,7 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:dlstarlive/routing/app_router.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
+import 'package:dlstarlive/core/utils/app_utils.dart';
 
 // From Video Live
 import 'package:dlstarlive/features/live/presentation/widgets/animated_layer.dart';
@@ -24,12 +22,14 @@ import 'package:dlstarlive/features/live/presentation/component/custom_live_butt
 import 'package:dlstarlive/features/live/presentation/component/end_stream_overlay.dart';
 import 'package:dlstarlive/features/live/presentation/component/host_info.dart';
 import 'package:dlstarlive/features/live/presentation/component/send_message_buttonsheet.dart';
+import 'package:dlstarlive/features/live/presentation/component/diamond_star_status.dart';
 
 // From Audio Live
 import 'package:dlstarlive/features/live_audio/data/models/audio_room_details.dart';
-import 'package:dlstarlive/features/live_audio/presentation/widgets/audio_host_game_bottomsheet.dart';
+import 'package:dlstarlive/features/live_audio/presentation/widgets/show_host_menu_bottomsheet.dart';
 import 'package:dlstarlive/features/live_audio/presentation/widgets/joined_member_page.dart';
-import 'package:dlstarlive/features/live_audio/presentation/widgets/audio_audiance_menu_bottom_sheet.dart';
+import 'package:dlstarlive/features/live_audio/presentation/widgets/show_audiance_menu_bottom_sheet.dart';
+import 'package:dlstarlive/features/live_audio/presentation/widgets/gift_bottom_sheet.dart';
 
 import '../bloc/audio_room_bloc.dart';
 import '../bloc/audio_room_event.dart';
@@ -75,9 +75,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   bool _isJoiningAgoraChannel = false;
   bool _hasJoinedChannel = false;
   bool _hasAttemptedToJoin = false;
-
-  // Diamond and bonus
-  List<GiftModel> sentGifts = [];
 
   // UI Log
   void _uiLog(String message) {
@@ -557,12 +554,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               );
             }
             return BlocConsumer<AudioRoomBloc, AudioRoomState>(
-              listenWhen: (previous, current) {
-                if (previous is AudioRoomLoaded && current is AudioRoomLoaded) {
-                  return previous.isBroadcaster != current.isBroadcaster;
-                }
-                return true;
-              },
               listener: (context, state) {
                 // CRITICAL: Check if widget is still mounted before processing ANY state changes
                 if (!mounted) {
@@ -631,8 +622,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   _handleHostDisconnection(state.reason ?? 'Room ended');
                 } else if (state is AudioRoomError) {
                   _showSnackBar('❌ ${state.message}', Colors.red);
-                } else if (state is AnimationPlaying) {
-                  // Animation handled in UI
                 }
               },
               builder: (context, roomState) {
@@ -677,13 +666,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                       _buildBottomButtons(authState, roomState),
 
                       // Animation layer
-                      if (roomState.animationPlaying)
-                        AnimatedLayer(
-                          gifts: [], // sentGifts,
-                          customAnimationUrl: roomState.animationUrl,
-                          customTitle: roomState.animationTitle,
-                          customSubtitle: roomState.animationSubtitle,
-                        ),
+                      if (roomState.playAnimation == true && roomState.giftDetails != null)
+                        AnimatedLayer(gifts: [roomState.giftDetails!]),
                     ],
                   );
                 } else if (roomState is AudioRoomError) {
@@ -776,14 +760,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 DiamondStarStatus(
-                  diamonCount: AppUtils.formatNumber(
-                    GiftModel.totalDiamondsForHost(
-                      sentGifts,
-                      roomState.isHost
-                          ? authState.user.id
-                          : roomState.roomData?.hostDetails.id, // Use userId for host, widget.hostUserId for viewers
-                    ),
-                  ),
+                  diamonCount: AppUtils.formatNumber(roomState.roomData?.hostBonus ?? 0),
                   starCount: AppUtils.formatNumber(0),
                 ),
                 // Your diamond/star widgets here
@@ -828,7 +805,15 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   CustomLiveButton(
                     iconPath: "assets/icons/gift_user_icon.png",
                     onTap: () {
-                      _showSnackBar('🎁 Not implemented yet', Colors.red);
+                      // _showSnackBar('🎁 Not implemented yet', Colors.red);
+                      showAudioGiftBottomSheet(
+                        context,
+                        activeViewers: roomState.listeners,
+                        roomId: roomState.currentRoomId ?? widget.roomId,
+                        hostUserId: roomState.isHost ? authUserId : widget.roomDetails?.hostDetails.id,
+                        hostName: roomState.isHost ? authState.user.name : widget.roomDetails?.hostDetails.name,
+                        hostAvatar: roomState.isHost ? authState.user.avatar : widget.roomDetails?.hostDetails.avatar,
+                      );
                     },
                   ),
                   CustomLiveButton(
@@ -846,7 +831,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   CustomLiveButton(
                     iconPath: "assets/icons/menu_icon.png",
                     onTap: () {
-                      showHostAudioMenuBottomSheet(context, userId: authUserId, isHost: roomState.isHost);
+                      showHostMenuBottomSheet(context, userId: authUserId, isHost: roomState.isHost);
                     },
                   ),
                 ],
@@ -858,22 +843,22 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   CustomLiveButton(
                     iconPath: "assets/icons/gift_user_icon.png",
                     onTap: () {
-                      _showSnackBar('🎁 Not implemented yet', Colors.red);
-                      // showGiftBottomSheet(
-                      //   context,
-                      //   activeViewers: roomState.listeners,
-                      //   roomId: roomState.currentRoomId ?? widget.roomId,
-                      //   hostUserId: roomState.isHost ? userId : widget.hostUserId,
-                      //   hostName: roomState.isHost ? authState.user.name : widget.hostName,
-                      //   hostAvatar: roomState.isHost ? authState.user.avatar : widget.hostAvatar,
-                      // );
+                      // _showSnackBar('🎁 Not implemented yet', Colors.red);
+                      showAudioGiftBottomSheet(
+                        context,
+                        activeViewers: roomState.listeners,
+                        roomId: roomState.currentRoomId ?? widget.roomId,
+                        hostUserId: roomState.isHost ? authUserId : widget.roomDetails?.hostDetails.id,
+                        hostName: roomState.isHost ? authState.user.name : widget.roomDetails?.hostDetails.name,
+                        hostAvatar: roomState.isHost ? authState.user.avatar : widget.roomDetails?.hostDetails.avatar,
+                      );
                     },
                     height: 40.h,
                   ),
                   CustomLiveButton(
                     iconPath: "assets/icons/game_user_icon.png",
                     onTap: () {
-                      showHostAudioMenuBottomSheet(context, userId: authUserId, isHost: roomState.isHost);
+                      showHostMenuBottomSheet(context, userId: authUserId, isHost: roomState.isHost);
                     },
                     height: 40.h,
                   ),
@@ -881,7 +866,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   CustomLiveButton(
                     iconPath: "assets/icons/menu_icon.png",
                     onTap: () {
-                      showAudianceAudioMenuBottomSheet(
+                      showAudianceMenuBottomSheet(
                         context,
                         userId: authUserId,
                         isHost: roomState.isHost,

@@ -382,6 +382,9 @@ class _GoliveScreenState extends State<GoliveScreen> {
           avatar: hostDetail.avatar,
           name: hostDetail.name,
           uid: hostDetail.uid,
+          currentLevel: hostDetail.currentLevel,
+          currentBackground: hostDetail.currentBackground,
+          currentTag: hostDetail.currentTag,
           diamonds:
               0, // Initialize with 0, will be updated when gifts are received
         );

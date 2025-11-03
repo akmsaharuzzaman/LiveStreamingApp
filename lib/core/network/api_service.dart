@@ -477,12 +477,12 @@ class LoggingInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (kDebugMode) {
-      print('🌐 [${options.method}] ${options.baseUrl}${options.path}');
+      // print('🌐 [${options.method}] ${options.baseUrl}${options.path}');
       if (options.queryParameters.isNotEmpty) {
-        print('📋 Query Parameters: ${options.queryParameters}');
+        // print('📋 Query Parameters: ${options.queryParameters}');
       }
       if (options.data != null) {
-        print('📤 Request Data: ${options.data}');
+        // print('📤 Request Data: ${options.data}');
       }
     }
     handler.next(options);
@@ -491,7 +491,7 @@ class LoggingInterceptor extends Interceptor {
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     if (kDebugMode) {
-      print('✅ [${response.statusCode}] ${response.requestOptions.path}');
+      // print('✅ [${response.statusCode}] ${response.requestOptions.path}');
     }
     handler.next(response);
   }
@@ -546,19 +546,19 @@ class ApiService {
     );
 
     // Add interceptors
-    _dio.interceptors.add(AuthInterceptor());
-    _dio.interceptors.add(LoggingInterceptor());
+    // _dio.interceptors.add(AuthInterceptor());
+    // _dio.interceptors.add(LoggingInterceptor());
 
-    if (kDebugMode) {
-      _dio.interceptors.add(
-        LogInterceptor(
-          requestBody: true,
-          responseBody: true,
-          requestHeader: true,
-          responseHeader: true,
-        ),
-      );
-    }
+    // if (kDebugMode) {
+    //   _dio.interceptors.add(
+    //     LogInterceptor(
+    //       requestBody: true,
+    //       responseBody: true,
+    //       requestHeader: true,
+    //       responseHeader: true,
+    //     ),
+    //   );
+    // }
   }
 
   /// Set authentication token
