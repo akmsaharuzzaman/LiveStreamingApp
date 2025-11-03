@@ -8,6 +8,7 @@ class AudioMember {
   int? currentLevel;
   EquipedStoreItems? equipedStoreItems;
   int? totalGiftSent;
+  int? diamonds;
   bool? isMuted;
 
   AudioMember({
@@ -20,6 +21,7 @@ class AudioMember {
     this.currentLevel,
     this.equipedStoreItems,
     this.totalGiftSent,
+    this.diamonds,
     this.isMuted,
   });
 
@@ -35,6 +37,7 @@ class AudioMember {
         ? EquipedStoreItems.fromJson(json['equipedStoreItems'] as Map<String, dynamic>)
         : null;
     totalGiftSent = json['totalGiftSent'] as int?;
+    diamonds = json['diamonds'] as int?;
     isMuted = json['isMuted'] as bool?;
   }
 
@@ -49,6 +52,7 @@ class AudioMember {
     json['currentLevel'] = currentLevel;
     json['equipedStoreItems'] = equipedStoreItems?.toJson();
     json['totalGiftSent'] = totalGiftSent;
+    json['diamonds'] = diamonds;
     json['isMuted'] = isMuted;
     return json;
   }

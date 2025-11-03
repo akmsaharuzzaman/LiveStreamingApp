@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dlstarlive/core/network/models/gift_model.dart';
 import 'package:dlstarlive/features/live_audio/data/models/audio_member_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
@@ -41,6 +42,8 @@ class AudioSocketEventListeners {
   final StreamController<BanUserModel> _unbanUserController = StreamController<BanUserModel>.broadcast();
   // Host bonus events
   final StreamController<int> _updateHostBonusController = StreamController<int>.broadcast();
+  // Sent audio gifts events
+  final StreamController<GiftModel> _sentAudioGiftsController = StreamController<GiftModel>.broadcast();
 
   AudioSocketEventListeners(this.errorController, this.roomOperations);
 
@@ -81,6 +84,8 @@ class AudioSocketEventListeners {
   Stream<BanUserModel> get unbanUserStream => _unbanUserController.stream;
   // Host bonus events
   Stream<int> get updateHostBonusStream => _updateHostBonusController.stream;
+  // Sent audio gifts events
+  Stream<GiftModel> get sentAudioGiftsStream => _sentAudioGiftsController.stream;
 
   /// Setup all socket event listeners
   void setupListeners() {
@@ -113,6 +118,7 @@ class AudioSocketEventListeners {
     socket.on(AudioSocketConstants.banUserEvent, _handleBanUser);
     socket.on(AudioSocketConstants.muteUnmuteUserEvent, _handleMuteUnmuteUser);
     socket.on(AudioSocketConstants.updateHostBonusEvent, _handleUpdateHostBonus);
+    socket.on(AudioSocketConstants.sentAudioGiftsEvent, _handleSentAudioGifts);
   }
 
   /// Clear all event listeners
@@ -132,6 +138,7 @@ class AudioSocketEventListeners {
     socket.off(AudioSocketConstants.banUserEvent);
     socket.off(AudioSocketConstants.unbanUserEvent);
     socket.off(AudioSocketConstants.updateHostBonusEvent);
+    socket.off(AudioSocketConstants.sentAudioGiftsEvent);
   }
 
   void _handleGetAllRooms(dynamic data) {
@@ -339,6 +346,17 @@ class AudioSocketEventListeners {
       }
     } catch (e) {
       _log('💰 Audio update host bonus listener error: $e');
+    }
+  }
+
+  void _handleSentAudioGifts(dynamic data) {
+    _log('🎁 Audio sent audio gifts listener response: $data');
+    try {
+      if (data is Map<String, dynamic>) {
+        _sentAudioGiftsController.add(GiftModel.fromJson(data));
+      }
+    } catch (e) {
+      _log('🎁 Audio sent audio gifts listener error: $e');
     }
   }
 

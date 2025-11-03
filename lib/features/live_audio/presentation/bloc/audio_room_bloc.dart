@@ -36,6 +36,8 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   StreamSubscription? _closeRoomSubscription;
   // Host bonus events
   StreamSubscription? _updateHostBonusSubscription;
+  // Sent audio gifts events
+  StreamSubscription? _sentAudioGiftsSubscription;
   // Error handling
   StreamSubscription? _errorSubscription;
 
@@ -225,6 +227,12 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
       }
     });
 
+    // Sent audio gifts
+    _sentAudioGiftsSubscription = _repository.sentAudioGiftsStream.listen((gift) {
+      add(PlayAnimationEvent(giftDetails: gift));
+      debugPrint('💰 Bloc: Updated gift to $gift');
+    });
+
     // Room closed
     _closeRoomSubscription = _repository.closeRoomStream.listen((roomIds) {
       add(const RoomClosedEvent(reason: 'Room has been closed'));
@@ -264,6 +272,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     _banUserSubscription?.cancel();
     _muteUserSubscription?.cancel();
     _updateHostBonusSubscription?.cancel();
+    _sentAudioGiftsSubscription?.cancel();
     _closeRoomSubscription?.cancel();
     _errorSubscription?.cancel();
   }
@@ -444,15 +453,15 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   }
 
   void _onPlayAnimation(PlayAnimationEvent event, Emitter<AudioRoomState> emit) {
-    emit(AnimationPlaying(animationUrl: event.animationUrl, title: event.title, subtitle: event.subtitle));
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      emit(currentState.copyWith(playAnimation: true, giftDetails: event.giftDetails));
 
-    // Auto-stop animation after 9 seconds
-    Future.delayed(const Duration(seconds: 9), () {
-      if (state is AudioRoomLoaded) {
-        final currentState = state as AudioRoomLoaded;
-        emit(currentState.copyWith(animationPlaying: false));
-      }
-    });
+      // Auto-stop animation after 9 seconds
+      Future.delayed(const Duration(seconds: 9), () {
+        emit(currentState.copyWith(playAnimation: false, giftDetails: null));
+      });
+    }
   }
 
   void _onHandleSocketError(HandleSocketErrorEvent event, Emitter<AudioRoomState> emit) {
@@ -520,14 +529,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
       final String normalizedMessage = message.text.trim().toLowerCase();
       final dynamic entryAnimation = message.equipedStoreItems?['entry'];
       if (normalizedMessage == 'joined the room' && entryAnimation is String && entryAnimation.isNotEmpty) {
-        emit(
-          currentState.copyWith(
-            chatMessages: updatedMessages,
-            animationPlaying: true,
-            animationUrl: entryAnimation,
-            animationTitle: '${message.name} joined the room',
-          ),
-        );
+        emit(currentState.copyWith(chatMessages: updatedMessages));
       } else {
         emit(currentState.copyWith(chatMessages: updatedMessages));
       }

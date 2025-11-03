@@ -554,12 +554,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               );
             }
             return BlocConsumer<AudioRoomBloc, AudioRoomState>(
-              listenWhen: (previous, current) {
-                if (previous is AudioRoomLoaded && current is AudioRoomLoaded) {
-                  return previous.isBroadcaster != current.isBroadcaster;
-                }
-                return true;
-              },
               listener: (context, state) {
                 // CRITICAL: Check if widget is still mounted before processing ANY state changes
                 if (!mounted) {
@@ -628,8 +622,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   _handleHostDisconnection(state.reason ?? 'Room ended');
                 } else if (state is AudioRoomError) {
                   _showSnackBar('❌ ${state.message}', Colors.red);
-                } else if (state is AnimationPlaying) {
-                  // Animation handled in UI
                 }
               },
               builder: (context, roomState) {
@@ -674,13 +666,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                       _buildBottomButtons(authState, roomState),
 
                       // Animation layer
-                      if (roomState.animationPlaying)
-                        AnimatedLayer(
-                          gifts: [], // sentGifts,
-                          customAnimationUrl: roomState.animationUrl,
-                          customTitle: roomState.animationTitle,
-                          customSubtitle: roomState.animationSubtitle,
-                        ),
+                      if (roomState.playAnimation == true && roomState.giftDetails != null)
+                        AnimatedLayer(gifts: [roomState.giftDetails!]),
                     ],
                   );
                 } else if (roomState is AudioRoomError) {
@@ -773,9 +760,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 DiamondStarStatus(
-                  diamonCount: AppUtils.formatNumber(
-                    roomState.roomData?.hostBonus ?? 0,
-                  ),
+                  diamonCount: AppUtils.formatNumber(roomState.roomData?.hostBonus ?? 0),
                   starCount: AppUtils.formatNumber(0),
                 ),
                 // Your diamond/star widgets here

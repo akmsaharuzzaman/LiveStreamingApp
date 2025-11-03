@@ -19,6 +19,7 @@ class AudioSocketConstants {
   static const String banUserEvent = 'ban-audio-user'; // 14
   static const String unbanUserEvent = 'unban-audio-user'; // 15
   static const String updateHostBonusEvent = 'update-audio-host-coins'; // 16
+  static const String sentAudioGiftsEvent = 'sent-audio-gift'; // 17
 
   // Connection timeouts
   static const Duration connectionTimeout = Duration(seconds: 30);

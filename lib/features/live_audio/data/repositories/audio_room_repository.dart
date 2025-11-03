@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dlstarlive/core/network/models/gift_model.dart';
 import 'package:dlstarlive/features/live_audio/data/models/audio_member_model.dart';
 import 'package:injectable/injectable.dart';
 import '../models/audio_room_details.dart';
@@ -14,35 +15,30 @@ class AudioRoomRepository {
 
   /// Connection status stream
   Stream<bool> get connectionStatusStream => _socketService.connectionStatusStream;
-
-  /// Room streams
+  // Room streams
   Stream<List<AudioRoomDetails>> get getAllRoomsStream => _socketService.getAllRoomsStream;
   Stream<AudioRoomDetails?> get audioRoomDetailsStream => _socketService.audioRoomDetailsStream;
   Stream<AudioRoomDetails> get createRoomStream => _socketService.createRoomStream;
   Stream<List<String>> get closeRoomStream => _socketService.closeRoomStream;
   Stream<AudioMember> get joinRoomStream => _socketService.joinRoomStream;
   Stream<AudioRoomDetails> get leaveRoomStream => _socketService.leaveRoomStream;
-
-  /// User streams
+  // User streams
   Stream<dynamic> get userLeftStream => _socketService.userLeftStream;
-
-  /// Seat streams
+  // Seat streams
   Stream<dynamic> get joinSeatStream => _socketService.joinSeatStream;
   Stream<dynamic> get leaveSeatStream => _socketService.leaveSeatStream;
   Stream<dynamic> get removeFromSeatStream => _socketService.removeFromSeatStream;
-
-  /// Chat streams
+  // Chat streams
   Stream<AudioChatModel> get sendMessageStream => _socketService.sendMessageStream;
-
-  /// User management streams
+  // User management streams
   Stream<dynamic> get muteUnmuteUserStream => _socketService.muteUnmuteUserStream;
   Stream<dynamic> get banUserStream => _socketService.banUserStream;
   Stream<dynamic> get unbanUserStream => _socketService.unbanUserStream;
-
-  /// Host bonus stream
+  // Host bonus stream
   Stream<int> get updateHostBonusStream => _socketService.updateHostBonusStream;
-
-  /// Error stream
+  // Sent audio gifts stream
+  Stream<GiftModel> get sentAudioGiftsStream => _socketService.sentAudioGiftsStream;
+  // Error stream
   Stream<Map<String, dynamic>> get errorMessageStream => _socketService.errorMessageStream;
 
   /// Getters
