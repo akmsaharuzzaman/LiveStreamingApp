@@ -604,6 +604,11 @@ class SocketService {
   /// Get list of all rooms
   Future<bool> getRooms() async {
     if (!_isConnected || _socket == null) {
+      if (kDebugMode) {
+        print(
+          '❌ Socket not connected. isConnected: $_isConnected, socket: ${_socket != null}',
+        );
+      }
       _errorMessageController.add({
         'status': 'error',
         'message': 'Socket not connected',
@@ -613,10 +618,15 @@ class SocketService {
 
     try {
       if (kDebugMode) {
-        print('📋 Getting rooms list');
+        print('📋 Getting rooms list from socket');
       }
 
+      // Emit the request
       _socket!.emit(_getRoomsEvent, {});
+
+      // Give socket time to send and receive response
+      await Future.delayed(const Duration(milliseconds: 500));
+
       return true;
     } catch (e) {
       if (kDebugMode) {
