@@ -473,12 +473,12 @@ class LoggingInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (kDebugMode) {
-      print('🌐 [${options.method}] ${options.baseUrl}${options.path}');
+      // print('🌐 [${options.method}] ${options.baseUrl}${options.path}');
       if (options.queryParameters.isNotEmpty) {
-        print('📋 Query Parameters: ${options.queryParameters}');
+        // print('📋 Query Parameters: ${options.queryParameters}');
       }
       if (options.data != null) {
-        print('📤 Request Data: ${options.data}');
+        // print('📤 Request Data: ${options.data}');
       }
     }
     handler.next(options);
@@ -487,7 +487,7 @@ class LoggingInterceptor extends Interceptor {
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     if (kDebugMode) {
-      print('✅ [${response.statusCode}] ${response.requestOptions.path}');
+      // print('✅ [${response.statusCode}] ${response.requestOptions.path}');
     }
     handler.next(response);
   }
@@ -541,17 +541,68 @@ class ApiService {
       },
     );
 
-    // Add interceptors
-    _dio.interceptors.add(AuthInterceptor());
-    _dio.interceptors.add(LoggingInterceptor());
+    // Clear existing interceptors
+    _dio.interceptors.clear();
 
+    // Add auth interceptor to inject token from SharedPreferences
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          try {
+            // Get token from SharedPreferences
+            final prefs = await SharedPreferences.getInstance();
+            final String? token = prefs.getString(DataConstants.tokenKey);
+
+            // Debug log
+            if (kDebugMode) {
+              print(
+                '🔑 MERGED ApiService interceptor - Token: ${token != null ? token.substring(0, 10) + '...' : 'NULL'}',
+              );
+            }
+
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            } else {
+              if (kDebugMode) {
+                print('⚠️ No auth token found in SharedPreferences (merged)');
+              }
+            }
+
+            // Add platform headers
+            options.headers['X-Platform'] = Platform.isIOS ? 'IOS' : 'ANDROID';
+            options.headers['X-Requested-With'] = 'XMLHttpRequest';
+          } catch (e) {
+            if (kDebugMode) {
+              print('❌ Error in merged auth interceptor: $e');
+            }
+          }
+
+          return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          return handler.next(response);
+        },
+        onError: (DioException e, handler) {
+          if (kDebugMode && e.response?.statusCode == 401) {
+            print(
+              '🔐 Received 401 Unauthorized (merged) - Check token validity',
+            );
+          }
+          return handler.next(e);
+        },
+      ),
+    );
+
+    // Add logging interceptor for debug mode
     if (kDebugMode) {
       _dio.interceptors.add(
         LogInterceptor(
           requestBody: true,
           responseBody: true,
           requestHeader: true,
-          responseHeader: true,
+          responseHeader: false,
+          request: true,
+          error: true,
         ),
       );
     }

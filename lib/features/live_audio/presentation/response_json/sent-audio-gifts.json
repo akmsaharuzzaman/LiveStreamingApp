@@ -1,0 +1,23 @@
+{
+    "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJeq52_iltNL8YHBuMp5ediVta-IHn-7jogcklP16zufj5vZ_w6yw=s96-c",
+    "name": "Md. Hasibul Hossain",
+    "recieverIds": [
+        "68ef3237bd1f3139e4b25e24",
+        "68bf1f02d21d6918d27d513a"
+    ],
+    "diamonds": 300,
+    "qty": 1,
+    "gift": {
+        "_id": "68b2e65981f65abb0c3aa82c",
+        "name": "Love Lip",
+        "category": "Regular",
+        "diamonds": 300,
+        "coinPrice": 300,
+        "previewImage": "https://res.cloudinary.com/dmpktzr0m/image/upload/v1756554837/gift_assets/user_profiles/8c6fb15c0482b5b063228982777a77c91e63728990702e37c76bd9ff7933936a.png",
+        "svgaImage": "https://res.cloudinary.com/dmpktzr0m/raw/upload/v1756554840/gift_assets/user_profiles/5034ce935775c6410549bec727ae92276e6d4c7c50efaabff329075729c98a78",
+        "createdAt": "2025-08-30T11:54:01.133Z",
+        "updatedAt": "2025-11-03T06:03:21.938Z",
+        "__v": 0,
+        "sendCount": 328
+    }
+}
