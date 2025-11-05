@@ -17,6 +17,7 @@ class AudioSocketEventListeners {
   late socket_io.Socket socket;
   final StreamController<Map<String, dynamic>> errorController;
   final AudioSocketRoomOperations? roomOperations;
+  final String? Function()? getCurrentUserId;
 
   // Stream controllers for audio events
   final StreamController<List<AudioRoomDetails>> _getAllRoomsController =
@@ -44,8 +45,10 @@ class AudioSocketEventListeners {
   final StreamController<int> _updateHostBonusController = StreamController<int>.broadcast();
   // Sent audio gifts events
   final StreamController<GiftModel> _sentAudioGiftsController = StreamController<GiftModel>.broadcast();
+  // Muted users stream
+  final StreamController<String> _mutedUserIdController = StreamController<String>.broadcast();
 
-  AudioSocketEventListeners(this.errorController, this.roomOperations);
+  AudioSocketEventListeners(this.errorController, this.roomOperations, [this.getCurrentUserId]);
 
   void setSocket(socket_io.Socket socket) {
     this.socket = socket;
@@ -86,6 +89,8 @@ class AudioSocketEventListeners {
   Stream<int> get updateHostBonusStream => _updateHostBonusController.stream;
   // Sent audio gifts events
   Stream<GiftModel> get sentAudioGiftsStream => _sentAudioGiftsController.stream;
+  // Muted users stream
+  Stream<String> get mutedUserIdStream => _mutedUserIdController.stream;
 
   /// Setup all socket event listeners
   void setupListeners() {
@@ -116,7 +121,7 @@ class AudioSocketEventListeners {
     socket.on(AudioSocketConstants.getAllRoomsEvent, _handleGetAllRooms);
     socket.on(AudioSocketConstants.sendMessageEvent, _handleSendMessage);
     socket.on(AudioSocketConstants.banUserEvent, _handleBanUser);
-    socket.on(AudioSocketConstants.muteUnmuteUserEvent, _handleMuteUnmuteUser);
+    // socket.on(AudioSocketConstants.muteUnmuteUserEvent, _handleMuteUnmuteUser);
     socket.on(AudioSocketConstants.updateHostBonusEvent, _handleUpdateHostBonus);
     socket.on(AudioSocketConstants.sentAudioGiftsEvent, _handleSentAudioGifts);
   }
@@ -134,7 +139,7 @@ class AudioSocketEventListeners {
     socket.off(AudioSocketConstants.removeFromSeatEvent);
     socket.off(AudioSocketConstants.sendMessageEvent);
     socket.off(AudioSocketConstants.errorMessageEvent);
-    socket.off(AudioSocketConstants.muteUnmuteUserEvent);
+    // socket.off(AudioSocketConstants.muteUnmuteUserEvent);
     socket.off(AudioSocketConstants.banUserEvent);
     socket.off(AudioSocketConstants.unbanUserEvent);
     socket.off(AudioSocketConstants.updateHostBonusEvent);
@@ -208,6 +213,15 @@ class AudioSocketEventListeners {
           final roomDetails = AudioRoomDetails.fromJson(roomData);
           _log('✅ Parsed room details for: ${roomDetails.roomId}');
           _audioRoomDetailsController.add(roomDetails);
+          
+          // Check if current user is in mutedUsers list and emit muted user ID
+          if (roomDetails.mutedUsers.isNotEmpty) {
+            final currentUserId = getCurrentUserId?.call();
+            if (currentUserId != null && roomDetails.mutedUsers.contains(currentUserId)) {
+              _log('🔇 Current user is muted, emitting muted user ID: $currentUserId');
+              _mutedUserIdController.add(currentUserId);
+            }
+          }
         } else {
           _log('❌ Invalid room details response format');
         }
@@ -327,16 +341,16 @@ class AudioSocketEventListeners {
     }
   }
 
-  void _handleMuteUnmuteUser(dynamic data) {
-    _log('🔇 Audio mute/unmute user listener response: $data');
-    try {
-      if (data is Map<String, dynamic>) {
-        _muteUnmuteUserController.add(MuteUserModel.fromJson(data));
-      }
-    } catch (e) {
-      _log('🔇 Audio mute/unmute user listener error: $e');
-    }
-  }
+  // void _handleMuteUnmuteUser(dynamic data) {
+  //   _log('🔇 Audio mute/unmute user listener response: $data');
+  //   try {
+  //     if (data is Map<String, dynamic>) {
+  //       _muteUnmuteUserController.add(MuteUserModel.fromJson(data));
+  //     }
+  //   } catch (e) {
+  //     _log('🔇 Audio mute/unmute user listener error: $e');
+  //   }
+  // }
 
   void _handleUpdateHostBonus(dynamic data) {
     _log('💰 Audio update host bonus listener response: $data');
@@ -377,5 +391,6 @@ class AudioSocketEventListeners {
     _banUserController.close();
     _unbanUserController.close();
     _updateHostBonusController.close();
+    _mutedUserIdController.close();
   }
 }

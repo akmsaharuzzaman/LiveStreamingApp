@@ -126,6 +126,17 @@ class RemoveFromSeatEvent extends AudioRoomEvent {
   List<Object?> get props => [roomId, seatKey, targetId];
 }
 
+class MuteUserFromSeatEvent extends AudioRoomEvent {
+  final String roomId;
+  final String seatKey;
+  final String targetId;
+
+  const MuteUserFromSeatEvent({required this.roomId, required this.seatKey, required this.targetId});
+
+  @override
+  List<Object?> get props => [roomId, seatKey, targetId];
+}
+
 /// Chat Events
 class SendMessageEvent extends AudioRoomEvent {
   final String roomId;
@@ -166,8 +177,6 @@ class MuteUnmuteUserEvent extends AudioRoomEvent {
 }
 
 /// Agora/Stream Events
-
-class ToggleMuteEvent extends AudioRoomEvent {}
 
 class UpdateBroadcasterStatusEvent extends AudioRoomEvent {
   final bool isBroadcaster;

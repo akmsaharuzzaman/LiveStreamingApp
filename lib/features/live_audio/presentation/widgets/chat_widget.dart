@@ -75,8 +75,8 @@ class _AudioChatWidgetState extends State<AudioChatWidget> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: MediaQuery.of(context).size.width * 0.95,
-      height: MediaQuery.of(context).size.height * 0.20,
+      // width: MediaQuery.of(context).size.width * 0.95,
+      // height: MediaQuery.of(context).size.height * 0.20,
       child: widget.messages.isEmpty
           ? const SizedBox.shrink()
           : ListView.builder(

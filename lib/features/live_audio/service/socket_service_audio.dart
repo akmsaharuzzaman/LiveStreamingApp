@@ -42,8 +42,12 @@ class AudioSocketService {
     _errorController = StreamController<Map<String, dynamic>>.broadcast();
     // Initialize room operations
     _roomOperations = AudioSocketRoomOperations(_errorController, null);
-    // Initialize event handler with room operations
-    _eventListeners = AudioSocketEventListeners(_errorController, _roomOperations);
+    // Initialize event handler with room operations and current user ID callback
+    _eventListeners = AudioSocketEventListeners(
+      _errorController,
+      _roomOperations,
+      () => _connectionManager.currentUserId,
+    );
     // Set event handler reference in room operations for refresh calls
     _roomOperations.setEventHandler(_eventListeners);
     // Initialize other operation classes
@@ -79,6 +83,8 @@ class AudioSocketService {
   Stream<int> get updateHostBonusStream => _eventListeners.updateHostBonusStream;
   // Sent audio gifts events
   Stream<GiftModel> get sentAudioGiftsStream => _eventListeners.sentAudioGiftsStream;
+  // Muted users stream
+  Stream<String> get mutedUserIdStream => _eventListeners.mutedUserIdStream;
 
   /// Connection status stream
   Stream<bool> get connectionStatusStream => _connectionManager.connectionStatusStream;
@@ -169,6 +175,9 @@ class AudioSocketService {
 
   Future<bool> removeFromSeat({required String roomId, required String seatKey, required String targetId}) =>
       _seatOperations.removeFromSeat(roomId: roomId, seatKey: seatKey, targetId: targetId);
+
+  Future<bool> muteUserFromSeat({required String roomId, required String seatKey, required String targetId}) =>
+      _seatOperations.muteUserFromSeat(roomId: roomId, seatKey: seatKey, targetId: targetId);
 
   /// User operations
   Future<bool> banUser(String userId) => _userOperations.banUser(userId);
