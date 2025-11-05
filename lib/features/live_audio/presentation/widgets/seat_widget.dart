@@ -215,14 +215,21 @@ class _SeatWidgetState extends State<SeatWidget> {
             children: [
               if (seat.name == null) ...[
                 // Seat is empty
-                ListTile(
-                  leading: Icon(Icons.event_seat),
-                  title: Text("Take Seat"),
-                  onTap: () {
-                    Navigator.pop(context);
-                    widget.onTakeSeat?.call(seat.id);
-                  },
-                ),
+                if (widget.seatsData?.seats?.entries.any((entry) => entry.value.member?.id == widget.currentUserId) ??
+                    false)
+                  ListTile(
+                    leading: Icon(Icons.event_seat),
+                    title: Text("You are already in a seat"),
+                  )
+                else
+                  ListTile(
+                    leading: Icon(Icons.event_seat),
+                    title: Text("Take Seat"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onTakeSeat?.call(seat.id);
+                    },
+                  ),
               ] else if (seat.userId == widget.currentUserId) ...[
                 // Seat is user's own
                 ListTile(
