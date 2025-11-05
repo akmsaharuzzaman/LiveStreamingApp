@@ -26,7 +26,8 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
+class _HomePageState extends State<HomePage>
+    with SingleTickerProviderStateMixin {
   final SocketService _socketService = SocketService.instance;
   final GenericApiClient _genericApiClient = getIt<GenericApiClient>();
   List<GetRoomModel>? _availableRooms;
@@ -100,17 +101,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   void _setupSocketListeners() {
     // Connection status
     _log("Setting up socket listeners");
-    _connectionStatusSubscription = _socketService.connectionStatusStream.listen((isConnected) {
-      if (mounted) {
-        if (isConnected) {
-          // _showSnackBar('✅ Connected to server', Colors.green);
-          _log("Connected to server");
-        } else {
-          // _showSnackBar('❌ Disconnected from server', Colors.red);
-          _log("Disconnected from server");
-        }
-      }
-    }); // Room list updates
+    _connectionStatusSubscription = _socketService.connectionStatusStream
+        .listen((isConnected) {
+          if (mounted) {
+            if (isConnected) {
+              // _showSnackBar('✅ Connected to server', Colors.green);
+              _log("Connected to server");
+            } else {
+              // _showSnackBar('❌ Disconnected from server', Colors.red);
+              _log("Disconnected from server");
+            }
+          }
+        }); // Room list updates
     _getRoomListSubscription = _socketService.getRoomsStream.listen((rooms) {
       if (mounted) {
         setState(() {
@@ -124,21 +126,23 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   /// Handle pull-to-refresh action
   Future<void> _handleRefresh() async {
     try {
-      _log('🔄 Home page refresh triggered - fetching latest rooms and banners');
+      _log(
+        '🔄 Home page refresh triggered - fetching latest rooms and banners',
+      );
 
       // Refresh both rooms and banners simultaneously
       await Future.wait([
-        // Check if socket is connected and get rooms
+        // Just request rooms without reconnecting socket
         () async {
-          if (!_socketService.isConnected) {
-            _log('Socket not connected, attempting to reconnect...');
+          if (_socketService.isConnected) {
+            _log('Socket already connected, fetching rooms...');
+            await _socketService.getRooms();
+          } else {
+            _log('Socket not connected, attempting initial connection...');
             bool connected = await _initializeVideoSocket();
             if (!connected) {
-              _log('⚠️ Failed to reconnect video socket during refresh');
+              _log('⚠️ Failed to connect video socket during refresh');
             }
-          } else {
-            // If already connected, just get the rooms
-            await _socketService.getRooms();
           }
         }(),
         // Refresh banners
@@ -168,7 +172,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     try {
       _log('🎨 Fetching banners from API');
 
-      final response = await _genericApiClient.get<Map<String, dynamic>>('/api/admin/banners');
+      final response = await _genericApiClient.get<Map<String, dynamic>>(
+        '/api/admin/banners',
+      );
 
       if (response.isSuccess && response.data != null) {
         final data = response.data!;
@@ -266,7 +272,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         title: Row(
           children: [
             // Logo
-            SvgPicture.asset('assets/icons/dl_star_logo.svg', height: 16, width: 40),
+            SvgPicture.asset(
+              'assets/icons/dl_star_logo.svg',
+              height: 16,
+              width: 40,
+            ),
             SizedBox(width: 12.w),
             // Tab Bar
             Expanded(
@@ -276,10 +286,19 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   controller: _tabController,
                   labelColor: Colors.black,
                   unselectedLabelColor: Colors.black54,
-                  labelStyle: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w600),
-                  unselectedLabelStyle: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w500),
+                  labelStyle: TextStyle(
+                    fontSize: 17.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  unselectedLabelStyle: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
                   indicator: const UnderlineTabIndicator(
-                    borderSide: BorderSide(width: 3.0, color: Color(0xFFFE82A7)),
+                    borderSide: BorderSide(
+                      width: 3.0,
+                      color: Color(0xFFFE82A7),
+                    ),
                     insets: EdgeInsets.symmetric(horizontal: 16.0),
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
@@ -296,9 +315,17 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             ),
             SizedBox(width: 16.w),
             // Search and notification icons
-            SvgPicture.asset('assets/icons/search_icon.svg', height: 22.sp, width: 22.sp),
+            SvgPicture.asset(
+              'assets/icons/search_icon.svg',
+              height: 22.sp,
+              width: 22.sp,
+            ),
             SizedBox(width: 12.sp),
-            Icon(Icons.notifications_active_rounded, size: 22.sp, color: Colors.black),
+            Icon(
+              Icons.notifications_active_rounded,
+              size: 22.sp,
+              color: Colors.black,
+            ),
           ],
         ),
       ),
@@ -339,14 +366,23 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               width: double.infinity,
               child: _isBannersLoading
                   ? Container(
-                      decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8.0)),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
                       child: const Center(child: CircularProgressIndicator()),
                     )
                   : _bannerUrls.isEmpty
                   ? Container(
-                      decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8.0)),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
                       child: const Center(
-                        child: Text('No banners available', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                        child: Text(
+                          'No banners available',
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                        ),
                       ),
                     )
                   : FlutterCarousel(
@@ -362,7 +398,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           slideIndicatorOptions: SlideIndicatorOptions(
                             alignment: Alignment.bottomCenter,
                             currentIndicatorColor: Colors.white,
-                            indicatorBackgroundColor: Colors.white.withValues(alpha: 0.5),
+                            indicatorBackgroundColor: Colors.white.withValues(
+                              alpha: 0.5,
+                            ),
                             indicatorBorderColor: Colors.transparent,
                             indicatorBorderWidth: 0.5,
                             indicatorRadius: 3.8,
@@ -378,7 +416,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           builder: (BuildContext context) {
                             return Container(
                               width: double.infinity,
-                              margin: const EdgeInsets.symmetric(horizontal: 8.0),
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 8.0,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.grey.shade200,
                                 borderRadius: BorderRadius.circular(8.0),
@@ -389,18 +429,33 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                     ? CachedNetworkImage(
                                         imageUrl: url,
                                         fit: BoxFit.cover,
-                                        placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                                        placeholder: (context, url) =>
+                                            const Center(
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            ),
                                         errorWidget: (context, url, error) =>
-                                            const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.red)),
+                                            const Center(
+                                              child: Icon(
+                                                Icons.broken_image,
+                                                size: 50,
+                                                color: Colors.red,
+                                              ),
+                                            ),
                                       )
                                     : Image.asset(
                                         url,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return const Center(
-                                            child: Icon(Icons.broken_image, size: 50, color: Colors.red),
-                                          );
-                                        },
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return const Center(
+                                                child: Icon(
+                                                  Icons.broken_image,
+                                                  size: 50,
+                                                  color: Colors.red,
+                                                ),
+                                              );
+                                            },
                                       ),
                               ),
                             );
@@ -432,7 +487,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           //   ),
           // ),
           SizedBox(height: 18.sp),
-          ListPopularRooms(availableVideoRooms: _availableRooms ?? [], handleVideoRefresh: _handleRefresh),
+          ListPopularRooms(
+            availableVideoRooms: _availableRooms ?? [],
+            handleVideoRefresh: _handleRefresh,
+          ),
         ],
       ),
     );
@@ -473,7 +531,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           SizedBox(height: 20.h),
           Text(
             '$title Page',
-            style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+            style: TextStyle(
+              fontSize: 24.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade600,
+            ),
           ),
           SizedBox(height: 10.h),
           Text(
@@ -511,16 +573,28 @@ class ListUserFollow extends StatelessWidget {
           onTap: () {
             // Navigate to the leaderboard page
             // context.pushNamed('leaderBoard');
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Leaderboard feature coming soon!'), duration: Duration(seconds: 2)));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Leaderboard feature coming soon!'),
+                duration: Duration(seconds: 2),
+              ),
+            );
           },
           child: Column(
             children: [
               Padding(
-                padding: EdgeInsets.only(bottom: 8.sp, top: 8.sp, left: 8.sp, right: 8.sp),
+                padding: EdgeInsets.only(
+                  bottom: 8.sp,
+                  top: 8.sp,
+                  left: 8.sp,
+                  right: 8.sp,
+                ),
 
-                child: Image.asset('assets/images/general/rank_icon.png', height: 40.sp, width: 40.sp),
+                child: Image.asset(
+                  'assets/images/general/rank_icon.png',
+                  height: 40.sp,
+                  width: 40.sp,
+                ),
               ),
               SizedBox(height: 24.sp),
             ],
@@ -536,7 +610,12 @@ class CategoryCard extends StatelessWidget {
   final CategoryModel categoryModel;
   final Function() onTap;
   final bool isCheck;
-  const CategoryCard({super.key, required this.categoryModel, required this.onTap, required this.isCheck});
+  const CategoryCard({
+    super.key,
+    required this.categoryModel,
+    required this.onTap,
+    required this.isCheck,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -555,7 +634,10 @@ class CategoryCard extends StatelessWidget {
           children: [
             Text(
               categoryModel.title,
-              style: TextStyle(color: isCheck ? Colors.white : Colors.black, fontSize: 10.sp),
+              style: TextStyle(
+                color: isCheck ? Colors.white : Colors.black,
+                fontSize: 10.sp,
+              ),
             ),
           ],
         ),
@@ -603,12 +685,19 @@ class UserWidget extends StatelessWidget {
               child: Container(
                 alignment: Alignment.center,
                 child: Container(
-                  decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(10.sp)),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    borderRadius: BorderRadius.circular(10.sp),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),
                     child: Text(
                       'Live',
-                      style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
