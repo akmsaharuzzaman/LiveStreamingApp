@@ -64,18 +64,9 @@ class JoinRoomEvent extends AudioRoomEvent {
 }
 
 class LeaveRoomEvent extends AudioRoomEvent {
-  final String memberID;
-
-  const LeaveRoomEvent({required this.memberID});
-
-  @override
-  List<Object?> get props => [memberID];
-}
-
-class DeleteRoomEvent extends AudioRoomEvent {
   final String roomId;
 
-  const DeleteRoomEvent({required this.roomId});
+  const LeaveRoomEvent({required this.roomId});
 
   @override
   List<Object?> get props => [roomId];

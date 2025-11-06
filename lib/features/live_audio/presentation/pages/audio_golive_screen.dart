@@ -500,13 +500,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     try {
       final currentState = context.read<AudioRoomBloc>().state;
       if (currentState is AudioRoomLoaded && currentState.currentRoomId != null) {
-        if (widget.isHost) {
-          // If host, delete the room
-          context.read<AudioRoomBloc>().add(DeleteRoomEvent(roomId: currentState.currentRoomId!));
-        } else {
-          // If viewer, leave the room
-          context.read<AudioRoomBloc>().add(LeaveRoomEvent(memberID: authUserId));
-        }
+        // host, delete the room; viewer, leave the room
+        context.read<AudioRoomBloc>().add(LeaveRoomEvent(roomId: currentState.currentRoomId!));
+
         // Close Agora
         await _engine.leaveChannel().then((value) {
           _uiLog("✅ Successfully left Agora channel");
@@ -715,6 +711,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                               child: AudioChatWidget(messages: roomState.chatMessages),
                             ),
                           ),
+                          SizedBox(height: 50.h), // Space for bottom buttons
                         ],
                       ),
 
@@ -727,11 +724,11 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                         AnimatedLayer(gifts: [roomState.giftDetails!]),
                     ],
                   );
-                } 
+                }
                 // else if (roomState is AudioRoomError) {
                 //   _uiLog("Audio Room Error");
                 //   return Center(child: Text('Failed to load audio room: ${roomState.message}'));
-                // } 
+                // }
                 else if (roomState is AudioRoomClosed) {
                   _uiLog("Audio Room Closed");
                   return Center(child: Text('Room closed: ${roomState.reason}'));

@@ -62,7 +62,6 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     on<InitializeWithRoomDataEvent>(_onInitializeWithRoomData);
     on<JoinRoomEvent>(_onJoinRoom);
     on<LeaveRoomEvent>(_onLeaveRoom);
-    on<DeleteRoomEvent>(_onDeleteRoom);
     on<GetRoomDetailsEvent>(_onGetRoomDetails);
     on<GetAllRoomsEvent>(_onGetAllRooms);
 
@@ -377,17 +376,10 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   }
 
   Future<void> _onLeaveRoom(LeaveRoomEvent event, Emitter<AudioRoomState> emit) async {
-    final success = await _repository.leaveRoom(event.memberID);
+    final success = await _repository.leaveRoom(event.roomId);
     if (success && state is AudioRoomLoaded) {
       final currentState = state as AudioRoomLoaded;
       emit(currentState.copyWith(currentRoomId: null));
-    }
-  }
-
-  Future<void> _onDeleteRoom(DeleteRoomEvent event, Emitter<AudioRoomState> emit) async {
-    final success = await _repository.deleteRoom(event.roomId);
-    if (success) {
-      emit(const AudioRoomClosed(reason: 'Room deleted'));
     }
   }
 

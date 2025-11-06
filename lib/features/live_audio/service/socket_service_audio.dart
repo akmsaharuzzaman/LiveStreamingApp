@@ -138,8 +138,6 @@ class AudioSocketService {
     return result;
   }
 
-  Future<bool> deleteRoom(String roomId) => _roomOperations.deleteRoom(roomId);
-
   Future<bool> joinRoom(String roomId) {
     final result = _roomOperations.joinRoom(roomId);
     result.then((success) {

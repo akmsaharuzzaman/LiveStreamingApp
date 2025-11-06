@@ -59,7 +59,6 @@ class AudioRoomRepository {
 
   Future<bool> joinRoom(String roomId) => _socketService.joinRoom(roomId);
   Future<bool> leaveRoom(String roomId) => _socketService.leaveRoom(roomId);
-  Future<bool> deleteRoom(String roomId) => _socketService.deleteRoom(roomId);
   Future<bool> getRooms() => _socketService.getRooms();
   Future<AudioRoomDetails?> getRoomDetails(String roomId) => _socketService.getRoomDetails(roomId);
 
