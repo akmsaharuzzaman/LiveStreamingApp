@@ -508,6 +508,11 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           _uiLog("✅ Successfully left Agora channel");
         });
 
+        _engine.release();
+
+        // Immediately disconnect from socket to prevent context errors
+        _audioRoomBloc.add(DisconnectFromSocket());
+        
         _hasJoinedChannel = false; // Reset channel joined flag
 
         // Reset Bloc state for next room creation/joining
@@ -586,10 +591,22 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: true,
+      canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) {
-        // Always trigger cleanup when back navigation is invoked
-        _endLiveStream();
+        if (widget.isHost) {
+          EndStreamOverlay.show(
+            context,
+            onKeepStream: () {
+              _uiLog("Keep stream pressed");
+            },
+            onEndStream: () {
+              _endLiveStream();
+              _uiLog("End stream pressed");
+            },
+          );
+        } else {
+          _endLiveStream();
+        }
         debugPrint('Back navigation invoked: (cleanup triggered)');
       },
       child: Scaffold(
@@ -967,18 +984,24 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
   @override
   void dispose() {
-    // Cancel any pending timer
+    _uiLog("🧹 Disposing audio room screen...");
+
+    // Cancel any pending timers first
     _reconnectTimer?.cancel();
-    // Reset Bloc state (but don't schedule any new timers)
+    _mutedUserSubscription?.cancel();
+
+    // Disconnect from socket and reset bloc state
     _audioRoomBloc.add(DisconnectFromSocket());
 
     // Dispose Agora engine
-    _engine.leaveChannel();
-    _engine.release();
+    try {
+      _engine.leaveChannel();
+      _engine.release();
+    } catch (e) {
+      _uiLog("⚠️ Error disposing Agora engine: $e");
+    }
 
-    _mutedUserSubscription?.cancel();
-    _reconnectTimer?.cancel();
-
+    _uiLog("✅ Audio room screen disposed");
     super.dispose();
   }
 }

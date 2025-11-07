@@ -1016,9 +1016,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
     debugPrint("🚨 $reason - Exiting live screen...");
     _showSnackBar('📱 $reason', Colors.red);
 
-    // Perform basic cleanup
+    // Perform cleanup immediately
     _stopStreamTimer();
     _hostActivityTimer?.cancel();
+    
+    // Leave the room to notify server
+    _leaveRoom();
 
     // Small delay to show the message before navigating
     Future.delayed(const Duration(milliseconds: 1500), () {
@@ -2974,6 +2977,15 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   @override
   void dispose() {
+    debugPrint("🧹 Disposing video live screen...");
+    
+    // Stop timers first
+    _stopStreamTimer();
+    _hostActivityTimer?.cancel();
+
+    // Leave the room if still in one
+    _leaveRoom();
+
     // Cancel all stream subscriptions to prevent setState calls after disposal
     _connectionStatusSubscription?.cancel();
     _roomCreatedSubscription?.cancel();
@@ -2993,15 +3005,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
     _joinCallRequestSubscription?.cancel();
     _joinCallRequestListSubscription?.cancel();
 
-    // Stop the duration timer
-    _stopStreamTimer();
-
-    // Stop host activity timer
-    _hostActivityTimer?.cancel();
-
     // Dispose other resources
     _titleController.dispose();
     _dispose();
+    
+    debugPrint("✅ Video live screen disposed");
     super.dispose();
   }
 
