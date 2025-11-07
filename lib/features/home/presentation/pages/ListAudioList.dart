@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
-import 'package:dlstarlive/features/live_audio/service/socket_constants.dart';
+import 'package:dlstarlive/features/home/service/audio_all_room_service.dart';
 import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -22,12 +22,12 @@ class ListAudioRooms extends StatefulWidget {
 }
 
 class _ListAudioRoomsState extends State<ListAudioRooms> {
-  // Use GetIt to get the properly initialized instance of AudioSocketService
-  final AudioSocketService socketService = GetIt.instance<AudioSocketService>();
+  // Use audio room service
+  final AudioAllRoomService _audioRoomService = AudioAllRoomService();
+  final AudioSocketService _audioSocket = GetIt.instance<AudioSocketService>();
 
   // Stream subscriptions for proper cleanup
-  StreamSubscription? _audioGetRoomListSubscription;
-  final List<StreamSubscription> _audioSubscriptions = [];
+  StreamSubscription? _audioRoomsSubscription;
 
   // Available audio rooms list
   List<AudioRoomDetails> _availableAudioRooms = [];
@@ -38,31 +38,73 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
   @override
   void initState() {
     super.initState();
-    // Ensure socket is connected before setting up listeners
+    _log('🎬 ListAudioRooms initialized');
+
+    // Initialize service first (sets up listeners in service)
+    _audioRoomService.initialize();
+
+    // Setup stream subscription (listens to already-initialized service)
+    _setupAudioRoomListener();
+
+    // Get user ID and connect audio socket
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ensureConnected().then((connected) {
-        if (connected) {
-          _log('Socket connected successfully on init');
-        } else {
-          _log('Failed to connect socket on init, will retry later');
-          // Schedule a retry after a delay
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              ensureConnected();
-            }
+      final authState = context.read<AuthBloc>().state;
+      if (authState is AuthAuthenticated) {
+        final userId = authState.user.id;
+        if (userId.isNotEmpty) {
+          _log('🔌 Connecting audio socket with user: $userId');
+          _audioSocket.connect(userId).then((_) {
+            _log('✅ Audio socket connected');
+            // Request rooms after socket connection
+            _audioSocket.getRooms();
           });
         }
-      });
+      }
     });
+  }
+
+  /// Setup audio room listener
+  void _setupAudioRoomListener() {
+    _audioRoomsSubscription = _audioRoomService.audioRoomsStream.listen(
+      (rooms) {
+        _log('📡 Audio rooms received: ${rooms.length}');
+        if (mounted) {
+          setState(() {
+            _availableAudioRooms = rooms;
+            _isRefreshing = false;
+          });
+        }
+      },
+      onError: (error) {
+        _log('❌ Audio rooms error: $error');
+      },
+      cancelOnError: false,
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    
+    // Reconnect audio socket if needed (after dispose or disconnect)
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      final userId = authState.user.id;
+      if (userId.isNotEmpty && !_audioSocket.isConnected) {
+        _log('🔌 Reconnecting audio socket in didChangeDependencies');
+        _audioSocket.connect(userId).then((_) {
+          _audioSocket.getRooms();
+        });
+      } else if (_audioSocket.isConnected) {
+        // Already connected, just refresh
+        _audioSocket.getRooms();
+      }
+    }
   }
 
   @override
   void dispose() {
-    // Cancel all audio socket subscriptions
-    for (var subscription in _audioSubscriptions) {
-      subscription.cancel();
-    }
-    _audioSubscriptions.clear();
+    _audioRoomsSubscription?.cancel();
     super.dispose();
   }
 
@@ -70,163 +112,6 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
     const yellow = '\x1B[33m';
     const reset = '\x1B[0m';
     debugPrint('\n$yellow[AUDIO_LIST_PAGE] - $reset $message\n');
-  }
-
-  /// Safely call getRooms with error handling
-  void _safeGetRooms() {
-    // Add a small delay to ensure the socket is fully initialized
-    Future.delayed(const Duration(milliseconds: 300), () {
-      try {
-        if (socketService.isConnected) {
-          socketService.getRooms();
-        } else {
-          _log("❌ Cannot call getRooms - socket is not connected");
-          // Try to reconnect
-          ensureConnected();
-        }
-      } catch (e) {
-        _log("❌ Error calling getRooms: $e");
-        // Try to reconnect on error
-        ensureConnected();
-      }
-    });
-  }
-
-  /// Setup audio socket event listeners
-  void _setupAudioSocketListeners() {
-    _log("🔧 Setting up audio socket listeners...");
-    _log("🔧 Audio socket connected: ${socketService.isConnected}");
-
-    // Audio room list updates
-    _audioGetRoomListSubscription = socketService.getAllRoomsStream.listen(
-      (rooms) {
-        _log("📡 Audio rooms stream triggered with ${rooms.length} rooms");
-        if (mounted) {
-          _log("✅ Updating UI with ${rooms.length} audio rooms");
-          setState(() {
-            _availableAudioRooms = rooms;
-            _isRefreshing = false;
-          });
-          _log("Available audio rooms: ${rooms.map((room) => room.roomId)} from Frontend");
-          _log("Audio rooms count: ${rooms.length}");
-        } else {
-          _log("❌ Widget not mounted, skipping UI update");
-        }
-      },
-      onError: (error) {
-        _log("❌ Audio rooms stream error: $error");
-      },
-      onDone: () {
-        _log("🔚 Audio rooms stream completed");
-      },
-    );
-    // Also add to the cleanup list
-    _audioSubscriptions.add(_audioGetRoomListSubscription!);
-
-    // Listen for connection status changes
-    var connectionSub = socketService.connectionStatusStream.listen((isConnected) {
-      _log("🔌 Audio socket connection status changed: $isConnected");
-      if (isConnected && mounted) {
-        // Refresh room list when connection is established or re-established
-        // Add a small delay to ensure the socket is fully initialized
-        Future.delayed(const Duration(milliseconds: 500), () {
-          try {
-            if (socketService.isConnected) {
-              socketService.getRooms();
-            } else {
-              _log("❌ Socket disconnected before getRooms could be called");
-            }
-          } catch (e) {
-            _log("❌ Error calling getRooms: $e");
-          }
-        });
-      }
-    });
-    _audioSubscriptions.add(connectionSub);
-
-    // Listen for room creation/deletion events to trigger refresh
-    var createRoomSub = socketService.createRoomStream.listen((roomDetails) {
-      _log("🏠 Audio room created - refreshing room list. Room ID: ${roomDetails.roomId}");
-      if (mounted) {
-        _log("🔄 Calling getRooms() after room creation");
-        _safeGetRooms();
-      }
-    });
-    _audioSubscriptions.add(createRoomSub);
-
-    var closeRoomSub = socketService.closeRoomStream.listen((roomIds) {
-      _log("🏠 Audio room closed - refreshing room list. Room IDs: $roomIds");
-      if (mounted) {
-        _log("🔄 Calling getRooms() after room closure");
-        _safeGetRooms();
-      }
-    });
-    _audioSubscriptions.add(closeRoomSub);
-
-    // Add direct listeners to socket for debugging
-    socketService.on(AudioSocketConstants.getAllRoomsEvent, (data) {
-      _log("🎯 Direct socket event 'get-all-rooms' received: ${data != null ? 'data present' : 'no data'}");
-    });
-
-    socketService.on(AudioSocketConstants.createRoomEvent, (data) {
-      _log("🎯 Direct socket event 'create-room' received: ${data != null ? 'data present' : 'no data'}");
-    });
-
-    // Force a refresh of the room list to ensure we have the latest data
-    _log("🔄 Initial getRooms() call to ensure latest data");
-    _safeGetRooms();
-
-    _log("✅ Audio socket listeners setup complete");
-  }
-
-  /// Method to ensure socket is connected
-  Future<bool> ensureConnected() async {
-    _log('🔍 Checking audio socket connection status');
-
-    if (!socketService.isConnected) {
-      _log('❌ Audio socket not connected, attempting to reconnect...');
-
-      // Get user ID from AuthBloc
-      final authBloc = context.read<AuthBloc>();
-      final authState = authBloc.state;
-      String? userId;
-
-      if (authState is AuthAuthenticated) {
-        userId = authState.user.id;
-      } else if (authState is AuthProfileIncomplete) {
-        userId = authState.user.id;
-      }
-
-      if (userId == null || userId.isEmpty) {
-        _log('❌ User ID is null or empty, cannot connect to audio socket');
-        return false;
-      }
-
-      // Connect to audio socket with user ID
-      final connected = await socketService.connect(userId);
-
-      if (connected) {
-        _log('✅ Audio socket reconnected successfully');
-
-        // Clear existing listeners and set up new ones
-        for (var subscription in _audioSubscriptions) {
-          subscription.cancel();
-        }
-        _audioSubscriptions.clear();
-
-        // Add a small delay to ensure the socket is fully initialized before setting up listeners
-        await Future.delayed(const Duration(milliseconds: 500));
-
-        _setupAudioSocketListeners();
-        return true;
-      } else {
-        _log('❌ Failed to reconnect audio socket');
-        return false;
-      }
-    } else {
-      _log('✅ Audio socket already connected');
-      return true;
-    }
   }
 
   /// Handle refresh action
@@ -237,20 +122,8 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
     });
 
     try {
-      // Ensure socket is connected and listeners are set up
-      final socketReady = await ensureConnected();
-
-      if (!socketReady) {
-        _log('❌ Failed to ensure audio socket connection');
-        throw Exception('Failed to connect to audio socket');
-      }
-
-      // Explicitly request the latest rooms
-      _log('📡 Calling getRooms on audio socket...');
-      _safeGetRooms();
-
-      // Add a small delay to ensure the refresh indicator shows
-      await Future.delayed(const Duration(milliseconds: 1000));
+      // Request refresh from room data service
+      AudioAllRoomService().requestAudioRooms();
 
       // Show success message
       if (mounted) {
@@ -357,12 +230,12 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
 
                             try {
                               // Ensure socket is connected before making API calls
-                              if (!socketService.isConnected) {
-                                await socketService.connect(userId);
+                              if (!_audioSocket.isConnected) {
+                                await _audioSocket.connect(userId);
                               }
 
                               // Fetch fresh room details
-                              AudioRoomDetails? roomDetails = await socketService.getRoomDetails(
+                              AudioRoomDetails? roomDetails = await _audioSocket.getRoomDetails(
                                 _availableAudioRooms[index].roomId,
                               );
                               debugPrint("Room details for room ${_availableAudioRooms[index].roomId}: $roomDetails");
