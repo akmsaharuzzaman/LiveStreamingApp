@@ -22,8 +22,9 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     _tabController = TabController(length: 3, vsync: this);
     // Load conversations when page is initialized
     _refreshConversations();
+    // DON'T start polling here - MainNavigationPage will control when to start/stop polling
     // Start auto-refresh timer
-    context.read<ChatBloc>().add(const StartAutoRefreshEvent());
+    // context.read<ChatBloc>().add(const StartAutoRefreshEvent());
   }
 
   @override

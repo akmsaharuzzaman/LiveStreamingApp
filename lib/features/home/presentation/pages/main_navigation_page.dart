@@ -8,6 +8,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/auth/auth_bloc.dart';
 import '../../../../core/services/in_app_update_service.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
+import '../../../chat/presentation/bloc/chat_bloc.dart' show ChatBloc, StartAutoRefreshEvent, StopAutoRefreshEvent;
 import '../../../profile/presentation/pages/profile_page.dart';
 
 class MainNavigationPage extends StatefulWidget {
@@ -105,6 +106,16 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                   );
                 }
                 return;
+              }
+
+              // Stop polling when leaving chat tab
+              if (_currentIndex == 3 && index != 3) {
+                context.read<ChatBloc>().add(const StopAutoRefreshEvent());
+              }
+
+              // Start polling when entering chat tab
+              if (_currentIndex != 3 && index == 3) {
+                context.read<ChatBloc>().add(const StartAutoRefreshEvent());
               }
 
               // If home tab is selected, force rebuild to refresh data
