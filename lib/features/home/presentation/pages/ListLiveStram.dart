@@ -22,11 +22,15 @@ class _ListLiveStreamState extends State<ListLiveStream> {
   // Use video room service (read-only)
   final VideoAllRoomService _videoRoomService = VideoAllRoomService();
 
-  // Stream subscription
+  // Stream subscriptions
   StreamSubscription? _videoRoomsSubscription;
+  StreamSubscription? _loadingSubscription;
 
   // Local rooms list (synced with service)
   List<GetRoomModel> _localRooms = [];
+  
+  // Loading state
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -36,8 +40,9 @@ class _ListLiveStreamState extends State<ListLiveStream> {
     // Initialize with passed rooms
     _localRooms = widget.availableRooms;
     
-    // Setup stream subscription to listen to service
+    // Setup stream subscriptions to listen to service
     _setupVideoRoomListener();
+    _setupLoadingListener();
   }
 
   /// Setup video room listener
@@ -58,6 +63,23 @@ class _ListLiveStreamState extends State<ListLiveStream> {
     );
   }
 
+  /// Setup loading state listener
+  void _setupLoadingListener() {
+    _loadingSubscription = _videoRoomService.loadingStream.listen(
+      (loading) {
+        if (mounted) {
+          setState(() {
+            _isLoading = loading;
+          });
+        }
+      },
+      onError: (error) {
+        _log('❌ Loading state error: $error');
+      },
+      cancelOnError: false,
+    );
+  }
+
   @override
   void didUpdateWidget(ListLiveStream oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -72,6 +94,7 @@ class _ListLiveStreamState extends State<ListLiveStream> {
   @override
   void dispose() {
     _videoRoomsSubscription?.cancel();
+    _loadingSubscription?.cancel();
     super.dispose();
   }
 
@@ -84,19 +107,7 @@ class _ListLiveStreamState extends State<ListLiveStream> {
   /// Handle refresh action
   Future<void> _handleRefresh() async {
     _log('🔄 Pull-to-refresh triggered');
-    
-    // Request refresh from service
     await _videoRoomService.requestVideoRooms();
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Live streams refreshed successfully'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 1),
-        ),
-      );
-    }
   }
 
   @override
@@ -129,47 +140,62 @@ class _ListLiveStreamState extends State<ListLiveStream> {
     }
 
     return Expanded(
-      child: RefreshIndicator(
-        onRefresh: _handleRefresh,
-        color: Colors.pink,
-        backgroundColor: Colors.white,
-        strokeWidth: 3.0,
-        displacement: 50.0,
-        child: GridView.builder(
-        padding: EdgeInsets.symmetric(
-          horizontal: 16.sp,
-        ).add(EdgeInsets.only(bottom: 80.sp)),
-        physics: const BouncingScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 0.sp,
-          crossAxisSpacing: 10.sp,
-          childAspectRatio: 0.70,
-        ),
-        itemCount: _localRooms.length,
-        itemBuilder: (context, index) {
-          return LiveStreamCard(
-            liveStreamModel: _localRooms[index],
-            onTap: () {
-              // Navigate to the live stream screen with the room ID using the named route
-              context.pushNamed(
-                'onGoingLive',
-                queryParameters: {
-                  'roomId': _localRooms[index].roomId,
-                  'hostName': _localRooms[index].hostDetails?.name ?? 'Unknown Host',
-                  'hostUserId': _localRooms[index].hostDetails?.id ?? 'Unknown User',
-                  'hostAvatar': _localRooms[index].hostDetails?.avatar ?? 'Unknown Avatar',
-                },
-                extra: {
-                  'existingViewers': _localRooms[index].membersDetails,
-                  'hostCoins': _localRooms[index].hostCoins,
-                  'roomData': _localRooms[index], // Pass complete room data
-                },
-              );
-            },
-          );
-        },
-        ),
+      child: Stack(
+        children: [
+          RefreshIndicator(
+            onRefresh: _handleRefresh,
+            color: Colors.pink,
+            backgroundColor: Colors.white,
+            strokeWidth: 3.0,
+            displacement: 50.0,
+            child: GridView.builder(
+              padding: EdgeInsets.symmetric(
+                horizontal: 16.sp,
+              ).add(EdgeInsets.only(bottom: 80.sp)),
+              physics: const BouncingScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 0.sp,
+                crossAxisSpacing: 10.sp,
+                childAspectRatio: 0.70,
+              ),
+              itemCount: _localRooms.length,
+              itemBuilder: (context, index) {
+                return LiveStreamCard(
+                  liveStreamModel: _localRooms[index],
+                  onTap: () {
+                    // Navigate to the live stream screen with the room ID using the named route
+                    context.pushNamed(
+                      'onGoingLive',
+                      queryParameters: {
+                        'roomId': _localRooms[index].roomId,
+                        'hostName': _localRooms[index].hostDetails?.name ?? 'Unknown Host',
+                        'hostUserId': _localRooms[index].hostDetails?.id ?? 'Unknown User',
+                        'hostAvatar': _localRooms[index].hostDetails?.avatar ?? 'Unknown Avatar',
+                      },
+                      extra: {
+                        'existingViewers': _localRooms[index].membersDetails,
+                        'hostCoins': _localRooms[index].hostCoins,
+                        'roomData': _localRooms[index], // Pass complete room data
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          if (_isLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.3),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.pink),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

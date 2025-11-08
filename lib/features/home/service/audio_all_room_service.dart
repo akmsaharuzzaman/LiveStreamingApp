@@ -28,12 +28,18 @@ class AudioAllRoomService {
   // State
   List<AudioRoomDetails> _cachedAudioRooms = [];
   bool _isInitialized = false;
+  bool _isLoading = false;
   String? _currentUserId;
+
+  // Loading state stream
+  final StreamController<bool> _loadingController = StreamController<bool>.broadcast();
 
   // Getters
   Stream<List<AudioRoomDetails>> get audioRoomsStream => _audioRoomsController.stream;
+  Stream<bool> get loadingStream => _loadingController.stream;
   List<AudioRoomDetails> get cachedAudioRooms => _cachedAudioRooms;
   bool get isConnected => _audioSocket.isConnected;
+  bool get isLoading => _isLoading;
 
   void _log(String message) {
     if (kDebugMode) {
@@ -41,6 +47,13 @@ class AudioAllRoomService {
       const reset = '\x1B[0m';
       debugPrint('\n$magenta[AUDIO_ROOM_SERVICE] - $reset $message\n');
     }
+  }
+
+  /// Set loading state
+  void _setLoading(bool loading) {
+    _isLoading = loading;
+    _loadingController.add(loading);
+    _log('🔄 Loading state: $loading');
   }
 
   /// Initialize audio room service with user ID
@@ -57,6 +70,9 @@ class AudioAllRoomService {
       // Setup connection status listener for auto-recovery
       _setupConnectionListener();
 
+      // Set loading state
+      _setLoading(true);
+
       // Connect audio socket
       bool connected = await _audioSocket.connect(userId);
       
@@ -64,12 +80,17 @@ class AudioAllRoomService {
         _log('✅ Audio socket connected');
         _setupAudioRoomListener();
         
-        // Request initial room data
+        // Request initial room data and wait a bit for response
         _audioSocket.getRooms();
         
+        // Wait for initial data (max 2 seconds)
+        await Future.delayed(const Duration(milliseconds: 500));
+        
         _isInitialized = true;
+        _setLoading(false);
       } else {
         _log('❌ Failed to connect audio socket');
+        _setLoading(false);
       }
     } catch (e) {
       _log('❌ Error initializing: $e');
@@ -126,9 +147,13 @@ class AudioAllRoomService {
   /// Request audio rooms from socket
   Future<void> requestAudioRooms() async {
     _log('🔄 Requesting audio rooms');
+    _setLoading(true);
     
     if (_audioSocket.isConnected) {
       _audioSocket.getRooms();
+      // Wait a bit for response
+      await Future.delayed(const Duration(milliseconds: 300));
+      _setLoading(false);
     } else {
       _log('⚠️ Audio socket not connected, attempting reconnect');
       
@@ -139,11 +164,15 @@ class AudioAllRoomService {
           _log('✅ Reconnected successfully');
           _setupAudioRoomListener();
           _audioSocket.getRooms();
+          await Future.delayed(const Duration(milliseconds: 300));
+          _setLoading(false);
         } else {
           _log('❌ Failed to reconnect audio socket');
+          _setLoading(false);
         }
       } else {
         _log('❌ Cannot reconnect: No user ID available');
+        _setLoading(false);
       }
     }
   }
@@ -174,8 +203,10 @@ class AudioAllRoomService {
     _audioRoomsSubscription?.cancel();
     _connectionStatusSubscription?.cancel();
     _audioRoomsController.close();
+    _loadingController.close();
     _cachedAudioRooms.clear();
     _isInitialized = false;
+    _isLoading = false;
     _currentUserId = null;
   }
 }

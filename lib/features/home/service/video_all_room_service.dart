@@ -27,12 +27,18 @@ class VideoAllRoomService {
   // State
   List<GetRoomModel> _cachedVideoRooms = [];
   bool _isInitialized = false;
+  bool _isLoading = false;
   String? _currentUserId;
+
+  // Loading state stream
+  final StreamController<bool> _loadingController = StreamController<bool>.broadcast();
 
   // Getters
   Stream<List<GetRoomModel>> get videoRoomsStream => _videoRoomsController.stream;
+  Stream<bool> get loadingStream => _loadingController.stream;
   List<GetRoomModel> get cachedVideoRooms => _cachedVideoRooms;
   bool get isConnected => _videoSocket.isConnected;
+  bool get isLoading => _isLoading;
 
   void _log(String message) {
     if (kDebugMode) {
@@ -40,6 +46,13 @@ class VideoAllRoomService {
       const reset = '\x1B[0m';
       debugPrint('\n$cyan[VIDEO_ROOM_SERVICE] - $reset $message\n');
     }
+  }
+
+  /// Set loading state
+  void _setLoading(bool loading) {
+    _isLoading = loading;
+    _loadingController.add(loading);
+    _log('🔄 Loading state: $loading');
   }
 
   /// Initialize video room service with user ID
@@ -56,6 +69,9 @@ class VideoAllRoomService {
       // Setup connection status listener for auto-recovery
       _setupConnectionListener();
 
+      // Set loading state
+      _setLoading(true);
+
       // Connect video socket
       bool connected = await _videoSocket.connect(userId);
       
@@ -66,9 +82,14 @@ class VideoAllRoomService {
         // Request initial room data
         await _videoSocket.getRooms();
         
+        // Wait for initial data
+        await Future.delayed(const Duration(milliseconds: 500));
+        
         _isInitialized = true;
+        _setLoading(false);
       } else {
         _log('❌ Failed to connect video socket');
+        _setLoading(false);
       }
     } catch (e) {
       _log('❌ Error initializing: $e');
@@ -125,9 +146,12 @@ class VideoAllRoomService {
   /// Request video rooms from socket
   Future<void> requestVideoRooms() async {
     _log('🔄 Requesting video rooms');
+    _setLoading(true);
     
     if (_videoSocket.isConnected) {
       await _videoSocket.getRooms();
+      await Future.delayed(const Duration(milliseconds: 300));
+      _setLoading(false);
     } else {
       _log('⚠️ Video socket not connected, attempting reconnect');
       
@@ -138,11 +162,15 @@ class VideoAllRoomService {
           _log('✅ Reconnected successfully');
           _setupVideoRoomListener();
           await _videoSocket.getRooms();
+          await Future.delayed(const Duration(milliseconds: 300));
+          _setLoading(false);
         } else {
           _log('❌ Failed to reconnect video socket');
+          _setLoading(false);
         }
       } else {
         _log('❌ Cannot reconnect: No user ID available');
+        _setLoading(false);
       }
     }
   }
@@ -173,8 +201,10 @@ class VideoAllRoomService {
     _videoRoomsSubscription?.cancel();
     _connectionStatusSubscription?.cancel();
     _videoRoomsController.close();
+    _loadingController.close();
     _cachedVideoRooms.clear();
     _isInitialized = false;
+    _isLoading = false;
     _currentUserId = null;
   }
 }

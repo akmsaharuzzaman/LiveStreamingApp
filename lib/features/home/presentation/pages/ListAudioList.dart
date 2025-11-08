@@ -25,20 +25,22 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
 
   // Stream subscriptions for proper cleanup
   StreamSubscription? _audioRoomsSubscription;
+  StreamSubscription? _loadingSubscription;
 
   // Available audio rooms list
   List<AudioRoomDetails> _availableAudioRooms = [];
 
-  // Refresh controller
-  bool _isRefreshing = false;
+  // Loading state
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _log('🎬 ListAudioRooms initialized');
 
-    // Setup stream subscription to listen to service (service is initialized in HomePage)
+    // Setup stream subscriptions to listen to service (service is initialized in HomePage)
     _setupAudioRoomListener();
+    _setupLoadingListener();
   }
 
   /// Setup audio room listener
@@ -49,7 +51,6 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
         if (mounted) {
           setState(() {
             _availableAudioRooms = rooms;
-            _isRefreshing = false;
           });
         }
       },
@@ -60,10 +61,28 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
     );
   }
 
+  /// Setup loading state listener
+  void _setupLoadingListener() {
+    _loadingSubscription = _audioRoomService.loadingStream.listen(
+      (loading) {
+        if (mounted) {
+          setState(() {
+            _isLoading = loading;
+          });
+        }
+      },
+      onError: (error) {
+        _log('❌ Loading state error: $error');
+      },
+      cancelOnError: false,
+    );
+  }
+
 
   @override
   void dispose() {
     _audioRoomsSubscription?.cancel();
+    _loadingSubscription?.cancel();
     super.dispose();
   }
 
@@ -76,25 +95,7 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
   /// Handle refresh action
   Future<void> _handleRefresh() async {
     _log('🔄 Pull-to-refresh triggered');
-    setState(() {
-      _isRefreshing = true;
-    });
-
-    // Request refresh from service
     await _audioRoomService.requestAudioRooms();
-
-    if (mounted) {
-      setState(() {
-        _isRefreshing = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Audio rooms refreshed successfully'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 1),
-        ),
-      );
-    }
   }
 
   @override
@@ -187,10 +188,16 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
                     },
                   ),
           ),
-          if (_isRefreshing)
-            Container(
-              color: Colors.black.withOpacity(0.3),
-              child: const Center(child: CircularProgressIndicator()),
+          if (_isLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.3),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.pink),
+                  ),
+                ),
+              ),
             ),
         ],
       ),

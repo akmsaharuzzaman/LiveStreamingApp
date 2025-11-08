@@ -26,17 +26,22 @@ class _ListPopularRoomsState extends State<ListPopularRooms> {
 
   // Stream subscriptions for proper cleanup
   StreamSubscription? _audioRoomsSubscription;
+  StreamSubscription? _loadingSubscription;
 
   // Available audio rooms list
   List<AudioRoomDetails> _availableAudioRooms = [];
+  
+  // Loading state
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _log('🎬 ListPopularRooms initialized');
 
-    // Setup stream subscription to listen to service (service is initialized in HomePage)
+    // Setup stream subscriptions to listen to service (service is initialized in HomePage)
     _setupAudioRoomListener();
+    _setupLoadingListener();
   }
 
   /// Setup audio room listener
@@ -57,10 +62,28 @@ class _ListPopularRoomsState extends State<ListPopularRooms> {
     );
   }
 
+  /// Setup loading state listener
+  void _setupLoadingListener() {
+    _loadingSubscription = _audioRoomService.loadingStream.listen(
+      (loading) {
+        if (mounted) {
+          setState(() {
+            _isLoading = loading;
+          });
+        }
+      },
+      onError: (error) {
+        _log('❌ Loading state error: $error');
+      },
+      cancelOnError: false,
+    );
+  }
+
 
   @override
   void dispose() {
     _audioRoomsSubscription?.cancel();
+    _loadingSubscription?.cancel();
     super.dispose();
   }
 
@@ -77,19 +100,7 @@ class _ListPopularRoomsState extends State<ListPopularRooms> {
 
   Future<void> _handleAudioRefresh() async {
     _log('🔄 Pull-to-refresh triggered');
-    
-    // Request refresh from services
     await _audioRoomService.requestAudioRooms();
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Rooms refreshed successfully'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 1),
-        ),
-      );
-    }
   }
 
   @override
@@ -206,6 +217,17 @@ class _ListPopularRoomsState extends State<ListPopularRooms> {
                     },
                   ),
           ),
+          if (_isLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.3),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.pink),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
