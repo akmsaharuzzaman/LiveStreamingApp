@@ -39,7 +39,12 @@ class _ListPopularRoomsState extends State<ListPopularRooms> {
     super.initState();
     _log('🎬 ListPopularRooms initialized');
 
-    // Setup stream subscriptions to listen to service (service is initialized in HomePage)
+    // Initialize with cached data from service (prevents data loss on tab switch)
+    _availableAudioRooms = _audioRoomService.cachedAudioRooms;
+    _isLoading = _audioRoomService.isLoading;
+    _log('📦 Initialized with ${_availableAudioRooms.length} cached audio rooms');
+
+    // Setup stream subscriptions to listen to service for future updates
     _setupAudioRoomListener();
     _setupLoadingListener();
   }
