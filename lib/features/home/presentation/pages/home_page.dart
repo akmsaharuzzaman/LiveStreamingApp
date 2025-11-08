@@ -2,8 +2,9 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
-import 'package:dlstarlive/core/network/socket_service.dart';
 import 'package:dlstarlive/core/network/api_clients.dart';
+import 'package:dlstarlive/features/home/service/video_all_room_service.dart';
+import 'package:dlstarlive/features/home/service/audio_all_room_service.dart';
 import 'package:dlstarlive/features/home/presentation/pages/ListPopularList.dart';
 import 'package:dlstarlive/injection/injection.dart';
 import 'package:flutter/material.dart';
@@ -27,14 +28,14 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
-  final SocketService _socketService = SocketService.instance;
   final GenericApiClient _genericApiClient = getIt<GenericApiClient>();
-  List<GetRoomModel>? _availableRooms;
+  final VideoAllRoomService _videoRoomService = VideoAllRoomService();
+  final AudioAllRoomService _audioRoomService = AudioAllRoomService();
+  
+  List<GetRoomModel> _availableRooms = [];
 
   // Stream subscriptions for proper cleanup
-  StreamSubscription? _connectionStatusSubscription;
-  StreamSubscription? _getRoomListSubscription;
-  StreamSubscription? _errorSubscription;
+  StreamSubscription? _videoRoomsSubscription;
 
   // Tab controller for horizontal sliding tabs
   late TabController _tabController;
@@ -49,11 +50,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     debugPrint('\n$cyan[HOME_PAGE] - $reset $message\n');
   }
 
-  /// Initialize video socket connection when entering live streaming page
-  /// Returns true if the video socket is connected successfully
-  Future<bool> _initializeVideoSocket() async {
+  /// Initialize both video and audio services
+  Future<void> _initializeServices() async {
     try {
-      // Get user ID from AuthBloc instead of SharedPreferences
+      // Get user ID from AuthBloc
       final authBloc = context.read<AuthBloc>();
       final authState = authBloc.state;
 
@@ -65,69 +65,40 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       }
 
       if (userId == null || userId.isEmpty) {
-        _log('User ID is null or empty, cannot connect to socket');
-        return false;
+        _log('User ID is null or empty, cannot initialize services');
+        return;
       }
 
-      // Initialize video socket
-      _log('🔌 Connecting to video socket with user ID: $userId');
-      bool videoConnected = false;
-      if (!_socketService.isConnected) {
-        videoConnected = await _socketService.connect(userId);
-        if (videoConnected) {
-          _log('✅ Video socket connected successfully');
-          _setupSocketListeners();
-          // Get list of available rooms
-          await _socketService.getRooms();
-        } else {
-          _log('❌ Failed to connect to video server');
-        }
-      } else {
-        _log('✅ Video socket already connected');
-        videoConnected = true;
-      }
+      _log('🚀 Initializing services with user ID: $userId');
 
-      // Audio socket is now handled in ListAudioRooms widget
+      // Initialize both services
+      await Future.wait([
+        _videoRoomService.initialize(userId),
+        _audioRoomService.initialize(userId),
+      ]);
 
-      return videoConnected;
+      // Setup video room listener
+      _setupVideoRoomListener();
+
+      _log('✅ Services initialized successfully');
     } catch (e) {
-      _log('❌ Connection error: $e');
-      return false;
+      _log('❌ Error initializing services: $e');
     }
   }
 
-  /// Setup socket event listeners
-  void _setupSocketListeners() {
-    // Connection status
-    _log("Setting up socket listeners");
-    _connectionStatusSubscription = _socketService.connectionStatusStream.listen(
-      (isConnected) {
-        if (mounted) {
-          if (isConnected) {
-            // _showSnackBar('✅ Connected to server', Colors.green);
-            _log("Connected to server");
-          } else {
-            // _showSnackBar('❌ Disconnected from server', Colors.red);
-            _log("Disconnected from server");
-          }
-        }
-      },
-      onError: (error) {
-        _log('❌ Connection error: $error');
-      },
-      cancelOnError: false,
-    ); // Room list updates
-    _getRoomListSubscription = _socketService.getRoomsStream.listen(
+  /// Setup video room listener
+  void _setupVideoRoomListener() {
+    _videoRoomsSubscription?.cancel();
+    _videoRoomsSubscription = _videoRoomService.videoRoomsStream.listen(
       (rooms) {
         if (mounted) {
           setState(() {
             _availableRooms = rooms;
-            // _log("Available rooms: ${rooms.map((room) => room.roomId)} from Frontend");
           });
         }
       },
       onError: (error) {
-        _log('❌ Room list error: $error');
+        _log('❌ Video rooms error: $error');
       },
       cancelOnError: false,
     );
@@ -138,23 +109,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     try {
       _log('🔄 Home page refresh triggered - fetching latest rooms and banners');
 
-      // Refresh both rooms and banners simultaneously
+      // Refresh video rooms, audio rooms, and banners simultaneously
       await Future.wait([
-        // Just request rooms without reconnecting socket
-        () async {
-          if (_socketService.isConnected) {
-            _log('Socket already connected, fetching rooms...');
-            await _socketService.getRooms();
-          } else {
-            _log('Socket not connected, attempting initial connection...');
-            bool connected = await _initializeVideoSocket();
-            if (!connected) {
-              _log('⚠️ Failed to connect video socket during refresh');
-            }
-            _socketService.getRooms();
-          }
-        }(),
-        // Refresh banners
+        _videoRoomService.requestVideoRooms(),
+        _audioRoomService.requestAudioRooms(),
         _fetchBanners(),
       ]);
     } catch (e) {
@@ -170,8 +128,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       }
     }
   }
-
-  // Audio-related functionality has been moved to ListAudioList.dart
 
   /// Fetch banner images from API
   Future<void> _fetchBanners() async {
@@ -219,41 +175,24 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   @override
   void initState() {
+    super.initState();
+    
     // Initialize tab controller with 4 tabs
     _tabController = TabController(length: 4, vsync: this);
 
-    // Initialize video socket and fetch initial data
-    _initializeVideoSocket().then((connected) {
-      if (connected) {
-        _log('✅ Video socket connected successfully');
-      } else {
-        _log('⚠️ Video socket failed to connect');
-      }
-    });
-
-    _fetchBanners(); // Fetch banners from API
-
-    // Trigger refresh each time HomePage is created
+    // Initialize services and fetch initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _log('🏠 HomePage created - triggering auto-refresh');
-      _handleRefresh();
+      _log('🏠 HomePage created - initializing services');
+      _initializeServices();
+      _fetchBanners();
     });
-
-    super.initState();
   }
 
-  @override
-  void didChangeDependencies() {
-    _initializeVideoSocket();
-    super.didChangeDependencies();
-  }
 
   @override
   void dispose() {
-    // Cancel all stream subscriptions to prevent setState calls after disposal
-    _connectionStatusSubscription?.cancel();
-    _getRoomListSubscription?.cancel();
-    _errorSubscription?.cancel();
+    // Cancel stream subscriptions
+    _videoRoomsSubscription?.cancel();
 
     // Dispose tab controller
     _tabController.dispose();
@@ -448,7 +387,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           //   ),
           // ),
           SizedBox(height: 18.sp),
-          ListPopularRooms(availableVideoRooms: _availableRooms ?? [], handleVideoRefresh: _handleRefresh),
+          ListPopularRooms(availableVideoRooms: _availableRooms),
         ],
       ),
     );
@@ -462,7 +401,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(height: 18.sp),
-          ListLiveStream(availableRooms: _availableRooms ?? []),
+          ListLiveStream(availableRooms: _availableRooms),
         ],
       ),
     );

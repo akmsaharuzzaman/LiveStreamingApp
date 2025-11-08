@@ -21,15 +21,19 @@ class AudioAllRoomService {
   final StreamController<List<AudioRoomDetails>> _audioRoomsController =
       StreamController<List<AudioRoomDetails>>.broadcast();
 
-  // Subscription for audio rooms
+  // Subscriptions
   StreamSubscription? _audioRoomsSubscription;
+  StreamSubscription? _connectionStatusSubscription;
 
   // State
   List<AudioRoomDetails> _cachedAudioRooms = [];
+  bool _isInitialized = false;
+  String? _currentUserId;
 
   // Getters
   Stream<List<AudioRoomDetails>> get audioRoomsStream => _audioRoomsController.stream;
   List<AudioRoomDetails> get cachedAudioRooms => _cachedAudioRooms;
+  bool get isConnected => _audioSocket.isConnected;
 
   void _log(String message) {
     if (kDebugMode) {
@@ -39,19 +43,60 @@ class AudioAllRoomService {
     }
   }
 
-  /// Initialize audio room service
-  Future<void> initialize() async {
-    // Ensure listeners are still active
-    ensureListenersActive();
+  /// Initialize audio room service with user ID
+  Future<void> initialize(String userId) async {
+    if (_isInitialized && _currentUserId == userId && _audioSocket.isConnected) {
+      _log('✅ Already initialized for user: $userId');
+      return;
+    }
 
-    _log('🚀 Initializing audio room service');
+    _log('🚀 Initializing audio room service for user: $userId');
+    _currentUserId = userId;
 
     try {
-      _setupAudioRoomListener();
-      _log('✅ Audio room service initialized');
+      // Setup connection status listener for auto-recovery
+      _setupConnectionListener();
+
+      // Connect audio socket
+      bool connected = await _audioSocket.connect(userId);
+      
+      if (connected) {
+        _log('✅ Audio socket connected');
+        _setupAudioRoomListener();
+        
+        // Request initial room data
+        _audioSocket.getRooms();
+        
+        _isInitialized = true;
+      } else {
+        _log('❌ Failed to connect audio socket');
+      }
     } catch (e) {
       _log('❌ Error initializing: $e');
     }
+  }
+
+  /// Setup connection status listener for auto-recovery
+  void _setupConnectionListener() {
+    _connectionStatusSubscription?.cancel();
+    _connectionStatusSubscription = _audioSocket.connectionStatusStream.listen(
+      (isConnected) {
+        _log('🔌 Connection status changed: ${isConnected ? "Connected" : "Disconnected"}');
+        
+        if (!isConnected) {
+          _log('⚠️ Socket disconnected, will attempt recovery on next operation');
+        } else {
+          // Reconnected - re-setup listeners and refresh data
+          _log('🔄 Socket reconnected, re-establishing listeners');
+          _setupAudioRoomListener();
+          requestAudioRooms();
+        }
+      },
+      onError: (error) {
+        _log('❌ Connection status error: $error');
+      },
+      cancelOnError: false,
+    );
   }
 
   /// Setup audio room listener
@@ -69,7 +114,9 @@ class AudioAllRoomService {
         _log('❌ Audio rooms error: $error');
         // Re-setup listener on error to keep it alive
         Future.delayed(const Duration(seconds: 1), () {
-          _setupAudioRoomListener();
+          if (_isInitialized) {
+            _setupAudioRoomListener();
+          }
         });
       },
       cancelOnError: false,
@@ -77,12 +124,27 @@ class AudioAllRoomService {
   }
 
   /// Request audio rooms from socket
-  void requestAudioRooms() {
+  Future<void> requestAudioRooms() async {
     _log('🔄 Requesting audio rooms');
+    
     if (_audioSocket.isConnected) {
       _audioSocket.getRooms();
     } else {
-      _log('⚠️ Audio socket not connected');
+      _log('⚠️ Audio socket not connected, attempting reconnect');
+      
+      // Attempt reconnection if we have user ID
+      if (_currentUserId != null && _currentUserId!.isNotEmpty) {
+        bool reconnected = await _audioSocket.connect(_currentUserId!);
+        if (reconnected) {
+          _log('✅ Reconnected successfully');
+          _setupAudioRoomListener();
+          _audioSocket.getRooms();
+        } else {
+          _log('❌ Failed to reconnect audio socket');
+        }
+      } else {
+        _log('❌ Cannot reconnect: No user ID available');
+      }
     }
   }
 
@@ -103,13 +165,17 @@ class AudioAllRoomService {
   void cleanup() {
     _log('🧹 Cleaning up audio subscriptions');
     _audioRoomsSubscription?.cancel();
+    _connectionStatusSubscription?.cancel();
   }
 
   /// Full dispose - only call when app is shutting down
   void dispose() {
     _log('🧹 Disposing audio room service');
     _audioRoomsSubscription?.cancel();
+    _connectionStatusSubscription?.cancel();
     _audioRoomsController.close();
     _cachedAudioRooms.clear();
+    _isInitialized = false;
+    _currentUserId = null;
   }
 }

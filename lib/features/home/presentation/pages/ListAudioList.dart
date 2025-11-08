@@ -7,10 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:get_it/get_it.dart';
 
 import '../../../live_audio/data/models/audio_room_details.dart';
-import '../../../live_audio/service/socket_service_audio.dart';
 import '../widgets/custom_networkimage.dart';
 import '../widgets/touchable_opacity_widget.dart';
 
@@ -22,9 +20,8 @@ class ListAudioRooms extends StatefulWidget {
 }
 
 class _ListAudioRoomsState extends State<ListAudioRooms> {
-  // Use audio room service
+  // Use audio room service (read-only)
   final AudioAllRoomService _audioRoomService = AudioAllRoomService();
-  final AudioSocketService _audioSocket = GetIt.instance<AudioSocketService>();
 
   // Stream subscriptions for proper cleanup
   StreamSubscription? _audioRoomsSubscription;
@@ -40,27 +37,8 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
     super.initState();
     _log('🎬 ListAudioRooms initialized');
 
-    // Initialize service first (sets up listeners in service)
-    _audioRoomService.initialize();
-
-    // Setup stream subscription (listens to already-initialized service)
+    // Setup stream subscription to listen to service (service is initialized in HomePage)
     _setupAudioRoomListener();
-
-    // Get user ID and connect audio socket
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final authState = context.read<AuthBloc>().state;
-      if (authState is AuthAuthenticated) {
-        final userId = authState.user.id;
-        if (userId.isNotEmpty) {
-          _log('🔌 Connecting audio socket with user: $userId');
-          _audioSocket.connect(userId).then((_) {
-            _log('✅ Audio socket connected');
-            // Request rooms after socket connection
-            _audioSocket.getRooms();
-          });
-        }
-      }
-    });
   }
 
   /// Setup audio room listener
@@ -82,25 +60,6 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
     );
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    
-    // Reconnect audio socket if needed (after dispose or disconnect)
-    final authState = context.read<AuthBloc>().state;
-    if (authState is AuthAuthenticated) {
-      final userId = authState.user.id;
-      if (userId.isNotEmpty && !_audioSocket.isConnected) {
-        _log('🔌 Reconnecting audio socket in didChangeDependencies');
-        _audioSocket.connect(userId).then((_) {
-          _audioSocket.getRooms();
-        });
-      } else if (_audioSocket.isConnected) {
-        // Already connected, just refresh
-        _audioSocket.getRooms();
-      }
-    }
-  }
 
   @override
   void dispose() {
@@ -121,37 +80,20 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
       _isRefreshing = true;
     });
 
-    try {
-      // Request refresh from room data service
-      AudioAllRoomService().requestAudioRooms();
+    // Request refresh from service
+    await _audioRoomService.requestAudioRooms();
 
-      // Show success message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Audio rooms refreshed successfully'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 1),
-          ),
-        );
-      }
-    } catch (e) {
-      _log('❌ Error during audio refresh: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to refresh audio content: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isRefreshing = false;
-        });
-      }
+    if (mounted) {
+      setState(() {
+        _isRefreshing = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Audio rooms refreshed successfully'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 1),
+        ),
+      );
     }
   }
 
@@ -228,44 +170,17 @@ class _ListAudioRoomsState extends State<ListAudioRooms> {
                               "🚀 Navigating to audio room with userId: $userId as Viewer with roomId: ${_availableAudioRooms[index].roomId}",
                             );
 
-                            try {
-                              // Ensure socket is connected before making API calls
-                              if (!_audioSocket.isConnected) {
-                                await _audioSocket.connect(userId);
-                              }
-
-                              // Fetch fresh room details
-                              AudioRoomDetails? roomDetails = await _audioSocket.getRoomDetails(
-                                _availableAudioRooms[index].roomId,
-                              );
-                              debugPrint("Room details for room ${_availableAudioRooms[index].roomId}: $roomDetails");
-
-                              if (roomDetails == null || roomDetails.roomId.isEmpty) {
-                                ScaffoldMessenger.of(
-                                  context,
-                                ).showSnackBar(const SnackBar(content: Text('Room details not found')));
-                                return;
-                              }
-
-                              // Navigate to the audio room screen with updated room data
-                              context.push(
-                                AppRoutes.audioLive,
-                                extra: {
-                                  'isHost': false,
-                                  // Pass fresh room data
-                                  'roomId': roomDetails.roomId,
-                                  'numberOfSeats': roomDetails.numberOfSeats,
-                                  'title': roomDetails.title,
-                                  //'userId': userId,
-                                  'roomDetails': roomDetails,
-                                },
-                              );
-                            } catch (e) {
-                              // Fallback to original navigation on error
-                              ScaffoldMessenger.of(
-                                context,
-                              ).showSnackBar(SnackBar(content: Text('Error: $e, using cached data')));
-                            }
+                            // Navigate to the audio room screen with room data
+                            context.push(
+                              AppRoutes.audioLive,
+                              extra: {
+                                'isHost': false,
+                                'roomId': _availableAudioRooms[index].roomId,
+                                'numberOfSeats': _availableAudioRooms[index].numberOfSeats,
+                                'title': _availableAudioRooms[index].title,
+                                'roomDetails': _availableAudioRooms[index],
+                              },
+                            );
                           }
                         },
                       );
