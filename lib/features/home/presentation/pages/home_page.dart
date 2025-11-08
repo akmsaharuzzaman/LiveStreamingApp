@@ -19,6 +19,7 @@ import '../widgets/custom_networkimage.dart';
 import '../widgets/touchable_opacity_widget.dart';
 import 'ListAudioList.dart';
 import 'ListLiveStram.dart';
+import '../../../../routing/route_observer.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -27,15 +28,18 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
+class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin, RouteAware {
   final GenericApiClient _genericApiClient = getIt<GenericApiClient>();
   final VideoAllRoomService _videoRoomService = VideoAllRoomService();
   final AudioAllRoomService _audioRoomService = AudioAllRoomService();
-  
+
   List<GetRoomModel> _availableRooms = [];
+  bool _isVideoLoading = false;
+  bool _servicesInitialized = false;
 
   // Stream subscriptions for proper cleanup
   StreamSubscription? _videoRoomsSubscription;
+  StreamSubscription? _videoLoadingSubscription;
 
   // Tab controller for horizontal sliding tabs
   late TabController _tabController;
@@ -71,14 +75,25 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
       _log('🚀 Initializing services with user ID: $userId');
 
-      // Initialize both services
-      await Future.wait([
-        _videoRoomService.initialize(userId),
-        _audioRoomService.initialize(userId),
-      ]);
+      setState(() {
+        _isVideoLoading = true;
+      });
 
-      // Setup video room listener
+      // Initialize both services
+      await Future.wait([_videoRoomService.initialize(userId), _audioRoomService.initialize(userId)]);
+
+      if (mounted) {
+        setState(() {
+          _availableRooms = _videoRoomService.cachedVideoRooms;
+          _isVideoLoading = _videoRoomService.isLoading;
+        });
+      }
+
       _setupVideoRoomListener();
+      _setupVideoLoadingListener();
+
+      _servicesInitialized = true;
+      _triggerPopularRefreshIfActive();
 
       _log('✅ Services initialized successfully');
     } catch (e) {
@@ -99,6 +114,24 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       },
       onError: (error) {
         _log('❌ Video rooms error: $error');
+      },
+      cancelOnError: false,
+    );
+  }
+
+  /// Setup video loading listener
+  void _setupVideoLoadingListener() {
+    _videoLoadingSubscription?.cancel();
+    _videoLoadingSubscription = _videoRoomService.loadingStream.listen(
+      (isLoading) {
+        if (mounted) {
+          setState(() {
+            _isVideoLoading = isLoading;
+          });
+        }
+      },
+      onError: (error) {
+        _log('❌ Video loading error: $error');
       },
       cancelOnError: false,
     );
@@ -176,9 +209,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize tab controller with 4 tabs
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 4, vsync: this)..addListener(_handleTabChange);
 
     // Initialize services and fetch initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -188,17 +221,65 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     });
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final ModalRoute<dynamic>? route = ModalRoute.of(context);
+    if (route is PageRoute<dynamic>) {
+      routeObserver.subscribe(this, route);
+    }
+  }
 
   @override
   void dispose() {
     // Cancel stream subscriptions
     _videoRoomsSubscription?.cancel();
+    _videoLoadingSubscription?.cancel();
 
     // Dispose tab controller
+    _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
+
+    routeObserver.unsubscribe(this);
 
     _log("HomePage disposed - all resources released");
     super.dispose();
+  }
+
+  @override
+  void didPush() {
+    _triggerPopularRefreshIfActive();
+  }
+
+  @override
+  void didPopNext() {
+    _triggerPopularRefreshIfActive();
+  }
+
+  void _triggerPopularRefreshIfActive() {
+    if (!_servicesInitialized) {
+      return;
+    }
+    if (_tabController.index == 0) {
+      _refreshPopularTab();
+    }
+  }
+
+  void _handleTabChange() {
+    if (_tabController.indexIsChanging) return;
+
+    if (_tabController.index == 0) {
+      _log('📱 Popular tab active - requesting latest rooms');
+      _refreshPopularTab();
+    }
+  }
+
+  Future<void> _refreshPopularTab() async {
+    try {
+      await Future.wait([_audioRoomService.requestAudioRooms(), _videoRoomService.requestVideoRooms()]);
+    } catch (e) {
+      _log('❌ Error refreshing popular tab: $e');
+    }
   }
 
   @override
@@ -387,7 +468,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           //   ),
           // ),
           SizedBox(height: 18.sp),
-          ListPopularRooms(availableVideoRooms: _availableRooms),
+          ListPopularRooms(availableVideoRooms: _availableRooms, isVideoLoading: _isVideoLoading),
         ],
       ),
     );

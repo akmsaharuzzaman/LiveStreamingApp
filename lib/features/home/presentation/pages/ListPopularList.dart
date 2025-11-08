@@ -14,7 +14,8 @@ import '../../../live_audio/data/models/audio_room_details.dart';
 
 class ListPopularRooms extends StatefulWidget {
   final List<GetRoomModel> availableVideoRooms;
-  const ListPopularRooms({super.key, required this.availableVideoRooms});
+  final bool isVideoLoading;
+  const ListPopularRooms({super.key, required this.availableVideoRooms, required this.isVideoLoading});
 
   @override
   State<ListPopularRooms> createState() => _ListPopularRoomsState();
@@ -30,7 +31,7 @@ class _ListPopularRoomsState extends State<ListPopularRooms> {
 
   // Available audio rooms list
   List<AudioRoomDetails> _availableAudioRooms = [];
-  
+
   // Loading state
   bool _isLoading = false;
 
@@ -83,7 +84,6 @@ class _ListPopularRoomsState extends State<ListPopularRooms> {
       cancelOnError: false,
     );
   }
-
 
   @override
   void dispose() {
@@ -222,14 +222,12 @@ class _ListPopularRoomsState extends State<ListPopularRooms> {
                     },
                   ),
           ),
-          if (_isLoading)
+          if (_isLoading || widget.isVideoLoading)
             Positioned.fill(
               child: Container(
                 color: Colors.black.withOpacity(0.3),
                 child: const Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.pink),
-                  ),
+                  child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.pink)),
                 ),
               ),
             ),

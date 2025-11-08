@@ -14,6 +14,7 @@ import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/home/presentation/pages/main_navigation_page.dart';
+import 'route_observer.dart';
 import '../features/newsfeed/presentation/pages/newsfeed.dart';
 import '../features/profile/presentation/pages/store_page.dart';
 import '../features/reels/presentation/pages/video_editor_screen.dart';
@@ -53,6 +54,9 @@ class AppRoutes {
 
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.splash,
+  observers: <NavigatorObserver>[
+    routeObserver,
+  ],
   routes: [
     GoRoute(path: AppRoutes.splash, name: 'splash', builder: (context, state) => const SplashScreen()),
     GoRoute(path: AppRoutes.login, name: 'login', builder: (context, state) => const LoginPage()),
