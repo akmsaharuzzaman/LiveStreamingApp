@@ -26,10 +26,11 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
     on<AcceptCallRequest>(_onAcceptRequest);
     on<RejectCallRequest>(_onRejectRequest);
     on<RemoveBroadcaster>(_onRemoveBroadcaster);
-  on<SubmitJoinCallRequest>(_onSubmitJoinRequest);
+    on<SubmitJoinCallRequest>(_onSubmitJoinRequest);
     on<AddBroadcaster>(_onAddBroadcaster);
     on<LoadInitialBroadcasters>(_onLoadInitialBroadcasters);
     on<ClearCallRequests>(_onClearRequests);
+    on<ResolvePendingRequest>(_onResolvePendingRequest);
 
     // Setup stream listeners
     _setupListeners();
@@ -250,6 +251,21 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
     _pendingRequests.clear();
     _activeBroadcasters.clear();
     emit(const CallRequestInitial());
+  }
+
+  void _onResolvePendingRequest(
+    ResolvePendingRequest event,
+    Emitter<CallRequestState> emit,
+  ) {
+    final originalLength = _pendingRequests.length;
+    _pendingRequests.removeWhere((request) => request.userId == event.userId);
+
+    if (_pendingRequests.length != originalLength) {
+      emit(CallRequestLoaded(
+        pendingRequests: List.from(_pendingRequests),
+        activeBroadcasters: List.from(_activeBroadcasters),
+      ));
+    }
   }
 
   void _setupListeners() {

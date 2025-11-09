@@ -106,3 +106,13 @@ class LoadInitialBroadcasters extends CallRequestEvent {
 class ClearCallRequests extends CallRequestEvent {
   const ClearCallRequests();
 }
+
+/// Mark a pending request as resolved for a specific user
+class ResolvePendingRequest extends CallRequestEvent {
+  final String userId;
+
+  const ResolvePendingRequest(this.userId);
+
+  @override
+  List<Object?> get props => [userId];
+}

@@ -170,6 +170,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   //Live inactivity timeout duration
   // Host activity tracking for viewers
   bool _animationPlaying = false;
+  Timer? _giftAnimationTimer;
+  int _lastGiftCount = 0;
 
   // Chat messages
   final List<ChatModel> _chatMessages = [];
@@ -424,6 +426,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
         );
 
         context.read<GiftBloc>().add(LoadInitialGifts([syntheticGift]));
+        _lastGiftCount = 1;
         debugPrint(
           "✅ Added synthetic gift for host coins: ${widget.hostCoins} to host ID: $hostId",
         );
@@ -531,9 +534,12 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
 
     if (!isHost && userId != null) {
       final isCurrentBroadcaster = broadcasterIds.contains(userId);
-      if (isCurrentBroadcaster && !sessionState.isAudioCaller) {
-        sessionCubit.promoteToAudioCaller();
-      } else if (!isCurrentBroadcaster && sessionState.isAudioCaller) {
+      if (isCurrentBroadcaster) {
+        context.read<CallRequestBloc>().add(ResolvePendingRequest(userId!));
+        if (!sessionState.isAudioCaller) {
+          sessionCubit.promoteToAudioCaller();
+        }
+      } else if (sessionState.isAudioCaller) {
         sessionCubit.leaveAudioCaller();
       }
     }
@@ -541,6 +547,26 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     _knownBroadcasterIds
       ..clear()
       ..addAll(broadcasterIds);
+  }
+
+  void _triggerGiftAnimation() {
+    _giftAnimationTimer?.cancel();
+
+    if (mounted && !_animationPlaying) {
+      setState(() {
+        _animationPlaying = true;
+      });
+    }
+
+    _giftAnimationTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _animationPlaying = false;
+      });
+    });
   }
 
   //Sent/Send Message
@@ -912,6 +938,18 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
             }
           },
         ),
+        BlocListener<GiftBloc, GiftState>(
+          listener: (context, state) {
+            if (state is GiftLoaded) {
+              if (state.gifts.length > _lastGiftCount) {
+                _triggerGiftAnimation();
+              }
+              _lastGiftCount = state.gifts.length;
+            } else if (state is GiftInitial) {
+              _lastGiftCount = 0;
+            }
+          },
+        ),
         BlocListener<ModerationBloc, ModerationState>(
           listener: (context, state) {
             if (!mounted) return;
@@ -1003,18 +1041,16 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
         ),
       ],
       child: PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (bool didPop, Object? result) {
-        // Only trigger cleanup if actually popping (not canceling)
-        if (didPop) {
+        canPop: false,
+        onPopInvokedWithResult: (bool didPop, Object? result) {
+          if (didPop) {
+            return;
+          }
+
           _endLiveStream();
-          debugPrint(
-            'Back navigation invoked: '
-            '(cleanup triggered)',
-          );
-        }
-      },
-      child: BlocBuilder<AuthBloc, AuthState>(
+          debugPrint('Back navigation invoked: (cleanup triggered)');
+        },
+        child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           if (state is! AuthAuthenticated) {
             return Scaffold(
@@ -1683,13 +1719,14 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                         if (!isHost) {
                           children.add(SizedBox(height: 80.h));
 
-                          final isJoiningRequestPending =
-                              callState is CallRequestLoaded &&
-                                  userId != null &&
-                                  callState.pendingRequests.any(
-                                    (request) => request.userId == userId,
-                                  );
                           final isAudioCaller = sessionState.isAudioCaller;
+                          final isJoiningRequestPending =
+                              !isAudioCaller &&
+                              callState is CallRequestLoaded &&
+                              userId != null &&
+                              callState.pendingRequests.any(
+                                (request) => request.userId == userId,
+                              );
                           final canJoinAudioCall =
                               _canJoinAudioCall(sessionState);
                           final maxAudioCallers =
@@ -2032,10 +2069,11 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     debugPrint("🧹 Disposing video live screen...");
 
     _titleController.dispose();
+    _giftAnimationTimer?.cancel();
 
-  _knownPendingRequestIds.clear();
-  _knownBroadcasterIds.clear();
-  _chatMessages.clear();
+    _knownPendingRequestIds.clear();
+    _knownBroadcasterIds.clear();
+    _chatMessages.clear();
 
     debugPrint("✅ Video live screen disposed");
     super.dispose();

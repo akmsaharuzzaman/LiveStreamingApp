@@ -41,6 +41,7 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
   late final List<int> _remoteUsers;
   late final List<int> _audioCallerUids;
   late final List<int> _videoCallerUids;
+  bool _isProcessingAudioJoin = false;
 
   static const int _inactivityTimeoutSeconds = 60;
 
@@ -147,7 +148,7 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
     }
 
     await _joinChannelWithDynamicToken(
-      channelId: resolvedRoomId ?? userId,
+      channelId: resolvedRoomId,
       isHost: isHost,
     );
 
@@ -196,10 +197,11 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
   }
 
   Future<void> promoteToAudioCaller() async {
-    if (state.isAudioCaller || state.isJoiningAudioCaller) {
-      emit(state.copyWith(
-        snackBar: LiveSessionSnackBar.info('Audio call already joined'),
-      ));
+    if (state.isAudioCaller) {
+      return;
+    }
+
+    if (_isProcessingAudioJoin) {
       return;
     }
 
@@ -210,20 +212,28 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
       return;
     }
 
-    emit(state.copyWith(isJoiningAudioCaller: true));
+    _isProcessingAudioJoin = true;
+
+    if (!state.isJoiningAudioCaller) {
+      emit(state.copyWith(isJoiningAudioCaller: true));
+    }
 
     try {
       await _switchToAudioCaller();
       emit(state.copyWith(
         isJoiningAudioCaller: false,
         isAudioCaller: true,
-        snackBar: LiveSessionSnackBar.success('Joined audio call'),
+        snackBar: state.isHost
+            ? null
+            : LiveSessionSnackBar.success('Joined audio call'),
       ));
     } catch (_) {
       emit(state.copyWith(
         isJoiningAudioCaller: false,
         snackBar: LiveSessionSnackBar.error('Failed to join audio call'),
       ));
+    } finally {
+      _isProcessingAudioJoin = false;
     }
   }
 
