@@ -560,7 +560,7 @@ class ApiService {
             // Debug log
             if (kDebugMode) {
               print(
-                '🔑 ApiService interceptor - Token: ${token != null ? token.substring(0, 10) + '...' : 'NULL'}',
+                '🔑 ApiService interceptor - Token: ${token != null ? '${token.substring(0, 10)}...' : 'NULL'}\nBase URL: ${DataConstants.baseUrl} ',
               );
             }
 
