@@ -558,7 +558,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       });
     }
 
-    _giftAnimationTimer = Timer(const Duration(seconds: 3), () {
+    _giftAnimationTimer = Timer(const Duration(seconds: 10), () {
       if (!mounted) {
         return;
       }

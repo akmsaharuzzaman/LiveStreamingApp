@@ -74,8 +74,8 @@ class LiveStreamRepositoryImpl implements LiveStreamRepository {
       final socketClosed = await _socketService.deleteRoom(roomId);
       if (!socketClosed) {
         return Left(ServerFailure('Failed to delete room'));
+        
       }
-
       final response = await _apiService.delete('/api/room/$roomId');
       return response.fold(
         (data) => const Right(null),
