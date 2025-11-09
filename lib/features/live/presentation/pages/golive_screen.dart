@@ -899,6 +899,12 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
           listener: (context, state) {
             final roomId = state.currentRoomId;
             if (roomId != null && roomId.isNotEmpty) {
+              if (mounted) {
+                setState(() {
+                  _currentRoomId = roomId;
+                  this.roomId = roomId;
+                });
+              }
               context.read<LiveStreamBloc>().add(UpdateActiveRoom(roomId));
             }
           },
