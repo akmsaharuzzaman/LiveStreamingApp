@@ -1626,8 +1626,16 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                             ? callState.activeBroadcasters
                             : const <BroadcasterModel>[];
 
+                        final hostIdentifiers = <String>{
+                          if (hostId != null) hostId,
+                          if (widget.hostUserId != null)
+                            widget.hostUserId!,
+                          if (isHost && sessionState.userId != null)
+                            sessionState.userId!,
+                        };
+
                         final displayBroadcasters = broadcasters
-                            .where((b) => b.id != hostId)
+                            .where((b) => !hostIdentifiers.contains(b.id))
                             .toList();
 
                         WhoAmI resolveRole(String broadcasterId) {

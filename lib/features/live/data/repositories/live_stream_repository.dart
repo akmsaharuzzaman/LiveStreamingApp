@@ -71,6 +71,11 @@ class LiveStreamRepositoryImpl implements LiveStreamRepository {
   @override
   Future<Either<Failure, void>> deleteRoom(String roomId) async {
     try {
+      final socketClosed = await _socketService.deleteRoom(roomId);
+      if (!socketClosed) {
+        return Left(ServerFailure('Failed to delete room'));
+      }
+
       final response = await _apiService.delete('/api/room/$roomId');
       return response.fold(
         (data) => const Right(null),
