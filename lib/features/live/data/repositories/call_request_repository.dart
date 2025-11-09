@@ -5,6 +5,7 @@ import '../../../../core/network/socket_service.dart';
 import '../../../../core/network/api_service.dart' hide Failure;
 import '../../../../core/network/models/call_request_model.dart';
 import '../../../../core/network/models/call_request_list_model.dart';
+import '../../../../core/network/models/broadcaster_model.dart';
 import '../../../../core/errors/failures.dart';
 
 abstract class CallRequestRepository {
@@ -29,11 +30,13 @@ abstract class CallRequestRepository {
   // Streams
   Stream<CallRequestModel> get requestsStream;
   Stream<List<CallRequestListModel>> get requestListStream;
+  Stream<List<BroadcasterModel>> get broadcasterListStream;
 }
 
 @LazySingleton(as: CallRequestRepository)
 class CallRequestRepositoryImpl implements CallRequestRepository {
   final SocketService _socketService;
+  // ignore: unused_field
   final ApiService _apiService;
 
   CallRequestRepositoryImpl(this._socketService, this._apiService);
@@ -93,4 +96,8 @@ class CallRequestRepositoryImpl implements CallRequestRepository {
   @override
   Stream<List<CallRequestListModel>> get requestListStream =>
       _socketService.joinCallRequestListStream;
+
+  @override
+  Stream<List<BroadcasterModel>> get broadcasterListStream =>
+    _socketService.broadcasterListStream;
 }

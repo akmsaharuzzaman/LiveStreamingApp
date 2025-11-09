@@ -14,6 +14,7 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
   // Subscriptions for cleanup
   StreamSubscription? _requestsSubscription;
   StreamSubscription? _requestListSubscription;
+  StreamSubscription? _broadcastersSubscription;
 
   // Store data in memory
   final List<CallRequestModel> _pendingRequests = [];
@@ -238,12 +239,19 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
       
       add(LoadCallRequestList(requests));
     });
+
+    // Listen for active broadcasters
+    _broadcastersSubscription =
+        _repository.broadcasterListStream.listen((broadcasters) {
+      add(LoadInitialBroadcasters(broadcasters));
+    });
   }
 
   @override
   Future<void> close() {
     _requestsSubscription?.cancel();
     _requestListSubscription?.cancel();
+    _broadcastersSubscription?.cancel();
     return super.close();
   }
 }
