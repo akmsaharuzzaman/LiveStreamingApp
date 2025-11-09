@@ -74,6 +74,16 @@ class BroadcasterRemoved extends CallRequestState {
   List<Object?> get props => [userId];
 }
 
+/// Join call request submitted
+class CallRequestJoinSubmitted extends CallRequestState {
+  final String roomId;
+
+  const CallRequestJoinSubmitted(this.roomId);
+
+  @override
+  List<Object?> get props => [roomId];
+}
+
 /// Error state
 class CallRequestError extends CallRequestState {
   final String message;

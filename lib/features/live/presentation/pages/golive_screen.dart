@@ -1811,10 +1811,16 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     return MultiBlocListener(
       listeners: [
         BlocListener<CallRequestBloc, CallRequestState>(
-          listenWhen: (previous, current) => current is CallRequestLoaded,
           listener: (context, state) {
             if (state is CallRequestLoaded) {
               _handleCallRequestState(state);
+            } else if (state is CallRequestError) {
+              _showSnackBar('❌ ${state.message}', Colors.red);
+            } else if (state is CallRequestJoinSubmitted) {
+              _showSnackBar(
+                '🎤 Call request sent. Awaiting host approval...',
+                Colors.blue,
+              );
             }
           },
         ),
@@ -2474,6 +2480,10 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                           }
                         }
 
+                        final currentRoomId = _currentRoomId ?? roomId;
+                        final callRequestBloc =
+                            context.read<CallRequestBloc>();
+
                         final children = <Widget>[
                           ...displayBroadcasters.map((broadcaster) {
                             return CallOverlayWidget(
@@ -2484,8 +2494,19 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                   ? broadcaster.avatar
                                   : null,
                               onDisconnect: () {
-                                _socketService.removeBroadcaster(
-                                  broadcaster.id,
+                                if (currentRoomId.isEmpty) {
+                                  _showSnackBar(
+                                    '❌ Room not ready, please try again',
+                                    Colors.red,
+                                  );
+                                  return;
+                                }
+
+                                callRequestBloc.add(
+                                  RemoveBroadcaster(
+                                    userId: broadcaster.id,
+                                    roomId: currentRoomId,
+                                  ),
                                 );
                               },
                               onMute: () {
@@ -2565,13 +2586,37 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                 }
 
                                 if (_isAudioCaller) {
-                                  _socketService.removeBroadcaster(
-                                    userId ?? '',
+                                  final currentUserId = userId;
+                                  if (currentUserId == null ||
+                                      currentUserId.isEmpty ||
+                                      currentRoomId.isEmpty) {
+                                    _showSnackBar(
+                                      '❌ Unable to leave call right now',
+                                      Colors.red,
+                                    );
+                                    return;
+                                  }
+
+                                  callRequestBloc.add(
+                                    RemoveBroadcaster(
+                                      userId: currentUserId,
+                                      roomId: currentRoomId,
+                                    ),
                                   );
                                   debugPrint("Leaving audio caller");
                                 } else {
-                                  _socketService.joinCallRequest(
-                                    _currentRoomId ?? roomId,
+                                  if (currentRoomId.isEmpty) {
+                                    _showSnackBar(
+                                      '❌ Room not ready, please try again',
+                                      Colors.red,
+                                    );
+                                    return;
+                                  }
+
+                                  callRequestBloc.add(
+                                    SubmitJoinCallRequest(
+                                      roomId: currentRoomId,
+                                    ),
                                   );
                                   _showSnackBar(
                                     '🎤 Please wait for accept call...',

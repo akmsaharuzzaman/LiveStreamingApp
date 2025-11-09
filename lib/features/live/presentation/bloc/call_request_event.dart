@@ -72,6 +72,16 @@ class RemoveBroadcaster extends CallRequestEvent {
   List<Object?> get props => [userId, roomId];
 }
 
+/// Submit join call request
+class SubmitJoinCallRequest extends CallRequestEvent {
+  final String roomId;
+
+  const SubmitJoinCallRequest({required this.roomId});
+
+  @override
+  List<Object?> get props => [roomId];
+}
+
 /// Add broadcaster (after accepting)
 class AddBroadcaster extends CallRequestEvent {
   final BroadcasterModel broadcaster;

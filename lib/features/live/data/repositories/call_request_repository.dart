@@ -27,6 +27,11 @@ abstract class CallRequestRepository {
     required String userId,
   });
 
+  // Join call request
+  Future<Either<Failure, void>> joinCallRequest({
+    required String roomId,
+  });
+
   // Streams
   Stream<CallRequestModel> get requestsStream;
   Stream<List<CallRequestListModel>> get requestListStream;
@@ -95,6 +100,21 @@ class CallRequestRepositoryImpl implements CallRequestRepository {
       return const Right(null);
     } catch (e) {
       return Left(ServerFailure('Failed to remove broadcaster: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> joinCallRequest({
+    required String roomId,
+  }) async {
+    try {
+      final isSuccess = await _socketService.joinCallRequest(roomId);
+      if (!isSuccess) {
+        return Left(ServerFailure('Failed to submit call request'));
+      }
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure('Failed to submit call request: $e'));
     }
   }
 

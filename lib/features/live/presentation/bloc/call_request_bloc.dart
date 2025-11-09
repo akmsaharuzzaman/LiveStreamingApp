@@ -26,6 +26,7 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
     on<AcceptCallRequest>(_onAcceptRequest);
     on<RejectCallRequest>(_onRejectRequest);
     on<RemoveBroadcaster>(_onRemoveBroadcaster);
+  on<SubmitJoinCallRequest>(_onSubmitJoinRequest);
     on<AddBroadcaster>(_onAddBroadcaster);
     on<LoadInitialBroadcasters>(_onLoadInitialBroadcasters);
     on<ClearCallRequests>(_onClearRequests);
@@ -173,6 +174,42 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
       );
     } catch (e) {
       emit(CallRequestError('Failed to remove broadcaster: $e'));
+      emit(CallRequestLoaded(
+        pendingRequests: List.from(_pendingRequests),
+        activeBroadcasters: List.from(_activeBroadcasters),
+      ));
+    }
+  }
+
+  Future<void> _onSubmitJoinRequest(
+    SubmitJoinCallRequest event,
+    Emitter<CallRequestState> emit,
+  ) async {
+    try {
+      emit(const CallRequestProcessing());
+
+      final result = await _repository.joinCallRequest(
+        roomId: event.roomId,
+      );
+
+      result.fold(
+        (failure) {
+          emit(CallRequestError(failure.message));
+          emit(CallRequestLoaded(
+            pendingRequests: List.from(_pendingRequests),
+            activeBroadcasters: List.from(_activeBroadcasters),
+          ));
+        },
+        (_) {
+          emit(CallRequestJoinSubmitted(event.roomId));
+          emit(CallRequestLoaded(
+            pendingRequests: List.from(_pendingRequests),
+            activeBroadcasters: List.from(_activeBroadcasters),
+          ));
+        },
+      );
+    } catch (e) {
+      emit(CallRequestError('Failed to submit call request: $e'));
       emit(CallRequestLoaded(
         pendingRequests: List.from(_pendingRequests),
         activeBroadcasters: List.from(_activeBroadcasters),
