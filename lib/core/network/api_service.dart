@@ -595,19 +595,19 @@ class ApiService {
       ),
     );
 
-    // Add logging interceptor for debug mode
-    if (kDebugMode) {
-      _dio.interceptors.add(
-        LogInterceptor(
-          requestBody: true,
-          responseBody: true,
-          requestHeader: true,
-          responseHeader: false,
-          request: true,
-          error: true,
-        ),
-      );
-    }
+    // Disabled logging interceptor to reduce debug console noise
+    // if (kDebugMode) {
+    //   _dio.interceptors.add(
+    //     LogInterceptor(
+    //       requestBody: true,
+    //       responseBody: true,
+    //       requestHeader: true,
+    //       responseHeader: false,
+    //       request: true,
+    //       error: true,
+    //     ),
+    //   );
+    // }
   }
 
   /// Set authentication token
