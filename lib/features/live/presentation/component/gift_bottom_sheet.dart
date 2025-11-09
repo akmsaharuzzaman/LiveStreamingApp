@@ -64,6 +64,7 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
   Set<String> _selectedUserIds = {}; // Changed to Set for multiple selection
   bool _isLoading = true;
   bool _isSending = false;
+  bool _isClosing = false; // ✅ Flag to prevent double dismiss
   List<Gift> _allGifts = [];
   List<Gift> _hotGifts = []; // Hot/popular gifts based on send count
   List<String> _dynamicTabs = []; // Will be populated with categories from API
@@ -481,7 +482,11 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                 SizedBox(width: 16.w),
                 // Close button
                 GestureDetector(
-                  onTap: () => Navigator.pop(context),
+                  onTap: () {
+                    if (!_isClosing && !_isSending) {
+                      _closeBottomSheet();
+                    }
+                  },
                   child: Container(
                     width: 32.w,
                     height: 32.h,
@@ -889,10 +894,10 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
           _isSending = false;
         });
 
-        // Close bottom sheet after a delay
+        // ✅ Close bottom sheet with flag to prevent double dismiss
         Future.delayed(const Duration(milliseconds: 1000), () {
-          if (mounted) {
-            Navigator.pop(context);
+          if (mounted && !_isClosing) {
+            _closeBottomSheet();
           }
         });
       } else {
@@ -902,6 +907,16 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
     } catch (e) {
       setState(() => _isSending = false);
       _showError('Error sending gift: $e');
+    }
+  }
+
+  /// ✅ Helper method to close bottom sheet safely and prevent double dismiss
+  void _closeBottomSheet() {
+    if (!_isClosing && mounted) {
+      setState(() {
+        _isClosing = true;
+      });
+      Navigator.pop(context);
     }
   }
 }
