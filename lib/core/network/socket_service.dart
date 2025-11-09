@@ -875,11 +875,24 @@ class SocketService {
   }
 
   ///Ban User
-  Future<bool> banUser(String userId) async {
+  Future<bool> banUser(
+    String userId, {
+    String? roomId,
+  }) async {
     if (!_isConnected || _socket == null) {
       _errorMessageController.add({
         'status': 'error',
         'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    final effectiveRoomId =
+        (roomId != null && roomId.isNotEmpty) ? roomId : _currentRoomId;
+    if (effectiveRoomId == null || effectiveRoomId.isEmpty) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Room ID is required',
       });
       return false;
     }
@@ -890,7 +903,7 @@ class SocketService {
       }
 
       _socket!.emit(_banUserEvent, {
-        'roomId': _currentRoomId,
+        'roomId': effectiveRoomId,
         'targetId': userId,
       });
       return true;
@@ -907,11 +920,24 @@ class SocketService {
   }
 
   ///Mute User
-  Future<bool> muteUser(String userId) async {
+  Future<bool> muteUser(
+    String userId, {
+    String? roomId,
+  }) async {
     if (!_isConnected || _socket == null) {
       _errorMessageController.add({
         'status': 'error',
         'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    final effectiveRoomId =
+        (roomId != null && roomId.isNotEmpty) ? roomId : _currentRoomId;
+    if (effectiveRoomId == null || effectiveRoomId.isEmpty) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Room ID is required',
       });
       return false;
     }
@@ -922,7 +948,7 @@ class SocketService {
       }
 
       _socket!.emit(_muteUserEvent, {
-        'roomId': _currentRoomId,
+        'roomId': effectiveRoomId,
         'targetId': userId,
       });
       return true;
@@ -970,11 +996,24 @@ class SocketService {
   }
 
   ///Make admin
-  Future<bool> makeAdmin(String userId) async {
+  Future<bool> makeAdmin(
+    String userId, {
+    String? roomId,
+  }) async {
     if (!_isConnected || _socket == null) {
       _errorMessageController.add({
         'status': 'error',
         'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    final effectiveRoomId =
+        (roomId != null && roomId.isNotEmpty) ? roomId : _currentRoomId;
+    if (effectiveRoomId == null || effectiveRoomId.isEmpty) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Room ID is required',
       });
       return false;
     }
@@ -985,7 +1024,7 @@ class SocketService {
       }
 
       _socket!.emit(_makeAdminEvent, {
-        'roomId': _currentRoomId,
+        'roomId': effectiveRoomId,
         'targetId': userId,
       });
       return true;

@@ -48,6 +48,8 @@ import 'package:dlstarlive/features/live/data/repositories/gift_repository.dart'
     as _i42;
 import 'package:dlstarlive/features/live/data/repositories/live_stream_repository.dart'
     as _i652;
+import 'package:dlstarlive/features/live/data/repositories/moderation_repository.dart'
+    as _i850;
 import 'package:dlstarlive/features/live/presentation/bloc/call_request_bloc.dart'
     as _i708;
 import 'package:dlstarlive/features/live/presentation/bloc/chat_bloc.dart'
@@ -56,6 +58,8 @@ import 'package:dlstarlive/features/live/presentation/bloc/gift_bloc.dart'
     as _i839;
 import 'package:dlstarlive/features/live/presentation/bloc/live_stream_bloc.dart'
     as _i586;
+import 'package:dlstarlive/features/live/presentation/bloc/moderation_bloc.dart'
+    as _i592;
 import 'package:dlstarlive/features/live_audio/data/repositories/audio_room_repository.dart'
     as _i155;
 import 'package:dlstarlive/features/live_audio/presentation/bloc/audio_room_bloc.dart'
@@ -136,6 +140,9 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i394.StoreApiService(gh<_i10.ApiService>()),
     );
     gh.lazySingleton<_i207.ApiService>(() => _i207.ApiService(gh<_i361.Dio>()));
+    gh.lazySingleton<_i850.ModerationRepository>(
+      () => _i850.ModerationRepositoryImpl(gh<_i4.SocketService>()),
+    );
     gh.factory<_i291.StoreBloc>(
       () => _i291.StoreBloc(gh<_i394.StoreApiService>()),
     );
@@ -191,6 +198,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i465.ChatBloc>(
       () => _i465.ChatBloc(gh<_i612.ChatRepository>()),
+    );
+    gh.factory<_i592.ModerationBloc>(
+      () => _i592.ModerationBloc(gh<_i850.ModerationRepository>()),
     );
     gh.factory<_i839.GiftBloc>(() => _i839.GiftBloc(gh<_i42.GiftRepository>()));
     gh.factory<_i708.CallRequestBloc>(

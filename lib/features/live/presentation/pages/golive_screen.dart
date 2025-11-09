@@ -84,6 +84,9 @@ class GoliveScreen extends StatelessWidget {
         BlocProvider<CallRequestBloc>(
           create: (context) => getIt<CallRequestBloc>()..add(const LoadInitialBroadcasters([])),
         ),
+        BlocProvider<ModerationBloc>(
+          create: (context) => getIt<ModerationBloc>(),
+        ),
       ],
       child: _GoliveScreenContent(
         roomId: roomId,
@@ -183,8 +186,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   StreamSubscription? _userLeftSubscription;
   StreamSubscription? _sentMessageSubscription;
   StreamSubscription? _sentGiftSubscription;
-  StreamSubscription? _bannedListSubscription;
-  StreamSubscription? _bannedUserSubscription;
 
   // Chat messages
   final List<ChatModel> _chatMessages = [];
@@ -633,71 +634,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     //   }
     // });
 
-    //BannedUserList
-    _bannedListSubscription = _socketService.bannedListStream.listen((data) {
-      if (mounted) {
-        setState(() {
-          bannedUsers = List.from(data);
-        });
-        debugPrint("Banned user list updated: $bannedUsers");
-        if (bannedUsers.contains(userId)) {
-          _handleHostDisconnection("You have been banned from this room.");
-        }
-      }
-    });
-
-    // ✅ BannedUsers - Now handled by LiveStreamBloc via UserBannedNotification event
-    // Socket listener moved to BLoC, just keep UI-specific logic here
-    _bannedUserSubscription = _socketService.bannedUserStream.listen((data) {
-      debugPrint("Banned user received:${data.targetId}");
-      if (mounted) {
-        // Keep only UI-specific state updates (not managed by BLoC)
-        setState(() {
-          bannedUserModels.add(data);
-          bannedUsers.add(data.targetId);
-          adminModels.removeWhere((user) => user.id == data.targetId);
-        });
-        if (data.targetId == userId) {
-          _handleHostDisconnection("You have been banned from this room.");
-        }
-        _showSnackBar(data.message, Colors.red);
-      }
-    });
-
-    //Mute user
-    _socketService.muteUserStream.listen((data) {
-      if (mounted) {
-        setState(() {
-          // Store only the latest mute state which contains all muted users
-          currentMuteState = data;
-        });
-        if (mounted) {
-          _showSnackBar(
-            "An ${data.lastUserIsMuted ? 'user is muted' : 'user is unmuted'} by admin",
-            Colors.red,
-          );
-        }
-        debugPrint(
-          "User muted: ${data.allMutedUsersList} - ${data.lastUserIsMuted}",
-        );
-
-        // Check if current user is muted and force mute them
-        if (_isCurrentUserMuted()) {
-          _forceMuteCurrentUser();
-        }
-      }
-    });
-
-    //AdminList
-    _socketService.adminDetailsStream.listen((data) {
-      if (mounted) {
-        setState(() {
-          adminModels.add(data);
-        });
-        debugPrint("Admin list updated: ${adminModels.length} admins");
-      }
-    });
-
     // Room Closed - Host ended the live session
     _socketService.roomClosedStream.listen((data) {
       if (mounted) {
@@ -863,38 +799,70 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
 
   // Make Admin
   void _makeAdmin(String userId) {
-    _socketService.makeAdmin(userId);
+    final currentRoom = _currentRoomId ?? roomId;
+    if (currentRoom.isEmpty) {
+      _showSnackBar('❌ Room not ready, please try again', Colors.red);
+      return;
+    }
+
+    context.read<ModerationBloc>().add(
+          ModerationToggleAdmin(roomId: currentRoom, userId: userId),
+        );
   }
 
   // Remove Admin
   void _removeAdmin(String userId) {
-    _socketService.makeAdmin(userId);
+    final currentRoom = _currentRoomId ?? roomId;
+    if (currentRoom.isEmpty) {
+      _showSnackBar('❌ Room not ready, please try again', Colors.red);
+      return;
+    }
+
+    context.read<ModerationBloc>().add(
+          ModerationToggleAdmin(roomId: currentRoom, userId: userId),
+        );
   }
 
   /// Ban User
   void _banUser(String userId) {
-    _socketService.banUser(userId);
+    final currentRoom = _currentRoomId ?? roomId;
+    if (currentRoom.isEmpty) {
+      _showSnackBar('❌ Room not ready, please try again', Colors.red);
+      return;
+    }
+
+    context.read<ModerationBloc>().add(
+          ModerationBanUser(roomId: currentRoom, userId: userId),
+        );
   }
 
   /// Mute User
   void _muteUser(String userId) {
-    _socketService.muteUser(userId);
+    final currentRoom = _currentRoomId ?? roomId;
+    if (currentRoom.isEmpty) {
+      _showSnackBar('❌ Room not ready, please try again', Colors.red);
+      return;
+    }
+
+    context.read<ModerationBloc>().add(
+          ModerationMuteUser(roomId: currentRoom, userId: userId),
+        );
   }
 
   /// Check if current user is in the muted users list
-  bool _isCurrentUserMuted() {
-    if (userId == null || currentMuteState == null) return false;
+  bool _isCurrentUserMuted(ModerationState moderationState) {
+    if (userId == null || moderationState.muteState == null) return false;
 
     // Check if current user is in the complete list of muted users
-    return currentMuteState!.allMutedUsersList.contains(userId);
+    return moderationState.muteState!.allMutedUsersList.contains(userId);
   }
 
   /// Force mute current user when they are administratively muted
-  void _forceMuteCurrentUser() async {
+  void _forceMuteCurrentUser(ModerationState moderationState) async {
     final liveState = context.read<LiveStreamBloc>().state;
     final isMuted = liveState is LiveStreamStreaming ? !liveState.isMicEnabled : false;
     
-    if ((isHost || _isAudioCaller) && !isMuted) {
+    if ((isHost || _isAudioCaller) && !isMuted && _isCurrentUserMuted(moderationState)) {
       try {
         // ✅ Toggle microphone to mute (if currently unmuted)
         context.read<LiveStreamBloc>().add(ToggleMicrophone());
@@ -1824,6 +1792,53 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
             }
           },
         ),
+        BlocListener<ModerationBloc, ModerationState>(
+          listener: (context, state) {
+            if (!mounted) return;
+
+            setState(() {
+              bannedUsers = List.from(state.bannedUserIds);
+              bannedUserModels = List.from(state.bannedUsers);
+              adminModels = List.from(state.adminList);
+              currentMuteState = state.muteState;
+            });
+
+            if (state.bannedUserIds.contains(userId)) {
+              _handleHostDisconnection('You have been banned from this room.');
+            }
+
+            if (_isCurrentUserMuted(state)) {
+              _forceMuteCurrentUser(state);
+            }
+
+            if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
+              _showSnackBar('❌ ${state.errorMessage}', Colors.red);
+            } else if (state.successMessage != null &&
+                state.successMessage!.isNotEmpty) {
+              Color color;
+              switch (state.lastAction) {
+                case ModerationAction.muteRequested:
+                case ModerationAction.muteStateUpdated:
+                  color = Colors.orange;
+                  break;
+                case ModerationAction.adminToggled:
+                case ModerationAction.adminUpdated:
+                  color = Colors.blue;
+                  break;
+                default:
+                  color = Colors.red;
+              }
+              _showSnackBar(state.successMessage!, color);
+            }
+
+            if ((state.errorMessage != null && state.errorMessage!.isNotEmpty) ||
+                (state.successMessage != null && state.successMessage!.isNotEmpty)) {
+              context
+                  .read<ModerationBloc>()
+                  .add(const ModerationClearNotification());
+            }
+          },
+        ),
         // ✅ Listen to LiveStreamBloc for camera/mic changes
         BlocListener<LiveStreamBloc, LiveStreamState>(
           listenWhen: (previous, current) {
@@ -2424,13 +2439,17 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                               final isMuted = liveState is LiveStreamStreaming 
                                                   ? !liveState.isMicEnabled 
                                                   : true;
+                                              final moderationState =
+                                                  context.read<ModerationBloc>().state;
                                               showMenuBottomSheet(
                                                 context,
                                                 userId: userId,
                                                 isHost: isHost,
                                                 isMuted: isMuted,
                                                 isAdminMuted:
-                                                    _isCurrentUserMuted(),
+                                                    _isCurrentUserMuted(
+                                                  moderationState,
+                                                ),
                                                 onToggleMute: _toggleMute,
                                               );
                                             },
@@ -2928,8 +2947,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     _userLeftSubscription?.cancel();
     _sentMessageSubscription?.cancel();
     _sentGiftSubscription?.cancel();
-    _bannedListSubscription?.cancel();
-    _bannedUserSubscription?.cancel();
 
     // Dispose other resources
     _titleController.dispose();
