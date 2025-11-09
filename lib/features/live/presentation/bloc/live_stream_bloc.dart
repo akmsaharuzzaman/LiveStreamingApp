@@ -69,6 +69,7 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
       final result = await _repository.createRoom(
         userId: event.userId,
         title: event.title,
+        roomType: event.roomType,
       );
 
       result.fold(

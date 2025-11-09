@@ -9,6 +9,7 @@ abstract class LiveStreamRepository {
   Future<Either<Failure, void>> createRoom({
     required String userId,
     required String title,
+    required RoomType roomType,
   });
   
   Future<Either<Failure, void>> deleteRoom(String roomId);
@@ -52,14 +53,16 @@ class LiveStreamRepositoryImpl implements LiveStreamRepository {
   Future<Either<Failure, void>> createRoom({
     required String userId,
     required String title,
+    required RoomType roomType,
   }) async {
     try {
-      _socketService.emit('create-room', {
-        'userId': userId,
-        'title': title,
-        'type': 'video',
-      });
-      return const Right(null);
+      // Use SocketService's createRoom method instead of emit
+      final success = await _socketService.createRoom(userId, title, roomType);
+      if (success) {
+        return const Right(null);
+      } else {
+        return Left(ServerFailure('Failed to create room'));
+      }
     } catch (e) {
       return Left(ServerFailure('Failed to create room: $e'));
     }

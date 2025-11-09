@@ -735,18 +735,18 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
           }
         });
 
-    // Sent Messages
-    _sentMessageSubscription = _socketService.sentMessageStream.listen((data) {
-      if (mounted) {
-        debugPrint("User sent a message: ${data.text}");
-        setState(() {
-          _chatMessages.add(data);
-          if (_chatMessages.length > 50) {
-            _chatMessages.removeAt(0);
-          }
-        });
-      }
-    });
+    // ✅ Sent Messages - Now handled by ChatBloc
+    // _sentMessageSubscription = _socketService.sentMessageStream.listen((data) {
+    //   if (mounted) {
+    //     debugPrint("User sent a message: ${data.text}");
+    //     setState(() {
+    //       _chatMessages.add(data);
+    //       if (_chatMessages.length > 50) {
+    //         _chatMessages.removeAt(0);
+    //       }
+    //     });
+    //   }
+    // });
 
     // Broadcaster List - in call
     _broadcasterListSubscription = _socketService.broadcasterListStream.listen((
@@ -818,53 +818,53 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       }
     });
 
-    //Sent Gifts
-    _sentGiftSubscription = _socketService.sentGiftStream.listen((data) {
-      if (mounted) {
-        debugPrint("🎁 Gift received from socket: ${data.gift.name}");
-        debugPrint("💰 Gift diamonds: ${data.diamonds}");
-        debugPrint("🎯 Receivers: ${data.recieverIds}");
-        debugPrint("🔍 Is current user host? $isHost");
-        debugPrint("🔍 Current user ID: $userId");
-        debugPrint("🔍 Host user ID: ${widget.hostUserId}");
-
-        setState(() {
-          sentGifts.add(data);
-          // Update diamonds for users who received the gift
-          _updateUserDiamonds(data);
-        });
-
-        debugPrint("📊 Total gifts in list: ${sentGifts.length}");
-
-        // Calculate host diamonds separately for verification
-        int hostDiamonds = GiftModel.totalDiamondsForHost(
-          sentGifts,
-          widget.hostUserId,
-        );
-        debugPrint("🏆 Host total diamonds (calculated): $hostDiamonds");
-
-        // For host, also check using current userId
-        if (isHost && userId != null) {
-          int hostDiamondsFromUserId = GiftModel.totalDiamondsForUser(
-            sentGifts,
-            userId!,
-          );
-          debugPrint("🏆 Host diamonds using userId: $hostDiamondsFromUserId");
-        }
-
-        // Debug current status
-        _debugDiamondStatus();
-
-        // Force UI update
-        if (mounted) {
-          setState(() {
-            // Trigger rebuild to ensure DiamondStarStatus updates
-          });
-        }
-
-        sentGifts.isNotEmpty ? _playAnimation() : null;
-      }
-    });
+    // ✅ Sent Gifts - Now handled by GiftBloc
+    // _sentGiftSubscription = _socketService.sentGiftStream.listen((data) {
+    //   if (mounted) {
+    //     debugPrint("🎁 Gift received from socket: ${data.gift.name}");
+    //     debugPrint("💰 Gift diamonds: ${data.diamonds}");
+    //     debugPrint("🎯 Receivers: ${data.recieverIds}");
+    //     debugPrint("🔍 Is current user host? $isHost");
+    //     debugPrint("🔍 Current user ID: $userId");
+    //     debugPrint("🔍 Host user ID: ${widget.hostUserId}");
+    //
+    //     setState(() {
+    //       sentGifts.add(data);
+    //       // Update diamonds for users who received the gift
+    //       _updateUserDiamonds(data);
+    //     });
+    //
+    //     debugPrint("📊 Total gifts in list: ${sentGifts.length}");
+    //
+    //     // Calculate host diamonds separately for verification
+    //     int hostDiamonds = GiftModel.totalDiamondsForHost(
+    //       sentGifts,
+    //       widget.hostUserId,
+    //     );
+    //     debugPrint("🏆 Host total diamonds (calculated): $hostDiamonds");
+    //
+    //     // For host, also check using current userId
+    //     if (isHost && userId != null) {
+    //       int hostDiamondsFromUserId = GiftModel.totalDiamondsForUser(
+    //         sentGifts,
+    //         userId!,
+    //       );
+    //       debugPrint("🏆 Host diamonds using userId: $hostDiamondsFromUserId");
+    //     }
+    //
+    //     // Debug current status
+    //     _debugDiamondStatus();
+    //
+    //     // Force UI update
+    //     if (mounted) {
+    //       setState(() {
+    //         // Trigger rebuild to ensure DiamondStarStatus updates
+    //       });
+    //     }
+    //
+    //     sentGifts.isNotEmpty ? _playAnimation() : null;
+    //   }
+    // });
 
     //BannedUserList
     _bannedListSubscription = _socketService.bannedListStream.listen((data) {
@@ -971,7 +971,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   Future<void> _createRoom() async {
     if (userId == null) {
       debugPrint('❌ Cannot create room: userId is null');
-      // _showSnackBar('❌ User not authenticated', Colors.red);
       return;
     }
 
@@ -979,50 +978,47 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     final dynamicRoomId = userId!;
     debugPrint('🏠 Creating room with dynamic name: $dynamicRoomId');
 
-    final success = await _socketService.createRoom(
-      dynamicRoomId,
-      "Demo Title",
-      RoomType.live,
-    );
+    // ✅ Dispatch BLoC event to create room
+    context.read<LiveStreamBloc>().add(CreateRoom(
+      title: "Demo Title",
+      userId: userId!,
+      roomType: RoomType.live,
+    ));
 
-    if (success) {
-      setState(() {
-        _currentRoomId = dynamicRoomId;
-        roomId = dynamicRoomId; // Update the roomId for Agora channel
-      });
-      debugPrint('✅ Room created successfully: $dynamicRoomId');
-      // _showSnackBar('🏠 Room created: $dynamicRoomId', Colors.green);
+    // Update local state for roomId (for Agora channel)
+    setState(() {
+      _currentRoomId = dynamicRoomId;
+      roomId = dynamicRoomId;
+    });
 
-      // Now join the Agora channel with the dynamic room ID
-      await _joinChannelWithDynamicToken();
-    } else {
-      debugPrint('❌ Failed to create room: $dynamicRoomId');
-      // _showSnackBar('❌ Failed to create room', Colors.red);
-    }
+    // Now join the Agora channel with the dynamic room ID
+    await _joinChannelWithDynamicToken();
   }
 
   /// Join an existing room
   Future<void> _joinRoom(String roomId) async {
-    final success = await _socketService.joinRoom(roomId);
+    // ✅ Dispatch BLoC event to join room
+    context.read<LiveStreamBloc>().add(JoinRoom(
+      roomId: roomId,
+      userId: userId ?? '',
+    ));
 
-    if (success) {
-      setState(() {
-        _currentRoomId = roomId;
-      });
-    }
+    setState(() {
+      _currentRoomId = roomId;
+    });
   }
 
   /// Leave current room
   Future<void> _leaveRoom() async {
     if (_currentRoomId != null) {
-      final success = await _socketService.leaveRoom(_currentRoomId!);
+      // ✅ Dispatch BLoC event to leave room
+      context.read<LiveStreamBloc>().add(const LeaveRoom());
 
-      if (success && mounted) {
+      if (mounted) {
         setState(() {
           _currentRoomId = null;
         });
-      } else if (success) {
-        // If widget is not mounted, just update the variable without setState
+      } else {
         _currentRoomId = null;
       }
     }
@@ -1100,15 +1096,14 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   /// Delete room (only host can delete)
   Future<void> _deleteRoom() async {
     if (_currentRoomId != null && userId != null) {
-      final success = await _socketService.deleteRoom(_currentRoomId!);
+      // ✅ Dispatch BLoC event to delete/end stream
+      context.read<LiveStreamBloc>().add(const EndLiveStream());
 
-      if (success) {
-        setState(() {
-          _currentRoomId = null;
-        });
-        // Navigate back or show end screen
-        _endStream();
-      }
+      setState(() {
+        _currentRoomId = null;
+      });
+      // Navigate back or show end screen
+      _endStream();
     }
   }
 
@@ -2249,7 +2244,16 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                 children: [
                   _buildVideoView(),
 
-                  if (_animationPlaying) AnimatedLayer(gifts: sentGifts),
+                  // ✅ Gift animation with BlocBuilder
+                  if (_animationPlaying) 
+                    BlocBuilder<GiftBloc, GiftState>(
+                      builder: (context, giftState) {
+                        final gifts = giftState is GiftLoaded 
+                            ? giftState.gifts 
+                            : <GiftModel>[];
+                        return AnimatedLayer(gifts: gifts);
+                      },
+                    ),
 
                   // * This contaimer holds the livestream options,
                   SafeArea(
@@ -2387,10 +2391,16 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                     // Chat widget - positioned at bottom left
                                     Align(
                                       alignment: Alignment.centerLeft,
-                                      child: LiveChatWidget(
-                                        isCallingNow:
-                                            broadcasterList.isNotEmpty,
-                                        messages: _chatMessages,
+                                      child: BlocBuilder<ChatBloc, ChatState>(
+                                        builder: (context, chatState) {
+                                          final messages = chatState is ChatLoaded 
+                                              ? chatState.messages 
+                                              : <ChatModel>[];
+                                          return LiveChatWidget(
+                                            isCallingNow: broadcasterList.isNotEmpty,
+                                            messages: messages,
+                                          );
+                                        },
                                       ),
                                     ),
 
@@ -2509,27 +2519,35 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                                   Colors.blue,
                                                 );
                                               }
+                                              // Capture the outer context with BLoC access
+                                              final outerContext = context;
                                               showModalBottomSheet(
                                                 context: context,
                                                 isScrollControlled: true,
                                                 backgroundColor:
                                                     Colors.transparent,
-                                                builder: (context) => CallManageBottomSheet(
+                                                builder: (sheetContext) => BlocBuilder<CallRequestBloc, CallRequestState>(
+                                                  builder: (context, callRequestState) {
+                                                    final pendingRequests = callRequestState is CallRequestLoaded 
+                                                        ? callRequestState.pendingRequests 
+                                                        : <CallRequestModel>[];
+                                                    final activeBroadcasters = callRequestState is CallRequestLoaded 
+                                                        ? callRequestState.activeBroadcasters 
+                                                        : <BroadcasterModel>[];
+                                                    
+                                                    return CallManageBottomSheet(
                                                   key: callManageBottomSheetKey,
                                                   onAcceptCall: (userId) {
                                                     debugPrint(
                                                       "Accepting call request from $userId",
                                                     );
-                                                    _socketService
-                                                        .acceptCallRequest(
-                                                          userId,
-                                                        );
-                                                    setState(() {
-                                                      callRequests.removeWhere(
-                                                        (call) =>
-                                                            call.userId == userId,
-                                                      );
-                                                    });
+                                                    // ✅ Use outer context to dispatch BLoC event
+                                                    outerContext.read<CallRequestBloc>().add(
+                                                      AcceptCallRequest(
+                                                        userId: userId,
+                                                        roomId: _currentRoomId ?? '',
+                                                      ),
+                                                    );
                                                     // Update the bottom sheet with new data
                                                     _updateCallManageBottomSheet();
                                                   },
@@ -2537,26 +2555,34 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                                     debugPrint(
                                                       "Rejecting call request from $userId",
                                                     );
-                                                    _socketService
-                                                        .rejectCallRequest(
-                                                          userId,
-                                                        );
+                                                    // ✅ Use outer context to dispatch BLoC event
+                                                    outerContext.read<CallRequestBloc>().add(
+                                                      RejectCallRequest(
+                                                        userId: userId,
+                                                        roomId: _currentRoomId ?? '',
+                                                      ),
+                                                    );
                                                     // Update the bottom sheet with new data
                                                     _updateCallManageBottomSheet();
                                                   },
                                                   onKickUser: (userId) {
-                                                    _socketService
-                                                        .removeBroadcaster(
-                                                          userId,
-                                                        );
+                                                    // ✅ Use outer context to dispatch BLoC event
+                                                    outerContext.read<CallRequestBloc>().add(
+                                                      RemoveBroadcaster(
+                                                        userId: userId,
+                                                        roomId: _currentRoomId ?? '',
+                                                      ),
+                                                    );
                                                     debugPrint(
                                                       "Kicking user $userId from call",
                                                     );
                                                     // Update the bottom sheet with new data
                                                     _updateCallManageBottomSheet();
                                                   },
-                                                  callers: callRequests,
-                                                  inCallList: broadcasterModels,
+                                                  callers: pendingRequests,
+                                                  inCallList: activeBroadcasters,
+                                                );
+                                                  },
                                                 ),
                                               );
                                             },

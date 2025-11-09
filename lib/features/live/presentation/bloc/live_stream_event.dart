@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../../../core/network/socket_service.dart';
 
 /// Events for LiveStream feature
 abstract class LiveStreamEvent extends Equatable {
@@ -28,11 +29,16 @@ class InitializeLiveStream extends LiveStreamEvent {
 class CreateRoom extends LiveStreamEvent {
   final String title;
   final String userId;
+  final RoomType roomType;
 
-  const CreateRoom({required this.title, required this.userId});
+  const CreateRoom({
+    required this.title,
+    required this.userId,
+    this.roomType = RoomType.live,
+  });
 
   @override
-  List<Object?> get props => [title, userId];
+  List<Object?> get props => [title, userId, roomType];
 }
 
 /// Join existing room (viewer)
