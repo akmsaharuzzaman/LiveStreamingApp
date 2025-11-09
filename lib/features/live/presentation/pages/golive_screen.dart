@@ -13,10 +13,12 @@ import 'package:dlstarlive/core/network/models/gift_model.dart';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
 import 'package:dlstarlive/core/network/socket_service.dart';
 import 'package:dlstarlive/core/utils/permission_helper.dart';
+import 'package:dlstarlive/features/live/presentation/bloc/bloc.dart';
 import 'package:dlstarlive/features/live/presentation/component/agora_token_service.dart';
 import 'package:dlstarlive/features/live/presentation/component/gift_bottom_sheet.dart';
 import 'package:dlstarlive/features/live/presentation/component/send_message_buttonsheet.dart';
 import 'package:dlstarlive/features/live/presentation/widgets/call_overlay_widget.dart';
+import 'package:dlstarlive/injection/injection.dart';
 import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -43,7 +45,7 @@ import '../widgets/live_chat_widget.dart';
 
 enum LiveScreenLeaveOptions { disconnect, muteCall, viewProfile }
 
-class GoliveScreen extends StatefulWidget {
+class GoliveScreen extends StatelessWidget {
   final String? roomId;
   final String? hostName;
   final String? hostUserId;
@@ -64,10 +66,64 @@ class GoliveScreen extends StatefulWidget {
   });
 
   @override
-  State<GoliveScreen> createState() => _GoliveScreenState();
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<LiveStreamBloc>(
+          create: (context) => getIt<LiveStreamBloc>()
+            ..add(InitializeLiveStream(
+              roomId: roomId,
+              hostUserId: hostUserId,
+              isHost: roomId == null, // If no roomId passed, we are creating (host)
+            )),
+        ),
+        BlocProvider<ChatBloc>(
+          create: (context) => getIt<ChatBloc>()..add(const LoadInitialMessages([])),
+        ),
+        BlocProvider<GiftBloc>(
+          create: (context) => getIt<GiftBloc>()..add(const LoadInitialGifts([])),
+        ),
+        BlocProvider<CallRequestBloc>(
+          create: (context) => getIt<CallRequestBloc>()..add(const LoadInitialBroadcasters([])),
+        ),
+      ],
+      child: _GoliveScreenContent(
+        roomId: roomId,
+        hostName: hostName,
+        hostUserId: hostUserId,
+        hostAvatar: hostAvatar,
+        existingViewers: existingViewers,
+        hostCoins: hostCoins,
+        roomData: roomData,
+      ),
+    );
+  }
 }
 
-class _GoliveScreenState extends State<GoliveScreen> {
+class _GoliveScreenContent extends StatefulWidget {
+  final String? roomId;
+  final String? hostName;
+  final String? hostUserId;
+  final String? hostAvatar;
+  final List<HostDetails> existingViewers;
+  final int hostCoins;
+  final GetRoomModel? roomData;
+
+  const _GoliveScreenContent({
+    this.roomId,
+    this.hostName,
+    this.hostUserId,
+    this.hostAvatar,
+    this.existingViewers = const [],
+    this.hostCoins = 0,
+    this.roomData,
+  });
+
+  @override
+  State<_GoliveScreenContent> createState() => _GoliveScreenContentState();
+}
+
+class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   final TextEditingController _titleController = TextEditingController();
   final ApiService _apiService = ApiService.instance;
 
@@ -1009,12 +1065,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   /// Force mute current user when they are administratively muted
   void _forceMuteCurrentUser() async {
-    if ((isHost || _isAudioCaller) && !_muted) {
+    final liveState = context.read<LiveStreamBloc>().state;
+    final isMuted = liveState is LiveStreamStreaming ? !liveState.isMicEnabled : false;
+    
+    if ((isHost || _isAudioCaller) && !isMuted) {
       try {
-        await _engine.muteLocalAudioStream(true);
-        setState(() {
-          _muted = true;
-        });
+        // ✅ Toggle microphone to mute (if currently unmuted)
+        context.read<LiveStreamBloc>().add(ToggleMicrophone());
         _showSnackBar('🔇 You have been muted by an admin', Colors.red);
         debugPrint("Current user force muted by admin");
       } catch (e) {
@@ -1114,6 +1171,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
       () {
         if (!mounted) return;
 
+        // ✅ Get camera state from BLoC
+        final liveState = context.read<LiveStreamBloc>().state;
+        final isCameraEnabled = liveState is LiveStreamStreaming 
+            ? liveState.isCameraEnabled 
+            : false;
+
         // Double check that there are still no video broadcasters
         List<int> currentBroadcasters = [
           if (_remoteUid != null) _remoteUid!,
@@ -1167,7 +1230,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   int? _remoteUid;
   bool _localUserJoined = false;
   final List<int> _remoteUsers = [];
-  bool _muted = false;
+  // bool _muted = false; // ✅ Moved to LiveStreamBloc.isMicrophoneEnabled
   bool _isInitializingCamera = false;
 
   // Video state management to prevent white screen
@@ -1181,7 +1244,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   final List<int> _videoCallerUids = []; // Track callers with video enabled
   final int _maxAudioCallers = 3;
   bool _isJoiningAsAudioCaller = false;
-  bool isCameraEnabled = false;
+  // bool isCameraEnabled = false; // ✅ Moved to LiveStreamBloc.isCameraEnabled
 
   Future<void> _applyCameraPreference() async {
     try {
@@ -1597,9 +1660,15 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
       setState(() {
         _isAudioCaller = true;
-        _muted = false; // Enable microphone for audio caller
+        // _muted = false; // ✅ Removed - mic state managed by LiveStreamBloc
         _isJoiningAsAudioCaller = false;
       });
+      
+      // ✅ Ensure microphone is enabled via BLoC
+      final liveState = context.read<LiveStreamBloc>().state;
+      if (liveState is LiveStreamStreaming && !liveState.isMicEnabled) {
+        context.read<LiveStreamBloc>().add(ToggleMicrophone());
+      }
 
       _showSnackBar('🎤 Joined as audio caller!', Colors.green);
       debugPrint("Successfully promoted to audio caller");
@@ -1627,8 +1696,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
       setState(() {
         _isAudioCaller = false;
-        _muted = true; // Mute as audience
+        // _muted = true; // ✅ Removed - mic state managed by LiveStreamBloc
       });
+      
+      // ✅ Ensure microphone is muted via BLoC when returning to audience
+      final liveState = context.read<LiveStreamBloc>().state;
+      if (liveState is LiveStreamStreaming && liveState.isMicEnabled) {
+        context.read<LiveStreamBloc>().add(ToggleMicrophone());
+      }
 
       _showSnackBar('👥 Returned to audience', Colors.green);
       debugPrint("Successfully left audio caller role");
@@ -1668,31 +1743,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
         return;
       }
 
-      // Toggle camera state
-      setState(() {
-        isCameraEnabled = !isCameraEnabled;
-      });
-
-      await _engine.enableLocalVideo(isCameraEnabled);
-      await _engine.muteLocalVideoStream(!isCameraEnabled);
-
-      if (isCameraEnabled) {
-        debugPrint('📷 Camera turned on');
-        _showSnackBar(
-          '📷 Camera turned on - You are now visible!',
-          Colors.green,
-        );
-      } else {
-        debugPrint('📷 Camera turned off');
-        _showSnackBar('📷 Camera turned off - Audio only mode', Colors.orange);
-      }
+      // ✅ Dispatch BLoC event instead of setState
+      context.read<LiveStreamBloc>().add(ToggleCamera());
+      
+      // Note: Agora SDK calls moved to BlocListener
     } catch (e) {
       debugPrint('❌ Error toggling camera: $e');
       _showSnackBar('❌ Failed to toggle camera', Colors.red);
-      // Revert state on error
-      setState(() {
-        isCameraEnabled = !isCameraEnabled;
-      });
     }
   }
 
@@ -1710,10 +1767,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
       ); // Ensure video is muted initially
       await _engine.muteLocalAudioStream(false); // Unmute microphone
 
-      // Reset camera state to false for audio callers
-      setState(() {
-        isCameraEnabled = false;
-      });
+      // ✅ Reset camera state to false for audio callers via BLoC
+      final liveState = context.read<LiveStreamBloc>().state;
+      if (liveState is LiveStreamStreaming && liveState.isCameraEnabled) {
+        context.read<LiveStreamBloc>().add(ToggleCamera());
+      }
 
       debugPrint(
         "✅ Switched to audio caller role without channel interruption",
@@ -1735,10 +1793,11 @@ class _GoliveScreenState extends State<GoliveScreen> {
       await _engine.enableLocalVideo(false); // Keep video disabled for audience
       await _engine.muteLocalAudioStream(true); // Mute microphone
 
-      // Reset camera state
-      setState(() {
-        isCameraEnabled = false;
-      });
+      // ✅ Reset camera state via BLoC
+      final liveState = context.read<LiveStreamBloc>().state;
+      if (liveState is LiveStreamStreaming && liveState.isCameraEnabled) {
+        context.read<LiveStreamBloc>().add(ToggleCamera());
+      }
 
       debugPrint(
         "✅ Switched back to audience role without channel interruption",
@@ -1752,17 +1811,10 @@ class _GoliveScreenState extends State<GoliveScreen> {
   // Toggle microphone
   void _toggleMute() async {
     if (isHost || _isAudioCaller) {
-      // Allow users to unmute themselves even if they were admin muted
-      await _engine.muteLocalAudioStream(!_muted);
-      setState(() {
-        _muted = !_muted;
-      });
-
-      if (_muted) {
-        _showSnackBar('🔇 Microphone muted', Colors.orange);
-      } else {
-        _showSnackBar('🎤 Microphone unmuted', Colors.green);
-      }
+      // ✅ Dispatch BLoC event instead of setState
+      context.read<LiveStreamBloc>().add(ToggleMicrophone());
+      
+      // Note: Agora SDK calls and snackbar moved to BlocListener
     } else {
       _showSnackBar(
         '🎤 Only hosts and audio callers can use microphone',
@@ -2040,7 +2092,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
           _audioCallerUids.clear();
           _videoCallerUids.clear();
           _isJoiningAsAudioCaller = false;
-          isCameraEnabled = false;
+          // isCameraEnabled = false; // ✅ Removed - managed by LiveStreamBloc
         });
       } else {
         // Update without setState if not mounted
@@ -2048,7 +2100,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
         _audioCallerUids.clear();
         _videoCallerUids.clear();
         _isJoiningAsAudioCaller = false;
-        isCameraEnabled = false;
+        // isCameraEnabled = false; // ✅ Removed - managed by LiveStreamBloc
       }
 
       if (isHost) {
@@ -2115,7 +2167,60 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
+    return MultiBlocListener(
+      listeners: [
+        // ✅ Listen to LiveStreamBloc for camera/mic changes
+        BlocListener<LiveStreamBloc, LiveStreamState>(
+          listenWhen: (previous, current) {
+            // Only listen when in streaming state and camera/mic changed
+            if (previous is LiveStreamStreaming && current is LiveStreamStreaming) {
+              return previous.isCameraEnabled != current.isCameraEnabled ||
+                     previous.isMicEnabled != current.isMicEnabled;
+            }
+            return false;
+          },
+          listener: (context, state) async {
+            if (state is LiveStreamStreaming) {
+              // Handle camera toggle
+              if (_localUserJoined) {
+                try {
+                  await _engine.enableLocalVideo(state.isCameraEnabled);
+                  await _engine.muteLocalVideoStream(!state.isCameraEnabled);
+                  
+                  if (state.isCameraEnabled) {
+                    debugPrint('📷 Camera turned on');
+                    _showSnackBar(
+                      '📷 Camera turned on - You are now visible!',
+                      Colors.green,
+                    );
+                  } else {
+                    debugPrint('📷 Camera turned off');
+                    _showSnackBar('📷 Camera turned off - Audio only mode', Colors.orange);
+                  }
+                } catch (e) {
+                  debugPrint('❌ Error applying camera state: $e');
+                }
+              }
+              
+              // Handle microphone toggle
+              if (_localUserJoined) {
+                try {
+                  await _engine.muteLocalAudioStream(!state.isMicEnabled);
+                  
+                  if (!state.isMicEnabled) {
+                    _showSnackBar('🔇 Microphone muted', Colors.orange);
+                  } else {
+                    _showSnackBar('🎤 Microphone unmuted', Colors.green);
+                  }
+                } catch (e) {
+                  debugPrint('❌ Error applying microphone state: $e');
+                }
+              }
+            }
+          },
+        ),
+      ],
+      child: PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
         // Only trigger cleanup if actually popping (not canceling)
@@ -2374,12 +2479,19 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                               // showMusicBottomSheet(context);
                                             },
                                           ),
-                                          CustomLiveButton(
-                                            iconPath: _muted
-                                                ? "assets/icons/mute_icon.png"
-                                                : "assets/icons/unmute_icon.png",
-                                            onTap: () {
-                                              _toggleMute();
+                                          BlocBuilder<LiveStreamBloc, LiveStreamState>(
+                                            builder: (context, liveState) {
+                                              final isMuted = liveState is LiveStreamStreaming 
+                                                  ? !liveState.isMicEnabled 
+                                                  : true;
+                                              return CustomLiveButton(
+                                                iconPath: isMuted
+                                                    ? "assets/icons/mute_icon.png"
+                                                    : "assets/icons/unmute_icon.png",
+                                                onTap: () {
+                                                  _toggleMute();
+                                                },
+                                              );
                                             },
                                           ),
                                           CustomLiveButton(
@@ -2559,11 +2671,15 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                             iconPath:
                                                 "assets/icons/menu_icon.png",
                                             onTap: () {
+                                              final liveState = context.read<LiveStreamBloc>().state;
+                                              final isMuted = liveState is LiveStreamStreaming 
+                                                  ? !liveState.isMicEnabled 
+                                                  : true;
                                               showMenuBottomSheet(
                                                 context,
                                                 userId: userId,
                                                 isHost: isHost,
-                                                isMuted: _muted,
+                                                isMuted: isMuted,
                                                 isAdminMuted:
                                                     _isCurrentUserMuted(),
                                                 onToggleMute: _toggleMute,
@@ -2890,7 +3006,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
           }
         },
       ),
-    );
+      ), // ✅ Closing PopScope
+    ); // ✅ Closing MultiBlocListener
   }
 
   // Main video view with multi-broadcaster support
@@ -2960,6 +3077,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   /// Build multi-broadcaster view for audience
   Widget _buildAudienceMultiView() {
+    // ✅ Get camera state from BLoC
+    final liveState = context.read<LiveStreamBloc>().state;
+    final isCameraEnabled = liveState is LiveStreamStreaming 
+        ? liveState.isCameraEnabled 
+        : false;
+    
     // Get all video broadcasters including all remote users who could have video
     List<int> allVideoBroadcasters = [
       // Include all remote users as potential video sources

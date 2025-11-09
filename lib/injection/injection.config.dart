@@ -19,6 +19,7 @@ import 'package:dlstarlive/core/network/api_service_backup.dart' as _i207;
 import 'package:dlstarlive/core/network/merged_api_service.dart' as _i93;
 import 'package:dlstarlive/core/network/network_info.dart' as _i1041;
 import 'package:dlstarlive/core/network/network_module.dart' as _i809;
+import 'package:dlstarlive/core/network/socket_service.dart' as _i4;
 import 'package:dlstarlive/core/storage/shared_preferences_module.dart'
     as _i469;
 import 'package:dlstarlive/features/chat/data/services/chat_api_service.dart'
@@ -39,6 +40,22 @@ import 'package:dlstarlive/features/home/domain/usecases/increment_counter.dart'
     as _i15;
 import 'package:dlstarlive/features/home/presentation/bloc/counter_bloc.dart'
     as _i208;
+import 'package:dlstarlive/features/live/data/repositories/call_request_repository.dart'
+    as _i689;
+import 'package:dlstarlive/features/live/data/repositories/chat_repository.dart'
+    as _i612;
+import 'package:dlstarlive/features/live/data/repositories/gift_repository.dart'
+    as _i42;
+import 'package:dlstarlive/features/live/data/repositories/live_stream_repository.dart'
+    as _i652;
+import 'package:dlstarlive/features/live/presentation/bloc/call_request_bloc.dart'
+    as _i708;
+import 'package:dlstarlive/features/live/presentation/bloc/chat_bloc.dart'
+    as _i465;
+import 'package:dlstarlive/features/live/presentation/bloc/gift_bloc.dart'
+    as _i839;
+import 'package:dlstarlive/features/live/presentation/bloc/live_stream_bloc.dart'
+    as _i586;
 import 'package:dlstarlive/features/live_audio/data/repositories/audio_room_repository.dart'
     as _i155;
 import 'package:dlstarlive/features/live_audio/presentation/bloc/audio_room_bloc.dart'
@@ -77,6 +94,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i93.ApiService>(() => _i93.ApiService());
     gh.lazySingleton<_i361.Dio>(() => networkModule.dio);
     gh.lazySingleton<_i1041.NetworkInfo>(() => networkModule.networkInfo);
+    gh.lazySingleton<_i4.SocketService>(() => _i4.SocketService.getInstance());
     await gh.lazySingletonAsync<_i460.SharedPreferences>(
       () => sharedPreferencesModule.sharedPreferences,
       preResolve: true,
@@ -92,6 +110,9 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i116.GoogleSignIn>(),
         gh<_i59.FirebaseAuth>(),
       ),
+    );
+    gh.lazySingleton<_i612.ChatRepository>(
+      () => _i612.ChatRepositoryImpl(gh<_i4.SocketService>()),
     );
     gh.lazySingleton<_i622.UserApiClient>(
       () => _i622.UserApiClient(gh<_i10.ApiService>()),
@@ -128,8 +149,26 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i460.SharedPreferences>(),
       ),
     );
+    gh.lazySingleton<_i652.LiveStreamRepository>(
+      () => _i652.LiveStreamRepositoryImpl(
+        gh<_i4.SocketService>(),
+        gh<_i10.ApiService>(),
+      ),
+    );
+    gh.lazySingleton<_i42.GiftRepository>(
+      () => _i42.GiftRepositoryImpl(
+        gh<_i4.SocketService>(),
+        gh<_i10.ApiService>(),
+      ),
+    );
     gh.factory<_i605.ChatApiService>(
       () => _i605.ChatApiService(gh<_i93.ApiService>()),
+    );
+    gh.lazySingleton<_i689.CallRequestRepository>(
+      () => _i689.CallRequestRepositoryImpl(
+        gh<_i4.SocketService>(),
+        gh<_i10.ApiService>(),
+      ),
     );
     gh.factory<_i89.CounterRepository>(
       () => _i756.CounterRepositoryImpl(gh<_i618.CounterLocalDataSource>()),
@@ -143,6 +182,19 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i557.AudioRoomBloc>(
       () => _i557.AudioRoomBloc(gh<_i155.AudioRoomRepository>()),
+    );
+    gh.factory<_i586.LiveStreamBloc>(
+      () => _i586.LiveStreamBloc(
+        gh<_i652.LiveStreamRepository>(),
+        gh<_i4.SocketService>(),
+      ),
+    );
+    gh.factory<_i465.ChatBloc>(
+      () => _i465.ChatBloc(gh<_i612.ChatRepository>()),
+    );
+    gh.factory<_i839.GiftBloc>(() => _i839.GiftBloc(gh<_i42.GiftRepository>()));
+    gh.factory<_i708.CallRequestBloc>(
+      () => _i708.CallRequestBloc(gh<_i689.CallRequestRepository>()),
     );
     gh.factory<_i551.ChatBloc>(
       () => _i551.ChatBloc(gh<_i605.ChatApiService>(), gh<_i477.AuthBloc>()),

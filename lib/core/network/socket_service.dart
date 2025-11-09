@@ -9,6 +9,7 @@ import 'package:dlstarlive/core/network/models/gift_model.dart';
 import 'package:dlstarlive/core/network/models/joined_user_model.dart';
 import 'package:dlstarlive/core/network/models/left_user_model.dart';
 import 'package:flutter/foundation.dart';
+import 'package:injectable/injectable.dart';
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
 import 'models/admin_details_model.dart';
@@ -18,6 +19,7 @@ enum RoomType { live, pk, audio, party }
 
 /// Comprehensive Socket Service for Live Streaming
 /// Handles all socket operations including room management and real-time events
+@LazySingleton()
 class SocketService {
   static SocketService? _instance;
   socket_io.Socket? _socket;
@@ -89,7 +91,14 @@ class SocketService {
   static const String _bannedListEvent = 'banned-list';
   static const String _muteUserEvent = 'mute-user';
 
-  /// Singleton instance
+  /// Factory method for dependency injection
+  @factoryMethod
+  static SocketService getInstance() {
+    _instance ??= SocketService._internal();
+    return _instance!;
+  }
+
+  /// Singleton instance (kept for backward compatibility)
   static SocketService get instance {
     _instance ??= SocketService._internal();
     return _instance!;
