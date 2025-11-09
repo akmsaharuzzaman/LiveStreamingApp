@@ -740,11 +740,24 @@ class SocketService {
   }
 
   /// Accept call request
-  Future<bool> acceptCallRequest(String userId) async {
+  Future<bool> acceptCallRequest(
+    String userId, {
+    String? roomId,
+  }) async {
     if (!_isConnected || _socket == null) {
       _errorMessageController.add({
         'status': 'error',
         'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    final effectiveRoomId =
+        (roomId != null && roomId.isNotEmpty) ? roomId : _currentRoomId;
+    if (effectiveRoomId == null || effectiveRoomId.isEmpty) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Room ID is required',
       });
       return false;
     }
@@ -755,7 +768,7 @@ class SocketService {
       }
 
       _socket!.emit(_acceptCallRequestEvent, {
-        'roomId': _currentRoomId,
+        'roomId': effectiveRoomId,
         'targetId': userId,
       });
       return true;
@@ -772,11 +785,24 @@ class SocketService {
   }
 
   /// Reject call request
-  Future<bool> rejectCallRequest(String userId) async {
+  Future<bool> rejectCallRequest(
+    String userId, {
+    String? roomId,
+  }) async {
     if (!_isConnected || _socket == null) {
       _errorMessageController.add({
         'status': 'error',
         'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    final effectiveRoomId =
+        (roomId != null && roomId.isNotEmpty) ? roomId : _currentRoomId;
+    if (effectiveRoomId == null || effectiveRoomId.isEmpty) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Room ID is required',
       });
       return false;
     }
@@ -787,7 +813,7 @@ class SocketService {
       }
 
       _socket!.emit(_rejectCallRequestEvent, {
-        'roomId': _currentRoomId,
+        'roomId': effectiveRoomId,
         'targetId': userId,
       });
       return true;
@@ -804,11 +830,24 @@ class SocketService {
   }
 
   /// Remove broadcaster
-  Future<bool> removeBroadcaster(String userId) async {
+  Future<bool> removeBroadcaster(
+    String userId, {
+    String? roomId,
+  }) async {
     if (!_isConnected || _socket == null) {
       _errorMessageController.add({
         'status': 'error',
         'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    final effectiveRoomId =
+        (roomId != null && roomId.isNotEmpty) ? roomId : _currentRoomId;
+    if (effectiveRoomId == null || effectiveRoomId.isEmpty) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Room ID is required',
       });
       return false;
     }
@@ -819,7 +858,7 @@ class SocketService {
       }
 
       _socket!.emit(_removeBroadcasterEvent, {
-        'roomId': _currentRoomId,
+        'roomId': effectiveRoomId,
         'targetId': userId,
       });
       return true;

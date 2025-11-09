@@ -12,6 +12,10 @@ class CallManageBottomSheet extends StatefulWidget {
     required this.onRejectCall,
     required this.inCallList,
   });
+
+  static final GlobalKey<_CallManageBottomSheetState> bottomSheetKey =
+      GlobalKey<_CallManageBottomSheetState>();
+
   final List<CallRequestModel> callers;
   final List<BroadcasterModel> inCallList;
   final void Function(String userId) onKickUser;
@@ -21,10 +25,6 @@ class CallManageBottomSheet extends StatefulWidget {
   @override
   State<CallManageBottomSheet> createState() => _CallManageBottomSheetState();
 }
-
-// Global key to access the bottom sheet state from parent
-final GlobalKey<_CallManageBottomSheetState> callManageBottomSheetKey =
-    GlobalKey<_CallManageBottomSheetState>();
 
 class _CallManageBottomSheetState extends State<CallManageBottomSheet>
     with SingleTickerProviderStateMixin {

@@ -47,10 +47,13 @@ class CallRequestRepositoryImpl implements CallRequestRepository {
     required String userId,
   }) async {
     try {
-      _socketService.emit('accept-call-request', {
-        'roomId': roomId,
-        'userId': userId,
-      });
+      final isSuccess = await _socketService.acceptCallRequest(
+        userId,
+        roomId: roomId,
+      );
+      if (!isSuccess) {
+        return Left(ServerFailure('Failed to accept request'));
+      }
       return const Right(null);
     } catch (e) {
       return Left(ServerFailure('Failed to accept request: $e'));
@@ -63,10 +66,13 @@ class CallRequestRepositoryImpl implements CallRequestRepository {
     required String userId,
   }) async {
     try {
-      _socketService.emit('reject-call-request', {
-        'roomId': roomId,
-        'userId': userId,
-      });
+      final isSuccess = await _socketService.rejectCallRequest(
+        userId,
+        roomId: roomId,
+      );
+      if (!isSuccess) {
+        return Left(ServerFailure('Failed to reject request'));
+      }
       return const Right(null);
     } catch (e) {
       return Left(ServerFailure('Failed to reject request: $e'));
@@ -79,10 +85,13 @@ class CallRequestRepositoryImpl implements CallRequestRepository {
     required String userId,
   }) async {
     try {
-      _socketService.emit('remove-broadcaster', {
-        'roomId': roomId,
-        'userId': userId,
-      });
+      final isSuccess = await _socketService.removeBroadcaster(
+        userId,
+        roomId: roomId,
+      );
+      if (!isSuccess) {
+        return Left(ServerFailure('Failed to remove broadcaster'));
+      }
       return const Right(null);
     } catch (e) {
       return Left(ServerFailure('Failed to remove broadcaster: $e'));

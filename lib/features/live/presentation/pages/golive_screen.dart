@@ -724,7 +724,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   /// Update the CallManageBottomSheet with current data
   void _updateCallManageBottomSheet() {
     // Safely update bottom sheet only if it's still mounted and open
-    if (mounted && callManageBottomSheetKey.currentState != null) {
+  if (mounted && CallManageBottomSheet.bottomSheetKey.currentState != null) {
       final callState = context.read<CallRequestBloc>().state;
       final pendingRequests = callState is CallRequestLoaded
           ? callState.pendingRequests
@@ -733,7 +733,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
           ? callState.activeBroadcasters
           : const <BroadcasterModel>[];
 
-      callManageBottomSheetKey.currentState?.updateData(
+  CallManageBottomSheet.bottomSheetKey.currentState?.updateData(
         newCallers: pendingRequests,
         newInCallList: activeBroadcasters,
       );
@@ -2201,69 +2201,88 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                               }
                                               // Capture the outer context with BLoC access
                                               final outerContext = context;
+                                              final callRequestBloc =
+                                                  outerContext.read<CallRequestBloc>();
+
                                               showModalBottomSheet(
-                                                context: context,
+                                                context: outerContext,
+                                                useRootNavigator: false,
                                                 isScrollControlled: true,
                                                 backgroundColor:
                                                     Colors.transparent,
-                                                builder: (sheetContext) => BlocBuilder<CallRequestBloc, CallRequestState>(
-                                                  builder: (context, callRequestState) {
-                                                    final pendingRequests = callRequestState is CallRequestLoaded 
-                                                        ? callRequestState.pendingRequests 
-                                                        : <CallRequestModel>[];
-                                                    final activeBroadcasters = callRequestState is CallRequestLoaded 
-                                                        ? callRequestState.activeBroadcasters 
-                                                        : <BroadcasterModel>[];
-                                                    
-                                                    return CallManageBottomSheet(
-                                                  key: callManageBottomSheetKey,
-                                                  onAcceptCall: (userId) {
-                                                    debugPrint(
-                                                      "Accepting call request from $userId",
-                                                    );
-                                                    // ✅ Use outer context to dispatch BLoC event
-                                                    outerContext.read<CallRequestBloc>().add(
-                                                      AcceptCallRequest(
-                                                        userId: userId,
-                                                        roomId: _currentRoomId ?? '',
-                                                      ),
-                                                    );
-                                                    // Update the bottom sheet with new data
-                                                    _updateCallManageBottomSheet();
-                                                  },
-                                                  onRejectCall: (userId) {
-                                                    debugPrint(
-                                                      "Rejecting call request from $userId",
-                                                    );
-                                                    // ✅ Use outer context to dispatch BLoC event
-                                                    outerContext.read<CallRequestBloc>().add(
-                                                      RejectCallRequest(
-                                                        userId: userId,
-                                                        roomId: _currentRoomId ?? '',
-                                                      ),
-                                                    );
-                                                    // Update the bottom sheet with new data
-                                                    _updateCallManageBottomSheet();
-                                                  },
-                                                  onKickUser: (userId) {
-                                                    // ✅ Use outer context to dispatch BLoC event
-                                                    outerContext.read<CallRequestBloc>().add(
-                                                      RemoveBroadcaster(
-                                                        userId: userId,
-                                                        roomId: _currentRoomId ?? '',
-                                                      ),
-                                                    );
-                                                    debugPrint(
-                                                      "Kicking user $userId from call",
-                                                    );
-                                                    // Update the bottom sheet with new data
-                                                    _updateCallManageBottomSheet();
-                                                  },
-                                                  callers: pendingRequests,
-                                                  inCallList: activeBroadcasters,
-                                                );
-                                                  },
-                                                ),
+                                                builder: (sheetContext) {
+                                                  return BlocProvider.value(
+                                                    value: callRequestBloc,
+                                                    child: BlocBuilder<CallRequestBloc,
+                                                        CallRequestState>(
+                                                      builder: (context,
+                                                          callRequestState) {
+                                                        final pendingRequests =
+                                                            callRequestState
+                                                                    is CallRequestLoaded
+                                                                ? callRequestState
+                                                                    .pendingRequests
+                                                                : <CallRequestModel>[];
+                                                        final activeBroadcasters =
+                                                            callRequestState
+                                                                    is CallRequestLoaded
+                                                                ? callRequestState
+                                                                    .activeBroadcasters
+                                                                : <BroadcasterModel>[];
+
+                                                        return CallManageBottomSheet(
+                                                          key: CallManageBottomSheet
+                                                              .bottomSheetKey,
+                                                          onAcceptCall: (userId) {
+                                                            debugPrint(
+                                                              "Accepting call request from $userId",
+                                                            );
+                                                            callRequestBloc.add(
+                                                              AcceptCallRequest(
+                                                                userId: userId,
+                                                                roomId:
+                                                                    _currentRoomId ??
+                                                                        '',
+                                                              ),
+                                                            );
+                                                            _updateCallManageBottomSheet();
+                                                          },
+                                                          onRejectCall: (userId) {
+                                                            debugPrint(
+                                                              "Rejecting call request from $userId",
+                                                            );
+                                                            callRequestBloc.add(
+                                                              RejectCallRequest(
+                                                                userId: userId,
+                                                                roomId:
+                                                                    _currentRoomId ??
+                                                                        '',
+                                                              ),
+                                                            );
+                                                            _updateCallManageBottomSheet();
+                                                          },
+                                                          onKickUser: (userId) {
+                                                            callRequestBloc.add(
+                                                              RemoveBroadcaster(
+                                                                userId: userId,
+                                                                roomId:
+                                                                    _currentRoomId ??
+                                                                        '',
+                                                              ),
+                                                            );
+                                                            debugPrint(
+                                                              "Kicking user $userId from call",
+                                                            );
+                                                            _updateCallManageBottomSheet();
+                                                          },
+                                                          callers: pendingRequests,
+                                                          inCallList:
+                                                              activeBroadcasters,
+                                                        );
+                                                      },
+                                                    ),
+                                                  );
+                                                },
                                               );
                                             },
                                           ),
