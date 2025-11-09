@@ -322,7 +322,7 @@ class SocketService {
 
     _socket!.on('join-call-request', (data) {
       if (kDebugMode) {
-        print('� Join call request: $data');
+        print('📱 Join call request: $data');
       }
       if (data is Map<String, dynamic>) {
         _joinCallRequestController.add(CallRequestModel.fromJson(data));

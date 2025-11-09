@@ -152,12 +152,43 @@ class _GoliveScreenState extends State<GoliveScreen> {
   @override
   void initState() {
     super.initState();
+    _resetState(); // ✅ Reset all state before initializing
     _initializeFromRoomData(); // Initialize from existing room data
     _initializeExistingViewers();
     extractRoomId();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUidAndDispatchEvent();
     });
+  }
+
+  /// ✅ Reset all state variables to clean slate
+  void _resetState() {
+    debugPrint("🔄 Resetting screen state...");
+    activeViewers.clear();
+    callRequests.clear();
+    callDetailRequest.clear();
+    callRequestsList.clear();
+    broadcasterList.clear();
+    broadcasterModels.clear();
+    broadcasterDetails.clear();
+    sentGifts.clear();
+    bannedUsers.clear();
+    bannedUserModels.clear();
+    currentMuteState = null;
+    adminModels.clear();
+    _chatMessages.clear();
+    _streamStartTime = null;
+    _streamDuration = Duration.zero;
+    _lastBonusMilestone = 0;
+    _totalBonusDiamonds = 0;
+    _isCallingBonusAPI = false;
+    _lastHostActivity = null;
+    _animationPlaying = false;
+    _currentRoomId = null;
+    userId = null;
+    isHost = true;
+    roomId = "default_channel";
+    debugPrint("✅ State reset complete");
   }
 
   /// Initialize state from existing room data (when joining existing live)
@@ -592,11 +623,24 @@ class _GoliveScreenState extends State<GoliveScreen> {
       data,
     ) {
       if (mounted) {
+        debugPrint(
+          "📱 Join call request received - userId: ${data.userId}, name: ${data.userDetails.name}",
+        );
+        
         if (!callRequests.any((user) => user.userId == data.userId)) {
-          callRequests.add(data);
+          setState(() {
+            callRequests.add(data);
+          });
           _showSnackBar(
             '📞 ${data.userDetails.name} wants to join the call',
             Colors.blue,
+          );
+          debugPrint(
+            "✅ Added user to call requests: ${data.userDetails.name}",
+          );
+        } else {
+          debugPrint(
+            "⚠️ User already in call requests: ${data.userId}",
           );
         }
         debugPrint(
@@ -612,6 +656,24 @@ class _GoliveScreenState extends State<GoliveScreen> {
           if (mounted) {
             callDetailRequest = data;
             debugPrint("Call request list updated: $callDetailRequest");
+            
+            // Convert CallRequestListModel to CallRequestModel for the bottom sheet
+            setState(() {
+              callRequests = data.map((callReqList) {
+                return CallRequestModel(
+                  userId: callReqList.id,
+                  userDetails: UserDetails(
+                    id: callReqList.id,
+                    avatar: callReqList.avatar,
+                    name: callReqList.name,
+                    uid: callReqList.uid,
+                  ),
+                  roomId: _currentRoomId,
+                );
+              }).toList();
+              debugPrint("✅ Converted ${callRequests.length} call requests for display");
+            });
+            
             // Update bottom sheet if it's open
             _updateCallManageBottomSheet();
           }
@@ -840,10 +902,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
   /// Update the CallManageBottomSheet with current data
   void _updateCallManageBottomSheet() {
-    callManageBottomSheetKey.currentState?.updateData(
-      newCallers: callRequests,
-      newInCallList: broadcasterModels,
-    );
+    // Safely update bottom sheet only if it's still mounted and open
+    if (mounted && callManageBottomSheetKey.currentState != null) {
+      callManageBottomSheetKey.currentState?.updateData(
+        newCallers: callRequests,
+        newInCallList: broadcasterModels,
+      );
+    }
   }
 
   /// Create a new room (for hosts)
@@ -896,10 +961,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
     if (_currentRoomId != null) {
       final success = await _socketService.leaveRoom(_currentRoomId!);
 
-      if (success) {
+      if (success && mounted) {
         setState(() {
           _currentRoomId = null;
         });
+      } else if (success) {
+        // If widget is not mounted, just update the variable without setState
+        _currentRoomId = null;
       }
     }
   }
@@ -1803,8 +1871,17 @@ class _GoliveScreenState extends State<GoliveScreen> {
         data: {'totalTime': totalMinutes, 'type': 'video'},
       );
 
+      // ✅ Check mounted before any setState calls
+      if (!mounted) {
+        debugPrint("⚠️ Widget disposed, skipping state updates");
+        return;
+      }
+
       response.fold(
         (data) {
+          // ✅ Re-check mounted in callback
+          if (!mounted) return;
+
           debugPrint("✅ Daily bonus API call successful: $data");
 
           // Check if response is successful and has result data
@@ -1818,12 +1895,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
               debugPrint("💎 Received daily bonus: $bonusDiamonds diamonds");
 
               // Track total bonus diamonds
-              setState(() {
-                if (!isStreamEnd) {
-                  _lastBonusMilestone = currentMilestone;
-                }
-                _totalBonusDiamonds += bonusDiamonds;
-              });
+              if (mounted) {
+                setState(() {
+                  if (!isStreamEnd) {
+                    _lastBonusMilestone = currentMilestone;
+                  }
+                  _totalBonusDiamonds += bonusDiamonds;
+                });
+              }
 
               // Show appropriate message
               if (isStreamEnd) {
@@ -1840,11 +1919,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
               debugPrint("💰 Total bonus diamonds now: $_totalBonusDiamonds");
             } else {
-              setState(() {
-                if (!isStreamEnd) {
-                  _lastBonusMilestone = currentMilestone;
-                }
-              });
+              if (mounted) {
+                setState(() {
+                  if (!isStreamEnd) {
+                    _lastBonusMilestone = currentMilestone;
+                  }
+                });
+              }
 
               if (isStreamEnd) {
                 _showSnackBar(
@@ -1859,11 +1940,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
               }
             }
           } else {
-            setState(() {
-              if (!isStreamEnd) {
-                _lastBonusMilestone = currentMilestone;
-              }
-            });
+            if (mounted) {
+              setState(() {
+                if (!isStreamEnd) {
+                  _lastBonusMilestone = currentMilestone;
+                }
+              });
+            }
 
             if (isStreamEnd) {
               _showSnackBar(
@@ -1879,13 +1962,18 @@ class _GoliveScreenState extends State<GoliveScreen> {
           }
         },
         (error) {
+          // ✅ Check mounted before setState in error handler
+          if (!mounted) return;
+
           debugPrint("❌ Daily bonus API call failed: $error");
           // Update milestone even on error to prevent continuous retries
-          setState(() {
-            if (!isStreamEnd) {
-              _lastBonusMilestone = currentMilestone;
-            }
-          });
+          if (mounted) {
+            setState(() {
+              if (!isStreamEnd) {
+                _lastBonusMilestone = currentMilestone;
+              }
+            });
+          }
 
           // Check if it's a "maximum bonus reached" error
           if (error.contains("maximum bonus") || error.contains("reached")) {
@@ -1908,11 +1996,13 @@ class _GoliveScreenState extends State<GoliveScreen> {
     } catch (e) {
       debugPrint("❌ Exception calling daily bonus API: $e");
       // Update milestone even on exception to prevent continuous retries
-      setState(() {
-        if (!isStreamEnd) {
-          _lastBonusMilestone = currentMilestone;
-        }
-      });
+      if (mounted) {
+        setState(() {
+          if (!isStreamEnd) {
+            _lastBonusMilestone = currentMilestone;
+          }
+        });
+      }
       _showSnackBar(
         isStreamEnd
             ? '❌ Failed to process final bonus (Total: ${totalMinutes}m)'
@@ -1931,17 +2021,35 @@ class _GoliveScreenState extends State<GoliveScreen> {
   // End live stream
   void _endLiveStream() async {
     try {
+      // ✅ Capture context and auth state IMMEDIATELY before any async operations
+      final canNavigate = mounted;
+      AuthState? authState;
+      if (canNavigate) {
+        authState = context.read<AuthBloc>().state;
+      }
+      
+      debugPrint("🔍 _endLiveStream: isHost=$isHost, canNavigate=$canNavigate, authState=$authState");
+      
       // Stop the stream timer
       _stopStreamTimer();
 
-      // Reset audio caller state
-      setState(() {
+      // Reset audio caller state - only if widget is still mounted
+      if (mounted) {
+        setState(() {
+          _isAudioCaller = false;
+          _audioCallerUids.clear();
+          _videoCallerUids.clear();
+          _isJoiningAsAudioCaller = false;
+          isCameraEnabled = false;
+        });
+      } else {
+        // Update without setState if not mounted
         _isAudioCaller = false;
         _audioCallerUids.clear();
         _videoCallerUids.clear();
         _isJoiningAsAudioCaller = false;
         isCameraEnabled = false;
-      });
+      }
 
       if (isHost) {
         // If host, delete the room
@@ -1950,47 +2058,56 @@ class _GoliveScreenState extends State<GoliveScreen> {
         // If viewer, leave the room
         await _leaveRoom();
       }
-      if (isHost) {
+      
+      // ✅ Use captured state instead of accessing context again
+      if (isHost && canNavigate && authState is AuthAuthenticated) {
+        debugPrint("✅ Host navigating to summary screen");
+        
+        // Always call daily bonus API on stream end
+        await _callDailyBonusAPI(isStreamEnd: true);
+
+        // Calculate total earned diamonds/coins
+        int earnedDiamonds = GiftModel.totalDiamondsForHost(
+          sentGifts,
+          userId, // Use userId for host
+        );
+
+        debugPrint(
+          "🏆 Host ending live stream - Total earned diamonds: $earnedDiamonds",
+        );
+        debugPrint("📊 Total gifts received: ${sentGifts.length}");
+
+        // ✅ Check mounted one more time before final navigation
         if (mounted) {
-          final state = context.read<AuthBloc>().state;
-          if (state is AuthAuthenticated) {
-            // Always call daily bonus API on stream end
-            await _callDailyBonusAPI(isStreamEnd: true);
-
-            // Calculate total earned diamonds/coins
-            int earnedDiamonds = GiftModel.totalDiamondsForHost(
-              sentGifts,
-              userId, // Use userId for host
-            );
-
-            debugPrint(
-              "🏆 Host ending live stream - Total earned diamonds: $earnedDiamonds",
-            );
-            debugPrint("📊 Total gifts received: ${sentGifts.length}");
-
-            context.go(
-              AppRoutes.liveSummary,
-              extra: {
-                'userName': state.user.name,
-                'userId': state.user.id.substring(0, 6),
-                'earnedPoints': earnedDiamonds, // Pass actual earned diamonds
-                'newFollowers': 0,
-                'totalDuration': _formatDuration(_streamDuration),
-                'userAvatar': state.user.avatar,
-              },
-            );
-          }
+          debugPrint("📍 About to navigate to liveSummary");
+          context.go(
+            AppRoutes.liveSummary,
+            extra: {
+              'userName': authState.user.name,
+              'userId': authState.user.id.substring(0, 6),
+              'earnedPoints': earnedDiamonds, // Pass actual earned diamonds
+              'newFollowers': 0,
+              'totalDuration': _formatDuration(_streamDuration),
+              'userAvatar': authState.user.avatar,
+            },
+          );
+        } else {
+          debugPrint("⚠️ Widget not mounted, cannot navigate to summary");
         }
-      } else {
+      } else if (!isHost && canNavigate) {
+        debugPrint("✅ Viewer navigating back");
         // If viewer, just navigate back
         if (mounted) {
           context.go("/");
         }
+      } else {
+        debugPrint("⚠️ Cannot navigate: isHost=$isHost, canNavigate=$canNavigate, authState=$authState");
       }
     } catch (e) {
-      debugPrint('Error ending live stream: $e');
-      // Still navigate back even if update fails
+      debugPrint('❌ Error in _endLiveStream: $e');
+      // Only pop if we didn't already navigate
       if (mounted) {
+        debugPrint('📍 Fallback: popping due to error');
         Navigator.of(context).pop();
       }
     }
@@ -2001,12 +2118,14 @@ class _GoliveScreenState extends State<GoliveScreen> {
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
-        // Always trigger cleanup when back navigation is invoked
-        _endLiveStream();
-        debugPrint(
-          'Back navigation invoked: '
-          '(cleanup triggered)',
-        );
+        // Only trigger cleanup if actually popping (not canceling)
+        if (didPop) {
+          _endLiveStream();
+          debugPrint(
+            'Back navigation invoked: '
+            '(cleanup triggered)',
+          );
+        }
       },
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
@@ -2293,10 +2412,12 @@ class _GoliveScreenState extends State<GoliveScreen> {
                                                         .acceptCallRequest(
                                                           userId,
                                                         );
-                                                    callRequests.removeWhere(
-                                                      (call) =>
-                                                          call.userId == userId,
-                                                    );
+                                                    setState(() {
+                                                      callRequests.removeWhere(
+                                                        (call) =>
+                                                            call.userId == userId,
+                                                      );
+                                                    });
                                                     // Update the bottom sheet with new data
                                                     _updateCallManageBottomSheet();
                                                   },
@@ -2983,9 +3104,6 @@ class _GoliveScreenState extends State<GoliveScreen> {
     _stopStreamTimer();
     _hostActivityTimer?.cancel();
 
-    // Leave the room if still in one
-    _leaveRoom();
-
     // Cancel all stream subscriptions to prevent setState calls after disposal
     _connectionStatusSubscription?.cancel();
     _roomCreatedSubscription?.cancel();
@@ -3007,14 +3125,37 @@ class _GoliveScreenState extends State<GoliveScreen> {
 
     // Dispose other resources
     _titleController.dispose();
-    _dispose();
+    
+    // Cleanup Agora engine and resources without accessing context
+    _disposeAgoraEngine();
+
+    // ✅ Clear all state variables for next stream
+    activeViewers.clear();
+    callRequests.clear();
+    callDetailRequest.clear();
+    callRequestsList.clear();
+    broadcasterList.clear();
+    broadcasterModels.clear();
+    broadcasterDetails.clear();
+    sentGifts.clear();
+    bannedUsers.clear();
+    bannedUserModels.clear();
+    currentMuteState = null;
+    adminModels.clear();
+    _chatMessages.clear();
     
     debugPrint("✅ Video live screen disposed");
     super.dispose();
   }
 
-  Future<void> _dispose() async {
-    await _engine.leaveChannel();
-    await _engine.release();
+  /// Safely dispose Agora engine without accessing context
+  void _disposeAgoraEngine() {
+    try {
+      _engine.leaveChannel();
+      _engine.release();
+      debugPrint("✅ Agora engine disposed safely");
+    } catch (e) {
+      debugPrint("⚠️ Error disposing Agora engine: $e");
+    }
   }
 }

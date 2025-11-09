@@ -120,7 +120,14 @@ class _CallManageBottomSheetState extends State<CallManageBottomSheet>
 
           // Close button
           GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
+            onTap: () {
+              // Use Future.microtask to avoid "deactivated widget's ancestor" error
+              Future.microtask(() {
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
+              });
+            },
             child: Container(
               padding: EdgeInsets.all(4.w),
               child: Icon(
