@@ -4,6 +4,7 @@ export 'chat_bloc.dart';
 export 'gift_bloc.dart';
 export 'call_request_bloc.dart';
 export 'moderation_bloc.dart';
+export 'live_session_cubit.dart';
 
 // Events
 export 'live_stream_event.dart';

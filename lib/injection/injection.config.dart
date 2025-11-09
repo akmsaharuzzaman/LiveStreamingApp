@@ -56,6 +56,8 @@ import 'package:dlstarlive/features/live/presentation/bloc/chat_bloc.dart'
     as _i465;
 import 'package:dlstarlive/features/live/presentation/bloc/gift_bloc.dart'
     as _i839;
+import 'package:dlstarlive/features/live/presentation/bloc/live_session_cubit.dart'
+    as _i1048;
 import 'package:dlstarlive/features/live/presentation/bloc/live_stream_bloc.dart'
     as _i586;
 import 'package:dlstarlive/features/live/presentation/bloc/moderation_bloc.dart'
@@ -203,6 +205,12 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i592.ModerationBloc(gh<_i850.ModerationRepository>()),
     );
     gh.factory<_i839.GiftBloc>(() => _i839.GiftBloc(gh<_i42.GiftRepository>()));
+    gh.factory<_i1048.LiveSessionCubit>(
+      () => _i1048.LiveSessionCubit(
+        gh<_i4.SocketService>(),
+        gh<_i652.LiveStreamRepository>(),
+      ),
+    );
     gh.factory<_i708.CallRequestBloc>(
       () => _i708.CallRequestBloc(gh<_i689.CallRequestRepository>()),
     );

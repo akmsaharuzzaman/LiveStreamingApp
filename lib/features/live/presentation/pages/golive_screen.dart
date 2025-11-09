@@ -9,10 +9,7 @@ import 'package:dlstarlive/core/network/models/call_request_model.dart';
 import 'package:dlstarlive/core/network/models/chat_model.dart';
 import 'package:dlstarlive/core/network/models/gift_model.dart';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
-import 'package:dlstarlive/core/network/socket_service.dart';
-import 'package:dlstarlive/core/utils/permission_helper.dart';
 import 'package:dlstarlive/features/live/presentation/bloc/bloc.dart';
-import 'package:dlstarlive/features/live/presentation/component/agora_token_service.dart';
 import 'package:dlstarlive/features/live/presentation/component/gift_bottom_sheet.dart';
 import 'package:dlstarlive/features/live/presentation/component/send_message_buttonsheet.dart';
 import 'package:dlstarlive/features/live/presentation/widgets/call_overlay_widget.dart';
@@ -20,11 +17,9 @@ import 'package:dlstarlive/injection/injection.dart';
 import 'package:dlstarlive/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/network/models/admin_details_model.dart';
 import '../../../../core/network/models/ban_user_model.dart';
 import '../../../../core/network/models/joined_user_model.dart';
@@ -87,6 +82,9 @@ class GoliveScreen extends StatelessWidget {
         BlocProvider<ModerationBloc>(
           create: (context) => getIt<ModerationBloc>(),
         ),
+        BlocProvider<LiveSessionCubit>(
+          create: (context) => getIt<LiveSessionCubit>(),
+        ),
       ],
       child: _GoliveScreenContent(
         roomId: roomId,
@@ -127,15 +125,34 @@ class _GoliveScreenContent extends StatefulWidget {
 class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   final TextEditingController _titleController = TextEditingController();
 
-  // Debug helper method to control logging based on debug mode
-  void _debugLog(String message) {
-    if (kDebugMode) {
-      // Only log in debug mode, and only essential messages
-      debugPrint(message);
+  LiveSessionState get _sessionState => context.read<LiveSessionCubit>().state;
+
+  bool _canJoinAudioCall(LiveSessionState sessionState) {
+    return !sessionState.isHost &&
+        !sessionState.isAudioCaller &&
+        sessionState.audioCallerUids.length < LiveSessionState.maxAudioCallers &&
+        !sessionState.isJoiningAudioCaller;
+  }
+
+  String _getAudioCallerText(LiveSessionState sessionState) {
+    if (sessionState.isJoiningAudioCaller) {
+      return 'Joining...';
+    }
+    return sessionState.isAudioCaller ? 'Leave' : 'Join';
+  }
+
+  void _toggleMute() {
+    final sessionState = _sessionState;
+    if (sessionState.isHost || sessionState.isAudioCaller) {
+      context.read<LiveStreamBloc>().add(const ToggleMicrophone());
+    } else {
+      _showSnackBar(
+        '🎤 Only hosts and audio callers can use microphone',
+        Colors.orange,
+      );
     }
   }
 
-  final SocketService _socketService = SocketService.instance;
   String? _currentRoomId;
   String? userId;
   bool isHost = true;
@@ -166,26 +183,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   static const int _bonusIntervalMinutes = 50;
 
   //Live inactivity timeout duration
-  static const int _inactivityTimeoutSeconds = 60;
-
   // Host activity tracking for viewers
-  Timer? _hostActivityTimer;
-  DateTime? _lastHostActivity;
   bool _animationPlaying = false;
-
-  // Stream subscriptions for proper cleanup
-  StreamSubscription? _connectionStatusSubscription;
-  StreamSubscription? _roomCreatedSubscription;
-  StreamSubscription? _roomJoinedSubscription;
-  StreamSubscription? _roomLeftSubscription;
-  StreamSubscription? _roomDeletedSubscription;
-  StreamSubscription? _errorSubscription;
-
-  // Additional socket stream subscriptions
-  StreamSubscription? _userJoinedSubscription;
-  StreamSubscription? _userLeftSubscription;
-  StreamSubscription? _sentMessageSubscription;
-  StreamSubscription? _sentGiftSubscription;
 
   // Chat messages
   final List<ChatModel> _chatMessages = [];
@@ -216,7 +215,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     // ✅ Duration now managed by LiveStreamBloc
     _streamDuration = Duration.zero;
     _lastBonusMilestone = 0;
-    _lastHostActivity = null;
     _animationPlaying = false;
     _currentRoomId = null;
     userId = null;
@@ -471,22 +469,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     }
   }
 
-  Future<void> initAgoraLoad() async {
-    try {
-      // _showSnackBar('🚀 Setting up live stream...', Colors.blue);
-      debugPrint('🚀 Setting up live stream...');
-      await initAgora();
-      // _showSnackBar('📡 Connecting to server...', Colors.blue);
-      debugPrint('📡 Connecting to server...');
-      await _initializeSocket();
-      // _showSnackBar('✅ Live stream ready!', Colors.green);
-      debugPrint('✅ Live stream ready!');
-    } catch (e) {
-      debugPrint('❌ Error in initAgoraLoad: $e');
-      _showSnackBar('❌ Failed to setup live stream', Colors.red);
-    }
-  }
-
   Future<void> _loadUidAndDispatchEvent() async {
     final state = context.read<AuthBloc>().state;
     final String? uid = state is AuthAuthenticated ? state.user.id : null;
@@ -503,158 +485,15 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
         _initializeHostCoins();
       }
 
-      // Initialize Agora and socket AFTER userId is loaded
-      await initAgoraLoad();
+      // Start live session orchestration via cubit
+      await context.read<LiveSessionCubit>().initializeSession(
+            isHost: isHost,
+            initialRoomId: isHost ? null : widget.roomId,
+            userId: uid,
+          );
     } else {
       debugPrint("User ID is null, cannot initialize live streaming");
     }
-  }
-
-  /// Initialize socket connection when entering live streaming page
-  Future<void> _initializeSocket() async {
-    try {
-      // Connect to socket with user ID
-      final connected = await _socketService.connect(userId!);
-
-      if (connected) {
-        _setupSocketListeners();
-
-        // Initialize host activity monitoring for viewers
-        if (!isHost) {
-          _initHostActivityMonitoring();
-        }
-
-        // If roomId is provided, join the room
-        if (isHost) {
-          await _createRoom();
-        } else {
-          await _joinRoom(roomId);
-        }
-
-        // Get list of available rooms
-        await _socketService.getRooms();
-      } else {
-        debugPrint('Failed to connect to server');
-        // _showSnackBar('❌ Failed to connect to server', Colors.red);
-      }
-    } catch (e) {
-      debugPrint('Connection error: $e');
-      // _showSnackBar('❌ Connection error', Colors.red);
-    }
-  }
-
-  /// Setup socket event listeners
-  void _setupSocketListeners() {
-    // Connection status
-    debugPrint("Setting up socket listeners");
-    _connectionStatusSubscription = _socketService.connectionStatusStream
-        .listen((isConnected) {
-          if (mounted) {
-            if (isConnected) {
-              // _showSnackBar('✅ Connected to server', Colors.green);
-              debugPrint("Connected to server");
-            } else {
-              // _showSnackBar('❌ Disconnected from server', Colors.red);
-              debugPrint("Disconnected from server");
-            }
-          }
-        });
-
-    // ✅ User join/leave events now handled by LiveStreamBloc
-    // No need for duplicate socket subscriptions here
-    // _userJoinedSubscription and _userLeftSubscription removed
-
-    // ✅ Sent Messages - Now handled by ChatBloc
-    // _sentMessageSubscription = _socketService.sentMessageStream.listen((data) {
-    //   if (mounted) {
-    //     debugPrint("User sent a message: ${data.text}");
-    //     setState(() {
-    //       _chatMessages.add(data);
-    //       if (_chatMessages.length > 50) {
-    //         _chatMessages.removeAt(0);
-    //       }
-    //     });
-    //   }
-    // });
-
-    // ✅ User left - Now handled by LiveStreamBloc
-    // activeViewers management moved to BLoC state
-    _userLeftSubscription = _socketService.userLeftStream.listen((data) {
-      if (mounted) {
-        // ✅ No need to update activeViewers or broadcasters - handled by BLoCs
-        debugPrint("User left: ${data.name} - ${data.id}");
-      }
-    });
-
-    // ✅ Sent Gifts - Now handled by GiftBloc
-    // _sentGiftSubscription = _socketService.sentGiftStream.listen((data) {
-    //   if (mounted) {
-    //     debugPrint("🎁 Gift received from socket: ${data.gift.name}");
-    //     debugPrint("💰 Gift diamonds: ${data.diamonds}");
-    //     debugPrint("🎯 Receivers: ${data.recieverIds}");
-    //     debugPrint("🔍 Is current user host? $isHost");
-    //     debugPrint("🔍 Current user ID: $userId");
-    //     debugPrint("🔍 Host user ID: ${widget.hostUserId}");
-    //
-    //     setState(() {
-    //       sentGifts.add(data);
-    //       // Update diamonds for users who received the gift
-    //       _updateUserDiamonds(data);
-    //     });
-    //
-    //     debugPrint("📊 Total gifts in list: ${sentGifts.length}");
-    //
-    //     // Calculate host diamonds separately for verification
-    //     int hostDiamonds = GiftModel.totalDiamondsForHost(
-    //       sentGifts,
-    //       widget.hostUserId,
-    //     );
-    //     debugPrint("🏆 Host total diamonds (calculated): $hostDiamonds");
-    //
-    //     // For host, also check using current userId
-    //     if (isHost && userId != null) {
-    //       int hostDiamondsFromUserId = GiftModel.totalDiamondsForUser(
-    //         sentGifts,
-    //         userId!,
-    //       );
-    //       debugPrint("🏆 Host diamonds using userId: $hostDiamondsFromUserId");
-    //     }
-    //
-    //     // Debug current status
-    //     _debugDiamondStatus();
-    //
-    //     // Force UI update
-    //     if (mounted) {
-    //       setState(() {
-    //         // Trigger rebuild to ensure DiamondStarStatus updates
-    //       });
-    //     }
-    //
-    //     sentGifts.isNotEmpty ? _playAnimation() : null;
-    //   }
-    // });
-
-    // Room Closed - Host ended the live session
-    _socketService.roomClosedStream.listen((data) {
-      if (mounted) {
-        _handleHostDisconnection("Live session ended by host.");
-      }
-    });
-
-    // Custom live streaming events
-    _socketService.on('stream-started', (data) {
-      if (mounted) {
-        // _showSnackBar('🎥 Stream started!', Colors.green);
-        debugPrint("🎥 Stream started!");
-      }
-    });
-
-    _socketService.on('stream-ended', (data) {
-      if (mounted) {
-        // _showSnackBar('🛑 Stream ended', Colors.red);
-        debugPrint("🛑 Stream ended");
-      }
-    });
   }
 
   /// Update the CallManageBottomSheet with current data
@@ -709,11 +548,12 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   void _handleActiveBroadcasters(List<BroadcasterModel> broadcasters) {
     final hostId = isHost ? userId : widget.hostUserId;
     final broadcasterIds = broadcasters.map((b) => b.id).toSet();
+    final sessionCubit = context.read<LiveSessionCubit>();
+    final sessionState = sessionCubit.state;
 
     if (!isHost && hostId != null) {
-      if (broadcasterIds.contains(hostId)) {
-        _lastHostActivity = DateTime.now();
-      } else if (_knownBroadcasterIds.contains(hostId)) {
+      final hostStillActive = broadcasterIds.contains(hostId);
+      if (!hostStillActive && _knownBroadcasterIds.contains(hostId)) {
         _handleHostDisconnection("Host disconnected. Live session ended.");
         return;
       }
@@ -721,10 +561,10 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
 
     if (!isHost && userId != null) {
       final isCurrentBroadcaster = broadcasterIds.contains(userId);
-      if (isCurrentBroadcaster && !_isAudioCaller) {
-        _promoteToAudioCaller();
-      } else if (!isCurrentBroadcaster && _isAudioCaller) {
-        _leaveAudioCaller();
+      if (isCurrentBroadcaster && !sessionState.isAudioCaller) {
+        sessionCubit.promoteToAudioCaller();
+      } else if (!isCurrentBroadcaster && sessionState.isAudioCaller) {
+        sessionCubit.leaveAudioCaller();
       }
     }
 
@@ -733,68 +573,35 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       ..addAll(broadcasterIds);
   }
 
-  /// Create a new room (for hosts)
-  Future<void> _createRoom() async {
-    if (userId == null) {
-      debugPrint('❌ Cannot create room: userId is null');
+  //Sent/Send Message
+  void _emitMessageToSocket(String message) {
+    final trimmed = message.trim();
+    if (trimmed.isEmpty) {
       return;
     }
 
-    // Use userId as the room name for dynamic room creation
-    final dynamicRoomId = userId!;
-    debugPrint('🏠 Creating room with dynamic name: $dynamicRoomId');
+    final sessionState = _sessionState;
+    final roomIdentifier =
+        sessionState.currentRoomId ?? _currentRoomId ?? roomId;
 
-    // ✅ Dispatch BLoC event to create room
-    context.read<LiveStreamBloc>().add(CreateRoom(
-      title: "Demo Title",
-      userId: userId!,
-      roomType: RoomType.live,
-    ));
-
-    // Update local state for roomId (for Agora channel)
-    setState(() {
-      _currentRoomId = dynamicRoomId;
-      roomId = dynamicRoomId;
-    });
-
-    // Now join the Agora channel with the dynamic room ID
-    await _joinChannelWithDynamicToken();
-  }
-
-  /// Join an existing room
-  Future<void> _joinRoom(String roomId) async {
-    // ✅ Dispatch BLoC event to join room
-    context.read<LiveStreamBloc>().add(JoinRoom(
-      roomId: roomId,
-      userId: userId ?? '',
-    ));
-
-    setState(() {
-      _currentRoomId = roomId;
-    });
-  }
-
-  /// Leave current room
-  Future<void> _leaveRoom() async {
-    if (_currentRoomId != null) {
-      // ✅ Dispatch BLoC event to leave room
-      context.read<LiveStreamBloc>().add(const LeaveRoom());
-
-      if (mounted) {
-        setState(() {
-          _currentRoomId = null;
-        });
-      } else {
-        _currentRoomId = null;
-      }
+    if (roomIdentifier.isEmpty) {
+      _showSnackBar('❌ Room not ready, please try again', Colors.red);
+      return;
     }
-  }
 
-  //Sent/Send Message
-  void _emitMessageToSocket(String message) {
-    if (message.isNotEmpty && _currentRoomId != null) {
-      _socketService.sendMessage(_currentRoomId!, message);
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! AuthAuthenticated) {
+      _showSnackBar('👤 Please log in to send messages', Colors.orange);
+      return;
     }
+
+    context.read<ChatBloc>().add(SendChatMessage(
+          roomId: roomIdentifier,
+          userId: authState.user.id,
+          userName: authState.user.name,
+          message: trimmed,
+          avatar: authState.user.avatar,
+        ));
   }
 
   // Make Admin
@@ -858,19 +665,18 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   }
 
   /// Force mute current user when they are administratively muted
-  void _forceMuteCurrentUser(ModerationState moderationState) async {
+  void _forceMuteCurrentUser(ModerationState moderationState) {
     final liveState = context.read<LiveStreamBloc>().state;
-    final isMuted = liveState is LiveStreamStreaming ? !liveState.isMicEnabled : false;
-    
-    if ((isHost || _isAudioCaller) && !isMuted && _isCurrentUserMuted(moderationState)) {
-      try {
-        // ✅ Toggle microphone to mute (if currently unmuted)
-        context.read<LiveStreamBloc>().add(ToggleMicrophone());
-        _showSnackBar('🔇 You have been muted by an admin', Colors.red);
-        debugPrint("Current user force muted by admin");
-      } catch (e) {
-        debugPrint('❌ Error force muting user: $e');
-      }
+    final isMuted = liveState is LiveStreamStreaming
+        ? !liveState.isMicEnabled
+        : false;
+    final sessionState = _sessionState;
+    final isAuthorized = sessionState.isHost || sessionState.isAudioCaller;
+
+    if (isAuthorized && !isMuted && _isCurrentUserMuted(moderationState)) {
+      context.read<LiveStreamBloc>().add(const ToggleMicrophone());
+      _showSnackBar('🔇 You have been muted by an admin', Colors.red);
+      debugPrint('Current user force muted by admin');
     }
   }
 
@@ -891,26 +697,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     return isHost;
   }
 
-  /// Delete room (only host can delete)
-  Future<void> _deleteRoom() async {
-    if (_currentRoomId != null && userId != null) {
-      // ✅ Dispatch BLoC event to delete/end stream
-      context.read<LiveStreamBloc>().add(const EndLiveStream());
-
-      setState(() {
-        _currentRoomId = null;
-      });
-      // Navigate back or show end screen
-      _endStream();
-    }
-  }
-
-  /// End the stream and navigate back
-  void _endStream() {
-    // Additional cleanup for live streaming
-    // Navigator.of(context).pop();
-  }
-
   /// Show snackbar message
   void _showSnackBar(String message, Color color) {
     if (mounted) {
@@ -927,693 +713,24 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     }
   }
 
-  /// Handle host disconnection - Exit live screen with cleanup
+  /// Handle session-level force exit events surfaced by the cubit
   void _handleHostDisconnection(String reason) {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     debugPrint("🚨 $reason - Exiting live screen...");
     _showSnackBar('📱 $reason', Colors.red);
 
-    // Perform cleanup immediately
-    // ✅ Timer now managed by LiveStreamBloc
-    _hostActivityTimer?.cancel();
-    
-    // Leave the room to notify server
-    _leaveRoom();
+    // Delegate cleanup to cubit so Agora/socket teardown stays centralized
+    context.read<LiveSessionCubit>().endSession(notifyServer: false);
 
-    // Small delay to show the message before navigating
+    // Give the user a moment to read the message before leaving
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) {
-        Navigator.of(context).pop(); // Exit the live screen
+        Navigator.of(context).pop();
       }
     });
-  }
-
-  /// Start monitoring for host disconnection when no video broadcasters are present
-  void _startHostDisconnectionMonitoring() {
-    // Don't start multiple timers
-    if (_hostActivityTimer != null) return;
-
-    debugPrint(
-      "🔍 No video broadcasters detected - starting $_inactivityTimeoutSeconds second countdown...",
-    );
-
-    // Wait for inactivity timeout before considering host disconnected
-    _hostActivityTimer = Timer(
-      const Duration(seconds: _inactivityTimeoutSeconds),
-      () {
-        if (!mounted) return;
-
-        // ✅ Get camera state from BLoC
-        final liveState = context.read<LiveStreamBloc>().state;
-        final isCameraEnabled = liveState is LiveStreamStreaming 
-            ? liveState.isCameraEnabled 
-            : false;
-
-        // Double check that there are still no video broadcasters
-        List<int> currentBroadcasters = [
-          if (_remoteUid != null) _remoteUid!,
-          ..._videoCallerUids,
-          if (_isAudioCaller && isCameraEnabled) 0,
-        ];
-
-        if (currentBroadcasters.isEmpty) {
-          debugPrint(
-            "🚨 No video broadcasters for $_inactivityTimeoutSeconds seconds - host disconnected",
-          );
-          _handleHostDisconnection("Host disconnected. Live session ended.");
-        } else {
-          debugPrint("✅ Video broadcasters detected - host reconnected");
-        }
-
-        _hostActivityTimer = null;
-      },
-    );
-  }
-
-  /// Initialize host activity monitoring for viewers
-  void _initHostActivityMonitoring() {
-    if (isHost) return; // Only for viewers
-
-    _lastHostActivity = DateTime.now();
-
-    // Check host activity every 5 seconds
-    _hostActivityTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-
-      final now = DateTime.now();
-      final lastActivity = _lastHostActivity;
-
-      // If no activity detected for _inactivityTimeoutSeconds seconds, consider host disconnected
-      if (lastActivity != null &&
-          now.difference(lastActivity).inSeconds >= _inactivityTimeoutSeconds) {
-        timer.cancel();
-        _handleHostDisconnection(
-          "Host appears to be inactive. Live session ended.",
-        );
-      }
-    });
-  }
-
-  //Agora SDK
-  late final RtcEngine _engine;
-  int? _remoteUid;
-  bool _localUserJoined = false;
-  final List<int> _remoteUsers = [];
-  // bool _muted = false; // ✅ Moved to LiveStreamBloc.isMicrophoneEnabled
-  bool _isInitializingCamera = false;
-
-  // Video state management to prevent white screen
-  bool _isVideoReady = false;
-  bool _isLocalVideoReady = false;
-  bool _isVideoConnecting = false;
-
-  // Audio caller feature variables
-  bool _isAudioCaller = false;
-  final List<int> _audioCallerUids = [];
-  final List<int> _videoCallerUids = []; // Track callers with video enabled
-  final int _maxAudioCallers = 3;
-  bool _isJoiningAsAudioCaller = false;
-  // bool isCameraEnabled = false; // ✅ Moved to LiveStreamBloc.isCameraEnabled
-
-  Future<void> _applyCameraPreference() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      // Debug: List all keys to verify SharedPreferences is working
-      Set<String> keys = prefs.getKeys();
-      debugPrint('🔍 All SharedPreferences keys: $keys');
-
-      bool isFrontCamera = prefs.getBool('is_front_camera') ?? true;
-
-      debugPrint(
-        '🔍 Reading camera preference from SharedPreferences (AFTER channel join):',
-      );
-      debugPrint('📱 Stored value: $isFrontCamera');
-      debugPrint(
-        '🔄 Applying camera preference: ${isFrontCamera ? 'Front' : 'Rear'} camera',
-      );
-
-      // If the saved preference is for rear camera, switch to it
-      if (!isFrontCamera) {
-        debugPrint('🔄 Switching to rear camera AFTER channel join...');
-        await _engine.switchCamera();
-        debugPrint(
-          '✅ Applied camera preference: Rear camera (AFTER channel join)',
-        );
-      } else {
-        debugPrint(
-          '✅ Applied camera preference: Front camera (default - AFTER channel join)',
-        );
-      }
-    } catch (e) {
-      debugPrint('❌ Error applying camera preference AFTER channel join: $e');
-    }
-  }
-
-  Future<void> initAgora() async {
-    try {
-      setState(() {
-        _isInitializingCamera = true;
-      });
-
-      // Check permissions FIRST and wait for the result
-      bool hasPermissions = await PermissionHelper.hasLiveStreamPermissions();
-
-      if (!hasPermissions) {
-        debugPrint('⚠️ Live streaming permissions not granted, requesting...');
-        _showSnackBar(
-          '📹 Camera and microphone permissions required',
-          Colors.orange,
-        );
-
-        // Request permissions and wait for the result
-        bool granted = await PermissionHelper.requestLiveStreamPermissions();
-        if (!granted) {
-          debugPrint('❌ Live streaming permissions denied');
-          _showSnackBar(
-            '❌ Cannot start live stream without permissions',
-            Colors.red,
-          );
-          if (mounted) {
-            PermissionHelper.showPermissionDialog(context);
-          }
-          setState(() {
-            _isInitializingCamera = false;
-          });
-          // Don't initialize Agora if permissions not granted
-          return;
-        }
-      }
-
-      // Only initialize Agora AFTER permissions are confirmed
-      _debugLog('✅ Permissions granted, initializing Agora engine...');
-      _debugLog('🎥 Initializing camera...');
-
-      //create the engine
-      _engine = createAgoraRtcEngine();
-      await _engine.initialize(
-        RtcEngineContext(
-          logConfig: LogConfig(
-            filePath: 'agora_rtc_engine.log',
-            level: LogLevel.logLevelNone,
-          ),
-          appId: dotenv.env['AGORA_APP_ID'] ?? '',
-          channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
-        ),
-      );
-
-      setState(() {
-        _isInitializingCamera = false;
-      });
-
-      // Load camera preference and apply it
-      // Moved this to after video initialization
-      // await _applyCameraPreference();
-    } catch (e) {
-      debugPrint('❌ Error in initAgora: $e');
-      _showSnackBar('❌ Failed to initialize live streaming', Colors.red);
-      setState(() {
-        _isInitializingCamera = false;
-      });
-      return;
-    }
-
-    _engine.registerEventHandler(
-      RtcEngineEventHandler(
-        onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
-          debugPrint(
-            "local user ${connection.localUid} joined channel: ${connection.channelId}",
-          );
-          setState(() {
-            _localUserJoined = true;
-            _isVideoConnecting = true; // Start video connection process
-            // Don't set _remoteUid here - it should only be set when a remote user joins
-          });
-
-          // Apply camera preference AFTER successfully joining the channel
-          debugPrint('🔍 onJoinChannelSuccess - isHost: $isHost');
-          if (isHost) {
-            debugPrint(
-              '🔍 Calling _applyCameraPreference() from onJoinChannelSuccess',
-            );
-            _applyCameraPreference();
-
-            // For hosts, local video should be ready after camera setup
-            Future.delayed(Duration(milliseconds: 500), () {
-              if (mounted) {
-                setState(() {
-                  _isLocalVideoReady = true;
-                  _isVideoReady = true;
-                  _isVideoConnecting = false;
-                });
-                debugPrint('✅ Local video ready for host');
-              }
-            });
-          } else {
-            debugPrint('🔍 Not applying camera preference - user is not host');
-          }
-
-          // ✅ Stream timer now managed by LiveStreamBloc automatically
-          // No need to start timer here
-
-          // Show success message
-          if (isHost) {
-            _debugLog('🎥 Live stream started!');
-          } else {
-            _debugLog('📺 Connected to stream!');
-          }
-        },
-        onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
-          // Reduced logging: only log important events
-          _debugLog("User $remoteUid joined channel");
-
-          setState(() {
-            // For viewers, set _remoteUid to the first user (likely the host)
-            // But don't assume it's always the host since join order can vary
-            if (_remoteUid == null && !isHost) {
-              _remoteUid = remoteUid;
-              debugPrint("🎯 Set _remoteUid to first joined user: $remoteUid");
-            }
-            _remoteUsers.add(remoteUid);
-          });
-
-          // Update viewer count in Firestore
-          if (isHost) {
-            // _firestoreService.updateViewerCount(widget.streamId, _viewerCount);
-          }
-        },
-        onRemoteVideoStateChanged:
-            (
-              RtcConnection connection,
-              int remoteUid,
-              RemoteVideoState state,
-              RemoteVideoStateReason reason,
-              int elapsed,
-            ) {
-              // Track remote video state for better user experience
-              debugPrint(
-                '📹 Remote video state changed: $state for UID: $remoteUid',
-              );
-
-              setState(() {
-                if (state == RemoteVideoState.remoteVideoStateStarting ||
-                    state == RemoteVideoState.remoteVideoStateDecoding) {
-                  // User enabled video
-                  if (!_videoCallerUids.contains(remoteUid) &&
-                      remoteUid != _remoteUid) {
-                    _videoCallerUids.add(remoteUid);
-                  }
-
-                  // Mark remote video as ready when decoding starts
-                  if (state == RemoteVideoState.remoteVideoStateDecoding) {
-                    // For viewers, any video broadcaster (host or caller) should trigger video readiness
-                    // This fixes the issue where only the first joiner's video would be considered "ready"
-                    if (!isHost) {
-                      _isVideoReady = true;
-                      _isVideoConnecting = false;
-                      debugPrint(
-                        '✅ Remote video ready for viewer (UID: $remoteUid)',
-                      );
-                    }
-                  }
-                } else if (state == RemoteVideoState.remoteVideoStateStopped) {
-                  // User disabled video
-                  _videoCallerUids.remove(remoteUid);
-
-                  // Add to audio callers if they're still broadcasting audio
-                  if (!_audioCallerUids.contains(remoteUid) &&
-                      remoteUid != _remoteUid &&
-                      _audioCallerUids.length < _maxAudioCallers) {
-                    _audioCallerUids.add(remoteUid);
-                  }
-                }
-              });
-            },
-        onRemoteAudioStateChanged:
-            (
-              RtcConnection connection,
-              int remoteUid,
-              RemoteAudioState state,
-              RemoteAudioStateReason reason,
-              int elapsed,
-            ) {
-              // Reduced logging for audio state changes
-
-              // Track audio-only users (audio callers)
-              if (state == RemoteAudioState.remoteAudioStateStarting ||
-                  state == RemoteAudioState.remoteAudioStateDecoding) {
-                setState(() {
-                  // Add to audio callers if not already present and not the host
-                  if (!_audioCallerUids.contains(remoteUid) &&
-                      remoteUid != _remoteUid &&
-                      _audioCallerUids.length < _maxAudioCallers) {
-                    _audioCallerUids.add(remoteUid);
-
-                    // For audio-only broadcasters (non-host), mark them as ready immediately
-                    // since they won't have video and shouldn't show loading indicators
-                    if (remoteUid != _remoteUid && !isHost) {
-                      debugPrint(
-                        '✅ Audio-only broadcaster $remoteUid marked as ready',
-                      );
-                    }
-                  }
-                });
-              } else if (state == RemoteAudioState.remoteAudioStateStopped) {
-                setState(() {
-                  _audioCallerUids.remove(remoteUid);
-                });
-              }
-            },
-        onUserOffline:
-            (
-              RtcConnection connection,
-              int remoteUid,
-              UserOfflineReasonType reason,
-            ) {
-              _debugLog("User $remoteUid left channel");
-              setState(() {
-                // Remove from both audio and video callers if they were callers
-                _audioCallerUids.remove(remoteUid);
-                _videoCallerUids.remove(remoteUid);
-
-                // Only set _remoteUid to null if it was the host who left
-                if (_remoteUid == remoteUid) {
-                  _remoteUid = null;
-                }
-                _remoteUsers.remove(remoteUid);
-              });
-
-              // Update viewer count in Firestore
-              if (isHost) {
-                // _firestoreService.updateViewerCount(
-                //   widget.streamId,
-                //   _viewerCount,
-                // );
-              }
-            },
-        onTokenPrivilegeWillExpire: (RtcConnection connection, String token) {
-          debugPrint(
-            '[onTokenPrivilegeWillExpire] connection: ${connection.toJson()}, token: $token',
-          );
-        },
-      ),
-    );
-    await _engine.setClientRole(
-      role: isHost
-          ? ClientRoleType.clientRoleBroadcaster
-          : ClientRoleType.clientRoleAudience,
-    );
-
-    // Optimize video settings for better performance and stability
-    await _engine.enableVideo();
-    await _engine.setVideoEncoderConfiguration(
-      const VideoEncoderConfiguration(
-        dimensions: VideoDimensions(width: 640, height: 360),
-        frameRate: 15,
-        bitrate: 400,
-      ),
-    );
-
-    // Only start preview for broadcasters with error handling
-    if (isHost) {
-      try {
-        // Apply saved camera preference immediately for preview
-        await _applyCameraPreference();
-        await _engine.startPreview();
-        debugPrint('✅ Video preview started successfully');
-      } catch (e) {
-        debugPrint('⚠️ Preview start failed: $e');
-        // Continue without preview - video will start when joining channel
-      }
-    }
-
-    // For viewers, join channel immediately
-    // For hosts, wait for room creation to set dynamic roomId
-    if (!isHost) {
-      await _joinChannelWithDynamicToken();
-    }
-  }
-
-  /// Generate dynamic token and join Agora channel
-  Future<void> _joinChannelWithDynamicToken() async {
-    try {
-      if (userId == null) {
-        debugPrint('User ID is null, cannot generate token');
-        _showSnackBar('❌ User not authenticated', Colors.red);
-        return;
-      }
-
-      // _showSnackBar('🔑 Generating access token...', Colors.blue);
-      debugPrint('🔑 Generating access token...');
-
-      // Generate token using the API
-      // final result = await _liveStreamService.generateAgoraToken(
-      //   channelName: roomId, // Use the room ID as channel name
-      //   uid: userId!, // Use the user ID
-      // );
-      final result = await AgoraTokenService.getRtcToken(
-        channelName: roomId,
-        role: isHost ? 'publisher' : 'subscriber',
-      );
-      debugPrint('💲💲Token generation result new: ${result.token}');
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('agora_token', result.token);
-      if (result.token.isNotEmpty) {
-        final dynamicToken = result.token;
-        debugPrint('✅ Token generated successfully : $dynamicToken');
-
-        // _showSnackBar('📡 Joining live stream...', Colors.blue);
-        debugPrint('📡 Joining live stream...');
-
-        // Join channel with dynamic token
-        await _engine.joinChannel(
-          token: dynamicToken,
-          channelId: roomId, // Use the room ID as channel
-          uid: 0, // Let Agora assign UID
-          options: const ChannelMediaOptions(),
-        );
-      } else {
-        debugPrint('Failed to generate token: ${result.success}');
-        _showSnackBar(
-          '❌ Token generation failed, using fallback',
-          Colors.orange,
-        );
-        // Fallback to static token
-        await _joinChannelWithStaticToken();
-      }
-    } catch (e) {
-      debugPrint('Error generating token: $e');
-      _showSnackBar('❌ Connection error, using fallback', Colors.orange);
-      // Fallback to static token
-      await _joinChannelWithStaticToken();
-    }
-  }
-
-  /// Fallback method to join with static token
-  Future<void> _joinChannelWithStaticToken() async {
-    debugPrint('Using fallback static token');
-    await _engine.joinChannel(
-      token: dotenv.env['AGORA_TOKEN'] ?? '',
-      channelId: dotenv.env['DEFAULT_CHANNEL'] ?? 'default_channel',
-      uid: 0,
-      options: const ChannelMediaOptions(),
-    );
-  }
-
-  /// Promote viewer to audio caller (join audio call)
-  Future<void> _promoteToAudioCaller() async {
-    if (_isAudioCaller) {
-      _showSnackBar('🎤 You are already an audio caller', Colors.orange);
-      return;
-    }
-
-    if (_audioCallerUids.length >= _maxAudioCallers) {
-      _showSnackBar('🎤 Audio call is full ($_maxAudioCallers/3)', Colors.red);
-      return;
-    }
-
-    if (_isJoiningAsAudioCaller) {
-      _showSnackBar('🎤 Please wait, joining audio call...', Colors.blue);
-      return;
-    }
-
-    try {
-      setState(() {
-        _isJoiningAsAudioCaller = true;
-      });
-
-      _showSnackBar('🎤 Joining audio call...', Colors.blue);
-
-      // DON'T leave channel - just change role and settings
-      // This prevents video freezing for the user
-      await _switchToAudioCaller();
-
-      setState(() {
-        _isAudioCaller = true;
-        // _muted = false; // ✅ Removed - mic state managed by LiveStreamBloc
-        _isJoiningAsAudioCaller = false;
-      });
-      
-      // ✅ Ensure microphone is enabled via BLoC
-      final liveState = context.read<LiveStreamBloc>().state;
-      if (liveState is LiveStreamStreaming && !liveState.isMicEnabled) {
-        context.read<LiveStreamBloc>().add(ToggleMicrophone());
-      }
-
-      _showSnackBar('🎤 Joined as audio caller!', Colors.green);
-      debugPrint("Successfully promoted to audio caller");
-    } catch (e) {
-      debugPrint('❌ Error promoting to audio caller: $e');
-      _showSnackBar('❌ Failed to join audio call', Colors.red);
-      setState(() {
-        _isJoiningAsAudioCaller = false;
-      });
-    }
-  }
-
-  /// Leave audio caller role and return to audience
-  Future<void> _leaveAudioCaller() async {
-    if (!_isAudioCaller) {
-      return;
-    }
-
-    try {
-      _showSnackBar('🎤 Leaving audio call...', Colors.blue);
-
-      // DON'T leave channel - just change role and settings
-      // This prevents video freezing for the user
-      await _switchToAudience();
-
-      setState(() {
-        _isAudioCaller = false;
-        // _muted = true; // ✅ Removed - mic state managed by LiveStreamBloc
-      });
-      
-      // ✅ Ensure microphone is muted via BLoC when returning to audience
-      final liveState = context.read<LiveStreamBloc>().state;
-      if (liveState is LiveStreamStreaming && liveState.isMicEnabled) {
-        context.read<LiveStreamBloc>().add(ToggleMicrophone());
-      }
-
-      _showSnackBar('👥 Returned to audience', Colors.green);
-      debugPrint("Successfully left audio caller role");
-    } catch (e) {
-      debugPrint('❌ Error leaving audio caller: $e');
-      _showSnackBar('❌ Failed to leave audio call', Colors.red);
-    }
-  }
-
-  /// Check if user can become audio caller
-  bool _canJoinAudioCall() {
-    return !isHost &&
-        !_isAudioCaller &&
-        _audioCallerUids.length < _maxAudioCallers &&
-        !_isJoiningAsAudioCaller;
-  }
-
-  /// Get audio caller count text
-  String _getAudioCallerText() {
-    return 'Join';
-  }
-
-  /// Switch Camera
-  // ignore: unused_element
-  Future<void> _turnOnOffCamera() async {
-    try {
-      if (_isInitializingCamera) {
-        debugPrint('Camera is still initializing, please wait...');
-        return;
-      }
-
-      if (!_isAudioCaller) {
-        _showSnackBar(
-          '🎤 Only audio callers can control camera',
-          Colors.orange,
-        );
-        return;
-      }
-
-      // ✅ Dispatch BLoC event instead of setState
-      context.read<LiveStreamBloc>().add(ToggleCamera());
-      
-      // Note: Agora SDK calls moved to BlocListener
-    } catch (e) {
-      debugPrint('❌ Error toggling camera: $e');
-      _showSnackBar('❌ Failed to toggle camera', Colors.red);
-    }
-  }
-
-  /// Optimized role switching without channel interruption
-  Future<void> _switchToAudioCaller() async {
-    try {
-      // Set role to broadcaster to enable audio publishing
-      await _engine.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
-
-      // Configure media settings for audio caller
-      await _engine.enableLocalAudio(true); // Enable audio publishing
-      await _engine.enableLocalVideo(false); // Start with video disabled
-      await _engine.muteLocalVideoStream(
-        true,
-      ); // Ensure video is muted initially
-      await _engine.muteLocalAudioStream(false); // Unmute microphone
-
-      // ✅ Reset camera state to false for audio callers via BLoC
-      final liveState = context.read<LiveStreamBloc>().state;
-      if (liveState is LiveStreamStreaming && liveState.isCameraEnabled) {
-        context.read<LiveStreamBloc>().add(ToggleCamera());
-      }
-
-      debugPrint(
-        "✅ Switched to audio caller role without channel interruption",
-      );
-    } catch (e) {
-      debugPrint("❌ Error switching to audio caller: $e");
-      rethrow;
-    }
-  }
-
-  /// Optimized role switching back to audience
-  Future<void> _switchToAudience() async {
-    try {
-      // Set role back to audience
-      await _engine.setClientRole(role: ClientRoleType.clientRoleAudience);
-
-      // Configure media settings for audience
-      await _engine.enableLocalAudio(false); // Disable audio publishing
-      await _engine.enableLocalVideo(false); // Keep video disabled for audience
-      await _engine.muteLocalAudioStream(true); // Mute microphone
-
-      // ✅ Reset camera state via BLoC
-      final liveState = context.read<LiveStreamBloc>().state;
-      if (liveState is LiveStreamStreaming && liveState.isCameraEnabled) {
-        context.read<LiveStreamBloc>().add(ToggleCamera());
-      }
-
-      debugPrint(
-        "✅ Switched back to audience role without channel interruption",
-      );
-    } catch (e) {
-      debugPrint("❌ Error switching to audience: $e");
-      rethrow;
-    }
-  }
-
-  // Toggle microphone
-  void _toggleMute() async {
-    if (isHost || _isAudioCaller) {
-      // ✅ Dispatch BLoC event instead of setState
-      context.read<LiveStreamBloc>().add(ToggleMicrophone());
-      
-      // Note: Agora SDK calls and snackbar moved to BlocListener
-    } else {
-      _showSnackBar(
-        '🎤 Only hosts and audio callers can use microphone',
-        Colors.orange,
-      );
-    }
   }
 
   // ✅ DEPRECATED: Stream timer now managed by LiveStreamBloc
@@ -1675,100 +792,69 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   // End live stream
   void _endLiveStream() async {
     try {
-      // ✅ Capture context and auth state IMMEDIATELY before any async operations
+      final sessionCubit = context.read<LiveSessionCubit>();
+      final liveStreamBloc = context.read<LiveStreamBloc>();
+      final sessionState = sessionCubit.state;
+      final isHostSession = sessionState.isHost;
+      final authState = context.read<AuthBloc>().state;
+      final auth = authState is AuthAuthenticated ? authState : null;
       final canNavigate = mounted;
-      AuthState? authState;
-      if (canNavigate) {
-        authState = context.read<AuthBloc>().state;
-      }
-      
-      debugPrint("🔍 _endLiveStream: isHost=$isHost, canNavigate=$canNavigate, authState=$authState");
-      
-      // ✅ Timer now managed by LiveStreamBloc - will auto-cancel on EndLiveStream event
 
-      // Reset audio caller state - only if widget is still mounted
-      if (mounted) {
-        setState(() {
-          _isAudioCaller = false;
-          _audioCallerUids.clear();
-          _videoCallerUids.clear();
-          _isJoiningAsAudioCaller = false;
-          // isCameraEnabled = false; // ✅ Removed - managed by LiveStreamBloc
-        });
+      final liveStateBeforeEnd = liveStreamBloc.state;
+
+      await sessionCubit.endSession(notifyServer: false);
+
+      if (isHostSession) {
+        liveStreamBloc.add(const EndLiveStream());
       } else {
-        // Update without setState if not mounted
-        _isAudioCaller = false;
-        _audioCallerUids.clear();
-        _videoCallerUids.clear();
-        _isJoiningAsAudioCaller = false;
-        // isCameraEnabled = false; // ✅ Removed - managed by LiveStreamBloc
+        liveStreamBloc.add(const LeaveRoom());
       }
 
-      if (isHost) {
-        // If host, delete the room
-        await _deleteRoom();
-      } else {
-        // If viewer, leave the room
-        await _leaveRoom();
+      if (!canNavigate) {
+        return;
       }
-      
-      // ✅ Use captured state instead of accessing context again
-      if (isHost && canNavigate && authState is AuthAuthenticated) {
-        debugPrint("✅ Host navigating to summary screen");
-        
-        // ✅ Call daily bonus API on stream end via BLoC
-        if (mounted) {
-          context.read<LiveStreamBloc>().add(const CallDailyBonus(isStreamEnd: true));
-        }
 
-        // Calculate total earned diamonds/coins
+      if (isHostSession && auth != null) {
+        context
+            .read<LiveStreamBloc>()
+            .add(const CallDailyBonus(isStreamEnd: true));
+
+        final giftState = context.read<GiftBloc>().state;
         int earnedDiamonds = 0;
         int totalGifts = 0;
-        final giftState = context.read<GiftBloc>().state;
-        if (giftState is GiftLoaded && userId != null) {
+        if (giftState is GiftLoaded) {
           earnedDiamonds = GiftModel.totalDiamondsForHost(
             giftState.gifts,
-            userId!,
+            auth.user.id,
           );
           totalGifts = giftState.gifts.length;
         }
 
-        debugPrint(
-          "🏆 Host ending live stream - Total earned diamonds: $earnedDiamonds",
-        );
-        debugPrint("📊 Total gifts received: $totalGifts");
+        final totalDuration = liveStateBeforeEnd is LiveStreamStreaming
+            ? liveStateBeforeEnd.duration
+            : _streamDuration;
 
-        // ✅ Check mounted one more time before final navigation
-        if (mounted) {
-          debugPrint("📍 About to navigate to liveSummary");
-          context.go(
-            AppRoutes.liveSummary,
-            extra: {
-              'userName': authState.user.name,
-              'userId': authState.user.id.substring(0, 6),
-              'earnedPoints': earnedDiamonds, // Pass actual earned diamonds
-              'newFollowers': 0,
-              'totalDuration': _formatDuration(_streamDuration),
-              'userAvatar': authState.user.avatar,
-            },
-          );
-        } else {
-          debugPrint("⚠️ Widget not mounted, cannot navigate to summary");
-        }
-      } else if (!isHost && canNavigate) {
-        debugPrint("✅ Viewer navigating back");
-        // If viewer, just navigate back
-        if (mounted) {
-          context.go("/");
-        }
-      } else {
-        debugPrint("⚠️ Cannot navigate: isHost=$isHost, canNavigate=$canNavigate, authState=$authState");
+        context.go(
+          AppRoutes.liveSummary,
+          extra: {
+            'userName': auth.user.name,
+            'userId': auth.user.id.substring(0, 6),
+            'earnedPoints': earnedDiamonds,
+            'newFollowers': 0,
+            'totalDuration': _formatDuration(totalDuration),
+            'userAvatar': auth.user.avatar,
+            'totalGifts': totalGifts,
+          },
+        );
+        return;
+      }
+
+      if (!isHostSession) {
+        context.go('/');
       }
     } catch (e) {
       debugPrint('❌ Error in _endLiveStream: $e');
-      // Only pop if we didn't already navigate
       if (mounted) {
-        debugPrint('📍 Fallback: popping due to error');
         Navigator.of(context).pop();
       }
     }
@@ -1778,6 +864,65 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   Widget build(BuildContext context) {
     return MultiBlocListener(
       listeners: [
+        BlocListener<LiveSessionCubit, LiveSessionState>(
+          listenWhen: (previous, current) => previous.snackBar != current.snackBar,
+          listener: (context, state) {
+            final snackBar = state.snackBar;
+            if (snackBar == null) {
+              return;
+            }
+
+            Color color;
+            switch (snackBar.type) {
+              case LiveSessionSnackBarType.success:
+                color = Colors.green;
+                break;
+              case LiveSessionSnackBarType.error:
+                color = Colors.red;
+                break;
+              case LiveSessionSnackBarType.warning:
+                color = Colors.orange;
+                break;
+              case LiveSessionSnackBarType.info:
+                color = Colors.blueGrey;
+                break;
+            }
+
+            _showSnackBar(snackBar.message, color);
+            context.read<LiveSessionCubit>().clearSnackBar();
+          },
+        ),
+        BlocListener<LiveSessionCubit, LiveSessionState>(
+          listenWhen: (previous, current) =>
+              previous.forceExitReason != current.forceExitReason,
+          listener: (context, state) {
+            final reason = state.forceExitReason;
+            if (reason != null && reason.isNotEmpty) {
+              _handleHostDisconnection(reason);
+              context.read<LiveSessionCubit>().clearForceExitReason();
+            }
+          },
+        ),
+        BlocListener<LiveSessionCubit, LiveSessionState>(
+          listenWhen: (previous, current) =>
+              previous.currentRoomId != current.currentRoomId,
+          listener: (context, state) {
+            final roomId = state.currentRoomId;
+            if (roomId != null && roomId.isNotEmpty) {
+              context.read<LiveStreamBloc>().add(UpdateActiveRoom(roomId));
+            }
+          },
+        ),
+        BlocListener<LiveSessionCubit, LiveSessionState>(
+          listenWhen: (previous, current) =>
+              previous.status != current.status &&
+              current.status == LiveSessionStatus.error,
+          listener: (context, state) {
+            if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
+              _showSnackBar('❌ ${state.errorMessage}', Colors.red);
+            }
+          },
+        ),
         BlocListener<CallRequestBloc, CallRequestState>(
           listener: (context, state) {
             if (state is CallRequestLoaded) {
@@ -1851,39 +996,38 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
           },
           listener: (context, state) async {
             if (state is LiveStreamStreaming) {
-              // Handle camera toggle
-              if (_localUserJoined) {
+              final sessionCubit = context.read<LiveSessionCubit>();
+              final sessionState = sessionCubit.state;
+
+              if (sessionState.localUserJoined) {
                 try {
-                  await _engine.enableLocalVideo(state.isCameraEnabled);
-                  await _engine.muteLocalVideoStream(!state.isCameraEnabled);
-                  
+                  await sessionCubit.applyCameraState(state.isCameraEnabled);
+
                   if (state.isCameraEnabled) {
-                    debugPrint('📷 Camera turned on');
                     _showSnackBar(
                       '📷 Camera turned on - You are now visible!',
                       Colors.green,
                     );
                   } else {
-                    debugPrint('📷 Camera turned off');
-                    _showSnackBar('📷 Camera turned off - Audio only mode', Colors.orange);
+                    _showSnackBar(
+                      '📷 Camera turned off - Audio only mode',
+                      Colors.orange,
+                    );
                   }
-                } catch (e) {
-                  debugPrint('❌ Error applying camera state: $e');
+                } catch (error) {
+                  debugPrint('❌ Error applying camera state: $error');
                 }
-              }
-              
-              // Handle microphone toggle
-              if (_localUserJoined) {
+
                 try {
-                  await _engine.muteLocalAudioStream(!state.isMicEnabled);
-                  
+                  await sessionCubit.applyMicrophoneState(state.isMicEnabled);
+
                   if (!state.isMicEnabled) {
                     _showSnackBar('🔇 Microphone muted', Colors.orange);
                   } else {
                     _showSnackBar('🎤 Microphone unmuted', Colors.green);
                   }
-                } catch (e) {
-                  debugPrint('❌ Error applying microphone state: $e');
+                } catch (error) {
+                  debugPrint('❌ Error applying microphone state: $error');
                 }
               }
             }
@@ -1914,10 +1058,11 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
               ),
             );
           } else {
+            final sessionState = context.watch<LiveSessionCubit>().state;
             return Scaffold(
               body: Stack(
                 children: [
-                  _buildVideoView(),
+                  _buildVideoView(sessionState),
 
                   // ✅ Gift animation with BlocBuilder
                   if (_animationPlaying) 
@@ -2209,9 +1354,12 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                             iconPath:
                                                 "assets/icons/call_icon.png",
                                             onTap: () {
-                                              if (_audioCallerUids.isNotEmpty) {
+                                              final audioCallerCount =
+                                                  sessionState
+                                                      .audioCallerUids.length;
+                                              if (audioCallerCount > 0) {
                                                 _showSnackBar(
-                                                  '🎤 ${_audioCallerUids.length} audio caller${_audioCallerUids.length > 1 ? 's' : ''} connected',
+                                                  '🎤 $audioCallerCount audio caller${audioCallerCount > 1 ? 's' : ''} connected',
                                                   Colors.green,
                                                 );
                                               } else {
@@ -2569,6 +1717,15 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
 
                         if (!isHost) {
                           children.add(SizedBox(height: 80.h));
+
+                          final isJoiningRequestPending = userId != null &&
+                              _knownPendingRequestIds.contains(userId);
+                          final isAudioCaller = sessionState.isAudioCaller;
+                          final canJoinAudioCall =
+                              _canJoinAudioCall(sessionState);
+                          final maxAudioCallers =
+                              LiveSessionState.maxAudioCallers;
+
                           if (displayBroadcasters.isNotEmpty) {
                             children.add(
                               Container(
@@ -2582,7 +1739,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                   borderRadius: BorderRadius.circular(15.r),
                                 ),
                                 child: Text(
-                                  '🎤 ${displayBroadcasters.length}/$_maxAudioCallers',
+                                  '🎤 ${displayBroadcasters.length}/$maxAudioCallers',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 12.sp,
@@ -2596,7 +1753,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                           children.add(
                             GestureDetector(
                               onTap: () {
-                                if (_isJoiningAsAudioCaller) {
+                                if (isJoiningRequestPending) {
                                   _showSnackBar(
                                     '🎤 Please wait...',
                                     Colors.orange,
@@ -2604,7 +1761,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                   return;
                                 }
 
-                                if (_isAudioCaller) {
+                                if (isAudioCaller) {
                                   final currentUserId = userId;
                                   if (currentUserId == null ||
                                       currentUserId.isEmpty ||
@@ -2632,6 +1789,14 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                     return;
                                   }
 
+                                  if (!canJoinAudioCall) {
+                                    _showSnackBar(
+                                      '🎤 Audio call is full',
+                                      Colors.red,
+                                    );
+                                    return;
+                                  }
+
                                   callRequestBloc.add(
                                     SubmitJoinCallRequest(
                                       roomId: currentRoomId,
@@ -2652,18 +1817,18 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                   borderRadius: BorderRadius.all(
                                     Radius.circular(8.r),
                                   ),
-                                  color: _isJoiningAsAudioCaller
+                                  color: isJoiningRequestPending
                                       ? Colors.grey
-                                      : _isAudioCaller
+                                      : isAudioCaller
                                           ? Colors.orange
-                                          : _canJoinAudioCall()
+                                          : canJoinAudioCall
                                               ? const Color(0xFFFEB86F)
                                               : const Color(0xFFFEB86F),
                                 ),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    _isJoiningAsAudioCaller
+                                    isJoiningRequestPending
                                         ? SizedBox(
                                             width: 40.w,
                                             height: 40.h,
@@ -2678,12 +1843,12 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                             width: 40.w,
                                           ),
                                     Text(
-                                      _isJoiningAsAudioCaller
+                                      isJoiningRequestPending
                                           ? 'Joining'
-                                          : _isAudioCaller
+                                          : isAudioCaller
                                               ? 'Leave'
-                                              : _canJoinAudioCall()
-                                                  ? _getAudioCallerText()
+                                              : canJoinAudioCall
+                                                  ? _getAudioCallerText(sessionState)
                                                   : 'Call Full',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
@@ -2719,203 +1884,142 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   }
 
   // Main video view with multi-broadcaster support
-  Widget _buildVideoView() {
-    // Show loading indicator during camera initialization
-    if (_isInitializingCamera) {
+  Widget _buildVideoView(LiveSessionState sessionState) {
+    final isInitializing =
+        sessionState.status == LiveSessionStatus.initializingAgora;
+
+    if (isInitializing) {
       return Container(
         color: Colors.black,
-        child: Center(
+        child: const Center(
           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
         ),
       );
     }
 
-    // Show connecting indicator while video is establishing
-    if (_isVideoConnecting && !_isVideoReady) {
+    if (sessionState.isVideoConnecting && !sessionState.isVideoReady) {
       return Container(
         color: Colors.black,
-        child: Center(
+        child: const Center(
+          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+        ),
+      );
+    }
+
+    if (sessionState.engine == null) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
         ),
       );
     }
 
     if (isHost) {
-      // Host view with multi-broadcaster layout
-      return _buildHostMultiView();
-    } else {
-      // Audience view with multi-broadcaster layout
-      return _buildAudienceMultiView();
+      return _buildHostMultiView(sessionState);
     }
+    return _buildAudienceMultiView(sessionState);
   }
 
   /// Build multi-broadcaster view for host
-  Widget _buildHostMultiView() {
-    // Get all video broadcasters (video callers)
-    List<int> allVideoBroadcasters = [
-      if (_localUserJoined) 0, // Host's own video (UID 0)
-      ..._videoCallerUids, // Video callers
+  Widget _buildHostMultiView(LiveSessionState sessionState) {
+    final allVideoBroadcasters = <int>[
+      if (sessionState.localUserJoined) 0,
+      ...sessionState.videoCallerUids,
     ];
 
-    if (allVideoBroadcasters.isEmpty || !_localUserJoined) {
+    if (allVideoBroadcasters.isEmpty || !sessionState.localUserJoined) {
       return Container(
         color: Colors.black,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(color: Colors.white),
-              // SizedBox(height: 20.h),
-              // Text(
-              //   '📡 Connecting to stream...',
-              //   style: TextStyle(
-              //     color: Colors.white,
-              //     fontSize: 18.sp,
-              //     fontWeight: FontWeight.w500,
-              //   ),
-              // ),
-            ],
-          ),
+        child: const Center(
+          child: CircularProgressIndicator(color: Colors.white),
         ),
       );
     }
 
-    return _buildMultiVideoLayout(allVideoBroadcasters, isHostView: true);
+    return _buildMultiVideoLayout(
+      sessionState,
+      allVideoBroadcasters,
+      isHostView: true,
+    );
   }
 
   /// Build multi-broadcaster view for audience
-  Widget _buildAudienceMultiView() {
-    // ✅ Get camera state from BLoC
+  Widget _buildAudienceMultiView(LiveSessionState sessionState) {
     final liveState = context.read<LiveStreamBloc>().state;
-    final isCameraEnabled = liveState is LiveStreamStreaming 
-        ? liveState.isCameraEnabled 
-        : false;
-    
-    // Get all video broadcasters including all remote users who could have video
-    List<int> allVideoBroadcasters = [
-      // Include all remote users as potential video sources
-      ..._remoteUsers,
-      if (_isAudioCaller && isCameraEnabled)
-        0, // Own video if audio caller with camera on
+    final isCameraEnabled =
+        liveState is LiveStreamStreaming ? liveState.isCameraEnabled : false;
+
+    final allVideoBroadcasters = <int>[
+      ...sessionState.remoteUsers,
+      if (sessionState.isAudioCaller && isCameraEnabled) 0,
     ];
 
-    // For viewers, show video if any remote users are present and video is ready
-    // OR if we're still connecting but have remote users
-    bool shouldShowVideo =
-        allVideoBroadcasters.isNotEmpty && (_isVideoReady || _localUserJoined);
+    final shouldShowVideo = allVideoBroadcasters.isNotEmpty &&
+        (sessionState.isVideoReady || sessionState.localUserJoined);
 
     if (!shouldShowVideo) {
-      // Start host disconnection monitoring when no video broadcasters are present
-      if (!isHost) {
-        _startHostDisconnectionMonitoring(); //TODO: Implement host disconnection monitoring
-      }
-
       return Container(
         color: Colors.black,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-              // SizedBox(height: 20.h),
-              // Text(
-              //   'Host is disconnected',
-              //   textAlign: TextAlign.center,
-              //   style: TextStyle(
-              //     color: Colors.white,
-              //     fontSize: 18.sp,
-              //     fontWeight: FontWeight.w500,
-              //   ),
-              // ),
-              // SizedBox(height: 10.h),
-              // Text(
-              //   'Please wait...',
-              //   textAlign: TextAlign.center,
-              //   style: TextStyle(color: Colors.grey, fontSize: 14),
-              // ),
-            ],
-          ),
+        child: const Center(
+          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
         ),
       );
-    } else {
-      // Cancel host disconnection monitoring if video broadcasters are present
-      if (_hostActivityTimer != null) {
-        _hostActivityTimer?.cancel();
-        _hostActivityTimer = null;
-      }
     }
 
-    return _buildMultiVideoLayout(allVideoBroadcasters, isHostView: false);
+    return _buildMultiVideoLayout(
+      sessionState,
+      allVideoBroadcasters,
+      isHostView: false,
+    );
   }
 
   /// Build dynamic multi-video layout based on number of broadcasters
   Widget _buildMultiVideoLayout(
+    LiveSessionState sessionState,
     List<int> broadcasterUids, {
     required bool isHostView,
   }) {
-    // Since only host shows video and others are audio-only callers,
-    // always prioritize host's video and show it in full screen
+    final displayUid = isHost
+        ? 0
+        : (broadcasterUids.isNotEmpty ? broadcasterUids.first : 0);
 
-    // Find the best UID to display
-    int displayUid;
-    if (isHost) {
-      displayUid = 0; // Local video for host
-    } else {
-      // For viewers, use the first available remote user
-      // This could be host or any broadcaster with video
-      displayUid = broadcasterUids.isNotEmpty ? broadcasterUids[0] : 0;
-    }
-
-    return _buildSingleVideoView(displayUid, isHostView: isHostView);
+    return _buildSingleVideoView(
+      sessionState,
+      displayUid,
+      isHostView: isHostView,
+    );
   }
 
   /// Single broadcaster view with video readiness checks
-  Widget _buildSingleVideoView(int uid, {required bool isHostView}) {
+  Widget _buildSingleVideoView(
+    LiveSessionState sessionState,
+    int uid, {
+    required bool isHostView,
+  }) {
+    final engine = sessionState.engine;
+    if (engine == null) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+        ),
+      );
+    }
+
     if (uid == 0) {
-      // Local video (host or audio caller with camera)
       return Stack(
         children: [
-          // Video view
           AgoraVideoView(
             controller: VideoViewController(
-              rtcEngine: _engine,
+              rtcEngine: engine,
               canvas: const VideoCanvas(uid: 0),
             ),
           ),
-          // Show loading overlay if local video is not ready
-          if (!_isLocalVideoReady && isHost)
+          if (!sessionState.isLocalVideoReady && isHost)
             Container(
               color: Colors.black.withValues(alpha: 0.8),
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
-              ),
-            ),
-        ],
-      );
-    } else {
-      // Remote video - always show video view for any remote user
-      // The video readiness is now handled globally, not per-user
-      bool shouldShowVideoLoading = !_isVideoReady && !isHost;
-
-      return Stack(
-        children: [
-          // Always show video view for remote users
-          // Let Agora handle which user's video is actually displayed
-          AgoraVideoView(
-            controller: VideoViewController.remote(
-              rtcEngine: _engine,
-              canvas: VideoCanvas(uid: uid),
-              connection: RtcConnection(channelId: roomId),
-            ),
-          ),
-          // Show loading overlay only when video is not ready
-          if (shouldShowVideoLoading)
-            Container(
-              color: Colors.black.withValues(alpha: 0.8),
-              child: Center(
+              child: const Center(
                 child: CircularProgressIndicator(
                   color: Colors.white,
                   strokeWidth: 2,
@@ -2925,57 +2029,51 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
         ],
       );
     }
+
+    final shouldShowVideoLoading =
+        !sessionState.isVideoReady && !isHost && !isHostView;
+
+    return Stack(
+      children: [
+        AgoraVideoView(
+          controller: VideoViewController.remote(
+            rtcEngine: engine,
+            canvas: VideoCanvas(uid: uid),
+            connection: RtcConnection(
+              channelId: sessionState.currentRoomId ?? roomId,
+            ),
+          ),
+        ),
+        if (shouldShowVideoLoading)
+          Container(
+            color: Colors.black.withValues(alpha: 0.8),
+            child: const Center(
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            ),
+          ),
+      ],
+    );
   }
 
   @override
   void dispose() {
     debugPrint("🧹 Disposing video live screen...");
-    
-    // ✅ Timer now managed by LiveStreamBloc - will auto-cleanup
-    _hostActivityTimer?.cancel();
 
-    // Cancel all stream subscriptions to prevent setState calls after disposal
-    _connectionStatusSubscription?.cancel();
-    _roomCreatedSubscription?.cancel();
-    _roomJoinedSubscription?.cancel();
-    _roomLeftSubscription?.cancel();
-    _roomDeletedSubscription?.cancel();
-    _errorSubscription?.cancel();
-
-    // Cancel additional socket stream subscriptions
-    _userJoinedSubscription?.cancel();
-    _userLeftSubscription?.cancel();
-    _sentMessageSubscription?.cancel();
-    _sentGiftSubscription?.cancel();
-
-    // Dispose other resources
     _titleController.dispose();
-    
-    // Cleanup Agora engine and resources without accessing context
-    _disposeAgoraEngine();
 
-    // ✅ Clear all state variables for next stream
     activeViewers.clear();
-  _knownPendingRequestIds.clear();
-  _knownBroadcasterIds.clear();
+    _knownPendingRequestIds.clear();
+    _knownBroadcasterIds.clear();
     bannedUsers.clear();
     bannedUserModels.clear();
     currentMuteState = null;
     adminModels.clear();
     _chatMessages.clear();
-    
+
     debugPrint("✅ Video live screen disposed");
     super.dispose();
-  }
-
-  /// Safely dispose Agora engine without accessing context
-  void _disposeAgoraEngine() {
-    try {
-      _engine.leaveChannel();
-      _engine.release();
-      debugPrint("✅ Agora engine disposed safely");
-    } catch (e) {
-      debugPrint("⚠️ Error disposing Agora engine: $e");
-    }
   }
 }

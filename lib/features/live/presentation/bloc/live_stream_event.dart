@@ -158,3 +158,13 @@ class MuteUser extends LiveStreamEvent {
   @override
   List<Object?> get props => [userId];
 }
+
+/// Update active room identifier after socket/agora setup
+class UpdateActiveRoom extends LiveStreamEvent {
+  final String roomId;
+
+  const UpdateActiveRoom(this.roomId);
+
+  @override
+  List<Object?> get props => [roomId];
+}

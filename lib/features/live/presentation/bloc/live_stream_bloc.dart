@@ -41,6 +41,7 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     on<CallDailyBonus>(_onCallDailyBonus);
     on<BanUser>(_onBanUser);
     on<UserBannedNotification>(_onUserBannedNotification);
+    on<UpdateActiveRoom>(_onUpdateActiveRoom);
   }
 
   Future<void> _onInitialize(
@@ -330,6 +331,17 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
           viewers: viewers,
         ));
       }
+    }
+  }
+
+  void _onUpdateActiveRoom(
+    UpdateActiveRoom event,
+    Emitter<LiveStreamState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is LiveStreamStreaming &&
+        currentState.roomId != event.roomId) {
+      emit(currentState.copyWith(roomId: event.roomId));
     }
   }
 
