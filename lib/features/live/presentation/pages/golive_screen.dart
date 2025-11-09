@@ -487,25 +487,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     context.read<LiveStreamBloc>().add(SeedInitialViewers(viewers));
   }
 
-  /// Update the CallManageBottomSheet with current data
-  void _updateCallManageBottomSheet() {
-    // Safely update bottom sheet only if it's still mounted and open
-  if (mounted && CallManageBottomSheet.bottomSheetKey.currentState != null) {
-      final callState = context.read<CallRequestBloc>().state;
-      final pendingRequests = callState is CallRequestLoaded
-          ? callState.pendingRequests
-          : const <CallRequestModel>[];
-      final activeBroadcasters = callState is CallRequestLoaded
-          ? callState.activeBroadcasters
-          : const <BroadcasterModel>[];
-
-  CallManageBottomSheet.bottomSheetKey.currentState?.updateData(
-        newCallers: pendingRequests,
-        newInCallList: activeBroadcasters,
-      );
-    }
-  }
-
   void _handleCallRequestState(CallRequestLoaded state) {
     final pendingRequests = state.pendingRequests;
     final activeBroadcasters = state.activeBroadcasters;
@@ -532,8 +513,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       ..addAll(pendingIds);
 
     _handleActiveBroadcasters(activeBroadcasters);
-
-    _updateCallManageBottomSheet();
   }
 
   void _handleActiveBroadcasters(List<BroadcasterModel> broadcasters) {
@@ -1389,8 +1368,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                                                 : <BroadcasterModel>[];
 
                                                         return CallManageBottomSheet(
-                                                          key: CallManageBottomSheet
-                                                              .bottomSheetKey,
                                                           onAcceptCall: (userId) {
                                                             debugPrint(
                                                               "Accepting call request from $userId",
@@ -1403,7 +1380,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                                                         '',
                                                               ),
                                                             );
-                                                            _updateCallManageBottomSheet();
                                                           },
                                                           onRejectCall: (userId) {
                                                             debugPrint(
@@ -1417,7 +1393,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                                                         '',
                                                               ),
                                                             );
-                                                            _updateCallManageBottomSheet();
                                                           },
                                                           onKickUser: (userId) {
                                                             callRequestBloc.add(
@@ -1431,7 +1406,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                                             debugPrint(
                                                               "Kicking user $userId from call",
                                                             );
-                                                            _updateCallManageBottomSheet();
                                                           },
                                                           callers: pendingRequests,
                                                           inCallList:
