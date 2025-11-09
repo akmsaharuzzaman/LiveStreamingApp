@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
-import 'package:dlstarlive/core/network/api_service.dart';
 import 'package:dlstarlive/core/network/models/broadcaster_model.dart';
 import 'package:dlstarlive/core/network/models/call_request_list_model.dart';
 import 'package:dlstarlive/core/network/models/call_request_model.dart';
@@ -125,7 +124,6 @@ class _GoliveScreenContent extends StatefulWidget {
 
 class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   final TextEditingController _titleController = TextEditingController();
-  final ApiService _apiService = ApiService.instance;
 
   // Debug helper method to control logging based on debug mode
   void _debugLog(String message) {
@@ -165,7 +163,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   // Daily bonus tracking - ✅ Now handled by LiveStreamBloc state
   // Kept for backward compatibility only
   int _lastBonusMilestone = 0;
-  int _totalBonusDiamonds = 0;
 
   // Configurable interval for bonus API calls (in minutes) - for debugging
   // Set to 1 for testing, 50 for production
@@ -232,7 +229,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     // ✅ Duration now managed by LiveStreamBloc
     _streamDuration = Duration.zero;
     _lastBonusMilestone = 0;
-    _totalBonusDiamonds = 0;
     _lastHostActivity = null;
     _animationPlaying = false;
     _currentRoomId = null;
@@ -256,8 +252,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
         );
       }
 
-      // Initialize bonus data
-      _totalBonusDiamonds = roomData.hostBonus;
+      // ✅ Bonus data now in LiveStreamBloc state
+      // roomData.hostBonus will be synced via BLoC initialization
 
       // Calculate last milestone based on existing duration to prevent duplicate API calls
       if (roomData.duration > 0) {
@@ -365,87 +361,9 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     }
   }
 
-  /// Debug method to print current diamond status
-  void _debugDiamondStatus() {
-    debugPrint("=== DIAMOND STATUS DEBUG ===");
-    debugPrint("🔍 Is host: $isHost");
-    debugPrint("🔍 Current user ID: $userId");
-    debugPrint("🏠 Widget host ID: ${widget.hostUserId}");
-    String? actualHostId = isHost ? userId : widget.hostUserId;
-    debugPrint("🏆 Actual host ID for calculation: $actualHostId");
-    debugPrint("📊 Total gifts received: ${sentGifts.length}");
-    debugPrint("👥 Active viewers count: ${activeViewers.length}");
-
-    for (var viewer in activeViewers) {
-      debugPrint(
-        "👤 ${viewer.name} (${viewer.id}): ${viewer.diamonds} diamonds",
-      );
-    }
-
-    debugPrint(
-      "🏆 Host total diamonds: ${GiftModel.totalDiamondsForHost(sentGifts, actualHostId)}",
-    );
-    debugPrint("=== END DEBUG ===");
-  }
-
-  /// Update diamonds for specific users when gifts are received
-  void _updateUserDiamonds(GiftModel gift) {
-    debugPrint(
-      "🎁 Processing gift: ${gift.gift.name} - ${gift.diamonds} diamonds",
-    );
-    debugPrint("🎯 Gift receiver IDs: ${gift.recieverIds}");
-    debugPrint("🏠 Widget host ID: ${widget.hostUserId}");
-    debugPrint("� Current user ID: $userId");
-    debugPrint("🔍 Is host: $isHost");
-    debugPrint("�👥 Current active viewers count: ${activeViewers.length}");
-
-    // Update diamonds for each receiver
-    for (String receiverId in gift.recieverIds) {
-      debugPrint("🔍 Checking receiver ID: $receiverId");
-
-      // Check if this receiver is the host (use different logic for host vs viewer)
-      String? actualHostId = isHost ? userId : widget.hostUserId;
-      if (receiverId == actualHostId) {
-        debugPrint("✅ Host ($receiverId) received ${gift.diamonds} diamonds");
-        debugPrint("🏆 Host is identified as: $actualHostId");
-      }
-
-      // Find user in activeViewers and update their diamonds
-      int userIndex = activeViewers.indexWhere((user) => user.id == receiverId);
-      if (userIndex != -1) {
-        int oldDiamonds = activeViewers[userIndex].diamonds;
-        activeViewers[userIndex] = activeViewers[userIndex].copyWith(
-          diamonds: activeViewers[userIndex].diamonds + gift.diamonds,
-        );
-        debugPrint(
-          "💎 Updated ${activeViewers[userIndex].name} diamonds: $oldDiamonds → ${activeViewers[userIndex].diamonds}",
-        );
-      } else {
-        debugPrint(
-          "⚠️ Receiver ID $receiverId not found in activeViewers list",
-        );
-        if (receiverId == actualHostId) {
-          debugPrint(
-            "📝 This is normal for host - host is not in activeViewers list",
-          );
-        }
-        // Print all active viewer IDs for debugging
-        debugPrint(
-          "📋 Active viewer IDs: ${activeViewers.map((v) => v.id).toList()}",
-        );
-      }
-    }
-
-    // Calculate total host diamonds for verification using correct host ID
-    String? hostIdForCalculation = isHost ? userId : widget.hostUserId;
-    int hostDiamonds = GiftModel.totalDiamondsForHost(
-      sentGifts,
-      hostIdForCalculation,
-    );
-    debugPrint(
-      "🏆 Total host diamonds (using $hostIdForCalculation): $hostDiamonds",
-    );
-  }
+  // ✅ REMOVED: _debugDiamondStatus() - Unused debug method (27 lines)
+  // ✅ REMOVED: _updateUserDiamonds() - Unused method for updating local activeViewers diamonds (58 lines)
+  // Both methods are now redundant - viewer data is managed by LiveStreamBloc
 
   /// Calculate total bonus diamonds earned from daily streaming bonuses (configurable intervals)
   // int _calculateTotalBonusDiamonds() {
@@ -1840,19 +1758,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     return "$hours:$minutes:$seconds";
   }
 
-  // Play animation for two seconds
-  void _playAnimation() {
-    setState(() {
-      _animationPlaying = true;
-    });
-
-    // Stop the animation after inactivity timeout
-    Future.delayed(const Duration(seconds: _inactivityTimeoutSeconds), () {
-      setState(() {
-        _animationPlaying = false;
-      });
-    });
-  }
+  // ✅ REMOVED: _playAnimation() - unused animation method
 
   // ✅ DEPRECATED: Call daily bonus API - Now handled by LiveStreamBloc
   // BLoC automatically calls bonus API at milestones via UpdateStreamDuration handler
