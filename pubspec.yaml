@@ -81,7 +81,7 @@ dependencies:
 
   # UX Enhancements
   preload_page_view: ^0.2.0
-  flutter_svga_easyplayer: ^0.0.1
+  flutter_svga_easyplayer: ^0.0.2
   in_app_update: ^4.2.5
   fluttertoast: ^9.0.0
   url_launcher: ^6.3.2
@@ -152,8 +152,8 @@ flutter:
     - assets/games/teenpatty/index.html
     - assets/games/teenpatty/bg.png
     - assets/games/teenpatty/game-icon.png
-    - assets/games/teenpatty/Build/TeenPatty V7.jpg
-    - assets/games/teenpatty/Build/98dfc623cfbef8f21288a0e473508764.loader.js
+    - assets/games/teenpatty/Build/TeenPatty V8.jpg
+    - assets/games/teenpatty/Build/5083e1a0b98aabab26708ce02f734937.loader.js
     - assets/games/teenpatty/Build/d24fba371edec7ed1a51165dc36908bf.framework.js
-    - assets/games/teenpatty/Build/7f19bccfd05bb4bfe400a3434efe5841.wasm
-    - assets/games/teenpatty/Build/14dfaa6671d72cb0d98067ba5e579de8.data
+    - assets/games/teenpatty/Build/e6e5974b8d4564a4a3e41cf6177cd8aa.wasm
+    - assets/games/teenpatty/Build/910fe52ee5864a52fb7abcba5798e1ea.data
