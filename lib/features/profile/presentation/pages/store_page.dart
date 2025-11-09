@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svga/flutter_svga.dart';
+import 'package:flutter_svga_easyplayer/flutter_svga_easyplayer.dart';
 import 'package:go_router/go_router.dart';
 import '../../../store/presentation/bloc/store_bloc.dart';
 import '../../../store/presentation/bloc/store_event.dart';

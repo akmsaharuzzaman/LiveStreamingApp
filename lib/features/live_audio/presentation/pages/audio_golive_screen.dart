@@ -738,7 +738,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
                       // Animation layer
                       if (roomState.playAnimation == true && roomState.giftDetails != null)
-                        AnimatedLayer(gifts: [roomState.giftDetails!]),
+                        AnimatedLayer(gifts: [roomState.giftDetails!], onCompleted: () {  },),
                     ],
                   );
                 }

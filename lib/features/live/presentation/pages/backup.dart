@@ -1019,7 +1019,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     // Perform cleanup immediately
     _stopStreamTimer();
     _hostActivityTimer?.cancel();
-    
+
     // Leave the room to notify server
     _leaveRoom();
 
@@ -2025,7 +2025,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                 children: [
                   _buildVideoView(),
 
-                  if (_animationPlaying) AnimatedLayer(gifts: sentGifts),
+                  if (_animationPlaying)
+                    AnimatedLayer(gifts: sentGifts, onCompleted: () {}),
 
                   // * This contaimer holds the livestream options,
                   SafeArea(
@@ -2978,7 +2979,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
   @override
   void dispose() {
     debugPrint("🧹 Disposing video live screen...");
-    
+
     // Stop timers first
     _stopStreamTimer();
     _hostActivityTimer?.cancel();
@@ -3008,7 +3009,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
     // Dispose other resources
     _titleController.dispose();
     _dispose();
-    
+
     debugPrint("✅ Video live screen disposed");
     super.dispose();
   }

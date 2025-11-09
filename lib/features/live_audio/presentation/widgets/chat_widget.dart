@@ -4,7 +4,7 @@ import 'dart:ui';
 import 'package:dlstarlive/features/profile/presentation/widgets/user_profile_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svga/flutter_svga.dart';
+import 'package:flutter_svga_easyplayer/flutter_svga_easyplayer.dart';
 
 import '../../data/models/chat_model.dart';
 

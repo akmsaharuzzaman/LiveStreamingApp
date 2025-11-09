@@ -58,20 +58,27 @@ class GoliveScreen extends StatelessWidget {
       providers: [
         BlocProvider<LiveStreamBloc>(
           create: (context) => getIt<LiveStreamBloc>()
-            ..add(InitializeLiveStream(
-              roomId: roomId,
-              hostUserId: hostUserId,
-              isHost: roomId == null, // If no roomId passed, we are creating (host)
-            )),
+            ..add(
+              InitializeLiveStream(
+                roomId: roomId,
+                hostUserId: hostUserId,
+                isHost:
+                    roomId ==
+                    null, // If no roomId passed, we are creating (host)
+              ),
+            ),
         ),
         BlocProvider<ChatBloc>(
-          create: (context) => getIt<ChatBloc>()..add(const LoadInitialMessages([])),
+          create: (context) =>
+              getIt<ChatBloc>()..add(const LoadInitialMessages([])),
         ),
         BlocProvider<GiftBloc>(
-          create: (context) => getIt<GiftBloc>()..add(const LoadInitialGifts([])),
+          create: (context) =>
+              getIt<GiftBloc>()..add(const LoadInitialGifts([])),
         ),
         BlocProvider<CallRequestBloc>(
-          create: (context) => getIt<CallRequestBloc>()..add(const LoadInitialBroadcasters([])),
+          create: (context) =>
+              getIt<CallRequestBloc>()..add(const LoadInitialBroadcasters([])),
         ),
         BlocProvider<ModerationBloc>(
           create: (context) => getIt<ModerationBloc>(),
@@ -124,7 +131,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   bool _canJoinAudioCall(LiveSessionState sessionState) {
     return !sessionState.isHost &&
         !sessionState.isAudioCaller &&
-        sessionState.audioCallerUids.length < LiveSessionState.maxAudioCallers &&
+        sessionState.audioCallerUids.length <
+            LiveSessionState.maxAudioCallers &&
         !sessionState.isJoiningAudioCaller;
   }
 
@@ -252,9 +260,9 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
           }
         }
         debugPrint("💬 Loaded ${_chatMessages.length} existing messages");
-        context
-            .read<ChatBloc>()
-            .add(LoadInitialMessages(List.from(_chatMessages)));
+        context.read<ChatBloc>().add(
+          LoadInitialMessages(List.from(_chatMessages)),
+        );
       }
 
       // Initialize broadcasters (excluding host)
@@ -274,9 +282,9 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
           }
         }
         if (initialBroadcasters.isNotEmpty) {
-          context
-              .read<CallRequestBloc>()
-              .add(LoadInitialBroadcasters(initialBroadcasters));
+          context.read<CallRequestBloc>().add(
+            LoadInitialBroadcasters(initialBroadcasters),
+          );
           debugPrint(
             "🎤 Loaded ${initialBroadcasters.length} existing broadcasters (host excluded)",
           );
@@ -298,9 +306,9 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
           );
         }).toList();
 
-        context
-            .read<CallRequestBloc>()
-            .add(LoadCallRequestList(initialRequests));
+        context.read<CallRequestBloc>().add(
+          LoadCallRequestList(initialRequests),
+        );
         debugPrint(
           "📞 Loaded ${initialRequests.length} existing call requests",
         );
@@ -473,10 +481,10 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
 
       // Start live session orchestration via cubit
       await context.read<LiveSessionCubit>().initializeSession(
-            isHost: isHost,
-            initialRoomId: isHost ? null : widget.roomId,
-            userId: uid,
-          );
+        isHost: isHost,
+        initialRoomId: isHost ? null : widget.roomId,
+        userId: uid,
+      );
     } else {
       debugPrint("User ID is null, cannot initialize live streaming");
     }
@@ -557,16 +565,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
         _animationPlaying = true;
       });
     }
-
-    _giftAnimationTimer = Timer(const Duration(seconds: 10), () {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _animationPlaying = false;
-      });
-    });
   }
 
   //Sent/Send Message
@@ -591,13 +589,15 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       return;
     }
 
-    context.read<ChatBloc>().add(SendChatMessage(
-          roomId: roomIdentifier,
-          userId: authState.user.id,
-          userName: authState.user.name,
-          message: trimmed,
-          avatar: authState.user.avatar,
-        ));
+    context.read<ChatBloc>().add(
+      SendChatMessage(
+        roomId: roomIdentifier,
+        userId: authState.user.id,
+        userName: authState.user.name,
+        message: trimmed,
+        avatar: authState.user.avatar,
+      ),
+    );
   }
 
   // Make Admin
@@ -609,8 +609,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     }
 
     context.read<ModerationBloc>().add(
-          ModerationToggleAdmin(roomId: currentRoom, userId: userId),
-        );
+      ModerationToggleAdmin(roomId: currentRoom, userId: userId),
+    );
   }
 
   // Remove Admin
@@ -622,8 +622,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     }
 
     context.read<ModerationBloc>().add(
-          ModerationToggleAdmin(roomId: currentRoom, userId: userId),
-        );
+      ModerationToggleAdmin(roomId: currentRoom, userId: userId),
+    );
   }
 
   /// Ban User
@@ -635,8 +635,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     }
 
     context.read<ModerationBloc>().add(
-          ModerationBanUser(roomId: currentRoom, userId: userId),
-        );
+      ModerationBanUser(roomId: currentRoom, userId: userId),
+    );
   }
 
   /// Mute User
@@ -648,8 +648,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     }
 
     context.read<ModerationBloc>().add(
-          ModerationMuteUser(roomId: currentRoom, userId: userId),
-        );
+      ModerationMuteUser(roomId: currentRoom, userId: userId),
+    );
   }
 
   /// Check if current user is in the muted users list
@@ -683,8 +683,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       return false;
     }
 
-    return moderationState.adminList
-        .any((admin) => admin.id == currentUserId);
+    return moderationState.adminList.any((admin) => admin.id == currentUserId);
   }
 
   /// Check if current user is the host
@@ -810,9 +809,9 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       }
 
       if (isHostSession && auth != null) {
-        context
-            .read<LiveStreamBloc>()
-            .add(const CallDailyBonus(isStreamEnd: true));
+        context.read<LiveStreamBloc>().add(
+          const CallDailyBonus(isStreamEnd: true),
+        );
 
         final giftState = context.read<GiftBloc>().state;
         int earnedDiamonds = 0;
@@ -860,7 +859,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     return MultiBlocListener(
       listeners: [
         BlocListener<LiveSessionCubit, LiveSessionState>(
-          listenWhen: (previous, current) => previous.snackBar != current.snackBar,
+          listenWhen: (previous, current) =>
+              previous.snackBar != current.snackBar,
           listener: (context, state) {
             final snackBar = state.snackBar;
             if (snackBar == null) {
@@ -982,11 +982,13 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
               _showSnackBar(state.successMessage!, color);
             }
 
-            if ((state.errorMessage != null && state.errorMessage!.isNotEmpty) ||
-                (state.successMessage != null && state.successMessage!.isNotEmpty)) {
-              context
-                  .read<ModerationBloc>()
-                  .add(const ModerationClearNotification());
+            if ((state.errorMessage != null &&
+                    state.errorMessage!.isNotEmpty) ||
+                (state.successMessage != null &&
+                    state.successMessage!.isNotEmpty)) {
+              context.read<ModerationBloc>().add(
+                const ModerationClearNotification(),
+              );
             }
           },
         ),
@@ -994,9 +996,10 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
         BlocListener<LiveStreamBloc, LiveStreamState>(
           listenWhen: (previous, current) {
             // Only listen when in streaming state and camera/mic changed
-            if (previous is LiveStreamStreaming && current is LiveStreamStreaming) {
+            if (previous is LiveStreamStreaming &&
+                current is LiveStreamStreaming) {
               return previous.isCameraEnabled != current.isCameraEnabled ||
-                     previous.isMicEnabled != current.isMicEnabled;
+                  previous.isMicEnabled != current.isMicEnabled;
             }
             return false;
           },
@@ -1051,750 +1054,703 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
           debugPrint('Back navigation invoked: (cleanup triggered)');
         },
         child: BlocBuilder<AuthBloc, AuthState>(
-        builder: (context, state) {
-          if (state is! AuthAuthenticated) {
-            return Scaffold(
-              body: Center(
-                child: Text(
-                  'Please log in to start live streaming',
-                  style: TextStyle(fontSize: 18.sp),
+          builder: (context, state) {
+            if (state is! AuthAuthenticated) {
+              return Scaffold(
+                body: Center(
+                  child: Text(
+                    'Please log in to start live streaming',
+                    style: TextStyle(fontSize: 18.sp),
+                  ),
                 ),
-              ),
-            );
-          } else {
-            final sessionState = context.watch<LiveSessionCubit>().state;
-            return Scaffold(
-              body: Stack(
-                children: [
-                  _buildVideoView(sessionState),
+              );
+            } else {
+              final sessionState = context.watch<LiveSessionCubit>().state;
+              return Scaffold(
+                body: Stack(
+                  children: [
+                    _buildVideoView(sessionState),
 
-                  // ✅ Gift animation with BlocBuilder
-                  if (_animationPlaying) 
-                    BlocBuilder<GiftBloc, GiftState>(
-                      builder: (context, giftState) {
-                        final gifts = giftState is GiftLoaded 
-                            ? giftState.gifts 
-                            : <GiftModel>[];
-                        return AnimatedLayer(gifts: gifts);
-                      },
-                    ),
-
-                  // * This contaimer holds the livestream options,
-                  SafeArea(
-                    child: Container(
-                      margin: EdgeInsets.symmetric(
-                        horizontal: 20.w,
-                        vertical: 30.h,
-                      ),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return SingleChildScrollView(
-                            physics: NeverScrollableScrollPhysics(),
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                minHeight: constraints.maxHeight,
-                              ),
-                              child: IntrinsicHeight(
-                                child: Column(
-                                  children: [
-                                    // this is the top row
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        if (isHost)
-                                          HostInfo(
-                                            imageUrl:
-                                                state.user.avatar ??
-                                                "https://thispersondoesnotexist.com/",
-                                            name: state.user.name,
-                                            id: state.user.id.substring(0, 4),
-                                            hostUserId: state.user.id,
-                                            currentUserId: state.user.id,
-                                          )
-                                        else
-                                          HostInfo(
-                                            imageUrl:
-                                                widget.hostAvatar ??
-                                                "https://thispersondoesnotexist.com/",
-                                            name: widget.hostName ?? "Host",
-                                            id:
-                                                widget.hostUserId?.substring(
-                                                  0,
-                                                  4,
-                                                ) ??
-                                                "Host",
-                                            hostUserId: widget.hostUserId ?? "",
-                                            currentUserId: state.user.id,
-                                          ),
-                                        Spacer(),
-                                        // *show the viewers - ✅ Now using LiveStreamBloc state
-                                        BlocBuilder<LiveStreamBloc, LiveStreamState>(
-                                          builder: (context, liveState) {
-                                            final viewers = liveState is LiveStreamStreaming 
-                                                ? liveState.viewers 
-                                                : <JoinedUserModel>[];
-                                            
-                                            return ActiveViewers(
-                                              activeUserList: viewers,
-                                              hostUserId: isHost
-                                                  ? userId
-                                                  : widget.hostUserId,
-                                              hostName: isHost
-                                                  ? state.user.name
-                                                  : widget.hostName,
-                                              hostAvatar: isHost
-                                                  ? state.user.avatar
-                                                  : widget.hostAvatar,
-                                            );
-                                          },
-                                        ),
-
-                                        // * to show the leave button
-                                        (isHost)
-                                            ? GestureDetector(
-                                                onTap: () {
-                                                  EndStreamOverlay.show(
-                                                    context,
-                                                    onKeepStream: () {
-                                                      debugPrint(
-                                                        "Keep stream pressed",
-                                                      );
-                                                    },
-                                                    onEndStream: () {
-                                                      _endLiveStream();
-                                                      debugPrint(
-                                                        "End stream pressed",
-                                                      );
-                                                    },
-                                                  );
-                                                },
-                                                child: Image.asset(
-                                                  "assets/icons/live_exit_icon.png",
-                                                  height: 50.h,
-                                                  // width: 40.w,
-                                                ),
-                                              )
-                                            : InkWell(
-                                                onTap: () {
-                                                  _endLiveStream();
-                                                  debugPrint(
-                                                    "Disconnect pressed",
-                                                  );
-                                                },
-                                                child: Image.asset(
-                                                  "assets/icons/live_exit_icon.png",
-                                                  height: 50.h,
-                                                ),
-                                              ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 10.h),
-
-                                    //  this is the second row TODO:  diamond and star count display
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        BlocBuilder<GiftBloc, GiftState>(
-                                          builder: (context, giftState) {
-                                            final hostId = isHost
-                                                ? userId
-                                                : widget.hostUserId;
-                                            final gifts = giftState is GiftLoaded
-                                                ? giftState.gifts
-                                                : const <GiftModel>[];
-                                            int diamondTotal = 0;
-                                            if (hostId != null) {
-                                              diamondTotal =
-                                                  GiftModel.totalDiamondsForHost(
-                                                gifts,
-                                                hostId,
-                                              );
-                                            }
-
-                                            return DiamondStarStatus(
-                                              diamonCount: AppUtils.formatNumber(
-                                                diamondTotal,
-                                              ),
-                                              starCount: AppUtils.formatNumber(0),
-                                            );
-                                          },
-                                        ),
-                                        SizedBox(height: 5.h),
-                                        //add another widget to show the bonus
-                                        // BonusStatus(
-                                        //   bonusCount: AppUtils.formatNumber(
-                                        //     _calculateTotalBonusDiamonds(),
-                                        //   ),
-                                        // ),
-                                      ],
-                                    ),
-
-                                    Spacer(),
-
-                                    // Chat widget - positioned at bottom left
-                                    Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: BlocBuilder<ChatBloc, ChatState>(
-                                        builder: (context, chatState) {
-                                          final messages = chatState is ChatLoaded 
-                                              ? chatState.messages 
-                                              : <ChatModel>[];
-                                          final callState = context.watch<CallRequestBloc>().state;
-                                          final isCallingNow = callState is CallRequestLoaded &&
-                                              callState.activeBroadcasters.isNotEmpty;
-                                          return LiveChatWidget(
-                                            isCallingNow: isCallingNow,
-                                            messages: messages,
-                                          );
-                                        },
-                                      ),
-                                    ),
-
-                                    SizedBox(height: 10.h),
-
-                                    // the bottom buttons
-                                    if (isHost)
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceAround,
-                                        children: [
-                                          InkWell(
-                                            onTap: () {
-                                              showSendMessageBottomSheet(
-                                                context,
-                                                onSendMessage: (message) {
-                                                  print("Send message pressed");
-                                                  _emitMessageToSocket(message);
-                                                },
-                                              );
-                                            },
-                                            child: Stack(
-                                              children: [
-                                                Image.asset(
-                                                  "assets/icons/message_icon.png",
-                                                  height: 40.h,
-                                                ),
-                                                Positioned(
-                                                  left: 10.w,
-                                                  top: 0,
-                                                  bottom: 0,
-                                                  child: Row(
-                                                    children: [
-                                                      Image.asset(
-                                                        "assets/icons/message_user_icon.png",
-                                                        height: 20.h,
-                                                      ),
-                                                      SizedBox(width: 5.w),
-                                                      Text(
-                                                        'Say Hello!',
-                                                        style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 18.sp,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          CustomLiveButton(
-                                            iconPath:
-                                                "assets/icons/gift_user_icon.png",
-                                            onTap: () {
-                                              // ✅ Get viewers from BLoC state
-                                              final liveState = context.read<LiveStreamBloc>().state;
-                                              final viewers = liveState is LiveStreamStreaming 
-                                                  ? liveState.viewers 
-                                                  : <JoinedUserModel>[];
-                                              
-                                              showGiftBottomSheet(
-                                                context,
-                                                activeViewers: viewers,
-                                                roomId:
-                                                    _currentRoomId ?? roomId,
-                                                hostUserId: isHost
-                                                    ? userId
-                                                    : widget.hostUserId,
-                                                hostName: isHost
-                                                    ? state.user.name
-                                                    : widget.hostName,
-                                                hostAvatar: isHost
-                                                    ? state.user.avatar
-                                                    : widget.hostAvatar,
-                                              );
-                                            },
-                                          ),
-                                          CustomLiveButton(
-                                            iconPath:
-                                                "assets/icons/pk_icon.png",
-                                            onTap: () {
-                                              // _playAnimation();
-                                              _showSnackBar(
-                                                '🎶 Not implemented yet',
-                                                Colors.green,
-                                              );
-                                              // showMusicBottomSheet(context);
-                                            },
-                                          ),
-                                          BlocBuilder<LiveStreamBloc, LiveStreamState>(
-                                            builder: (context, liveState) {
-                                              final isMuted = liveState is LiveStreamStreaming 
-                                                  ? !liveState.isMicEnabled 
-                                                  : true;
-                                              return CustomLiveButton(
-                                                iconPath: isMuted
-                                                    ? "assets/icons/mute_icon.png"
-                                                    : "assets/icons/unmute_icon.png",
-                                                onTap: () {
-                                                  _toggleMute();
-                                                },
-                                              );
-                                            },
-                                          ),
-                                          CustomLiveButton(
-                                            iconPath:
-                                                "assets/icons/call_icon.png",
-                                            onTap: () {
-                                              final audioCallerCount =
-                                                  sessionState
-                                                      .audioCallerUids.length;
-                                              if (audioCallerCount > 0) {
-                                                _showSnackBar(
-                                                  '🎤 $audioCallerCount audio caller${audioCallerCount > 1 ? 's' : ''} connected',
-                                                  Colors.green,
-                                                );
-                                              } else {
-                                                _showSnackBar(
-                                                  '📞 Waiting for audio callers to join...',
-                                                  Colors.blue,
-                                                );
-                                              }
-                                              // Capture the outer context with BLoC access
-                                              final outerContext = context;
-                                              final callRequestBloc =
-                                                  outerContext.read<CallRequestBloc>();
-
-                                              showModalBottomSheet(
-                                                context: outerContext,
-                                                useRootNavigator: false,
-                                                isScrollControlled: true,
-                                                backgroundColor:
-                                                    Colors.transparent,
-                                                builder: (sheetContext) {
-                                                  return BlocProvider.value(
-                                                    value: callRequestBloc,
-                                                    child: BlocBuilder<CallRequestBloc,
-                                                        CallRequestState>(
-                                                      builder: (context,
-                                                          callRequestState) {
-                                                        final pendingRequests =
-                                                            callRequestState
-                                                                    is CallRequestLoaded
-                                                                ? callRequestState
-                                                                    .pendingRequests
-                                                                : <CallRequestModel>[];
-                                                        final activeBroadcasters =
-                                                            callRequestState
-                                                                    is CallRequestLoaded
-                                                                ? callRequestState
-                                                                    .activeBroadcasters
-                                                                : <BroadcasterModel>[];
-
-                                                        return CallManageBottomSheet(
-                                                          onAcceptCall: (userId) {
-                                                            debugPrint(
-                                                              "Accepting call request from $userId",
-                                                            );
-                                                            callRequestBloc.add(
-                                                              AcceptCallRequest(
-                                                                userId: userId,
-                                                                roomId:
-                                                                    _currentRoomId ??
-                                                                        '',
-                                                              ),
-                                                            );
-                                                          },
-                                                          onRejectCall: (userId) {
-                                                            debugPrint(
-                                                              "Rejecting call request from $userId",
-                                                            );
-                                                            callRequestBloc.add(
-                                                              RejectCallRequest(
-                                                                userId: userId,
-                                                                roomId:
-                                                                    _currentRoomId ??
-                                                                        '',
-                                                              ),
-                                                            );
-                                                          },
-                                                          onKickUser: (userId) {
-                                                            callRequestBloc.add(
-                                                              RemoveBroadcaster(
-                                                                userId: userId,
-                                                                roomId:
-                                                                    _currentRoomId ??
-                                                                        '',
-                                                              ),
-                                                            );
-                                                            debugPrint(
-                                                              "Kicking user $userId from call",
-                                                            );
-                                                          },
-                                                          callers: pendingRequests,
-                                                          inCallList:
-                                                              activeBroadcasters,
-                                                        );
-                                                      },
-                                                    ),
-                                                  );
-                                                },
-                                              );
-                                            },
-                                          ),
-
-                                          CustomLiveButton(
-                                            iconPath:
-                                                "assets/icons/menu_icon.png",
-                                            onTap: () {
-                                              // ✅ Get duration from BLoC state
-                                              final liveState = context.read<LiveStreamBloc>().state;
-                                              final streamDuration = liveState is LiveStreamStreaming 
-                                                  ? liveState.duration 
-                                                  : Duration.zero;
-                                              
-                                              showGameBottomSheet(
-                                                context,
-                                                userId: userId,
-                                                isHost: isHost,
-                                                streamDuration: streamDuration,
-                                              );
-                                            },
-                                          ),
-                                        ],
-                                      )
-                                    else
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceAround,
-                                        children: [
-                                          InkWell(
-                                            onTap: () {
-                                              // _showSnackBar(
-                                              //   '💬 Not implemented yet',
-                                              //   Colors.green,
-                                              // );
-                                              showSendMessageBottomSheet(
-                                                context,
-                                                onSendMessage: (message) {
-                                                  print("Send message pressed");
-                                                  _emitMessageToSocket(message);
-                                                },
-                                              );
-                                            },
-                                            child: Stack(
-                                              children: [
-                                                Image.asset(
-                                                  "assets/icons/message_icon.png",
-                                                  height: 40.h,
-                                                ),
-                                                Positioned(
-                                                  left: 10,
-                                                  top: 0,
-                                                  bottom: 0,
-                                                  child: Row(
-                                                    children: [
-                                                      Image.asset(
-                                                        "assets/icons/message_user_icon.png",
-                                                        height: 20.h,
-                                                      ),
-                                                      SizedBox(width: 5.w),
-                                                      Text(
-                                                        'Say Hello!',
-                                                        style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 18.sp,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-
-                                          CustomLiveButton(
-                                            iconPath:
-                                                "assets/icons/gift_user_icon.png",
-                                            onTap: () {
-                                              // ✅ Get viewers from BLoC state
-                                              final liveState = context.read<LiveStreamBloc>().state;
-                                              final viewers = liveState is LiveStreamStreaming 
-                                                  ? liveState.viewers 
-                                                  : <JoinedUserModel>[];
-                                              
-                                              showGiftBottomSheet(
-                                                context,
-                                                activeViewers: viewers,
-                                                roomId:
-                                                    _currentRoomId ?? roomId,
-                                                hostUserId: isHost
-                                                    ? userId
-                                                    : widget.hostUserId,
-                                                hostName: isHost
-                                                    ? state.user.name
-                                                    : widget.hostName,
-                                                hostAvatar: isHost
-                                                    ? state.user.avatar
-                                                    : widget.hostAvatar,
-                                              );
-                                            },
-                                            height: 40.h,
-                                          ),
-
-                                          CustomLiveButton(
-                                            iconPath:
-                                                "assets/icons/game_user_icon.png",
-                                            onTap: () {
-                                              // ✅ Get duration from BLoC state
-                                              final liveState = context.read<LiveStreamBloc>().state;
-                                              final streamDuration = liveState is LiveStreamStreaming 
-                                                  ? liveState.duration 
-                                                  : Duration.zero;
-                                              
-                                              showGameBottomSheet(
-                                                context,
-                                                userId: userId,
-                                                streamDuration: streamDuration,
-                                              );
-                                            },
-                                            height: 40.h,
-                                          ),
-                                          CustomLiveButton(
-                                            iconPath:
-                                                "assets/icons/share_user_icon.png",
-                                            onTap: () {},
-                                            height: 40.h,
-                                          ),
-                                          CustomLiveButton(
-                                            iconPath:
-                                                "assets/icons/menu_icon.png",
-                                            onTap: () {
-                                              final liveState = context.read<LiveStreamBloc>().state;
-                                              final isMuted = liveState is LiveStreamStreaming 
-                                                  ? !liveState.isMicEnabled 
-                                                  : true;
-                                              final moderationState =
-                                                  context.read<ModerationBloc>().state;
-                                              showMenuBottomSheet(
-                                                context,
-                                                userId: userId,
-                                                isHost: isHost,
-                                                isMuted: isMuted,
-                                                isAdminMuted:
-                                                    _isCurrentUserMuted(
-                                                  moderationState,
-                                                ),
-                                                onToggleMute: _toggleMute,
-                                              );
-                                            },
-                                            height: 40.h,
-                                          ),
-                                        ],
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                    // ✅ Gift animation with BlocBuilder
+                    if (_animationPlaying)
+                      BlocBuilder<GiftBloc, GiftState>(
+                        builder: (context, giftState) {
+                          final gifts = giftState is GiftLoaded
+                              ? giftState.gifts
+                              : <GiftModel>[];
+                          return AnimatedLayer(
+                            gifts: gifts,
+                            onCompleted: () {
+                              if (mounted) {
+                                setState(() {
+                                  _animationPlaying = false;
+                                });
+                              }
+                            },
                           );
                         },
                       ),
-                    ),
-                  ),
 
-                  Positioned(
-                    bottom: 140.h,
-                    right: 30.w,
-                    child: BlocBuilder<CallRequestBloc, CallRequestState>(
-                      builder: (context, callState) {
-                        final moderationState =
-                            context.watch<ModerationBloc>().state;
-                        final hostId = isHost ? userId : widget.hostUserId;
-                        final broadcasters = callState is CallRequestLoaded
-                            ? callState.activeBroadcasters
-                            : const <BroadcasterModel>[];
-
-                        final hostIdentifiers = <String>{
-                          if (hostId != null) hostId,
-                          if (widget.hostUserId != null)
-                            widget.hostUserId!,
-                          if (isHost && sessionState.userId != null)
-                            sessionState.userId!,
-                        };
-
-                        final displayBroadcasters = broadcasters
-                            .where((b) => !hostIdentifiers.contains(b.id))
-                            .toList();
-
-                        WhoAmI resolveRole(String broadcasterId) {
-                          final authState = context.read<AuthBloc>().state;
-                          final currentUserId =
-                              authState is AuthAuthenticated
-                                  ? authState.user.id
-                                  : userId;
-
-                          if (_isCurrentUserAdmin(moderationState)) {
-                            return WhoAmI.admin;
-                          } else if (_isCurrentUserHost()) {
-                            return WhoAmI.host;
-                          } else if (broadcasterId == currentUserId) {
-                            return WhoAmI.myself;
-                          } else {
-                            return WhoAmI.user;
-                          }
-                        }
-
-                        final currentRoomId = _currentRoomId ?? roomId;
-                        final callRequestBloc =
-                            context.read<CallRequestBloc>();
-
-                        final children = <Widget>[
-                          ...displayBroadcasters.map((broadcaster) {
-                            return CallOverlayWidget(
-                              whoAmI: resolveRole(broadcaster.id),
-                              userId: broadcaster.id,
-                              userName: broadcaster.name,
-                              userImage: broadcaster.avatar.isNotEmpty
-                                  ? broadcaster.avatar
-                                  : null,
-                              onDisconnect: () {
-                                if (currentRoomId.isEmpty) {
-                                  _showSnackBar(
-                                    '❌ Room not ready, please try again',
-                                    Colors.red,
-                                  );
-                                  return;
-                                }
-
-                                callRequestBloc.add(
-                                  RemoveBroadcaster(
-                                    userId: broadcaster.id,
-                                    roomId: currentRoomId,
-                                  ),
-                                );
-                              },
-                              onMute: () {
-                                _muteUser(broadcaster.id);
-                              },
-                              onManage: () {
-                                debugPrint(
-                                  "Open manage for: ${broadcaster.id}",
-                                );
-                              },
-                              onSetAdmin: (id) {
-                                _makeAdmin(id);
-                                _showSnackBar('👑 Set as admin', Colors.green);
-                              },
-                              onRemoveAdmin: (id) {
-                                _removeAdmin(id);
-                                _showSnackBar(
-                                  '👤 Admin removed',
-                                  Colors.orange,
-                                );
-                              },
-                              adminModels: moderationState.adminList,
-                              onMuteUser: (id) {
-                                _muteUser(id);
-                                _showSnackBar('🔇 User muted', Colors.orange);
-                              },
-                              onKickOut: (id) {
-                                _banUser(id);
-                                _showSnackBar('👢 User kicked out', Colors.red);
-                              },
-                              onBanUser: (id) {
-                                _banUser(id);
-                                _showSnackBar(
-                                  '⛔ User added to blocklist',
-                                  Colors.red,
-                                );
-                              },
-                            );
-                          }).toList(),
-                        ];
-
-                        if (!isHost) {
-                          children.add(SizedBox(height: 80.h));
-
-                          final isAudioCaller = sessionState.isAudioCaller;
-                          final isJoiningRequestPending =
-                              !isAudioCaller &&
-                              callState is CallRequestLoaded &&
-                              userId != null &&
-                              callState.pendingRequests.any(
-                                (request) => request.userId == userId,
-                              );
-                          final canJoinAudioCall =
-                              _canJoinAudioCall(sessionState);
-                          final maxAudioCallers =
-                              LiveSessionState.maxAudioCallers;
-
-                          if (displayBroadcasters.isNotEmpty) {
-                            children.add(
-                              Container(
-                                margin: EdgeInsets.only(bottom: 10.h),
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12.w,
-                                  vertical: 6.h,
+                    // * This contaimer holds the livestream options,
+                    SafeArea(
+                      child: Container(
+                        margin: EdgeInsets.symmetric(
+                          horizontal: 20.w,
+                          vertical: 30.h,
+                        ),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return SingleChildScrollView(
+                              physics: NeverScrollableScrollPhysics(),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minHeight: constraints.maxHeight,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black54,
-                                  borderRadius: BorderRadius.circular(15.r),
-                                ),
-                                child: Text(
-                                  '🎤 ${displayBroadcasters.length}/$maxAudioCallers',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12.sp,
-                                    fontWeight: FontWeight.w500,
+                                child: IntrinsicHeight(
+                                  child: Column(
+                                    children: [
+                                      // this is the top row
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          if (isHost)
+                                            HostInfo(
+                                              imageUrl:
+                                                  state.user.avatar ??
+                                                  "https://thispersondoesnotexist.com/",
+                                              name: state.user.name,
+                                              id: state.user.id.substring(0, 4),
+                                              hostUserId: state.user.id,
+                                              currentUserId: state.user.id,
+                                            )
+                                          else
+                                            HostInfo(
+                                              imageUrl:
+                                                  widget.hostAvatar ??
+                                                  "https://thispersondoesnotexist.com/",
+                                              name: widget.hostName ?? "Host",
+                                              id:
+                                                  widget.hostUserId?.substring(
+                                                    0,
+                                                    4,
+                                                  ) ??
+                                                  "Host",
+                                              hostUserId:
+                                                  widget.hostUserId ?? "",
+                                              currentUserId: state.user.id,
+                                            ),
+                                          Spacer(),
+                                          // *show the viewers - ✅ Now using LiveStreamBloc state
+                                          BlocBuilder<
+                                            LiveStreamBloc,
+                                            LiveStreamState
+                                          >(
+                                            builder: (context, liveState) {
+                                              final viewers =
+                                                  liveState
+                                                      is LiveStreamStreaming
+                                                  ? liveState.viewers
+                                                  : <JoinedUserModel>[];
+
+                                              return ActiveViewers(
+                                                activeUserList: viewers,
+                                                hostUserId: isHost
+                                                    ? userId
+                                                    : widget.hostUserId,
+                                                hostName: isHost
+                                                    ? state.user.name
+                                                    : widget.hostName,
+                                                hostAvatar: isHost
+                                                    ? state.user.avatar
+                                                    : widget.hostAvatar,
+                                              );
+                                            },
+                                          ),
+
+                                          // * to show the leave button
+                                          (isHost)
+                                              ? GestureDetector(
+                                                  onTap: () {
+                                                    EndStreamOverlay.show(
+                                                      context,
+                                                      onKeepStream: () {
+                                                        debugPrint(
+                                                          "Keep stream pressed",
+                                                        );
+                                                      },
+                                                      onEndStream: () {
+                                                        _endLiveStream();
+                                                        debugPrint(
+                                                          "End stream pressed",
+                                                        );
+                                                      },
+                                                    );
+                                                  },
+                                                  child: Image.asset(
+                                                    "assets/icons/live_exit_icon.png",
+                                                    height: 50.h,
+                                                    // width: 40.w,
+                                                  ),
+                                                )
+                                              : InkWell(
+                                                  onTap: () {
+                                                    _endLiveStream();
+                                                    debugPrint(
+                                                      "Disconnect pressed",
+                                                    );
+                                                  },
+                                                  child: Image.asset(
+                                                    "assets/icons/live_exit_icon.png",
+                                                    height: 50.h,
+                                                  ),
+                                                ),
+                                        ],
+                                      ),
+                                      SizedBox(height: 10.h),
+
+                                      //  this is the second row TODO:  diamond and star count display
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          BlocBuilder<GiftBloc, GiftState>(
+                                            builder: (context, giftState) {
+                                              final hostId = isHost
+                                                  ? userId
+                                                  : widget.hostUserId;
+                                              final gifts =
+                                                  giftState is GiftLoaded
+                                                  ? giftState.gifts
+                                                  : const <GiftModel>[];
+                                              int diamondTotal = 0;
+                                              if (hostId != null) {
+                                                diamondTotal =
+                                                    GiftModel.totalDiamondsForHost(
+                                                      gifts,
+                                                      hostId,
+                                                    );
+                                              }
+
+                                              return DiamondStarStatus(
+                                                diamonCount:
+                                                    AppUtils.formatNumber(
+                                                      diamondTotal,
+                                                    ),
+                                                starCount:
+                                                    AppUtils.formatNumber(0),
+                                              );
+                                            },
+                                          ),
+                                          SizedBox(height: 5.h),
+                                          //add another widget to show the bonus
+                                          // BonusStatus(
+                                          //   bonusCount: AppUtils.formatNumber(
+                                          //     _calculateTotalBonusDiamonds(),
+                                          //   ),
+                                          // ),
+                                        ],
+                                      ),
+
+                                      Spacer(),
+
+                                      // Chat widget - positioned at bottom left
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: BlocBuilder<ChatBloc, ChatState>(
+                                          builder: (context, chatState) {
+                                            final messages =
+                                                chatState is ChatLoaded
+                                                ? chatState.messages
+                                                : <ChatModel>[];
+                                            final callState = context
+                                                .watch<CallRequestBloc>()
+                                                .state;
+                                            final isCallingNow =
+                                                callState
+                                                    is CallRequestLoaded &&
+                                                callState
+                                                    .activeBroadcasters
+                                                    .isNotEmpty;
+                                            return LiveChatWidget(
+                                              isCallingNow: isCallingNow,
+                                              messages: messages,
+                                            );
+                                          },
+                                        ),
+                                      ),
+
+                                      SizedBox(height: 10.h),
+
+                                      // the bottom buttons
+                                      if (isHost)
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceAround,
+                                          children: [
+                                            InkWell(
+                                              onTap: () {
+                                                showSendMessageBottomSheet(
+                                                  context,
+                                                  onSendMessage: (message) {
+                                                    print(
+                                                      "Send message pressed",
+                                                    );
+                                                    _emitMessageToSocket(
+                                                      message,
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                              child: Stack(
+                                                children: [
+                                                  Image.asset(
+                                                    "assets/icons/message_icon.png",
+                                                    height: 40.h,
+                                                  ),
+                                                  Positioned(
+                                                    left: 10.w,
+                                                    top: 0,
+                                                    bottom: 0,
+                                                    child: Row(
+                                                      children: [
+                                                        Image.asset(
+                                                          "assets/icons/message_user_icon.png",
+                                                          height: 20.h,
+                                                        ),
+                                                        SizedBox(width: 5.w),
+                                                        Text(
+                                                          'Say Hello!',
+                                                          style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 18.sp,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            CustomLiveButton(
+                                              iconPath:
+                                                  "assets/icons/gift_user_icon.png",
+                                              onTap: () {
+                                                // ✅ Get viewers from BLoC state
+                                                final liveState = context
+                                                    .read<LiveStreamBloc>()
+                                                    .state;
+                                                final viewers =
+                                                    liveState
+                                                        is LiveStreamStreaming
+                                                    ? liveState.viewers
+                                                    : <JoinedUserModel>[];
+
+                                                showGiftBottomSheet(
+                                                  context,
+                                                  activeViewers: viewers,
+                                                  roomId:
+                                                      _currentRoomId ?? roomId,
+                                                  hostUserId: isHost
+                                                      ? userId
+                                                      : widget.hostUserId,
+                                                  hostName: isHost
+                                                      ? state.user.name
+                                                      : widget.hostName,
+                                                  hostAvatar: isHost
+                                                      ? state.user.avatar
+                                                      : widget.hostAvatar,
+                                                );
+                                              },
+                                            ),
+                                            CustomLiveButton(
+                                              iconPath:
+                                                  "assets/icons/pk_icon.png",
+                                              onTap: () {
+                                                // _playAnimation();
+                                                _showSnackBar(
+                                                  '🎶 Not implemented yet',
+                                                  Colors.green,
+                                                );
+                                                // showMusicBottomSheet(context);
+                                              },
+                                            ),
+                                            BlocBuilder<
+                                              LiveStreamBloc,
+                                              LiveStreamState
+                                            >(
+                                              builder: (context, liveState) {
+                                                final isMuted =
+                                                    liveState
+                                                        is LiveStreamStreaming
+                                                    ? !liveState.isMicEnabled
+                                                    : true;
+                                                return CustomLiveButton(
+                                                  iconPath: isMuted
+                                                      ? "assets/icons/mute_icon.png"
+                                                      : "assets/icons/unmute_icon.png",
+                                                  onTap: () {
+                                                    _toggleMute();
+                                                  },
+                                                );
+                                              },
+                                            ),
+                                            CustomLiveButton(
+                                              iconPath:
+                                                  "assets/icons/call_icon.png",
+                                              onTap: () {
+                                                final audioCallerCount =
+                                                    sessionState
+                                                        .audioCallerUids
+                                                        .length;
+                                                if (audioCallerCount > 0) {
+                                                  _showSnackBar(
+                                                    '🎤 $audioCallerCount audio caller${audioCallerCount > 1 ? 's' : ''} connected',
+                                                    Colors.green,
+                                                  );
+                                                } else {
+                                                  _showSnackBar(
+                                                    '📞 Waiting for audio callers to join...',
+                                                    Colors.blue,
+                                                  );
+                                                }
+                                                // Capture the outer context with BLoC access
+                                                final outerContext = context;
+                                                final callRequestBloc =
+                                                    outerContext
+                                                        .read<
+                                                          CallRequestBloc
+                                                        >();
+
+                                                showModalBottomSheet(
+                                                  context: outerContext,
+                                                  useRootNavigator: false,
+                                                  isScrollControlled: true,
+                                                  backgroundColor:
+                                                      Colors.transparent,
+                                                  builder: (sheetContext) {
+                                                    return BlocProvider.value(
+                                                      value: callRequestBloc,
+                                                      child:
+                                                          BlocBuilder<
+                                                            CallRequestBloc,
+                                                            CallRequestState
+                                                          >(
+                                                            builder:
+                                                                (
+                                                                  context,
+                                                                  callRequestState,
+                                                                ) {
+                                                                  final pendingRequests =
+                                                                      callRequestState
+                                                                          is CallRequestLoaded
+                                                                      ? callRequestState
+                                                                            .pendingRequests
+                                                                      : <
+                                                                          CallRequestModel
+                                                                        >[];
+                                                                  final activeBroadcasters =
+                                                                      callRequestState
+                                                                          is CallRequestLoaded
+                                                                      ? callRequestState
+                                                                            .activeBroadcasters
+                                                                      : <
+                                                                          BroadcasterModel
+                                                                        >[];
+
+                                                                  return CallManageBottomSheet(
+                                                                    onAcceptCall: (userId) {
+                                                                      debugPrint(
+                                                                        "Accepting call request from $userId",
+                                                                      );
+                                                                      callRequestBloc.add(
+                                                                        AcceptCallRequest(
+                                                                          userId:
+                                                                              userId,
+                                                                          roomId:
+                                                                              _currentRoomId ??
+                                                                              '',
+                                                                        ),
+                                                                      );
+                                                                    },
+                                                                    onRejectCall: (userId) {
+                                                                      debugPrint(
+                                                                        "Rejecting call request from $userId",
+                                                                      );
+                                                                      callRequestBloc.add(
+                                                                        RejectCallRequest(
+                                                                          userId:
+                                                                              userId,
+                                                                          roomId:
+                                                                              _currentRoomId ??
+                                                                              '',
+                                                                        ),
+                                                                      );
+                                                                    },
+                                                                    onKickUser: (userId) {
+                                                                      callRequestBloc.add(
+                                                                        RemoveBroadcaster(
+                                                                          userId:
+                                                                              userId,
+                                                                          roomId:
+                                                                              _currentRoomId ??
+                                                                              '',
+                                                                        ),
+                                                                      );
+                                                                      debugPrint(
+                                                                        "Kicking user $userId from call",
+                                                                      );
+                                                                    },
+                                                                    callers:
+                                                                        pendingRequests,
+                                                                    inCallList:
+                                                                        activeBroadcasters,
+                                                                  );
+                                                                },
+                                                          ),
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                            ),
+
+                                            CustomLiveButton(
+                                              iconPath:
+                                                  "assets/icons/menu_icon.png",
+                                              onTap: () {
+                                                // ✅ Get duration from BLoC state
+                                                final liveState = context
+                                                    .read<LiveStreamBloc>()
+                                                    .state;
+                                                final streamDuration =
+                                                    liveState
+                                                        is LiveStreamStreaming
+                                                    ? liveState.duration
+                                                    : Duration.zero;
+
+                                                showGameBottomSheet(
+                                                  context,
+                                                  userId: userId,
+                                                  isHost: isHost,
+                                                  streamDuration:
+                                                      streamDuration,
+                                                );
+                                              },
+                                            ),
+                                          ],
+                                        )
+                                      else
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceAround,
+                                          children: [
+                                            InkWell(
+                                              onTap: () {
+                                                // _showSnackBar(
+                                                //   '💬 Not implemented yet',
+                                                //   Colors.green,
+                                                // );
+                                                showSendMessageBottomSheet(
+                                                  context,
+                                                  onSendMessage: (message) {
+                                                    print(
+                                                      "Send message pressed",
+                                                    );
+                                                    _emitMessageToSocket(
+                                                      message,
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                              child: Stack(
+                                                children: [
+                                                  Image.asset(
+                                                    "assets/icons/message_icon.png",
+                                                    height: 40.h,
+                                                  ),
+                                                  Positioned(
+                                                    left: 10,
+                                                    top: 0,
+                                                    bottom: 0,
+                                                    child: Row(
+                                                      children: [
+                                                        Image.asset(
+                                                          "assets/icons/message_user_icon.png",
+                                                          height: 20.h,
+                                                        ),
+                                                        SizedBox(width: 5.w),
+                                                        Text(
+                                                          'Say Hello!',
+                                                          style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 18.sp,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+
+                                            CustomLiveButton(
+                                              iconPath:
+                                                  "assets/icons/gift_user_icon.png",
+                                              onTap: () {
+                                                // ✅ Get viewers from BLoC state
+                                                final liveState = context
+                                                    .read<LiveStreamBloc>()
+                                                    .state;
+                                                final viewers =
+                                                    liveState
+                                                        is LiveStreamStreaming
+                                                    ? liveState.viewers
+                                                    : <JoinedUserModel>[];
+
+                                                showGiftBottomSheet(
+                                                  context,
+                                                  activeViewers: viewers,
+                                                  roomId:
+                                                      _currentRoomId ?? roomId,
+                                                  hostUserId: isHost
+                                                      ? userId
+                                                      : widget.hostUserId,
+                                                  hostName: isHost
+                                                      ? state.user.name
+                                                      : widget.hostName,
+                                                  hostAvatar: isHost
+                                                      ? state.user.avatar
+                                                      : widget.hostAvatar,
+                                                );
+                                              },
+                                              height: 40.h,
+                                            ),
+
+                                            CustomLiveButton(
+                                              iconPath:
+                                                  "assets/icons/game_user_icon.png",
+                                              onTap: () {
+                                                // ✅ Get duration from BLoC state
+                                                final liveState = context
+                                                    .read<LiveStreamBloc>()
+                                                    .state;
+                                                final streamDuration =
+                                                    liveState
+                                                        is LiveStreamStreaming
+                                                    ? liveState.duration
+                                                    : Duration.zero;
+
+                                                showGameBottomSheet(
+                                                  context,
+                                                  userId: userId,
+                                                  streamDuration:
+                                                      streamDuration,
+                                                );
+                                              },
+                                              height: 40.h,
+                                            ),
+                                            CustomLiveButton(
+                                              iconPath:
+                                                  "assets/icons/share_user_icon.png",
+                                              onTap: () {},
+                                              height: 40.h,
+                                            ),
+                                            CustomLiveButton(
+                                              iconPath:
+                                                  "assets/icons/menu_icon.png",
+                                              onTap: () {
+                                                final liveState = context
+                                                    .read<LiveStreamBloc>()
+                                                    .state;
+                                                final isMuted =
+                                                    liveState
+                                                        is LiveStreamStreaming
+                                                    ? !liveState.isMicEnabled
+                                                    : true;
+                                                final moderationState = context
+                                                    .read<ModerationBloc>()
+                                                    .state;
+                                                showMenuBottomSheet(
+                                                  context,
+                                                  userId: userId,
+                                                  isHost: isHost,
+                                                  isMuted: isMuted,
+                                                  isAdminMuted:
+                                                      _isCurrentUserMuted(
+                                                        moderationState,
+                                                      ),
+                                                  onToggleMute: _toggleMute,
+                                                );
+                                              },
+                                              height: 40.h,
+                                            ),
+                                          ],
+                                        ),
+                                    ],
                                   ),
                                 ),
                               ),
                             );
+                          },
+                        ),
+                      ),
+                    ),
+
+                    Positioned(
+                      bottom: 140.h,
+                      right: 30.w,
+                      child: BlocBuilder<CallRequestBloc, CallRequestState>(
+                        builder: (context, callState) {
+                          final moderationState = context
+                              .watch<ModerationBloc>()
+                              .state;
+                          final hostId = isHost ? userId : widget.hostUserId;
+                          final broadcasters = callState is CallRequestLoaded
+                              ? callState.activeBroadcasters
+                              : const <BroadcasterModel>[];
+
+                          final hostIdentifiers = <String>{
+                            if (hostId != null) hostId,
+                            if (widget.hostUserId != null) widget.hostUserId!,
+                            if (isHost && sessionState.userId != null)
+                              sessionState.userId!,
+                          };
+
+                          final displayBroadcasters = broadcasters
+                              .where((b) => !hostIdentifiers.contains(b.id))
+                              .toList();
+
+                          WhoAmI resolveRole(String broadcasterId) {
+                            final authState = context.read<AuthBloc>().state;
+                            final currentUserId = authState is AuthAuthenticated
+                                ? authState.user.id
+                                : userId;
+
+                            if (_isCurrentUserAdmin(moderationState)) {
+                              return WhoAmI.admin;
+                            } else if (_isCurrentUserHost()) {
+                              return WhoAmI.host;
+                            } else if (broadcasterId == currentUserId) {
+                              return WhoAmI.myself;
+                            } else {
+                              return WhoAmI.user;
+                            }
                           }
 
-                          children.add(
-                            GestureDetector(
-                              onTap: () {
-                                if (isJoiningRequestPending) {
-                                  _showSnackBar(
-                                    '🎤 Please wait...',
-                                    Colors.orange,
-                                  );
-                                  return;
-                                }
+                          final currentRoomId = _currentRoomId ?? roomId;
+                          final callRequestBloc = context
+                              .read<CallRequestBloc>();
 
-                                if (isAudioCaller) {
-                                  final currentUserId = userId;
-                                  if (currentUserId == null ||
-                                      currentUserId.isEmpty ||
-                                      currentRoomId.isEmpty) {
-                                    _showSnackBar(
-                                      '❌ Unable to leave call right now',
-                                      Colors.red,
-                                    );
-                                    return;
-                                  }
-
-                                  callRequestBloc.add(
-                                    RemoveBroadcaster(
-                                      userId: currentUserId,
-                                      roomId: currentRoomId,
-                                    ),
-                                  );
-                                  debugPrint("Leaving audio caller");
-                                } else {
+                          final children = <Widget>[
+                            ...displayBroadcasters.map((broadcaster) {
+                              return CallOverlayWidget(
+                                whoAmI: resolveRole(broadcaster.id),
+                                userId: broadcaster.id,
+                                userName: broadcaster.name,
+                                userImage: broadcaster.avatar.isNotEmpty
+                                    ? broadcaster.avatar
+                                    : null,
+                                onDisconnect: () {
                                   if (currentRoomId.isEmpty) {
                                     _showSnackBar(
                                       '❌ Room not ready, please try again',
@@ -1803,96 +1759,229 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                     return;
                                   }
 
-                                  if (!canJoinAudioCall) {
+                                  callRequestBloc.add(
+                                    RemoveBroadcaster(
+                                      userId: broadcaster.id,
+                                      roomId: currentRoomId,
+                                    ),
+                                  );
+                                },
+                                onMute: () {
+                                  _muteUser(broadcaster.id);
+                                },
+                                onManage: () {
+                                  debugPrint(
+                                    "Open manage for: ${broadcaster.id}",
+                                  );
+                                },
+                                onSetAdmin: (id) {
+                                  _makeAdmin(id);
+                                  _showSnackBar(
+                                    '👑 Set as admin',
+                                    Colors.green,
+                                  );
+                                },
+                                onRemoveAdmin: (id) {
+                                  _removeAdmin(id);
+                                  _showSnackBar(
+                                    '👤 Admin removed',
+                                    Colors.orange,
+                                  );
+                                },
+                                adminModels: moderationState.adminList,
+                                onMuteUser: (id) {
+                                  _muteUser(id);
+                                  _showSnackBar('🔇 User muted', Colors.orange);
+                                },
+                                onKickOut: (id) {
+                                  _banUser(id);
+                                  _showSnackBar(
+                                    '👢 User kicked out',
+                                    Colors.red,
+                                  );
+                                },
+                                onBanUser: (id) {
+                                  _banUser(id);
+                                  _showSnackBar(
+                                    '⛔ User added to blocklist',
+                                    Colors.red,
+                                  );
+                                },
+                              );
+                            }).toList(),
+                          ];
+
+                          if (!isHost) {
+                            children.add(SizedBox(height: 80.h));
+
+                            final isAudioCaller = sessionState.isAudioCaller;
+                            final isJoiningRequestPending =
+                                !isAudioCaller &&
+                                callState is CallRequestLoaded &&
+                                userId != null &&
+                                callState.pendingRequests.any(
+                                  (request) => request.userId == userId,
+                                );
+                            final canJoinAudioCall = _canJoinAudioCall(
+                              sessionState,
+                            );
+                            final maxAudioCallers =
+                                LiveSessionState.maxAudioCallers;
+
+                            if (displayBroadcasters.isNotEmpty) {
+                              children.add(
+                                Container(
+                                  margin: EdgeInsets.only(bottom: 10.h),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12.w,
+                                    vertical: 6.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black54,
+                                    borderRadius: BorderRadius.circular(15.r),
+                                  ),
+                                  child: Text(
+                                    '🎤 ${displayBroadcasters.length}/$maxAudioCallers',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12.sp,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            children.add(
+                              GestureDetector(
+                                onTap: () {
+                                  if (isJoiningRequestPending) {
                                     _showSnackBar(
-                                      '🎤 Audio call is full',
-                                      Colors.red,
+                                      '🎤 Please wait...',
+                                      Colors.orange,
                                     );
                                     return;
                                   }
 
-                                  callRequestBloc.add(
-                                    SubmitJoinCallRequest(
-                                      roomId: currentRoomId,
-                                    ),
-                                  );
-                                  _showSnackBar(
-                                    '🎤 Please wait for accept call...',
-                                    Colors.orange,
-                                  );
-                                  debugPrint("Join call request sent");
-                                }
-                              },
-                              child: Container(
-                                height: 80.h,
-                                width: 80.w,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.all(
-                                    Radius.circular(8.r),
-                                  ),
-                                  color: isJoiningRequestPending
-                                      ? Colors.grey
-                                      : isAudioCaller
-                                          ? Colors.orange
-                                          : canJoinAudioCall
-                                              ? const Color(0xFFFEB86F)
-                                              : const Color(0xFFFEB86F),
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    isJoiningRequestPending
-                                        ? SizedBox(
-                                            width: 40.w,
-                                            height: 40.h,
-                                            child: const CircularProgressIndicator(
-                                              color: Colors.white,
-                                              strokeWidth: 3,
-                                            ),
-                                          )
-                                        : SvgPicture.asset(
-                                            "assets/icons/join_call_icon.svg",
-                                            height: 40.h,
-                                            width: 40.w,
-                                          ),
-                                    Text(
-                                      isJoiningRequestPending
-                                          ? 'Joining'
-                                          : isAudioCaller
-                                              ? 'Leave'
-                                              : canJoinAudioCall
-                                                  ? _getAudioCallerText(sessionState)
-                                                  : 'Call Full',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18.sp,
-                                        fontWeight: FontWeight.w400,
+                                  if (isAudioCaller) {
+                                    final currentUserId = userId;
+                                    if (currentUserId == null ||
+                                        currentUserId.isEmpty ||
+                                        currentRoomId.isEmpty) {
+                                      _showSnackBar(
+                                        '❌ Unable to leave call right now',
+                                        Colors.red,
+                                      );
+                                      return;
+                                    }
+
+                                    callRequestBloc.add(
+                                      RemoveBroadcaster(
+                                        userId: currentUserId,
+                                        roomId: currentRoomId,
                                       ),
+                                    );
+                                    debugPrint("Leaving audio caller");
+                                  } else {
+                                    if (currentRoomId.isEmpty) {
+                                      _showSnackBar(
+                                        '❌ Room not ready, please try again',
+                                        Colors.red,
+                                      );
+                                      return;
+                                    }
+
+                                    if (!canJoinAudioCall) {
+                                      _showSnackBar(
+                                        '🎤 Audio call is full',
+                                        Colors.red,
+                                      );
+                                      return;
+                                    }
+
+                                    callRequestBloc.add(
+                                      SubmitJoinCallRequest(
+                                        roomId: currentRoomId,
+                                      ),
+                                    );
+                                    _showSnackBar(
+                                      '🎤 Please wait for accept call...',
+                                      Colors.orange,
+                                    );
+                                    debugPrint("Join call request sent");
+                                  }
+                                },
+                                child: Container(
+                                  height: 80.h,
+                                  width: 80.w,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(8.r),
                                     ),
-                                  ],
+                                    color: isJoiningRequestPending
+                                        ? Colors.grey
+                                        : isAudioCaller
+                                        ? Colors.orange
+                                        : canJoinAudioCall
+                                        ? const Color(0xFFFEB86F)
+                                        : const Color(0xFFFEB86F),
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      isJoiningRequestPending
+                                          ? SizedBox(
+                                              width: 40.w,
+                                              height: 40.h,
+                                              child:
+                                                  const CircularProgressIndicator(
+                                                    color: Colors.white,
+                                                    strokeWidth: 3,
+                                                  ),
+                                            )
+                                          : SvgPicture.asset(
+                                              "assets/icons/join_call_icon.svg",
+                                              height: 40.h,
+                                              width: 40.w,
+                                            ),
+                                      Text(
+                                        isJoiningRequestPending
+                                            ? 'Joining'
+                                            : isAudioCaller
+                                            ? 'Leave'
+                                            : canJoinAudioCall
+                                            ? _getAudioCallerText(sessionState)
+                                            : 'Call Full',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 18.sp,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        } else {
-                          children.add(SizedBox(height: 180.h));
-                        }
+                            );
+                          } else {
+                            children.add(SizedBox(height: 180.h));
+                          }
 
-                        return Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: children,
-                        );
-                      },
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: children,
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            );
-          }
-        },
-      ),
+                  ],
+                ),
+              );
+            }
+          },
+        ),
       ), // ✅ Closing PopScope
     ); // ✅ Closing MultiBlocListener
   }
@@ -1961,15 +2050,17 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   /// Build multi-broadcaster view for audience
   Widget _buildAudienceMultiView(LiveSessionState sessionState) {
     final liveState = context.read<LiveStreamBloc>().state;
-    final isCameraEnabled =
-        liveState is LiveStreamStreaming ? liveState.isCameraEnabled : false;
+    final isCameraEnabled = liveState is LiveStreamStreaming
+        ? liveState.isCameraEnabled
+        : false;
 
     final allVideoBroadcasters = <int>[
       ...sessionState.remoteUsers,
       if (sessionState.isAudioCaller && isCameraEnabled) 0,
     ];
 
-    final shouldShowVideo = allVideoBroadcasters.isNotEmpty &&
+    final shouldShowVideo =
+        allVideoBroadcasters.isNotEmpty &&
         (sessionState.isVideoReady || sessionState.localUserJoined);
 
     if (!shouldShowVideo) {

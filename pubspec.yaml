@@ -81,7 +81,7 @@ dependencies:
 
   # UX Enhancements
   preload_page_view: ^0.2.0
-  flutter_svga: ^0.0.8
+  flutter_svga_easyplayer: ^0.0.1
   in_app_update: ^4.2.5
   fluttertoast: ^9.0.0
   url_launcher: ^6.3.2
