@@ -30,6 +30,7 @@ class LiveStreamStreaming extends LiveStreamState {
   final bool isMicEnabled;
   final int totalBonusDiamonds;
   final List<String> bannedUsers;
+  final int lastBonusMilestone; // Track last milestone for bonus API calls
 
   const LiveStreamStreaming({
     required this.roomId,
@@ -41,6 +42,7 @@ class LiveStreamStreaming extends LiveStreamState {
     this.isMicEnabled = true,
     this.totalBonusDiamonds = 0,
     this.bannedUsers = const [],
+    this.lastBonusMilestone = 0,
   });
 
   /// Copy with for immutable updates
@@ -54,6 +56,7 @@ class LiveStreamStreaming extends LiveStreamState {
     bool? isMicEnabled,
     int? totalBonusDiamonds,
     List<String>? bannedUsers,
+    int? lastBonusMilestone,
   }) {
     return LiveStreamStreaming(
       roomId: roomId ?? this.roomId,
@@ -65,6 +68,7 @@ class LiveStreamStreaming extends LiveStreamState {
       isMicEnabled: isMicEnabled ?? this.isMicEnabled,
       totalBonusDiamonds: totalBonusDiamonds ?? this.totalBonusDiamonds,
       bannedUsers: bannedUsers ?? this.bannedUsers,
+      lastBonusMilestone: lastBonusMilestone ?? this.lastBonusMilestone,
     );
   }
 
@@ -79,6 +83,7 @@ class LiveStreamStreaming extends LiveStreamState {
         isMicEnabled,
         totalBonusDiamonds,
         bannedUsers,
+        lastBonusMilestone,
       ];
 }
 

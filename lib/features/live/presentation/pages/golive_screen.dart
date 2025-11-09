@@ -157,23 +157,19 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   //Admin Details
   List<AdminDetailsModel> adminModels = [];
 
-  // Live stream timing
-  DateTime? _streamStartTime;
-  Timer? _durationTimer;
+  // ✅ Live stream timing - Now managed by LiveStreamBloc
+  // Keeping local copy for backward compatibility with existing code
+  // TODO: Remove after full migration
   Duration _streamDuration = Duration.zero;
 
-  // Daily bonus tracking - track last milestone called (configurable interval)
+  // Daily bonus tracking - ✅ Now handled by LiveStreamBloc state
+  // Kept for backward compatibility only
   int _lastBonusMilestone = 0;
-
-  // Total bonus diamonds earned from API calls
   int _totalBonusDiamonds = 0;
 
   // Configurable interval for bonus API calls (in minutes) - for debugging
   // Set to 1 for testing, 50 for production
   static const int _bonusIntervalMinutes = 50;
-
-  // Flag to prevent multiple API calls for the same milestone
-  bool _isCallingBonusAPI = false;
 
   //Live inactivity timeout duration
   static const int _inactivityTimeoutSeconds = 60;
@@ -233,11 +229,10 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     currentMuteState = null;
     adminModels.clear();
     _chatMessages.clear();
-    _streamStartTime = null;
+    // ✅ Duration now managed by LiveStreamBloc
     _streamDuration = Duration.zero;
     _lastBonusMilestone = 0;
     _totalBonusDiamonds = 0;
-    _isCallingBonusAPI = false;
     _lastHostActivity = null;
     _animationPlaying = false;
     _currentRoomId = null;
@@ -252,11 +247,9 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     if (widget.roomData != null) {
       final roomData = widget.roomData!;
 
-      // Initialize duration and start time based on existing duration
+      // ✅ Duration now managed by LiveStreamBloc
+      // Initialize from existing duration
       if (roomData.duration > 0) {
-        _streamStartTime = DateTime.now().subtract(
-          Duration(seconds: roomData.duration),
-        );
         _streamDuration = Duration(seconds: roomData.duration);
         debugPrint(
           "🕒 Initialized stream with existing duration: ${roomData.duration}s",
@@ -1121,7 +1114,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     _showSnackBar('📱 $reason', Colors.red);
 
     // Perform cleanup immediately
-    _stopStreamTimer();
+    // ✅ Timer now managed by LiveStreamBloc
     _hostActivityTimer?.cancel();
     
     // Leave the room to notify server
@@ -1362,8 +1355,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
             debugPrint('🔍 Not applying camera preference - user is not host');
           }
 
-          // Start timing the stream when successfully joined
-          _startStreamTimer();
+          // ✅ Stream timer now managed by LiveStreamBloc automatically
+          // No need to start timer here
 
           // Show success message
           if (isHost) {
@@ -1802,39 +1795,41 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     }
   }
 
+  // ✅ DEPRECATED: Stream timer now managed by LiveStreamBloc
+  // Commented out to use BLoC's timer instead
   // Start stream timer
-  void _startStreamTimer() {
-    // Only set start time if not already set (for existing streams)
-    _streamStartTime ??= DateTime.now();
-
-    _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted && _streamStartTime != null) {
-        setState(() {
-          _streamDuration = DateTime.now().difference(_streamStartTime!);
-        });
-
-        // Check for bonus milestones for hosts only
-        if (isHost &&
-            _streamDuration.inMinutes >= _bonusIntervalMinutes &&
-            !_isCallingBonusAPI) {
-          int currentMilestone =
-              (_streamDuration.inMinutes ~/ _bonusIntervalMinutes) *
-              _bonusIntervalMinutes;
-
-          // Only call API if we've reached a new milestone
-          if (currentMilestone > _lastBonusMilestone) {
-            _callDailyBonusAPI();
-          }
-        }
-      }
-    });
-  }
-
-  // Stop stream timer
-  void _stopStreamTimer() {
-    _durationTimer?.cancel();
-    _durationTimer = null;
-  }
+  // void _startStreamTimer() {
+  //   // Only set start time if not already set (for existing streams)
+  //   _streamStartTime ??= DateTime.now();
+  //
+  //   _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+  //     if (mounted && _streamStartTime != null) {
+  //       setState(() {
+  //         _streamDuration = DateTime.now().difference(_streamStartTime!);
+  //       });
+  //
+  //       // Check for bonus milestones for hosts only
+  //       if (isHost &&
+  //           _streamDuration.inMinutes >= _bonusIntervalMinutes &&
+  //           !_isCallingBonusAPI) {
+  //         int currentMilestone =
+  //             (_streamDuration.inMinutes ~/ _bonusIntervalMinutes) *
+  //             _bonusIntervalMinutes;
+  //
+  //         // Only call API if we've reached a new milestone
+  //         if (currentMilestone > _lastBonusMilestone) {
+  //           _callDailyBonusAPI();
+  //         }
+  //       }
+  //     }
+  //   });
+  // }
+  //
+  // // Stop stream timer
+  // void _stopStreamTimer() {
+  //   _durationTimer?.cancel();
+  //   _durationTimer = null;
+  // }
 
   // Format duration to string
   String _formatDuration(Duration duration) {
@@ -1859,195 +1854,14 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     });
   }
 
-  // Call daily bonus API for every milestone interval or on stream end
-  Future<void> _callDailyBonusAPI({bool isStreamEnd = false}) async {
-    if (!isHost) return;
-
-    // Prevent multiple simultaneous API calls (except for stream end)
-    if (!isStreamEnd && _isCallingBonusAPI) {
-      debugPrint("⏳ Bonus API call already in progress, skipping...");
-      return;
-    }
-
-    final totalMinutes = _streamDuration.inMinutes;
-    int currentMilestone;
-
-    if (isStreamEnd) {
-      // On stream end, ALWAYS call API regardless of duration
-      currentMilestone = totalMinutes; // Use exact duration for final call
-    } else {
-      // During stream, call at configured intervals
-      currentMilestone =
-          (totalMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
-      // Don't call if we've already processed this milestone or if not at minimum milestone
-      if (currentMilestone <= _lastBonusMilestone ||
-          currentMilestone < _bonusIntervalMinutes) {
-        return;
-      }
-    }
-
-    // Set flag to prevent multiple calls (except for stream end)
-    if (!isStreamEnd) {
-      _isCallingBonusAPI = true;
-      debugPrint("🔒 Setting bonus API flag to prevent duplicate calls");
-    }
-
-    try {
-      debugPrint(
-        "🏆 Calling daily bonus API for $totalMinutes minutes of streaming ${isStreamEnd ? '(final call)' : '(milestone: ${currentMilestone}m)'}",
-      );
-
-      final response = await _apiService.post<Map<String, dynamic>>(
-        '/api/auth/daily-bonus',
-        data: {'totalTime': totalMinutes, 'type': 'video'},
-      );
-
-      // ✅ Check mounted before any setState calls
-      if (!mounted) {
-        debugPrint("⚠️ Widget disposed, skipping state updates");
-        return;
-      }
-
-      response.fold(
-        (data) {
-          // ✅ Re-check mounted in callback
-          if (!mounted) return;
-
-          debugPrint("✅ Daily bonus API call successful: $data");
-
-          // Check if response is successful and has result data
-          if (data['success'] == true && data['result'] != null) {
-            final result = data['result'] as Map<String, dynamic>;
-            final int bonusDiamonds =
-                result['bonus'] ??
-                0; // Fixed: use 'bonus' instead of 'diamonds'
-
-            if (bonusDiamonds > 0) {
-              debugPrint("💎 Received daily bonus: $bonusDiamonds diamonds");
-
-              // Track total bonus diamonds
-              if (mounted) {
-                setState(() {
-                  if (!isStreamEnd) {
-                    _lastBonusMilestone = currentMilestone;
-                  }
-                  _totalBonusDiamonds += bonusDiamonds;
-                });
-              }
-
-              // Show appropriate message
-              if (isStreamEnd) {
-                _showSnackBar(
-                  '🎉 Final streaming bonus earned: $bonusDiamonds diamonds! (Total: ${totalMinutes}m)',
-                  Colors.green,
-                );
-              } else {
-                _showSnackBar(
-                  '🎉 Daily streaming bonus earned: $bonusDiamonds diamonds! (${currentMilestone}m milestone)',
-                  Colors.green,
-                );
-              }
-
-              debugPrint("💰 Total bonus diamonds now: $_totalBonusDiamonds");
-            } else {
-              if (mounted) {
-                setState(() {
-                  if (!isStreamEnd) {
-                    _lastBonusMilestone = currentMilestone;
-                  }
-                });
-              }
-
-              if (isStreamEnd) {
-                _showSnackBar(
-                  '🎉 Stream completed! (Total: ${totalMinutes}m)',
-                  Colors.green,
-                );
-              } else {
-                _showSnackBar(
-                  '🎉 Milestone reached! (${currentMilestone}m)',
-                  Colors.green,
-                );
-              }
-            }
-          } else {
-            if (mounted) {
-              setState(() {
-                if (!isStreamEnd) {
-                  _lastBonusMilestone = currentMilestone;
-                }
-              });
-            }
-
-            if (isStreamEnd) {
-              _showSnackBar(
-                '🎉 Stream completed! (Total: ${totalMinutes}m)',
-                Colors.green,
-              );
-            } else {
-              _showSnackBar(
-                '🎉 Milestone reached! (${currentMilestone}m)',
-                Colors.green,
-              );
-            }
-          }
-        },
-        (error) {
-          // ✅ Check mounted before setState in error handler
-          if (!mounted) return;
-
-          debugPrint("❌ Daily bonus API call failed: $error");
-          // Update milestone even on error to prevent continuous retries
-          if (mounted) {
-            setState(() {
-              if (!isStreamEnd) {
-                _lastBonusMilestone = currentMilestone;
-              }
-            });
-          }
-
-          // Check if it's a "maximum bonus reached" error
-          if (error.contains("maximum bonus") || error.contains("reached")) {
-            _showSnackBar(
-              isStreamEnd
-                  ? '⚠️ Daily bonus limit reached (Total: ${totalMinutes}m)'
-                  : '⚠️ Daily bonus limit reached (${currentMilestone}m)',
-              Colors.orange,
-            );
-          } else {
-            _showSnackBar(
-              isStreamEnd
-                  ? '⚠️ Processing final bonus... (Total: ${totalMinutes}m)'
-                  : '⚠️ Bonus reward processing... (${currentMilestone}m)',
-              Colors.orange,
-            );
-          }
-        },
-      );
-    } catch (e) {
-      debugPrint("❌ Exception calling daily bonus API: $e");
-      // Update milestone even on exception to prevent continuous retries
-      if (mounted) {
-        setState(() {
-          if (!isStreamEnd) {
-            _lastBonusMilestone = currentMilestone;
-          }
-        });
-      }
-      _showSnackBar(
-        isStreamEnd
-            ? '❌ Failed to process final bonus (Total: ${totalMinutes}m)'
-            : '❌ Failed to process bonus (${currentMilestone}m)',
-        Colors.red,
-      );
-    } finally {
-      // Always reset the flag when API call completes (except for stream end)
-      if (!isStreamEnd) {
-        _isCallingBonusAPI = false;
-        debugPrint("🔓 Resetting bonus API flag");
-      }
-    }
-  }
+  // ✅ DEPRECATED: Call daily bonus API - Now handled by LiveStreamBloc
+  // BLoC automatically calls bonus API at milestones via UpdateStreamDuration handler
+  // For stream end, dispatch CallDailyBonus event
+  // Commented out to use BLoC's implementation instead
+  //
+  // Future<void> _callDailyBonusAPI({bool isStreamEnd = false}) async {
+  //   ... [old implementation commented out]
+  // }
 
   // End live stream
   void _endLiveStream() async {
@@ -2061,8 +1875,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       
       debugPrint("🔍 _endLiveStream: isHost=$isHost, canNavigate=$canNavigate, authState=$authState");
       
-      // Stop the stream timer
-      _stopStreamTimer();
+      // ✅ Timer now managed by LiveStreamBloc - will auto-cancel on EndLiveStream event
 
       // Reset audio caller state - only if widget is still mounted
       if (mounted) {
@@ -2094,8 +1907,10 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       if (isHost && canNavigate && authState is AuthAuthenticated) {
         debugPrint("✅ Host navigating to summary screen");
         
-        // Always call daily bonus API on stream end
-        await _callDailyBonusAPI(isStreamEnd: true);
+        // ✅ Call daily bonus API on stream end via BLoC
+        if (mounted) {
+          context.read<LiveStreamBloc>().add(const CallDailyBonus(isStreamEnd: true));
+        }
 
         // Calculate total earned diamonds/coins
         int earnedDiamonds = GiftModel.totalDiamondsForHost(
@@ -2586,11 +2401,17 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                             iconPath:
                                                 "assets/icons/menu_icon.png",
                                             onTap: () {
+                                              // ✅ Get duration from BLoC state
+                                              final liveState = context.read<LiveStreamBloc>().state;
+                                              final streamDuration = liveState is LiveStreamStreaming 
+                                                  ? liveState.duration 
+                                                  : Duration.zero;
+                                              
                                               showGameBottomSheet(
                                                 context,
                                                 userId: userId,
                                                 isHost: isHost,
-                                                streamDuration: _streamDuration,
+                                                streamDuration: streamDuration,
                                               );
                                             },
                                           ),
@@ -2679,10 +2500,16 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                             iconPath:
                                                 "assets/icons/game_user_icon.png",
                                             onTap: () {
+                                              // ✅ Get duration from BLoC state
+                                              final liveState = context.read<LiveStreamBloc>().state;
+                                              final streamDuration = liveState is LiveStreamStreaming 
+                                                  ? liveState.duration 
+                                                  : Duration.zero;
+                                              
                                               showGameBottomSheet(
                                                 context,
                                                 userId: userId,
-                                                streamDuration: _streamDuration,
+                                                streamDuration: streamDuration,
                                               );
                                             },
                                             height: 40.h,
@@ -3249,8 +3076,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   void dispose() {
     debugPrint("🧹 Disposing video live screen...");
     
-    // Stop timers first
-    _stopStreamTimer();
+    // ✅ Timer now managed by LiveStreamBloc - will auto-cleanup
     _hostActivityTimer?.cancel();
 
     // Cancel all stream subscriptions to prevent setState calls after disposal

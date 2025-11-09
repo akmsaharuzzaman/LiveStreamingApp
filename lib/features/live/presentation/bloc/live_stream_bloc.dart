@@ -20,6 +20,9 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   // Timer for duration updates
   Timer? _durationTimer;
   DateTime? _streamStartTime;
+  
+  // Flag to prevent multiple bonus API calls
+  bool _isCallingBonusAPI = false;
 
   LiveStreamBloc(
     this._repository,
@@ -157,7 +160,25 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   ) {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
-      emit(currentState.copyWith(duration: event.duration));
+      final newDuration = event.duration;
+      
+      // Check for bonus milestone (every 50 minutes by default)
+      const bonusIntervalMinutes = 50;
+      if (currentState.isHost && newDuration.inMinutes >= bonusIntervalMinutes) {
+        final currentMilestone = (newDuration.inMinutes ~/ bonusIntervalMinutes) * bonusIntervalMinutes;
+        
+        // Call bonus API if we've reached a new milestone
+        if (currentMilestone > currentState.lastBonusMilestone) {
+          add(CallDailyBonus(isStreamEnd: false));
+          emit(currentState.copyWith(
+            duration: newDuration,
+            lastBonusMilestone: currentMilestone,
+          ));
+          return;
+        }
+      }
+      
+      emit(currentState.copyWith(duration: newDuration));
     }
   }
 
@@ -225,9 +246,16 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     CallDailyBonus event,
     Emitter<LiveStreamState> emit,
   ) async {
+    // Prevent multiple simultaneous API calls (except for stream end)
+    if (!event.isStreamEnd && _isCallingBonusAPI) {
+      return;
+    }
+    
     try {
       final currentState = state;
       if (currentState is LiveStreamStreaming && currentState.isHost) {
+        _isCallingBonusAPI = true;
+        
         final totalMinutes = currentState.duration.inMinutes;
         
         final result = await _repository.callDailyBonus(
@@ -248,8 +276,8 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
           },
         );
       }
-    } catch (e) {
-      // Silent fail for bonus
+    } finally {
+      _isCallingBonusAPI = false;
     }
   }
 
