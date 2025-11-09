@@ -17,10 +17,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/network/models/admin_details_model.dart';
-import '../../../../core/network/models/ban_user_model.dart';
 import '../../../../core/network/models/joined_user_model.dart';
-import '../../../../core/network/models/mute_user_model.dart';
 import '../../../../core/utils/app_utils.dart';
 import '../component/active_viwers.dart';
 import '../component/custom_live_button.dart';
@@ -154,17 +151,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   String? userId;
   bool isHost = true;
   String roomId = "default_channel";
-  List<JoinedUserModel> activeViewers = [];
   final Set<String> _knownPendingRequestIds = {};
   final Set<String> _knownBroadcasterIds = {};
-  // Banned users
-  List<String> bannedUsers = [];
-  // Banned user details
-  List<BanUserModel> bannedUserModels = [];
-  // Mute user details - store only the latest mute state
-  MuteUserModel? currentMuteState;
-  //Admin Details
-  List<AdminDetailsModel> adminModels = [];
 
   // ✅ Live stream timing - Now managed by LiveStreamBloc
   // Keeping local copy for backward compatibility with existing code
@@ -201,13 +189,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   /// ✅ Reset all state variables to clean slate
   void _resetState() {
     debugPrint("🔄 Resetting screen state...");
-    activeViewers.clear();
     _knownPendingRequestIds.clear();
     _knownBroadcasterIds.clear();
-    bannedUsers.clear();
-    bannedUserModels.clear();
-    currentMuteState = null;
-    adminModels.clear();
     _chatMessages.clear();
     // ✅ Duration now managed by LiveStreamBloc
     _streamDuration = Duration.zero;
@@ -323,25 +306,31 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
 
       // Initialize members as active viewers (excluding host)
       if (roomData.membersDetails.isNotEmpty) {
-        activeViewers.clear();
+        final initialViewers = <JoinedUserModel>[];
         for (var member in roomData.membersDetails) {
           // Don't add host to viewers list
           if (member.id != roomData.hostId) {
-            final viewer = JoinedUserModel(
-              id: member.id,
-              avatar: member.avatar,
-              name: member.name,
-              uid: member.uid,
-              currentLevel: member.currentLevel,
-              currentBackground: member.currentBackground,
-              currentTag: member.currentTag,
-              diamonds: 0, // Initialize with 0, will be updated from gifts
+            initialViewers.add(
+              JoinedUserModel(
+                id: member.id,
+                avatar: member.avatar,
+                name: member.name,
+                uid: member.uid,
+                currentLevel: member.currentLevel,
+                currentBackground: member.currentBackground,
+                currentTag: member.currentTag,
+                diamonds: 0,
+              ),
             );
-            activeViewers.add(viewer);
           }
         }
+
+        if (initialViewers.isNotEmpty) {
+          _seedInitialViewers(initialViewers);
+        }
+
         debugPrint(
-          "👥 Loaded ${activeViewers.length} existing members as viewers",
+          "👥 Loaded ${initialViewers.length} existing members as viewers",
         );
       }
 
@@ -367,31 +356,28 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   /// Convert HostDetails to JoinedUserModel and initialize existing viewers
   void _initializeExistingViewers() {
     if (widget.existingViewers.isNotEmpty) {
-      // First convert all existing viewers to JoinedUserModel
-      activeViewers = widget.existingViewers.map((hostDetail) {
-        return JoinedUserModel(
-          id: hostDetail.id,
-          avatar: hostDetail.avatar,
-          name: hostDetail.name,
-          uid: hostDetail.uid,
-          currentLevel: hostDetail.currentLevel,
-          currentBackground: hostDetail.currentBackground,
-          currentTag: hostDetail.currentTag,
-          diamonds:
-              0, // Initialize with 0, will be updated when gifts are received
-        );
-      }).toList();
+      final initialViewers = widget.existingViewers
+          .where((hostDetail) => hostDetail.id != widget.hostUserId)
+          .map(
+            (hostDetail) => JoinedUserModel(
+              id: hostDetail.id,
+              avatar: hostDetail.avatar,
+              name: hostDetail.name,
+              uid: hostDetail.uid,
+              currentLevel: hostDetail.currentLevel,
+              currentBackground: hostDetail.currentBackground,
+              currentTag: hostDetail.currentTag,
+              diamonds: 0,
+            ),
+          )
+          .toList();
 
-      // Then check if host is in the list and remove if found
-      if (widget.hostUserId != null) {
-        activeViewers.removeWhere((viewer) => viewer.id == widget.hostUserId);
-        debugPrint(
-          "Host (${widget.hostUserId}) removed from active viewers list",
-        );
+      if (initialViewers.isNotEmpty) {
+        _seedInitialViewers(initialViewers);
       }
 
       debugPrint(
-        "Initialized ${activeViewers.length} existing viewers (host excluded)",
+        "Initialized ${initialViewers.length} existing viewers (host excluded)",
       );
     }
 
@@ -491,6 +477,14 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     } else {
       debugPrint("User ID is null, cannot initialize live streaming");
     }
+  }
+
+  void _seedInitialViewers(List<JoinedUserModel> viewers) {
+    if (viewers.isEmpty) {
+      return;
+    }
+
+    context.read<LiveStreamBloc>().add(SeedInitialViewers(viewers));
   }
 
   /// Update the CallManageBottomSheet with current data
@@ -678,15 +672,14 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   }
 
   /// Check if current user is an admin
-  bool _isCurrentUserAdmin() {
-    if (userId == null) return false;
-
-    for (var adminModel in adminModels) {
-      if (adminModel.id == userId) {
-        return true;
-      }
+  bool _isCurrentUserAdmin(ModerationState moderationState) {
+    final currentUserId = userId;
+    if (currentUserId == null) {
+      return false;
     }
-    return false;
+
+    return moderationState.adminList
+        .any((admin) => admin.id == currentUserId);
   }
 
   /// Check if current user is the host
@@ -937,13 +930,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
         BlocListener<ModerationBloc, ModerationState>(
           listener: (context, state) {
             if (!mounted) return;
-
-            setState(() {
-              bannedUsers = List.from(state.bannedUserIds);
-              bannedUserModels = List.from(state.bannedUsers);
-              adminModels = List.from(state.adminList);
-              currentMuteState = state.muteState;
-            });
 
             if (state.bannedUserIds.contains(userId)) {
               _handleHostDisconnection('You have been banned from this room.');
@@ -1617,6 +1603,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                     right: 30.w,
                     child: BlocBuilder<CallRequestBloc, CallRequestState>(
                       builder: (context, callState) {
+                        final moderationState =
+                            context.watch<ModerationBloc>().state;
                         final hostId = isHost ? userId : widget.hostUserId;
                         final broadcasters = callState is CallRequestLoaded
                             ? callState.activeBroadcasters
@@ -1633,7 +1621,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                   ? authState.user.id
                                   : userId;
 
-                          if (_isCurrentUserAdmin()) {
+                          if (_isCurrentUserAdmin(moderationState)) {
                             return WhoAmI.admin;
                           } else if (_isCurrentUserHost()) {
                             return WhoAmI.host;
@@ -1692,7 +1680,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                   Colors.orange,
                                 );
                               },
-                              adminModels: adminModels,
+                              adminModels: moderationState.adminList,
                               onMuteUser: (id) {
                                 _muteUser(id);
                                 _showSnackBar('🔇 User muted', Colors.orange);
@@ -1715,8 +1703,12 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                         if (!isHost) {
                           children.add(SizedBox(height: 80.h));
 
-                          final isJoiningRequestPending = userId != null &&
-                              _knownPendingRequestIds.contains(userId);
+                          final isJoiningRequestPending =
+                              callState is CallRequestLoaded &&
+                                  userId != null &&
+                                  callState.pendingRequests.any(
+                                    (request) => request.userId == userId,
+                                  );
                           final isAudioCaller = sessionState.isAudioCaller;
                           final canJoinAudioCall =
                               _canJoinAudioCall(sessionState);
@@ -2061,14 +2053,9 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
 
     _titleController.dispose();
 
-    activeViewers.clear();
-    _knownPendingRequestIds.clear();
-    _knownBroadcasterIds.clear();
-    bannedUsers.clear();
-    bannedUserModels.clear();
-    currentMuteState = null;
-    adminModels.clear();
-    _chatMessages.clear();
+  _knownPendingRequestIds.clear();
+  _knownBroadcasterIds.clear();
+  _chatMessages.clear();
 
     debugPrint("✅ Video live screen disposed");
     super.dispose();

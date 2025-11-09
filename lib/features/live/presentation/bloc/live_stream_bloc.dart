@@ -17,6 +17,8 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   StreamSubscription? _userLeftSubscription;
   StreamSubscription? _bannedUserSubscription;
 
+  List<JoinedUserModel>? _initialViewersBuffer;
+
   // Timer for duration updates
   Timer? _durationTimer;
   DateTime? _streamStartTime;
@@ -42,6 +44,7 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     on<BanUser>(_onBanUser);
     on<UserBannedNotification>(_onUserBannedNotification);
     on<UpdateActiveRoom>(_onUpdateActiveRoom);
+    on<SeedInitialViewers>(_onSeedInitialViewers);
   }
 
   Future<void> _onInitialize(
@@ -62,6 +65,26 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
         isHost: event.isHost,
         userId: event.hostUserId ?? '',
       ));
+
+      if (_initialViewersBuffer != null && _initialViewersBuffer!.isNotEmpty) {
+        final currentState = state;
+        if (currentState is LiveStreamStreaming) {
+          final existingIds = currentState.viewers.map((viewer) => viewer.id).toSet();
+          final additions = _initialViewersBuffer!
+              .where((viewer) =>
+                  viewer.id != currentState.userId &&
+                  !existingIds.contains(viewer.id))
+              .toList();
+
+          if (additions.isNotEmpty) {
+            emit(currentState.copyWith(
+              viewers: List<JoinedUserModel>.from(currentState.viewers)
+                ..addAll(additions),
+            ));
+          }
+        }
+        _initialViewersBuffer = null;
+      }
     } catch (e) {
       emit(LiveStreamError('Failed to initialize: $e'));
     }
@@ -343,6 +366,50 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
         currentState.roomId != event.roomId) {
       emit(currentState.copyWith(roomId: event.roomId));
     }
+  }
+
+  void _onSeedInitialViewers(
+    SeedInitialViewers event,
+    Emitter<LiveStreamState> emit,
+  ) {
+    if (event.viewers.isEmpty) {
+      return;
+    }
+
+    final currentState = state;
+    final sanitized = event.viewers;
+
+    if (currentState is LiveStreamStreaming) {
+      final existingIds = currentState.viewers.map((viewer) => viewer.id).toSet();
+      final additions = sanitized
+          .where((viewer) =>
+              viewer.id != currentState.userId &&
+              !existingIds.contains(viewer.id))
+          .toList();
+
+      if (additions.isEmpty) {
+        return;
+      }
+
+      emit(currentState.copyWith(
+        viewers: List<JoinedUserModel>.from(currentState.viewers)
+          ..addAll(additions),
+      ));
+      return;
+    }
+
+    final buffer = _initialViewersBuffer ?? <JoinedUserModel>[];
+    final bufferIds = buffer.map((viewer) => viewer.id).toSet();
+    final additions = sanitized
+        .where((viewer) => !bufferIds.contains(viewer.id))
+        .toList();
+
+    if (additions.isEmpty) {
+      return;
+    }
+
+    buffer.addAll(additions);
+    _initialViewersBuffer = buffer;
   }
 
   void _setupSocketListeners() {

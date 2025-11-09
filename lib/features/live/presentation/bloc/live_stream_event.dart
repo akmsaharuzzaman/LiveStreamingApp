@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../../../core/network/models/joined_user_model.dart';
 import '../../../../core/network/socket_service.dart';
 
 /// Events for LiveStream feature
@@ -167,4 +168,14 @@ class UpdateActiveRoom extends LiveStreamEvent {
 
   @override
   List<Object?> get props => [roomId];
+}
+
+/// Seed initial viewers when joining an existing live room
+class SeedInitialViewers extends LiveStreamEvent {
+  final List<JoinedUserModel> viewers;
+
+  const SeedInitialViewers(this.viewers);
+
+  @override
+  List<Object?> get props => [viewers];
 }
