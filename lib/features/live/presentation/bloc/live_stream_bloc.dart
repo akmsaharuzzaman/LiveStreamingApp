@@ -15,6 +15,7 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   // Subscriptions for cleanup
   StreamSubscription? _userJoinedSubscription;
   StreamSubscription? _userLeftSubscription;
+  StreamSubscription? _bannedUserSubscription;
 
   // Timer for duration updates
   Timer? _durationTimer;
@@ -36,6 +37,7 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     on<ToggleMicrophone>(_onToggleMicrophone);
     on<CallDailyBonus>(_onCallDailyBonus);
     on<BanUser>(_onBanUser);
+    on<UserBannedNotification>(_onUserBannedNotification);
   }
 
   Future<void> _onInitialize(
@@ -280,6 +282,29 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     }
   }
 
+  void _onUserBannedNotification(
+    UserBannedNotification event,
+    Emitter<LiveStreamState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is LiveStreamStreaming) {
+      final bannedUsers = List<String>.from(currentState.bannedUsers);
+      
+      if (!bannedUsers.contains(event.userId)) {
+        bannedUsers.add(event.userId);
+        
+        // Remove from viewers
+        final viewers = List<JoinedUserModel>.from(currentState.viewers);
+        viewers.removeWhere((v) => v.id == event.userId);
+        
+        emit(currentState.copyWith(
+          bannedUsers: bannedUsers,
+          viewers: viewers,
+        ));
+      }
+    }
+  }
+
   void _setupSocketListeners() {
     _userJoinedSubscription = _socketService.userJoinedStream.listen((data) {
       add(UserJoined(
@@ -292,6 +317,13 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
 
     _userLeftSubscription = _socketService.userLeftStream.listen((data) {
       add(UserLeft(data.id));
+    });
+
+    _bannedUserSubscription = _socketService.bannedUserStream.listen((data) {
+      add(UserBannedNotification(
+        userId: data.targetId,
+        message: data.message,
+      ));
     });
   }
 
@@ -310,6 +342,7 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     _durationTimer?.cancel();
     _userJoinedSubscription?.cancel();
     _userLeftSubscription?.cancel();
+    _bannedUserSubscription?.cancel();
     return super.close();
   }
 }

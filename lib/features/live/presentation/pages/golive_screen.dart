@@ -651,28 +651,9 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
           }
         });
 
-    // User events
-    _userJoinedSubscription = _socketService.userJoinedStream.listen((data) {
-      if (mounted) {
-        // Don't add host to activeViewers list (use hostUserId from widget)
-        if (data.id != widget.hostUserId &&
-            !activeViewers.any((user) => user.id == data.id)) {
-          // Ensure new users start with 0 diamonds, but calculate existing diamonds from sentGifts
-          int existingDiamonds = GiftModel.totalDiamondsForUser(
-            sentGifts,
-            data.id,
-          );
-
-          JoinedUserModel userWithDiamonds = data.copyWith(
-            diamonds: existingDiamonds,
-          );
-          activeViewers.add(userWithDiamonds);
-
-          debugPrint("👤 User joined: ${data.name} - ${data.uid}");
-          debugPrint("💎 User's existing diamonds: $existingDiamonds");
-        }
-      }
-    });
+    // ✅ User join/leave events now handled by LiveStreamBloc
+    // No need for duplicate socket subscriptions here
+    // _userJoinedSubscription and _userLeftSubscription removed
 
     //Joined Call Requests List
     _joinCallRequestSubscription = _socketService.joinCallRequestStream.listen((
@@ -807,9 +788,11 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       }
     });
 
+    // ✅ User left - Now handled by LiveStreamBloc
+    // activeViewers management moved to BLoC state
     _userLeftSubscription = _socketService.userLeftStream.listen((data) {
       if (mounted) {
-        activeViewers.removeWhere((user) => user.id == data.id);
+        // ✅ No need to update activeViewers - LiveStreamBloc handles this
         broadcasterList.removeWhere((user) => user == data.id);
         broadcasterDetails.removeWhere((user) => user.id == data.id);
         broadcasterModels.removeWhere((model) => model.id == data.id);
@@ -879,14 +862,15 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       }
     });
 
-    //BannedUsers
+    // ✅ BannedUsers - Now handled by LiveStreamBloc via UserBannedNotification event
+    // Socket listener moved to BLoC, just keep UI-specific logic here
     _bannedUserSubscription = _socketService.bannedUserStream.listen((data) {
       debugPrint("Banned user received:${data.targetId}");
       if (mounted) {
+        // Keep only UI-specific state updates (not managed by BLoC)
         setState(() {
           bannedUserModels.add(data);
           broadcasterList.removeWhere((user) => user == data.targetId);
-          activeViewers.removeWhere((user) => user.id == data.targetId);
           bannedUsers.add(data.targetId);
           adminModels.removeWhere((user) => user.id == data.targetId);
           broadcasterDetails.removeWhere((user) => user.id == data.targetId);
@@ -2304,18 +2288,26 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                             currentUserId: state.user.id,
                                           ),
                                         Spacer(),
-                                        // *show the viwers
-                                        ActiveViewers(
-                                          activeUserList: activeViewers,
-                                          hostUserId: isHost
-                                              ? userId
-                                              : widget.hostUserId,
-                                          hostName: isHost
-                                              ? state.user.name
-                                              : widget.hostName,
-                                          hostAvatar: isHost
-                                              ? state.user.avatar
-                                              : widget.hostAvatar,
+                                        // *show the viewers - ✅ Now using LiveStreamBloc state
+                                        BlocBuilder<LiveStreamBloc, LiveStreamState>(
+                                          builder: (context, liveState) {
+                                            final viewers = liveState is LiveStreamStreaming 
+                                                ? liveState.viewers 
+                                                : <JoinedUserModel>[];
+                                            
+                                            return ActiveViewers(
+                                              activeUserList: viewers,
+                                              hostUserId: isHost
+                                                  ? userId
+                                                  : widget.hostUserId,
+                                              hostName: isHost
+                                                  ? state.user.name
+                                                  : widget.hostName,
+                                              hostAvatar: isHost
+                                                  ? state.user.avatar
+                                                  : widget.hostAvatar,
+                                            );
+                                          },
                                         ),
 
                                         // * to show the leave button
@@ -2456,13 +2448,15 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                             iconPath:
                                                 "assets/icons/gift_user_icon.png",
                                             onTap: () {
-                                              // _showSnackBar(
-                                              //   '🎁 Not implemented yet',
-                                              //   Colors.green,
-                                              // );
+                                              // ✅ Get viewers from BLoC state
+                                              final liveState = context.read<LiveStreamBloc>().state;
+                                              final viewers = liveState is LiveStreamStreaming 
+                                                  ? liveState.viewers 
+                                                  : <JoinedUserModel>[];
+                                              
                                               showGiftBottomSheet(
                                                 context,
-                                                activeViewers: activeViewers,
+                                                activeViewers: viewers,
                                                 roomId:
                                                     _currentRoomId ?? roomId,
                                                 hostUserId: isHost
@@ -2656,9 +2650,15 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                             iconPath:
                                                 "assets/icons/gift_user_icon.png",
                                             onTap: () {
+                                              // ✅ Get viewers from BLoC state
+                                              final liveState = context.read<LiveStreamBloc>().state;
+                                              final viewers = liveState is LiveStreamStreaming 
+                                                  ? liveState.viewers 
+                                                  : <JoinedUserModel>[];
+                                              
                                               showGiftBottomSheet(
                                                 context,
-                                                activeViewers: activeViewers,
+                                                activeViewers: viewers,
                                                 roomId:
                                                     _currentRoomId ?? roomId,
                                                 hostUserId: isHost

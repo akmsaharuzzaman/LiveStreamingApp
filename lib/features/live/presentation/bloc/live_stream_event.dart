@@ -135,6 +135,20 @@ class BanUser extends LiveStreamEvent {
   List<Object?> get props => [userId];
 }
 
+/// Receive ban notification from socket (when another admin bans someone)
+class UserBannedNotification extends LiveStreamEvent {
+  final String userId;
+  final String message;
+
+  const UserBannedNotification({
+    required this.userId,
+    required this.message,
+  });
+
+  @override
+  List<Object?> get props => [userId, message];
+}
+
 /// Mute user
 class MuteUser extends LiveStreamEvent {
   final String userId;
