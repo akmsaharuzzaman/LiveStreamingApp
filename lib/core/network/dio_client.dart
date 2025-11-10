@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class DioClient {
@@ -90,16 +89,17 @@ class DioClient {
     //   } //continue
     // }));
     // }
-    if (kDebugMode) {
-      _dio!.interceptors.add(LogInterceptor(
-        responseBody: true,
-        error: true,
-        requestHeader: true,
-        responseHeader: false,
-        request: true,
-        requestBody: true,
-      ));
-    }
+    // Disabled LogInterceptor to reduce debug console noise
+    // if (kDebugMode) {
+    //   _dio!.interceptors.add(LogInterceptor(
+    //     responseBody: true,
+    //     error: true,
+    //     requestHeader: true,
+    //     responseHeader: false,
+    //     request: true,
+    //     requestBody: true,
+    //   ));
+    // }
   }
 
   Future<dynamic> get(

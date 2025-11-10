@@ -12,6 +12,7 @@ class CallManageBottomSheet extends StatefulWidget {
     required this.onRejectCall,
     required this.inCallList,
   });
+
   final List<CallRequestModel> callers;
   final List<BroadcasterModel> inCallList;
   final void Function(String userId) onKickUser;
@@ -22,39 +23,14 @@ class CallManageBottomSheet extends StatefulWidget {
   State<CallManageBottomSheet> createState() => _CallManageBottomSheetState();
 }
 
-// Global key to access the bottom sheet state from parent
-final GlobalKey<_CallManageBottomSheetState> callManageBottomSheetKey =
-    GlobalKey<_CallManageBottomSheetState>();
-
 class _CallManageBottomSheetState extends State<CallManageBottomSheet>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late List<CallRequestModel> _currentCallers;
-  late List<BroadcasterModel> _currentInCallList;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _currentCallers = List.from(widget.callers);
-    _currentInCallList = List.from(widget.inCallList);
-  }
-
-  // Method to update the data from parent widget
-  void updateData({
-    List<CallRequestModel>? newCallers,
-    List<BroadcasterModel>? newInCallList,
-  }) {
-    if (mounted) {
-      setState(() {
-        if (newCallers != null) {
-          _currentCallers = List.from(newCallers);
-        }
-        if (newInCallList != null) {
-          _currentInCallList = List.from(newInCallList);
-        }
-      });
-    }
   }
 
   @override
@@ -120,7 +96,14 @@ class _CallManageBottomSheetState extends State<CallManageBottomSheet>
 
           // Close button
           GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
+            onTap: () {
+              // Use Future.microtask to avoid "deactivated widget's ancestor" error
+              Future.microtask(() {
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
+              });
+            },
             child: Container(
               padding: EdgeInsets.all(4.w),
               child: Icon(
@@ -171,7 +154,7 @@ class _CallManageBottomSheetState extends State<CallManageBottomSheet>
         children: [
           SizedBox(height: 20.h),
           // User requesting call
-          if (_currentInCallList.isEmpty)
+          if (widget.inCallList.isEmpty)
             Center(
               child: Text(
                 'No users in call',
@@ -185,11 +168,11 @@ class _CallManageBottomSheetState extends State<CallManageBottomSheet>
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: _currentInCallList.length,
+              itemCount: widget.inCallList.length,
               itemBuilder: (context, index) {
-                final caller = _currentInCallList[index];
+                final caller = widget.inCallList[index];
                 return _buildUserItem(
-                  userId: caller.uid,
+                  userId: caller.id,
                   name: caller.name,
                   profileImage: caller.avatar.isNotEmpty
                       ? caller.avatar
@@ -211,7 +194,7 @@ class _CallManageBottomSheetState extends State<CallManageBottomSheet>
         children: [
           SizedBox(height: 20.h),
           // User requesting call
-          if (_currentCallers.isEmpty)
+          if (widget.callers.isEmpty)
             Center(
               child: Text(
                 'No call requests',
@@ -225,9 +208,9 @@ class _CallManageBottomSheetState extends State<CallManageBottomSheet>
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: _currentCallers.length,
+              itemCount: widget.callers.length,
               itemBuilder: (context, index) {
-                final caller = _currentCallers[index];
+                final caller = widget.callers[index];
                 return _buildUserItem(
                   userId: caller.userId,
                   name: caller.userDetails.name,

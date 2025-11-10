@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svga/flutter_svga.dart';
+import 'package:flutter_svga_easyplayer/flutter_svga_easyplayer.dart';
 
 import '../../../../core/network/models/gift_model.dart';
 
@@ -11,11 +11,13 @@ class AnimatedLayer extends StatefulWidget {
     this.customAnimationUrl,
     this.customTitle,
     this.customSubtitle,
+    required this.onCompleted,
   });
   final List<GiftModel> gifts;
   final String? customAnimationUrl;
   final String? customTitle;
   final String? customSubtitle;
+  final VoidCallback onCompleted;
 
   @override
   State<AnimatedLayer> createState() => _AnimatedLayerState();
@@ -32,7 +34,7 @@ class _AnimatedLayerState extends State<AnimatedLayer>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 7000), // 7 seconds duration
+      duration: const Duration(milliseconds: 3000), // 3 seconds duration
     );
     _scaleAnimation = Tween<double>(
       begin: 0.8,
@@ -46,13 +48,13 @@ class _AnimatedLayerState extends State<AnimatedLayer>
     // Start the animation
     _controller.forward();
 
-    // Auto-hide after animation completes
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        // Start fade out animation
-        _controller.reverse();
-      }
-    });
+    // // Auto-hide after animation completes
+    // _controller.addStatusListener((status) {
+    //   if (status == AnimationStatus.completed) {
+    //     // Start fade out animation
+    //     _controller.reverse();
+    //   }
+    // });
   }
 
   @override
@@ -103,6 +105,9 @@ class _AnimatedLayerState extends State<AnimatedLayer>
                 child: ScaleTransition(
                   scale: _scaleAnimation,
                   child: SVGAEasyPlayer(
+                    loops: 1,
+                    onFinished: () => widget.onCompleted(),
+                    useCache: true,
                     resUrl: animationUrl,
                     fit: BoxFit.cover,
                   ),

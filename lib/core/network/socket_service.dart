@@ -9,6 +9,7 @@ import 'package:dlstarlive/core/network/models/gift_model.dart';
 import 'package:dlstarlive/core/network/models/joined_user_model.dart';
 import 'package:dlstarlive/core/network/models/left_user_model.dart';
 import 'package:flutter/foundation.dart';
+import 'package:injectable/injectable.dart';
 import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
 import 'models/admin_details_model.dart';
@@ -18,6 +19,7 @@ enum RoomType { live, pk, audio, party }
 
 /// Comprehensive Socket Service for Live Streaming
 /// Handles all socket operations including room management and real-time events
+@LazySingleton()
 class SocketService {
   static SocketService? _instance;
   socket_io.Socket? _socket;
@@ -89,7 +91,14 @@ class SocketService {
   static const String _bannedListEvent = 'banned-list';
   static const String _muteUserEvent = 'mute-user';
 
-  /// Singleton instance
+  /// Factory method for dependency injection
+  @factoryMethod
+  static SocketService getInstance() {
+    _instance ??= SocketService._internal();
+    return _instance!;
+  }
+
+  /// Singleton instance (kept for backward compatibility)
   static SocketService get instance {
     _instance ??= SocketService._internal();
     return _instance!;
@@ -322,7 +331,7 @@ class SocketService {
 
     _socket!.on('join-call-request', (data) {
       if (kDebugMode) {
-        print('� Join call request: $data');
+        print('📱 Join call request: $data');
       }
       if (data is Map<String, dynamic>) {
         _joinCallRequestController.add(CallRequestModel.fromJson(data));
@@ -731,11 +740,24 @@ class SocketService {
   }
 
   /// Accept call request
-  Future<bool> acceptCallRequest(String userId) async {
+  Future<bool> acceptCallRequest(
+    String userId, {
+    String? roomId,
+  }) async {
     if (!_isConnected || _socket == null) {
       _errorMessageController.add({
         'status': 'error',
         'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    final effectiveRoomId =
+        (roomId != null && roomId.isNotEmpty) ? roomId : _currentRoomId;
+    if (effectiveRoomId == null || effectiveRoomId.isEmpty) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Room ID is required',
       });
       return false;
     }
@@ -746,7 +768,7 @@ class SocketService {
       }
 
       _socket!.emit(_acceptCallRequestEvent, {
-        'roomId': _currentRoomId,
+        'roomId': effectiveRoomId,
         'targetId': userId,
       });
       return true;
@@ -763,11 +785,24 @@ class SocketService {
   }
 
   /// Reject call request
-  Future<bool> rejectCallRequest(String userId) async {
+  Future<bool> rejectCallRequest(
+    String userId, {
+    String? roomId,
+  }) async {
     if (!_isConnected || _socket == null) {
       _errorMessageController.add({
         'status': 'error',
         'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    final effectiveRoomId =
+        (roomId != null && roomId.isNotEmpty) ? roomId : _currentRoomId;
+    if (effectiveRoomId == null || effectiveRoomId.isEmpty) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Room ID is required',
       });
       return false;
     }
@@ -778,7 +813,7 @@ class SocketService {
       }
 
       _socket!.emit(_rejectCallRequestEvent, {
-        'roomId': _currentRoomId,
+        'roomId': effectiveRoomId,
         'targetId': userId,
       });
       return true;
@@ -795,11 +830,24 @@ class SocketService {
   }
 
   /// Remove broadcaster
-  Future<bool> removeBroadcaster(String userId) async {
+  Future<bool> removeBroadcaster(
+    String userId, {
+    String? roomId,
+  }) async {
     if (!_isConnected || _socket == null) {
       _errorMessageController.add({
         'status': 'error',
         'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    final effectiveRoomId =
+        (roomId != null && roomId.isNotEmpty) ? roomId : _currentRoomId;
+    if (effectiveRoomId == null || effectiveRoomId.isEmpty) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Room ID is required',
       });
       return false;
     }
@@ -810,7 +858,7 @@ class SocketService {
       }
 
       _socket!.emit(_removeBroadcasterEvent, {
-        'roomId': _currentRoomId,
+        'roomId': effectiveRoomId,
         'targetId': userId,
       });
       return true;
@@ -827,11 +875,24 @@ class SocketService {
   }
 
   ///Ban User
-  Future<bool> banUser(String userId) async {
+  Future<bool> banUser(
+    String userId, {
+    String? roomId,
+  }) async {
     if (!_isConnected || _socket == null) {
       _errorMessageController.add({
         'status': 'error',
         'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    final effectiveRoomId =
+        (roomId != null && roomId.isNotEmpty) ? roomId : _currentRoomId;
+    if (effectiveRoomId == null || effectiveRoomId.isEmpty) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Room ID is required',
       });
       return false;
     }
@@ -842,7 +903,7 @@ class SocketService {
       }
 
       _socket!.emit(_banUserEvent, {
-        'roomId': _currentRoomId,
+        'roomId': effectiveRoomId,
         'targetId': userId,
       });
       return true;
@@ -859,11 +920,24 @@ class SocketService {
   }
 
   ///Mute User
-  Future<bool> muteUser(String userId) async {
+  Future<bool> muteUser(
+    String userId, {
+    String? roomId,
+  }) async {
     if (!_isConnected || _socket == null) {
       _errorMessageController.add({
         'status': 'error',
         'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    final effectiveRoomId =
+        (roomId != null && roomId.isNotEmpty) ? roomId : _currentRoomId;
+    if (effectiveRoomId == null || effectiveRoomId.isEmpty) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Room ID is required',
       });
       return false;
     }
@@ -874,7 +948,7 @@ class SocketService {
       }
 
       _socket!.emit(_muteUserEvent, {
-        'roomId': _currentRoomId,
+        'roomId': effectiveRoomId,
         'targetId': userId,
       });
       return true;
@@ -922,11 +996,24 @@ class SocketService {
   }
 
   ///Make admin
-  Future<bool> makeAdmin(String userId) async {
+  Future<bool> makeAdmin(
+    String userId, {
+    String? roomId,
+  }) async {
     if (!_isConnected || _socket == null) {
       _errorMessageController.add({
         'status': 'error',
         'message': 'Socket not connected',
+      });
+      return false;
+    }
+
+    final effectiveRoomId =
+        (roomId != null && roomId.isNotEmpty) ? roomId : _currentRoomId;
+    if (effectiveRoomId == null || effectiveRoomId.isEmpty) {
+      _errorMessageController.add({
+        'status': 'error',
+        'message': 'Room ID is required',
       });
       return false;
     }
@@ -937,7 +1024,7 @@ class SocketService {
       }
 
       _socket!.emit(_makeAdminEvent, {
-        'roomId': _currentRoomId,
+        'roomId': effectiveRoomId,
         'targetId': userId,
       });
       return true;

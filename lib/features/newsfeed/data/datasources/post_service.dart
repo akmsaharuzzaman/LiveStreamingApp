@@ -774,7 +774,7 @@ class PostService {
         } else if (statusCode == 415) {
           return ApiResult.failure('Unsupported file type.');
         } else {
-          final message = data?['message'] ?? 'Server error occurred';
+          final message = data??['message'] ?? 'Server error occurred';
           return ApiResult.failure(message);
         }
 

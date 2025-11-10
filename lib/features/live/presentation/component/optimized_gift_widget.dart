@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svga/flutter_svga.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_svga_easyplayer/flutter_svga_easyplayer.dart';
 import '../../../../core/network/models/gift_model.dart';
 
 /// Optimized gift display widget with two-stage loading:
