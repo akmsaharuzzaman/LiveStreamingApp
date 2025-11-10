@@ -1670,6 +1670,11 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                                         is LiveStreamStreaming
                                                     ? !liveState.isMicEnabled
                                                     : true;
+                                                final streamDuration =
+                                                    liveState
+                                                        is LiveStreamStreaming
+                                                    ? liveState.duration
+                                                    : Duration.zero;
                                                 final moderationState = context
                                                     .read<ModerationBloc>()
                                                     .state;
@@ -1683,6 +1688,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                                         moderationState,
                                                       ),
                                                   onToggleMute: _toggleMute,
+                                                  streamDuration:
+                                                      streamDuration,
                                                 );
                                               },
                                               height: 40.h,

@@ -8,6 +8,7 @@ void showMenuBottomSheet(
   bool? isMuted,
   bool? isAdminMuted,
   VoidCallback? onToggleMute,
+  Duration? streamDuration, // ✅ Add stream duration parameter
 }) {
   showModalBottomSheet(
     context: context,
@@ -20,6 +21,7 @@ void showMenuBottomSheet(
         isMuted: isMuted,
         isAdminMuted: isAdminMuted,
         onToggleMute: onToggleMute,
+        streamDuration: streamDuration, // ✅ Pass duration to widget
       );
     },
   );
@@ -31,6 +33,7 @@ class MenuBottomSheet extends StatefulWidget {
   final bool? isMuted;
   final bool? isAdminMuted;
   final VoidCallback? onToggleMute;
+  final Duration? streamDuration; // ✅ Add stream duration parameter
 
   const MenuBottomSheet({
     super.key,
@@ -39,6 +42,7 @@ class MenuBottomSheet extends StatefulWidget {
     this.isMuted,
     this.isAdminMuted,
     this.onToggleMute,
+    this.streamDuration, // ✅ Add to constructor
   });
 
   @override
@@ -53,6 +57,15 @@ class _MenuBottomSheetState extends State<MenuBottomSheet> {
   void initState() {
     super.initState();
     modalHight = widget.isHost ? 0.7 : 0.20;
+  }
+
+  /// Format duration to HH:MM:SS format
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = twoDigits(duration.inHours);
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$hours:$minutes:$seconds';
   }
 
   /// Get the appropriate mute icon based on current state
@@ -113,6 +126,29 @@ class _MenuBottomSheetState extends State<MenuBottomSheet> {
                 ),
               ),
               SizedBox(height: 16.h),
+
+              // ✅ Stream Duration Display (for both host and viewer)
+              if (widget.streamDuration != null)
+                Container(
+                  margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 8.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A2A3E),
+                    borderRadius: BorderRadius.all(Radius.circular(10.r)),
+                  ),
+                  child: Text(
+                    '⏱️ Stream Duration: ${_formatDuration(widget.streamDuration!)}',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              SizedBox(height: 8.h),
 
               // Control Options Grid
               if (widget.isHost)
