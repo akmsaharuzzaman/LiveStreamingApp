@@ -357,16 +357,24 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
         ),
       );
 
+      // ✅ CRITICAL FIX: Start preview for host BEFORE joining channel
+      // This ensures video is ready to send when joining
+      if (isHost) {
+        debugPrint('🎬 [AGORA] Starting preview for host...');
+        await _engine!.startPreview();
+      }
+
       _engine!.registerEventHandler(
         RtcEngineEventHandler(
           onJoinChannelSuccess: (connection, elapsed) {
-            emit(
-              state.copyWith(localUserJoined: true, isVideoConnecting: true),
-            );
+            debugPrint('✅ [AGORA] Successfully joined channel');
+            emit(state.copyWith(localUserJoined: true));
 
             if (state.isHost) {
+              // ✅ For hosts: apply camera preference and mark video ready
               Future.delayed(const Duration(milliseconds: 500), () async {
                 await _applyCameraPreference();
+                debugPrint('🎥 [AGORA] Host video ready');
                 emit(
                   state.copyWith(
                     isLocalVideoReady: true,
@@ -375,6 +383,12 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
                   ),
                 );
               });
+            } else {
+              // ✅ For viewers: wait for remote video
+              debugPrint(
+                '👁️ [AGORA] Viewer joined, waiting for host video...',
+              );
+              // DON'T set isVideoConnecting - let remote video state change handle it
             }
           },
           onUserJoined: (connection, remoteUid, elapsed) {
@@ -410,9 +424,13 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
           onRemoteVideoStateChanged:
               (connection, remoteUid, state, reason, elapsed) {
                 if (state == RemoteVideoState.remoteVideoStateDecoding) {
+                  debugPrint(
+                    '🎥 [AGORA] Remote video DECODING from $remoteUid',
+                  );
                   if (!_videoCallerUids.contains(remoteUid)) {
                     _videoCallerUids.add(remoteUid);
                   }
+                  // ✅ CRITICAL: Set video ready when remote video starts
                   emit(
                     this.state.copyWith(
                       videoCallerUids: List<int>.from(_videoCallerUids),
@@ -423,6 +441,7 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
                 }
 
                 if (state == RemoteVideoState.remoteVideoStateStopped) {
+                  debugPrint('⏹️ [AGORA] Remote video STOPPED from $remoteUid');
                   _videoCallerUids.remove(remoteUid);
                   emit(
                     this.state.copyWith(

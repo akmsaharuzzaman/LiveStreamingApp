@@ -1992,6 +1992,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
         sessionState.status == LiveSessionStatus.initializingAgora;
 
     if (isInitializing) {
+      debugPrint('📺 [VIDEO] Initializing Agora engine...');
       return Container(
         color: Colors.black,
         child: const Center(
@@ -2000,7 +2001,12 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       );
     }
 
-    if (sessionState.isVideoConnecting && !sessionState.isVideoReady) {
+    // ✅ CRITICAL FIX: Only show loading for hosts during connection
+    // Viewers should show video view once they join, even if waiting for remote video
+    if (sessionState.isVideoConnecting &&
+        !sessionState.isVideoReady &&
+        sessionState.isHost) {
+      debugPrint('📺 [VIDEO] Host connecting...');
       return Container(
         color: Colors.black,
         child: const Center(
@@ -2059,11 +2065,15 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       if (sessionState.isAudioCaller && isCameraEnabled) 0,
     ];
 
+    // ✅ CRITICAL FIX: Show video view once user joins, even if waiting for remote
+    // Don't wait for isVideoReady since that depends on remote video arriving
     final shouldShowVideo =
-        allVideoBroadcasters.isNotEmpty &&
-        (sessionState.isVideoReady || sessionState.localUserJoined);
+        sessionState.localUserJoined && allVideoBroadcasters.isNotEmpty;
 
     if (!shouldShowVideo) {
+      debugPrint(
+        '📺 [AUDIENCE] Waiting for broadcasters... local_joined=${sessionState.localUserJoined}, broadcasters=${allVideoBroadcasters.length}',
+      );
       return Container(
         color: Colors.black,
         child: const Center(
@@ -2072,6 +2082,9 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       );
     }
 
+    debugPrint(
+      '📺 [AUDIENCE] Showing video with ${allVideoBroadcasters.length} broadcasters',
+    );
     return _buildMultiVideoLayout(
       sessionState,
       allVideoBroadcasters,
