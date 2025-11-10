@@ -248,9 +248,16 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   ) {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
-      emit(currentState.copyWith(
-        isCameraEnabled: !currentState.isCameraEnabled,
-      ));
+      // ✅ SECURITY: Only hosts can toggle camera
+      // Viewers/audio callers cannot turn on their own camera
+      if (currentState.isHost) {
+        emit(currentState.copyWith(
+          isCameraEnabled: !currentState.isCameraEnabled,
+        ));
+      } else {
+        // ⚠️ Non-host attempted to toggle camera - silently ignore
+        // This prevents camera access for viewers/callers
+      }
     }
   }
 
@@ -260,6 +267,9 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   ) {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
+      // ✅ SECURITY: Hosts can always toggle microphone
+      // Audio callers can also toggle (already in call)
+      // Viewers cannot toggle microphone
       emit(currentState.copyWith(
         isMicEnabled: !currentState.isMicEnabled,
       ));
