@@ -16,6 +16,7 @@ class SeatWidget extends StatefulWidget {
   final Function(String seatId)? onTakeSeat;
   final Function(String seatId)? onLeaveSeat;
   final Function(String seatId, String targetId)? onRemoveUserFromSeat;
+  final Function(String seatId, String targetId)? onMuteUserFromSeat;
   final bool isHost;
 
   const SeatWidget({
@@ -30,6 +31,7 @@ class SeatWidget extends StatefulWidget {
     this.onTakeSeat,
     this.onLeaveSeat,
     this.onRemoveUserFromSeat,
+    this.onMuteUserFromSeat,
     this.isHost = false,
   });
 
@@ -75,6 +77,7 @@ class _SeatWidgetState extends State<SeatWidget> {
         name: widget.currentUserName,
         avatar: widget.currentUserAvatar,
         userId: widget.currentUserId,
+        isMuted: widget.hostDetails?.isMuted ?? false,
         isLocked: false,
       );
     } else {
@@ -83,6 +86,7 @@ class _SeatWidgetState extends State<SeatWidget> {
         name: widget.hostDetails?.name,
         avatar: widget.hostDetails?.avatar,
         userId: widget.hostDetails?.id,
+        isMuted: widget.hostDetails?.isMuted ?? false,
         isLocked: false,
       );
     }
@@ -93,6 +97,7 @@ class _SeatWidgetState extends State<SeatWidget> {
       name: widget.premiumSeat?.member?.name,
       avatar: widget.premiumSeat?.member?.avatar,
       userId: widget.premiumSeat?.member?.id,
+      isMuted: widget.premiumSeat?.member?.isMuted ?? false,
       isLocked: !(widget.premiumSeat?.available ?? true),
     );
 
@@ -110,6 +115,7 @@ class _SeatWidgetState extends State<SeatWidget> {
             name: widget.seatsData!.seats!['seat-$i']!.member!.name,
             avatar: widget.seatsData!.seats!['seat-$i']!.member!.avatar,
             userId: widget.seatsData!.seats!['seat-$i']!.member!.id,
+            isMuted: widget.seatsData!.seats!['seat-$i']!.member!.isMuted ?? false,
             isLocked: !(widget.seatsData!.seats!['seat-$i']!.available ?? true),
           );
         }
@@ -161,9 +167,9 @@ class _SeatWidgetState extends State<SeatWidget> {
                     Navigator.pop(context);
                     // Implement seat lock functionality
                     _uiLog("Seat Lock functionality not implemented");
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Seat lock functionality not implemented")),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text("Seat lock functionality not implemented")));
                   },
                 ),
               if (seat.userId != null)
@@ -173,6 +179,15 @@ class _SeatWidgetState extends State<SeatWidget> {
                   onTap: () {
                     Navigator.pop(context);
                     widget.onRemoveUserFromSeat?.call(seat.id, seat.userId!);
+                  },
+                ),
+              if (seat.userId != null && seat.isMuted == false)
+                ListTile(
+                  leading: Icon(Icons.mic_off),
+                  title: Text("Mute User"),
+                  onTap: () {
+                    Navigator.pop(context);
+                    widget.onMuteUserFromSeat?.call(seat.id, seat.userId!);
                   },
                 ),
             ],
@@ -200,14 +215,21 @@ class _SeatWidgetState extends State<SeatWidget> {
             children: [
               if (seat.name == null) ...[
                 // Seat is empty
-                ListTile(
-                  leading: Icon(Icons.event_seat),
-                  title: Text("Take Seat"),
-                  onTap: () {
-                    Navigator.pop(context);
-                    widget.onTakeSeat?.call(seat.id);
-                  },
-                ),
+                if (widget.seatsData?.seats?.entries.any((entry) => entry.value.member?.id == widget.currentUserId) ??
+                    false)
+                  ListTile(
+                    leading: Icon(Icons.event_seat),
+                    title: Text("You are already in a seat"),
+                  )
+                else
+                  ListTile(
+                    leading: Icon(Icons.event_seat),
+                    title: Text("Take Seat"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onTakeSeat?.call(seat.id);
+                    },
+                  ),
               ] else if (seat.userId == widget.currentUserId) ...[
                 // Seat is user's own
                 ListTile(

@@ -80,5 +80,28 @@ class AudioSocketSeatOperations {
     }
   }
 
+  /// Mute user from a specific seat (host only)
+  Future<bool> muteUserFromSeat({required String roomId, required String seatKey, required String targetId}) async {
+    if (!_isConnected) {
+      errorController.add({'status': 'error', 'message': 'Socket not connected'});
+      return false;
+    }
+
+    try {
+      _log('🔇 Muting user from seat: $seatKey');
+
+      socket.emit(AudioSocketConstants.muteUnmuteUserEvent, {
+        'roomId': roomId,
+        'seatKey': seatKey,
+        'targetId': targetId,
+      });
+      return true;
+    } catch (e) {
+      _log('❌ Error muting from seat: $e');
+      errorController.add({'status': 'error', 'message': 'Failed to mute from seat: $e'});
+      return false;
+    }
+  }
+
   bool get _isConnected => socket.connected;
 }

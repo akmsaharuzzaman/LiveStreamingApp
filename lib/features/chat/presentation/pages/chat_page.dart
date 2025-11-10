@@ -22,8 +22,9 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     _tabController = TabController(length: 3, vsync: this);
     // Load conversations when page is initialized
     _refreshConversations();
+    // DON'T start polling here - MainNavigationPage will control when to start/stop polling
     // Start auto-refresh timer
-    context.read<ChatBloc>().add(const StartAutoRefreshEvent());
+    // context.read<ChatBloc>().add(const StartAutoRefreshEvent());
   }
 
   @override
@@ -43,9 +44,10 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    _tabController.dispose();
     // Stop auto-refresh when leaving the page
     context.read<ChatBloc>().add(const StopAutoRefreshEvent());
+    _tabController.dispose();
+
     super.dispose();
   }
 
@@ -55,11 +57,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
       appBar: AppBar(
         title: Text(
           'Messages',
-          style: TextStyle(
-            fontSize: 20.sp,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
+          style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold, color: Colors.black87),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -69,9 +67,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
             icon: Icon(Icons.search, color: Colors.black87),
             onPressed: () {
               // Implement search functionality
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Search not implemented yet')),
-              );
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Search not implemented yet')));
             },
           ),
           IconButton(
@@ -88,10 +84,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
           unselectedLabelColor: Colors.grey,
           indicatorColor: Theme.of(context).primaryColor,
           labelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
-          unselectedLabelStyle: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w500,
-          ),
+          unselectedLabelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
           tabs: const [
             Tab(text: 'All Chats'),
             Tab(text: 'Groups'),
@@ -113,9 +106,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           // TODO: Implement new chat functionality
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('New chat not implemented yet')),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('New chat not implemented yet')));
         },
         child: const Icon(Icons.chat),
       ),
@@ -136,11 +127,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                 SizedBox(height: 16.h),
                 Text(
                   'Error Loading Chats',
-                  style: TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.red,
-                  ),
+                  style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: Colors.red),
                 ),
                 SizedBox(height: 8.h),
                 Text(
@@ -151,9 +138,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                 SizedBox(height: 16.h),
                 ElevatedButton(
                   onPressed: () {
-                    context.read<ChatBloc>().add(
-                      const LoadConversationsEvent(),
-                    );
+                    context.read<ChatBloc>().add(const LoadConversationsEvent());
                   },
                   child: const Text('Retry'),
                 ),
@@ -177,27 +162,16 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.chat_outlined,
-                          size: 80.sp,
-                          color: Colors.grey[400],
-                        ),
+                        Icon(Icons.chat_outlined, size: 80.sp, color: Colors.grey[400]),
                         SizedBox(height: 16.h),
                         Text(
                           'No conversations yet',
-                          style: TextStyle(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[600],
-                          ),
+                          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: Colors.grey[600]),
                         ),
                         SizedBox(height: 8.h),
                         Text(
                           'Start a conversation by messaging someone',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: Colors.grey[500],
-                          ),
+                          style: TextStyle(fontSize: 14.sp, color: Colors.grey[500]),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -233,14 +207,11 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
       // Determine the OTHER person in the conversation
       // The top-level senderId/receiverId are just fixed participant info
       final isCurrentUserFirst = conversation.sender?.id == currentUserId;
-      final otherUser = isCurrentUserFirst
-          ? conversation.receiver
-          : conversation.sender;
+      final otherUser = isCurrentUserFirst ? conversation.receiver : conversation.sender;
 
       // CORRECT LOGIC: Use lstMsg.senderId to determine who ACTUALLY sent the last message
       // Use lstMsg.sender.id if available, fallback to top-level sender.id
-      final actualSenderId =
-          conversation.lstMsg?.sender?.id ?? conversation.sender?.id;
+      final actualSenderId = conversation.lstMsg?.sender?.id ?? conversation.sender?.id;
       final iSentThisMessage = actualSenderId == currentUserId;
       final hasUnreadMessage = !iSentThisMessage && !conversation.seenStatus;
 
@@ -250,9 +221,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
         sender: otherUser, // Show the other person's info
         text: conversation.lastMessage,
         time: _formatTime(conversation.updatedAt),
-        unreadCount: hasUnreadMessage
-            ? 1
-            : 0, // Only unread if friend sent and I haven't seen
+        unreadCount: hasUnreadMessage ? 1 : 0, // Only unread if friend sent and I haven't seen
         avatar: otherUser?.avatar ?? '',
         lastMessageTime: conversation.updatedAt,
         isSentByMe: iSentThisMessage, // Track who sent the message
@@ -268,11 +237,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
           // Recent Chats Section
           Text(
             'Recent',
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
+            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: Colors.black87),
           ),
           SizedBox(height: 8.h),
 
@@ -324,11 +289,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
         ),
         title: Text(
           chat.sender?.name ?? "",
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
+          style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: Colors.black87),
         ),
         subtitle: Text(
           chat.isSentByMe ? "You: ${chat.text ?? ""}" : chat.text ?? "",
@@ -351,11 +312,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                 backgroundColor: Theme.of(context).primaryColor,
                 child: Text(
                   chat.unreadCount.toString(),
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.bold),
                 ),
               )
             else
@@ -402,11 +359,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
           SizedBox(height: 16.h),
           Text(
             'No Groups Yet',
-            style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: Colors.grey[600]),
           ),
           SizedBox(height: 8.h),
           Text(
@@ -427,11 +380,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
           SizedBox(height: 16.h),
           Text(
             'No Recent Calls',
-            style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: Colors.grey[600]),
           ),
           SizedBox(height: 8.h),
           Text(

@@ -38,6 +38,8 @@ class AudioRoomRepository {
   Stream<int> get updateHostBonusStream => _socketService.updateHostBonusStream;
   // Sent audio gifts stream
   Stream<GiftModel> get sentAudioGiftsStream => _socketService.sentAudioGiftsStream;
+  // Muted users stream
+  Stream<String> get mutedUserIdStream => _socketService.mutedUserIdStream;
   // Error stream
   Stream<Map<String, dynamic>> get errorMessageStream => _socketService.errorMessageStream;
 
@@ -57,7 +59,6 @@ class AudioRoomRepository {
 
   Future<bool> joinRoom(String roomId) => _socketService.joinRoom(roomId);
   Future<bool> leaveRoom(String roomId) => _socketService.leaveRoom(roomId);
-  Future<bool> deleteRoom(String roomId) => _socketService.deleteRoom(roomId);
   Future<bool> getRooms() => _socketService.getRooms();
   Future<AudioRoomDetails?> getRoomDetails(String roomId) => _socketService.getRoomDetails(roomId);
 
@@ -70,6 +71,9 @@ class AudioRoomRepository {
 
   Future<bool> removeFromSeat({required String roomId, required String seatKey, required String targetId}) =>
       _socketService.removeFromSeat(roomId: roomId, seatKey: seatKey, targetId: targetId);
+
+  Future<bool> muteUserFromSeat({required String roomId, required String seatKey, required String targetId}) =>
+      _socketService.muteUserFromSeat(roomId: roomId, seatKey: seatKey, targetId: targetId);
 
   /// Chat operations
   Future<bool> sendMessage(String roomId, String message) => _socketService.sendMessage(roomId, message);

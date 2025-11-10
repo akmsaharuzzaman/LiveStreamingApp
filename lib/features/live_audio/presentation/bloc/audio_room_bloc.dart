@@ -49,6 +49,8 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     _setupEventHandlers();
   }
 
+  AudioRoomRepository get repository => _repository;
+
   void _setupEventHandlers() {
     // Connection events
     on<ConnectToSocket>(_onConnectToSocket);
@@ -60,7 +62,6 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     on<InitializeWithRoomDataEvent>(_onInitializeWithRoomData);
     on<JoinRoomEvent>(_onJoinRoom);
     on<LeaveRoomEvent>(_onLeaveRoom);
-    on<DeleteRoomEvent>(_onDeleteRoom);
     on<GetRoomDetailsEvent>(_onGetRoomDetails);
     on<GetAllRoomsEvent>(_onGetAllRooms);
 
@@ -68,6 +69,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     on<JoinSeatEvent>(_onJoinSeat);
     on<LeaveSeatEvent>(_onLeaveSeat);
     on<RemoveFromSeatEvent>(_onRemoveFromSeat);
+    on<MuteUserFromSeatEvent>(_onMuteUserFromSeat);
 
     // Chat events
     on<SendMessageEvent>(_onSendMessage);
@@ -78,7 +80,6 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     on<MuteUnmuteUserEvent>(_onMuteUnmuteUser);
 
     // Agora events
-    on<ToggleMuteEvent>(_onToggleMute);
     on<UpdateBroadcasterStatusEvent>(_onUpdateBroadcasterStatus);
 
     // UI events
@@ -375,17 +376,10 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   }
 
   Future<void> _onLeaveRoom(LeaveRoomEvent event, Emitter<AudioRoomState> emit) async {
-    final success = await _repository.leaveRoom(event.memberID);
+    final success = await _repository.leaveRoom(event.roomId);
     if (success && state is AudioRoomLoaded) {
       final currentState = state as AudioRoomLoaded;
       emit(currentState.copyWith(currentRoomId: null));
-    }
-  }
-
-  Future<void> _onDeleteRoom(DeleteRoomEvent event, Emitter<AudioRoomState> emit) async {
-    final success = await _repository.deleteRoom(event.roomId);
-    if (success) {
-      emit(const AudioRoomClosed(reason: 'Room deleted'));
     }
   }
 
@@ -407,6 +401,10 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
 
   Future<void> _onRemoveFromSeat(RemoveFromSeatEvent event, Emitter<AudioRoomState> emit) async {
     await _repository.removeFromSeat(roomId: event.roomId, seatKey: event.seatKey, targetId: event.targetId);
+  }
+
+  Future<void> _onMuteUserFromSeat(MuteUserFromSeatEvent event, Emitter<AudioRoomState> emit) async {
+    await _repository.muteUserFromSeat(roomId: event.roomId, seatKey: event.seatKey, targetId: event.targetId);
   }
 
   Future<void> _onSendMessage(SendMessageEvent event, Emitter<AudioRoomState> emit) async {
@@ -437,13 +435,6 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     if (state is AudioRoomLoaded) {
       final currentState = state as AudioRoomLoaded;
       emit(currentState.copyWith(isBroadcaster: event.isBroadcaster));
-    }
-  }
-
-  void _onToggleMute(ToggleMuteEvent event, Emitter<AudioRoomState> emit) {
-    if (state is AudioRoomLoaded) {
-      final currentState = state as AudioRoomLoaded;
-      emit(currentState.copyWith(isMuted: !currentState.isMuted));
     }
   }
 

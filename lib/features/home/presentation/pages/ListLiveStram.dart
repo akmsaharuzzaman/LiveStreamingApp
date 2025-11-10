@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -5,16 +6,113 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/network/models/get_room_model.dart';
+import '../../service/video_all_room_service.dart';
 import '../widgets/custom_networkimage.dart';
 import '../widgets/touchable_opacity_widget.dart';
 
-class ListLiveStream extends StatelessWidget {
+class ListLiveStream extends StatefulWidget {
   final List<GetRoomModel> availableRooms;
   const ListLiveStream({super.key, required this.availableRooms});
 
   @override
+  State<ListLiveStream> createState() => _ListLiveStreamState();
+}
+
+class _ListLiveStreamState extends State<ListLiveStream> {
+  // Use video room service (read-only)
+  final VideoAllRoomService _videoRoomService = VideoAllRoomService();
+
+  // Stream subscriptions
+  StreamSubscription? _videoRoomsSubscription;
+  StreamSubscription? _loadingSubscription;
+
+  // Local rooms list (synced with service)
+  List<GetRoomModel> _localRooms = [];
+  
+  // Loading state
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _log('🎬 ListLiveStream initialized');
+    
+    // Initialize with passed rooms
+    _localRooms = widget.availableRooms;
+    
+    // Setup stream subscriptions to listen to service
+    _setupVideoRoomListener();
+    _setupLoadingListener();
+  }
+
+  /// Setup video room listener
+  void _setupVideoRoomListener() {
+    _videoRoomsSubscription = _videoRoomService.videoRoomsStream.listen(
+      (rooms) {
+        _log('📺 Video rooms received: ${rooms.length}');
+        if (mounted) {
+          setState(() {
+            _localRooms = rooms;
+          });
+        }
+      },
+      onError: (error) {
+        _log('❌ Video rooms error: $error');
+      },
+      cancelOnError: false,
+    );
+  }
+
+  /// Setup loading state listener
+  void _setupLoadingListener() {
+    _loadingSubscription = _videoRoomService.loadingStream.listen(
+      (loading) {
+        if (mounted) {
+          setState(() {
+            _isLoading = loading;
+          });
+        }
+      },
+      onError: (error) {
+        _log('❌ Loading state error: $error');
+      },
+      cancelOnError: false,
+    );
+  }
+
+  @override
+  void didUpdateWidget(ListLiveStream oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Update local rooms when parent passes new data
+    if (widget.availableRooms != oldWidget.availableRooms) {
+      setState(() {
+        _localRooms = widget.availableRooms;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _videoRoomsSubscription?.cancel();
+    _loadingSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _log(String message) {
+    const blue = '\x1B[34m';
+    const reset = '\x1B[0m';
+    debugPrint('\n$blue[LIVE_STREAM_PAGE] - $reset $message\n');
+  }
+
+  /// Handle refresh action
+  Future<void> _handleRefresh() async {
+    _log('🔄 Pull-to-refresh triggered');
+    await _videoRoomService.requestVideoRooms();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (availableRooms.isEmpty) {
+    if (_localRooms.isEmpty) {
       return Expanded(
         child: Center(
           child: Column(
@@ -42,45 +140,62 @@ class ListLiveStream extends StatelessWidget {
     }
 
     return Expanded(
-      child: GridView.builder(
-        padding: EdgeInsets.symmetric(
-          horizontal: 16.sp,
-        ).add(EdgeInsets.only(bottom: 80.sp)),
-        physics: const BouncingScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 0.sp,
-          crossAxisSpacing: 10.sp,
-          childAspectRatio: 0.70,
-        ),
-        // itemCount: listLiveStreamFake.length,
-        itemCount: availableRooms.length,
-        itemBuilder: (context, index) {
-          return LiveStreamCard(
-            liveStreamModel: availableRooms[index],
-            onTap: () {
-              // Navigate to the live stream screen with the room ID using the named route
-              context.pushNamed(
-                'onGoingLive',
-                queryParameters: {
-                  'roomId': availableRooms[index].roomId,
-                  'hostName':
-                      availableRooms[index].hostDetails?.name ?? 'Unknown Host',
-                  'hostUserId':
-                      availableRooms[index].hostDetails?.id ?? 'Unknown User',
-                  'hostAvatar':
-                      availableRooms[index].hostDetails?.avatar ??
-                      'Unknown Avatar',
-                },
-                extra: {
-                  'existingViewers': availableRooms[index].membersDetails,
-                  'hostCoins': availableRooms[index].hostCoins,
-                  'roomData': availableRooms[index], // Pass complete room data
-                },
-              );
-            },
-          );
-        },
+      child: Stack(
+        children: [
+          RefreshIndicator(
+            onRefresh: _handleRefresh,
+            color: Colors.pink,
+            backgroundColor: Colors.white,
+            strokeWidth: 3.0,
+            displacement: 50.0,
+            child: GridView.builder(
+              padding: EdgeInsets.symmetric(
+                horizontal: 16.sp,
+              ).add(EdgeInsets.only(bottom: 80.sp)),
+              physics: const BouncingScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 0.sp,
+                crossAxisSpacing: 10.sp,
+                childAspectRatio: 0.70,
+              ),
+              itemCount: _localRooms.length,
+              itemBuilder: (context, index) {
+                return LiveStreamCard(
+                  liveStreamModel: _localRooms[index],
+                  onTap: () {
+                    // Navigate to the live stream screen with the room ID using the named route
+                    context.pushNamed(
+                      'onGoingLive',
+                      queryParameters: {
+                        'roomId': _localRooms[index].roomId,
+                        'hostName': _localRooms[index].hostDetails?.name ?? 'Unknown Host',
+                        'hostUserId': _localRooms[index].hostDetails?.id ?? 'Unknown User',
+                        'hostAvatar': _localRooms[index].hostDetails?.avatar ?? 'Unknown Avatar',
+                      },
+                      extra: {
+                        'existingViewers': _localRooms[index].membersDetails,
+                        'hostCoins': _localRooms[index].hostCoins,
+                        'roomData': _localRooms[index], // Pass complete room data
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          if (_isLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.3),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.pink),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

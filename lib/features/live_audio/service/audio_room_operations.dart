@@ -60,24 +60,6 @@ class AudioSocketRoomOperations {
     }
   }
 
-  /// Delete a room (only host can delete)
-  Future<bool> deleteRoom(String roomId) async {
-    if (!_isConnected) {
-      errorController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('🗑️ Deleting room: $roomId');
-      socket.emit(AudioSocketConstants.leaveAudioRoomEvent, {'roomId': roomId});
-      return true;
-    } catch (e) {
-      _log('❌ Error deleting room: $e');
-      errorController.add({'status': 'error', 'message': 'Failed to delete room: $e'});
-      return false;
-    }
-  }
-
   /// Join a room
   Future<bool> joinRoom(String roomId) async {
     if (!_isConnected) {
