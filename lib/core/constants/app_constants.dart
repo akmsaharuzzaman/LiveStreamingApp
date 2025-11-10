@@ -100,6 +100,8 @@ class ApiConstants {
   static const String verifyEmail = '/auth/verify-email';
   static const String socialLogin = '/auth/social-login';
 
+  static const String isPremium = '/auth/is-premium';
+
   // User endpoints
   static const String profile = '/user/profile';
   static const String updateProfile = '/user/profile';
