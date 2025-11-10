@@ -65,6 +65,9 @@ class GoliveScreen extends StatelessWidget {
                 isHost:
                     roomId ==
                     null, // If no roomId passed, we are creating (host)
+                // ✅ Pass initial duration from existing room data
+                // This makes duration counter continue from where stream elapsed, not from zero
+                initialDurationSeconds: roomData?.duration ?? 0,
               ),
             ),
         ),

@@ -15,15 +15,22 @@ class InitializeLiveStream extends LiveStreamEvent {
   final String? roomId;
   final String? hostUserId;
   final bool isHost;
+  final int? initialDurationSeconds; // ✅ Initial duration from existing room
 
   const InitializeLiveStream({
     this.roomId,
     this.hostUserId,
     required this.isHost,
+    this.initialDurationSeconds,
   });
 
   @override
-  List<Object?> get props => [roomId, hostUserId, isHost];
+  List<Object?> get props => [
+    roomId,
+    hostUserId,
+    isHost,
+    initialDurationSeconds,
+  ];
 }
 
 /// Create a new room (host)
@@ -141,10 +148,7 @@ class UserBannedNotification extends LiveStreamEvent {
   final String userId;
   final String message;
 
-  const UserBannedNotification({
-    required this.userId,
-    required this.message,
-  });
+  const UserBannedNotification({required this.userId, required this.message});
 
   @override
   List<Object?> get props => [userId, message];

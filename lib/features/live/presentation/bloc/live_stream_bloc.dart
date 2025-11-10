@@ -55,14 +55,16 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
       // Setup socket listeners
       _setupSocketListeners();
 
-      // Start duration timer
-      _startDurationTimer();
+      // ✅ Start duration timer with initial duration from room data
+      // If joining existing room, use the elapsed time; if host, start from 0
+      _startDurationTimer(event.initialDurationSeconds ?? 0);
 
       emit(
         LiveStreamStreaming(
           roomId: event.roomId ?? '',
           isHost: event.isHost,
           userId: event.hostUserId ?? '',
+          duration: Duration(seconds: event.initialDurationSeconds ?? 0),
         ),
       );
 
@@ -441,8 +443,18 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     });
   }
 
-  void _startDurationTimer() {
-    _streamStartTime = DateTime.now();
+  void _startDurationTimer(int initialDurationSeconds) {
+    // ✅ Initialize with existing elapsed time (for viewers joining mid-stream)
+    // This ensures duration counter continues from where it was, not from zero
+    int elapsedSeconds = initialDurationSeconds;
+    _streamStartTime = DateTime.now().subtract(
+      Duration(seconds: elapsedSeconds),
+    );
+
+    print(
+      '⏱️ [DURATION] Starting timer with initial offset: ${elapsedSeconds}s (${elapsedSeconds ~/ 60}m ${elapsedSeconds % 60}s)',
+    );
+
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_streamStartTime != null) {
         final duration = DateTime.now().difference(_streamStartTime!);
