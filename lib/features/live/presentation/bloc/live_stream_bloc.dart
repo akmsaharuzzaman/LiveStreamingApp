@@ -22,14 +22,12 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   // Timer for duration updates
   Timer? _durationTimer;
   DateTime? _streamStartTime;
-  
+
   // Flag to prevent multiple bonus API calls
   bool _isCallingBonusAPI = false;
 
-  LiveStreamBloc(
-    this._repository,
-    this._socketService,
-  ) : super(const LiveStreamInitial()) {
+  LiveStreamBloc(this._repository, this._socketService)
+    : super(const LiveStreamInitial()) {
     on<InitializeLiveStream>(_onInitialize);
     on<CreateRoom>(_onCreateRoom);
     on<JoinRoom>(_onJoinRoom);
@@ -60,27 +58,35 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
       // Start duration timer
       _startDurationTimer();
 
-      emit(LiveStreamStreaming(
-        roomId: event.roomId ?? '',
-        isHost: event.isHost,
-        userId: event.hostUserId ?? '',
-      ));
+      emit(
+        LiveStreamStreaming(
+          roomId: event.roomId ?? '',
+          isHost: event.isHost,
+          userId: event.hostUserId ?? '',
+        ),
+      );
 
       if (_initialViewersBuffer != null && _initialViewersBuffer!.isNotEmpty) {
         final currentState = state;
         if (currentState is LiveStreamStreaming) {
-          final existingIds = currentState.viewers.map((viewer) => viewer.id).toSet();
+          final existingIds = currentState.viewers
+              .map((viewer) => viewer.id)
+              .toSet();
           final additions = _initialViewersBuffer!
-              .where((viewer) =>
-                  viewer.id != currentState.userId &&
-                  !existingIds.contains(viewer.id))
+              .where(
+                (viewer) =>
+                    viewer.id != currentState.userId &&
+                    !existingIds.contains(viewer.id),
+              )
               .toList();
 
           if (additions.isNotEmpty) {
-            emit(currentState.copyWith(
-              viewers: List<JoinedUserModel>.from(currentState.viewers)
-                ..addAll(additions),
-            ));
+            emit(
+              currentState.copyWith(
+                viewers: List<JoinedUserModel>.from(currentState.viewers)
+                  ..addAll(additions),
+              ),
+            );
           }
         }
         _initialViewersBuffer = null;
@@ -101,13 +107,10 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
         roomType: event.roomType,
       );
 
-      result.fold(
-        (failure) => emit(LiveStreamError(failure.message)),
-        (_) {
-          // Room created successfully
-          // The actual room ID will come from socket response
-        },
-      );
+      result.fold((failure) => emit(LiveStreamError(failure.message)), (_) {
+        // Room created successfully
+        // The actual room ID will come from socket response
+      });
     } catch (e) {
       emit(LiveStreamError('Failed to create room: $e'));
     }
@@ -123,12 +126,9 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
         userId: event.userId,
       );
 
-      result.fold(
-        (failure) => emit(LiveStreamError(failure.message)),
-        (_) {
-          // Joined successfully
-        },
-      );
+      result.fold((failure) => emit(LiveStreamError(failure.message)), (_) {
+        // Joined successfully
+      });
     } catch (e) {
       emit(LiveStreamError('Failed to join room: $e'));
     }
@@ -166,12 +166,14 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
           await _repository.deleteRoom(currentState.roomId);
         }
 
-        emit(LiveStreamEnded(
-          roomId: currentState.roomId,
-          totalDuration: currentState.duration,
-          earnedDiamonds: currentState.totalBonusDiamonds,
-          totalViewers: currentState.viewers.length,
-        ));
+        emit(
+          LiveStreamEnded(
+            roomId: currentState.roomId,
+            totalDuration: currentState.duration,
+            earnedDiamonds: currentState.totalBonusDiamonds,
+            totalViewers: currentState.viewers.length,
+          ),
+        );
       }
     } catch (e) {
       emit(LiveStreamError('Failed to end stream: $e'));
@@ -185,75 +187,73 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
       final newDuration = event.duration;
-      
+
       // Check for bonus milestone (every 50 minutes by default)
       const bonusIntervalMinutes = 50;
-      if (currentState.isHost && newDuration.inMinutes >= bonusIntervalMinutes) {
-        final currentMilestone = (newDuration.inMinutes ~/ bonusIntervalMinutes) * bonusIntervalMinutes;
-        
+      if (currentState.isHost &&
+          newDuration.inMinutes >= bonusIntervalMinutes) {
+        final currentMilestone =
+            (newDuration.inMinutes ~/ bonusIntervalMinutes) *
+            bonusIntervalMinutes;
+
         // Call bonus API if we've reached a new milestone
         if (currentMilestone > currentState.lastBonusMilestone) {
           add(CallDailyBonus(isStreamEnd: false));
-          emit(currentState.copyWith(
-            duration: newDuration,
-            lastBonusMilestone: currentMilestone,
-          ));
+          emit(
+            currentState.copyWith(
+              duration: newDuration,
+              lastBonusMilestone: currentMilestone,
+            ),
+          );
           return;
         }
       }
-      
+
       emit(currentState.copyWith(duration: newDuration));
     }
   }
 
-  void _onUserJoined(
-    UserJoined event,
-    Emitter<LiveStreamState> emit,
-  ) {
+  void _onUserJoined(UserJoined event, Emitter<LiveStreamState> emit) {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
       final viewers = List<JoinedUserModel>.from(currentState.viewers);
-      
+
       // Don't add if already exists
       if (!viewers.any((v) => v.id == event.userId)) {
-        viewers.add(JoinedUserModel(
-          id: event.userId,
-          name: event.userName,
-          avatar: event.avatar ?? '',
-          uid: event.uid ?? '',
-          diamonds: 0,
-        ));
-        
+        viewers.add(
+          JoinedUserModel(
+            id: event.userId,
+            name: event.userName,
+            avatar: event.avatar ?? '',
+            uid: event.uid ?? '',
+            diamonds: 0,
+          ),
+        );
+
         emit(currentState.copyWith(viewers: viewers));
       }
     }
   }
 
-  void _onUserLeft(
-    UserLeft event,
-    Emitter<LiveStreamState> emit,
-  ) {
+  void _onUserLeft(UserLeft event, Emitter<LiveStreamState> emit) {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
       final viewers = List<JoinedUserModel>.from(currentState.viewers);
       viewers.removeWhere((v) => v.id == event.userId);
-      
+
       emit(currentState.copyWith(viewers: viewers));
     }
   }
 
-  void _onToggleCamera(
-    ToggleCamera event,
-    Emitter<LiveStreamState> emit,
-  ) {
+  void _onToggleCamera(ToggleCamera event, Emitter<LiveStreamState> emit) {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
       // ✅ SECURITY: Only hosts can toggle camera
       // Viewers/audio callers cannot turn on their own camera
       if (currentState.isHost) {
-        emit(currentState.copyWith(
-          isCameraEnabled: !currentState.isCameraEnabled,
-        ));
+        emit(
+          currentState.copyWith(isCameraEnabled: !currentState.isCameraEnabled),
+        );
       } else {
         // ⚠️ Non-host attempted to toggle camera - silently ignore
         // This prevents camera access for viewers/callers
@@ -270,9 +270,7 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
       // ✅ SECURITY: Hosts can always toggle microphone
       // Audio callers can also toggle (already in call)
       // Viewers cannot toggle microphone
-      emit(currentState.copyWith(
-        isMicEnabled: !currentState.isMicEnabled,
-      ));
+      emit(currentState.copyWith(isMicEnabled: !currentState.isMicEnabled));
     }
   }
 
@@ -284,14 +282,14 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     if (!event.isStreamEnd && _isCallingBonusAPI) {
       return;
     }
-    
+
     try {
       final currentState = state;
       if (currentState is LiveStreamStreaming && currentState.isHost) {
         _isCallingBonusAPI = true;
-        
+
         final totalMinutes = currentState.duration.inMinutes;
-        
+
         final result = await _repository.callDailyBonus(
           totalMinutes: totalMinutes,
           type: 'video',
@@ -303,9 +301,12 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
           },
           (bonusDiamonds) {
             if (bonusDiamonds > 0) {
-              emit(currentState.copyWith(
-                totalBonusDiamonds: currentState.totalBonusDiamonds + bonusDiamonds,
-              ));
+              emit(
+                currentState.copyWith(
+                  totalBonusDiamonds:
+                      currentState.totalBonusDiamonds + bonusDiamonds,
+                ),
+              );
             }
           },
         );
@@ -315,17 +316,14 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     }
   }
 
-  Future<void> _onBanUser(
-    BanUser event,
-    Emitter<LiveStreamState> emit,
-  ) async {
+  Future<void> _onBanUser(BanUser event, Emitter<LiveStreamState> emit) async {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
       final bannedUsers = List<String>.from(currentState.bannedUsers);
-      
+
       if (!bannedUsers.contains(event.userId)) {
         bannedUsers.add(event.userId);
-        
+
         // Remove from viewers
         final viewers = List<JoinedUserModel>.from(currentState.viewers);
         viewers.removeWhere((v) => v.id == event.userId);
@@ -335,11 +333,8 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
           roomId: currentState.roomId,
           userId: event.userId,
         );
-        
-        emit(currentState.copyWith(
-          bannedUsers: bannedUsers,
-          viewers: viewers,
-        ));
+
+        emit(currentState.copyWith(bannedUsers: bannedUsers, viewers: viewers));
       }
     }
   }
@@ -351,18 +346,15 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
       final bannedUsers = List<String>.from(currentState.bannedUsers);
-      
+
       if (!bannedUsers.contains(event.userId)) {
         bannedUsers.add(event.userId);
-        
+
         // Remove from viewers
         final viewers = List<JoinedUserModel>.from(currentState.viewers);
         viewers.removeWhere((v) => v.id == event.userId);
-        
-        emit(currentState.copyWith(
-          bannedUsers: bannedUsers,
-          viewers: viewers,
-        ));
+
+        emit(currentState.copyWith(bannedUsers: bannedUsers, viewers: viewers));
       }
     }
   }
@@ -390,21 +382,27 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     final sanitized = event.viewers;
 
     if (currentState is LiveStreamStreaming) {
-      final existingIds = currentState.viewers.map((viewer) => viewer.id).toSet();
+      final existingIds = currentState.viewers
+          .map((viewer) => viewer.id)
+          .toSet();
       final additions = sanitized
-          .where((viewer) =>
-              viewer.id != currentState.userId &&
-              !existingIds.contains(viewer.id))
+          .where(
+            (viewer) =>
+                viewer.id != currentState.userId &&
+                !existingIds.contains(viewer.id),
+          )
           .toList();
 
       if (additions.isEmpty) {
         return;
       }
 
-      emit(currentState.copyWith(
-        viewers: List<JoinedUserModel>.from(currentState.viewers)
-          ..addAll(additions),
-      ));
+      emit(
+        currentState.copyWith(
+          viewers: List<JoinedUserModel>.from(currentState.viewers)
+            ..addAll(additions),
+        ),
+      );
       return;
     }
 
@@ -424,12 +422,14 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
 
   void _setupSocketListeners() {
     _userJoinedSubscription = _socketService.userJoinedStream.listen((data) {
-      add(UserJoined(
-        userId: data.id,
-        userName: data.name,
-        avatar: data.avatar,
-        uid: data.uid,
-      ));
+      add(
+        UserJoined(
+          userId: data.id,
+          userName: data.name,
+          avatar: data.avatar,
+          uid: data.uid,
+        ),
+      );
     });
 
     _userLeftSubscription = _socketService.userLeftStream.listen((data) {
@@ -437,10 +437,7 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     });
 
     _bannedUserSubscription = _socketService.bannedUserStream.listen((data) {
-      add(UserBannedNotification(
-        userId: data.targetId,
-        message: data.message,
-      ));
+      add(UserBannedNotification(userId: data.targetId, message: data.message));
     });
   }
 
