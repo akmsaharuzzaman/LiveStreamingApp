@@ -384,11 +384,10 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
                 );
               });
             } else {
-              // ✅ For viewers: wait for remote video
-              debugPrint(
-                '👁️ [AGORA] Viewer joined, waiting for host video...',
-              );
-              // DON'T set isVideoConnecting - let remote video state change handle it
+              // ✅ For viewers: set isVideoReady=true immediately so video view is prepared
+              // This prevents white screen while waiting for onUserJoined callbacks
+              debugPrint('👁️ [AGORA] Viewer joined, preparing video view...');
+              emit(state.copyWith(isVideoReady: true));
             }
           },
           onUserJoined: (connection, remoteUid, elapsed) {
@@ -396,10 +395,18 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
               _remoteUsers.add(remoteUid);
             }
 
+            debugPrint(
+              '👥 [AGORA] User joined: $remoteUid, total remoteUsers=${_remoteUsers.length}',
+            );
+
+            // ✅ CRITICAL FIX: When a remote user joins, assume they have/may have video capability
+            // Set isVideoReady=true so viewer can see the video stream if it arrives
+            // This fixes the white screen issue when joining while caller is connected
             emit(
               state.copyWith(
                 remoteUsers: List<int>.from(_remoteUsers),
                 remoteUid: state.remoteUid ?? remoteUid,
+                isVideoReady: true, // ✅ Enable video view for remote streams
               ),
             );
 
