@@ -512,7 +512,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
         // Immediately disconnect from socket to prevent context errors
         _audioRoomBloc.add(DisconnectFromSocket());
-        
+
         _hasJoinedChannel = false; // Reset channel joined flag
 
         // Reset Bloc state for next room creation/joining
@@ -738,7 +738,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
                       // Animation layer
                       if (roomState.playAnimation == true && roomState.giftDetails != null)
-                        AnimatedLayer(gifts: [roomState.giftDetails!], onCompleted: () {  },),
+                        AnimatedLayer(gifts: [roomState.giftDetails!], onCompleted: () {
+                          context.read<AudioRoomBloc>().add(AnimationCompletedEvent());
+                        }),
                     ],
                   );
                 }

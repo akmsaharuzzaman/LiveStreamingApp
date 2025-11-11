@@ -85,6 +85,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     // UI events
     on<EndLiveStreamEvent>(_onEndLiveStream);
     on<PlayAnimationEvent>(_onPlayAnimation);
+    on<AnimationCompletedEvent>(_onAnimationCompleted);
 
     // Error handling
     on<HandleSocketErrorEvent>(_onHandleSocketError);
@@ -447,11 +448,13 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     if (state is AudioRoomLoaded) {
       final currentState = state as AudioRoomLoaded;
       emit(currentState.copyWith(playAnimation: true, giftDetails: event.giftDetails));
+    }
+  }
 
-      // Auto-stop animation after 9 seconds
-      Future.delayed(const Duration(seconds: 9), () {
-        emit(currentState.copyWith(playAnimation: false, giftDetails: null));
-      });
+  void _onAnimationCompleted(AnimationCompletedEvent event, Emitter<AudioRoomState> emit) {
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      emit(currentState.copyWith(playAnimation: false, giftDetails: null));
     }
   }
 

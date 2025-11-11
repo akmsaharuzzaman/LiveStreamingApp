@@ -190,6 +190,10 @@ class PlayAnimationEvent extends AudioRoomEvent {
   List<Object?> get props => [giftDetails];
 }
 
+class AnimationCompletedEvent extends AudioRoomEvent {
+  const AnimationCompletedEvent();
+}
+
 /// Error Handling
 class HandleSocketErrorEvent extends AudioRoomEvent {
   final Map<String, dynamic> error;
