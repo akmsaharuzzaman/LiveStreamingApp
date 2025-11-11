@@ -802,8 +802,10 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       await sessionCubit.endSession(notifyServer: false);
 
       if (isHostSession) {
+        debugPrint('Host ending live stream');
         liveStreamBloc.add(const EndLiveStream());
       } else {
+        debugPrint('Audience leaving room');
         liveStreamBloc.add(const LeaveRoom());
       }
 

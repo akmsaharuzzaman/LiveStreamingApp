@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import '../../data/repositories/live_stream_repository.dart';
@@ -159,14 +160,18 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   ) async {
     try {
       final currentState = state;
+      debugPrint(' \n \n Current state: $currentState \n \n');
       if (currentState is LiveStreamStreaming) {
+        debugPrint(' \n \n Current state: $currentState \n \n');
+        debugPrint(' \n \n Current state isHost: ${currentState.isHost} \n \n');
         // Stop timer
         _durationTimer?.cancel();
 
         // Delete room (host only)
-        if (currentState.isHost) {
+        // if (currentState.isHost) {
+          debugPrint(' \n \n Deleting room: ${currentState.roomId} \n \n');
           await _repository.deleteRoom(currentState.roomId);
-        }
+        // }
 
         emit(
           LiveStreamEnded(
