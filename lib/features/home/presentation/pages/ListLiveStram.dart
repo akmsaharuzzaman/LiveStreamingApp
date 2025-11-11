@@ -28,7 +28,7 @@ class _ListLiveStreamState extends State<ListLiveStream> {
 
   // Local rooms list (synced with service)
   List<GetRoomModel> _localRooms = [];
-  
+
   // Loading state
   bool _isLoading = false;
 
@@ -36,10 +36,10 @@ class _ListLiveStreamState extends State<ListLiveStream> {
   void initState() {
     super.initState();
     _log('🎬 ListLiveStream initialized');
-    
+
     // Initialize with passed rooms
     _localRooms = widget.availableRooms;
-    
+
     // Setup stream subscriptions to listen to service
     _setupVideoRoomListener();
     _setupLoadingListener();
@@ -104,86 +104,93 @@ class _ListLiveStreamState extends State<ListLiveStream> {
     debugPrint('\n$blue[LIVE_STREAM_PAGE] - $reset $message\n');
   }
 
-  /// Handle refresh action
-  Future<void> _handleRefresh() async {
-    _log('🔄 Pull-to-refresh triggered');
-    await _videoRoomService.requestVideoRooms();
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (_localRooms.isEmpty) {
-      return Expanded(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+    final bool isEmpty = _localRooms.isEmpty;
+
+    final Widget scrollableContent = isEmpty
+        ? ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              Icon(Icons.live_tv, size: 80.sp, color: Colors.grey.shade400),
-              SizedBox(height: 20.h),
-              Text(
-                'No Live Streams Available',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey.shade600,
+              SizedBox(height: MediaQuery.of(context).size.height * 0.2),
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.live_tv,
+                      size: 80.sp,
+                      color: Colors.grey.shade400,
+                    ),
+                    SizedBox(height: 20.h),
+                    Text(
+                      'No Live Streams Available',
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      'No one has started live streaming yet',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              SizedBox(height: 8.h),
-              Text(
-                'No one has started live streaming yet',
-                style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade500),
-              ),
             ],
-          ),
-        ),
-      );
-    }
+          )
+        : GridView.builder(
+            padding: EdgeInsets.symmetric(
+              horizontal: 16.sp,
+            ).add(EdgeInsets.only(bottom: 80.sp)),
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 0.sp,
+              crossAxisSpacing: 10.sp,
+              childAspectRatio: 0.70,
+            ),
+            itemCount: _localRooms.length,
+            itemBuilder: (context, index) {
+              return LiveStreamCard(
+                liveStreamModel: _localRooms[index],
+                onTap: () {
+                  // Navigate to the live stream screen with the room ID using the named route
+                  context.pushNamed(
+                    'onGoingLive',
+                    queryParameters: {
+                      'roomId': _localRooms[index].roomId,
+                      'hostName':
+                          _localRooms[index].hostDetails?.name ??
+                          'Unknown Host',
+                      'hostUserId':
+                          _localRooms[index].hostDetails?.id ?? 'Unknown User',
+                      'hostAvatar':
+                          _localRooms[index].hostDetails?.avatar ??
+                          'Unknown Avatar',
+                    },
+                    extra: {
+                      'existingViewers': _localRooms[index].membersDetails,
+                      'hostCoins': _localRooms[index].hostCoins,
+                      'roomData': _localRooms[index],
+                    },
+                  );
+                },
+              );
+            },
+          );
 
     return Expanded(
       child: Stack(
         children: [
-          RefreshIndicator(
-            onRefresh: _handleRefresh,
-            color: Colors.pink,
-            backgroundColor: Colors.white,
-            strokeWidth: 3.0,
-            displacement: 50.0,
-            child: GridView.builder(
-              padding: EdgeInsets.symmetric(
-                horizontal: 16.sp,
-              ).add(EdgeInsets.only(bottom: 80.sp)),
-              physics: const BouncingScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 0.sp,
-                crossAxisSpacing: 10.sp,
-                childAspectRatio: 0.70,
-              ),
-              itemCount: _localRooms.length,
-              itemBuilder: (context, index) {
-                return LiveStreamCard(
-                  liveStreamModel: _localRooms[index],
-                  onTap: () {
-                    // Navigate to the live stream screen with the room ID using the named route
-                    context.pushNamed(
-                      'onGoingLive',
-                      queryParameters: {
-                        'roomId': _localRooms[index].roomId,
-                        'hostName': _localRooms[index].hostDetails?.name ?? 'Unknown Host',
-                        'hostUserId': _localRooms[index].hostDetails?.id ?? 'Unknown User',
-                        'hostAvatar': _localRooms[index].hostDetails?.avatar ?? 'Unknown Avatar',
-                      },
-                      extra: {
-                        'existingViewers': _localRooms[index].membersDetails,
-                        'hostCoins': _localRooms[index].hostCoins,
-                        'roomData': _localRooms[index], // Pass complete room data
-                      },
-                    );
-                  },
-                );
-              },
-            ),
-          ),
+          scrollableContent,
           if (_isLoading)
             Positioned.fill(
               child: Container(
