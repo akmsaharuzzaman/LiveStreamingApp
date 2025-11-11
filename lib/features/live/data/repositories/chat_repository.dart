@@ -31,14 +31,8 @@ class ChatRepositoryImpl implements ChatRepository {
     required String message,
     String? avatar,
   }) {
-    _socketService.emit('send-message', {
-      'roomId': roomId,
-      'userId': userId,
-      'userName': userName,
-      'message': message,
-      'avatar': avatar,
-      'timestamp': DateTime.now().toIso8601String(),
-    });
+    // ✅ Use the socket service's sendMessage method which properly emits the event
+    _socketService.sendMessage(roomId, message);
   }
 
   @override

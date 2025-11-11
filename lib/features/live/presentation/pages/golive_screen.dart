@@ -65,6 +65,9 @@ class GoliveScreen extends StatelessWidget {
                 isHost:
                     roomId ==
                     null, // If no roomId passed, we are creating (host)
+                // ✅ Pass initial duration from existing room data
+                // This makes duration counter continue from where stream elapsed, not from zero
+                initialDurationSeconds: roomData?.duration ?? 0,
               ),
             ),
         ),
@@ -1667,6 +1670,11 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                                         is LiveStreamStreaming
                                                     ? !liveState.isMicEnabled
                                                     : true;
+                                                final streamDuration =
+                                                    liveState
+                                                        is LiveStreamStreaming
+                                                    ? liveState.duration
+                                                    : Duration.zero;
                                                 final moderationState = context
                                                     .read<ModerationBloc>()
                                                     .state;
@@ -1680,6 +1688,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                                         moderationState,
                                                       ),
                                                   onToggleMute: _toggleMute,
+                                                  streamDuration:
+                                                      streamDuration,
                                                 );
                                               },
                                               height: 40.h,
@@ -1992,6 +2002,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
         sessionState.status == LiveSessionStatus.initializingAgora;
 
     if (isInitializing) {
+      debugPrint('📺 [VIDEO] Initializing Agora engine...');
       return Container(
         color: Colors.black,
         child: const Center(
@@ -2000,7 +2011,12 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       );
     }
 
-    if (sessionState.isVideoConnecting && !sessionState.isVideoReady) {
+    // ✅ CRITICAL FIX: Only show loading for hosts during connection
+    // Viewers should show video view once they join, even if waiting for remote video
+    if (sessionState.isVideoConnecting &&
+        !sessionState.isVideoReady &&
+        sessionState.isHost) {
+      debugPrint('📺 [VIDEO] Host connecting...');
       return Container(
         color: Colors.black,
         child: const Center(
@@ -2049,21 +2065,24 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
 
   /// Build multi-broadcaster view for audience
   Widget _buildAudienceMultiView(LiveSessionState sessionState) {
-    final liveState = context.read<LiveStreamBloc>().state;
-    final isCameraEnabled = liveState is LiveStreamStreaming
-        ? liveState.isCameraEnabled
-        : false;
+    // ✅ ARCHITECTURE: In this app, ONLY the HOST can have video
+    // Audio callers and viewers are always audio/watch-only
 
-    final allVideoBroadcasters = <int>[
-      ...sessionState.remoteUsers,
-      if (sessionState.isAudioCaller && isCameraEnabled) 0,
-    ];
+    // ✅ CRITICAL FIX: Only display video from the FIRST remote user (the HOST)
+    // Ignore any video from subsequent users (they are audio callers)
+    // The host is always the first user to join the Agora channel
 
-    final shouldShowVideo =
-        allVideoBroadcasters.isNotEmpty &&
-        (sessionState.isVideoReady || sessionState.localUserJoined);
+    final hostVideoUid = sessionState.remoteUsers.isNotEmpty
+        ? sessionState.remoteUsers.first
+        : null;
+
+    // ✅ FIX: Show video view once joined, even if waiting for remoteUsers callback
+    // remoteUsers might be empty initially due to race condition with onUserJoined
+    // As long as localUserJoined=true, we should show video view (it will display host when they appear)
+    final shouldShowVideo = sessionState.localUserJoined;
 
     if (!shouldShowVideo) {
+      debugPrint('📺 [AUDIENCE] User not yet joined channel...');
       return Container(
         color: Colors.black,
         child: const Center(
@@ -2072,11 +2091,26 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       );
     }
 
-    return _buildMultiVideoLayout(
-      sessionState,
-      allVideoBroadcasters,
-      isHostView: false,
+    debugPrint(
+      '📺 [AUDIENCE] Showing video (hostUid=${hostVideoUid ?? "waiting"}, total_remoteUsers=${sessionState.remoteUsers.length})',
     );
+
+    // ✅ If hostVideoUid is null, show loading; otherwise show the video
+    if (hostVideoUid == null) {
+      return Stack(
+        children: [
+          Container(color: Colors.black),
+          const Center(
+            child: CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 3,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return _buildSingleVideoView(sessionState, hostVideoUid, isHostView: false);
   }
 
   /// Build dynamic multi-video layout based on number of broadcasters
@@ -2085,6 +2119,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     List<int> broadcasterUids, {
     required bool isHostView,
   }) {
+    // ✅ Display the first broadcaster (prioritized by video capability)
     final displayUid = isHost
         ? 0
         : (broadcasterUids.isNotEmpty ? broadcasterUids.first : 0);
@@ -2138,14 +2173,21 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     final shouldShowVideoLoading =
         !sessionState.isVideoReady && !isHost && !isHostView;
 
+    debugPrint(
+      '🎥 [VIDEO] Rendering remote video: uid=$uid, shouldShowLoading=$shouldShowVideoLoading, isVideoReady=${sessionState.isVideoReady}, isHost=$isHost, isHostView=$isHostView',
+    );
+
     return Stack(
       children: [
-        AgoraVideoView(
-          controller: VideoViewController.remote(
-            rtcEngine: engine,
-            canvas: VideoCanvas(uid: uid),
-            connection: RtcConnection(
-              channelId: sessionState.currentRoomId ?? roomId,
+        Container(
+          color: Colors.black,
+          child: AgoraVideoView(
+            controller: VideoViewController.remote(
+              rtcEngine: engine,
+              canvas: VideoCanvas(uid: uid),
+              connection: RtcConnection(
+                channelId: sessionState.currentRoomId ?? roomId,
+              ),
             ),
           ),
         ),
