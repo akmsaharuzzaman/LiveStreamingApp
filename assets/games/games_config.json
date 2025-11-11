@@ -1,0 +1,48 @@
+{
+    "games": [
+        {
+            "id": "greedyv3",
+            "title": "Greedy",
+            "description": "A fun Unity WebGL game about collecting fruits",
+            "iconPath": "assets/games/greedyv3/game-icon.png",
+            "gamePath": "greedyv3",
+            "requiredFiles": [
+                "index.html",
+                "bg.png",
+                "game-icon.png",
+                "Build/Greedy V3.jpg",
+                "Build/6dc6d81ba589edac407b6a78de2394ee.loader.js",
+                "Build/5da486f778c9c89d8a96bca8c3161959.data.unityweb",
+                "Build/50e5abe1b403cb19f393edf1af7ac85c.framework.js.unityweb",
+                "Build/c2b29f92deecf1946c9fbfb4f487858e.wasm.unityweb"
+            ],
+            "gameParameters": {
+                "serverIPWithPort": "ws://31.97.222.97:9001/",
+                "unityObjectName": "LevelLoader",
+                "unityMethodName": "Initilization"
+            }
+        },
+        {
+            "id": "teenpatty",
+            "title": "Teen Patty",
+            "description": "A fun Unity WebGL game about collecting fruits",
+            "iconPath": "assets/games/teenpatty/game-icon.png",
+            "gamePath": "teenpatty",
+            "requiredFiles": [
+                "index.html",
+                "bg.png",
+                "game-icon.png",
+                "Build/TeenPatty V9.jpg",
+                "Build/8437db3ccd92253427f26751b924df0d.loader.js",
+                "Build/d24fba371edec7ed1a51165dc36908bf.framework.js",
+                "Build/98e7b0c3c41164f6282f1870708ee516.wasm",
+                "Build/247a313bb5bdc54d05ba4bc8585c0f03.data"
+            ],
+            "gameParameters": {
+                "serverIPWithPort": "ws://31.97.222.97:9000/",
+                "unityObjectName": "LevelLoader",
+                "unityMethodName": "Initilization"
+            }
+        }
+    ]
+}
