@@ -23,8 +23,7 @@ class AnimatedLayer extends StatefulWidget {
   State<AnimatedLayer> createState() => _AnimatedLayerState();
 }
 
-class _AnimatedLayerState extends State<AnimatedLayer>
-    with SingleTickerProviderStateMixin {
+class _AnimatedLayerState extends State<AnimatedLayer> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _opacityAnimation;
@@ -41,7 +40,7 @@ class _AnimatedLayerState extends State<AnimatedLayer>
       end: 1.0,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
     _opacityAnimation = Tween<double>(
-      begin: 0.0,
+      begin: 0.5,
       end: 1.0,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
 
@@ -65,20 +64,14 @@ class _AnimatedLayerState extends State<AnimatedLayer>
 
   @override
   Widget build(BuildContext context) {
-    final bool hasCustomAnimation =
-        (widget.customAnimationUrl != null &&
-        widget.customAnimationUrl!.isNotEmpty);
+    final bool hasCustomAnimation = (widget.customAnimationUrl != null && widget.customAnimationUrl!.isNotEmpty);
 
     if (!hasCustomAnimation && widget.gifts.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    final GiftModel? lastGift = widget.gifts.isNotEmpty
-        ? widget.gifts.last
-        : null;
-    final String animationUrl = hasCustomAnimation
-        ? widget.customAnimationUrl!
-        : (lastGift?.gift.svgaImage ?? '');
+    final GiftModel? lastGift = widget.gifts.isNotEmpty ? widget.gifts.last : null;
+    final String animationUrl = hasCustomAnimation ? widget.customAnimationUrl! : (lastGift?.gift.svgaImage ?? '');
 
     if (animationUrl.isEmpty) {
       return const SizedBox.shrink();
@@ -86,9 +79,7 @@ class _AnimatedLayerState extends State<AnimatedLayer>
 
     final String? titleText = hasCustomAnimation
         ? widget.customTitle
-        : (lastGift != null
-              ? '${lastGift.name} sent ${lastGift.gift.name}'
-              : null);
+        : (lastGift != null ? '${lastGift.name} sent ${lastGift.gift.name}' : null);
     final String? subtitleText = hasCustomAnimation
         ? widget.customSubtitle
         : (lastGift != null ? '${lastGift.diamonds} diamonds' : null);
@@ -117,8 +108,7 @@ class _AnimatedLayerState extends State<AnimatedLayer>
               // Text overlay on top
               if (titleText != null || subtitleText != null)
                 Positioned(
-                  top:
-                      MediaQuery.of(context).size.height * 0.40, // 40% from top
+                  top: MediaQuery.of(context).size.height * 0.40, // 40% from top
                   left: 20.w,
                   right: 20.w,
                   child: Column(
@@ -131,26 +121,14 @@ class _AnimatedLayerState extends State<AnimatedLayer>
                             color: Colors.white,
                             fontSize: 20.sp,
                             fontWeight: FontWeight.bold,
-                            shadows: const [
-                              Shadow(
-                                offset: Offset(2, 2),
-                                blurRadius: 6,
-                                color: Colors.black87,
-                              ),
-                            ],
+                            shadows: const [Shadow(offset: Offset(2, 2), blurRadius: 6, color: Colors.black87)],
                           ),
                         ),
                       if (subtitleText != null) ...[
                         SizedBox(height: 12.h),
                         Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16.w,
-                            vertical: 8.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(20.r),
-                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                          decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(20.r)),
                           child: Text(
                             subtitleText,
                             textAlign: TextAlign.center,
@@ -158,13 +136,7 @@ class _AnimatedLayerState extends State<AnimatedLayer>
                               color: Colors.yellow,
                               fontSize: 18.sp,
                               fontWeight: FontWeight.w700,
-                              shadows: const [
-                                Shadow(
-                                  offset: Offset(1, 1),
-                                  blurRadius: 3,
-                                  color: Colors.black87,
-                                ),
-                              ],
+                              shadows: const [Shadow(offset: Offset(1, 1), blurRadius: 3, color: Colors.black87)],
                             ),
                           ),
                         ),

@@ -852,8 +852,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     );
   }
 
-  // Removed _buildChatWidget as it's now directly in the main column layout
-
   Widget _buildBottomButtons(AuthAuthenticated authState, AudioRoomLoaded roomState) {
     return Positioned(
       bottom: 30.h,
