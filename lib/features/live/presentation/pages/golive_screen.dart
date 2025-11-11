@@ -2070,12 +2070,11 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     // ✅ ARCHITECTURE: In this app, ONLY the HOST can have video
     // Audio callers and viewers are always audio/watch-only
 
-    // ✅ CRITICAL FIX: Only display video from the FIRST remote user (the HOST)
-    // Ignore any video from subsequent users (they are audio callers)
-    // The host is always the first user to join the Agora channel
-
-    final hostVideoUid = sessionState.remoteUsers.isNotEmpty
-        ? sessionState.remoteUsers.first
+    // ✅ CRITICAL FIX: Display video from the user who is actually sending video
+    // Use videoCallerUids instead of remoteUsers because the first remote user
+    // might not be the one broadcasting video (race condition with onUserJoined vs onRemoteVideoStateChanged)
+    final hostVideoUid = sessionState.videoCallerUids.isNotEmpty
+        ? sessionState.videoCallerUids.first
         : null;
 
     // ✅ FIX: Show video view once joined, even if waiting for remoteUsers callback
@@ -2094,7 +2093,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     }
 
     debugPrint(
-      '📺 [AUDIENCE] Showing video (hostUid=${hostVideoUid ?? "waiting"}, total_remoteUsers=${sessionState.remoteUsers.length})',
+      '📺 [AUDIENCE] Showing video (hostUid=${hostVideoUid ?? "waiting"}, total_remoteUsers=${sessionState.remoteUsers.length}, videoCallers=${sessionState.videoCallerUids.length})',
     );
 
     // ✅ If hostVideoUid is null, show loading; otherwise show the video
