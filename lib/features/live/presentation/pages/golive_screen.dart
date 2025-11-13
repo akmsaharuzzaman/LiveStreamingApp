@@ -814,9 +814,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       }
 
       if (isHostSession && auth != null) {
-        context.read<LiveStreamBloc>().add(
-          const CallDailyBonus(isStreamEnd: true),
-        );
+        // ✅ Daily bonus API is now called automatically in EndLiveStream event handler
+        // No need to call separately here
 
         final giftState = context.read<GiftBloc>().state;
         int earnedDiamonds = 0;
