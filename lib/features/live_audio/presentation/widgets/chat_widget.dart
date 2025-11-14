@@ -1,10 +1,13 @@
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:dlstarlive/features/live_audio/presentation/bloc/audio_room_bloc.dart';
+import 'package:dlstarlive/features/live_audio/presentation/bloc/audio_room_event.dart';
 import 'package:dlstarlive/features/profile/presentation/widgets/user_profile_bottom_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svga/flutter_svga.dart';
+import 'package:flutter_svga_easyplayer/flutter_svga_easyplayer.dart';
 
 import '../../data/models/chat_model.dart';
 
@@ -17,12 +20,9 @@ const String _defaultLevelTagUrl =
 class AudioChatWidget extends StatefulWidget {
   final List<AudioChatModel> messages;
   final VoidCallback? onSendMessage;
+  final bool isHost;
 
-  const AudioChatWidget({
-    super.key,
-    required this.messages,
-    this.onSendMessage,
-  });
+  const AudioChatWidget({super.key, required this.messages, this.onSendMessage, required this.isHost});
 
   @override
   State<AudioChatWidget> createState() => _AudioChatWidgetState();
@@ -75,8 +75,8 @@ class _AudioChatWidgetState extends State<AudioChatWidget> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: MediaQuery.of(context).size.width * 0.95,
-      height: MediaQuery.of(context).size.height * 0.20,
+      // width: MediaQuery.of(context).size.width * 0.95,
+      // height: MediaQuery.of(context).size.height * 0.20,
       child: widget.messages.isEmpty
           ? const SizedBox.shrink()
           : ListView.builder(
@@ -105,24 +105,17 @@ class _AudioChatWidgetState extends State<AudioChatWidget> {
       [const Color(0xFF1B1E48), const Color(0xFF825CB3)], // Purple gradient
       [const Color(0xFF2D1B69), const Color(0xFF11998E)], // Teal gradient
       [const Color(0xFF834D9B), const Color(0xFFD04ED6)], // Pink gradient
-      [
-        const Color(0xFF667EEA),
-        const Color(0xFF764BA2),
-      ], // Blue-purple gradient
+      [const Color(0xFF667EEA), const Color(0xFF764BA2)], // Blue-purple gradient
       [const Color(0xFFE44D26), const Color(0xFFF16529)], // Orange gradient
       [const Color(0xFF11998E), const Color(0xFF38EF7D)], // Green gradient
-      [
-        const Color(0xFF3A1C71),
-        const Color(0xFFD76D77),
-      ], // Purple-pink gradient
+      [const Color(0xFF3A1C71), const Color(0xFFD76D77)], // Purple-pink gradient
       [const Color(0xFF1E3C72), const Color(0xFF2A5298)], // Dark blue gradient
       [const Color(0xFFFF512F), const Color(0xFFDD2476)], // Red-pink gradient
       [const Color(0xFF6A3093), const Color(0xFFA044FF)], // Purple gradient
     ];
 
     final selectedPalette = colorPalettes[random.nextInt(colorPalettes.length)];
-    _userColorCache[userName] =
-        selectedPalette[0]; // Store first color as reference
+    _userColorCache[userName] = selectedPalette[0]; // Store first color as reference
 
     return selectedPalette[0];
   }
@@ -135,20 +128,13 @@ class _AudioChatWidgetState extends State<AudioChatWidget> {
     // 2. Normal messages: transparent (no background) just text (first line style in screenshot)
     // 3. If you later want a subtle glass background for normal, add a semi–transparent white here.
 
-    final bool isPremium =
-        message.equipedStoreItems?.isNotEmpty ??
-        false; // Replace with actual premium check logic
-    final BorderRadius radius = BorderRadius.circular(
-      8,
-    ); // simplified radius like screenshot
+    final bool isPremium = message.equipedStoreItems?.isNotEmpty ?? false; // Replace with actual premium check logic
+    final BorderRadius radius = BorderRadius.circular(8); // simplified radius like screenshot
 
     // Derive a deterministic color for premium user (slightly warm / badge based) with opacity
     Color premiumBase = _getRandomColorForUser(message.name);
     // Ensure it's not too dark; blend with a warm accent
-    premiumBase = Color.alphaBlend(
-      const Color(0xFFCD985F).withValues(alpha: 0.5),
-      premiumBase.withValues(alpha: 0.5),
-    );
+    premiumBase = Color.alphaBlend(const Color(0xFFCD985F).withValues(alpha: 0.5), premiumBase.withValues(alpha: 0.5));
     final Color premiumBackground = premiumBase.withValues(alpha: 0.5);
 
     final levelBadge = _buildLevelBadge(message);
@@ -179,9 +165,7 @@ class _AudioChatWidgetState extends State<AudioChatWidget> {
                 TextSpan(
                   text: message.text,
                   style: TextStyle(
-                    color: isPremium
-                        ? Colors.white.withValues(alpha: 0.95)
-                        : Colors.white.withValues(alpha: 0.85),
+                    color: isPremium ? Colors.white.withValues(alpha: 0.95) : Colors.white.withValues(alpha: 0.85),
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
                   ),
@@ -202,20 +186,14 @@ class _AudioChatWidgetState extends State<AudioChatWidget> {
           filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: premiumBackground,
-              borderRadius: radius,
-            ),
+            decoration: BoxDecoration(color: premiumBackground, borderRadius: radius),
             child: content,
           ),
         ),
       );
     } else {
       // Normal message – no background (matches first & normal user rows)
-      content = Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
-        child: content,
-      );
+      content = Padding(padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2), child: content);
     }
 
     return Padding(
@@ -225,7 +203,42 @@ class _AudioChatWidgetState extends State<AudioChatWidget> {
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
-            builder: (context) => UserProfileBottomSheet(userId: message.id),
+            builder: (context) => UserProfileBottomSheet(
+              userId: message.id,
+              onManageButton: !widget.isHost
+                  ? null
+                  : PopupMenuButton(
+                      // icon: const Icon(Icons.more_vert),
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 8.0, bottom: .0, left: 16.0, right: 16.0),
+                        child: Text(
+                          "Manage",
+                          style: TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(value: 'Kick Out', child: Text('Kick Out')),
+                        const PopupMenuItem(value: 'Add to Block List', child: Text('Add to Block List')),
+                        const PopupMenuItem(value: 'Report', child: Text('Report')),
+                      ],
+                      onSelected: (value) {
+                        if (value == 'Kick Out') {
+                          // Handle manage action
+                          context.read<AudioRoomBloc>().add(BanUserEvent(targetUserId: message.id));
+                        } else if (value == 'Add to Block List') {
+                          // Handle report action
+                          // ScaffoldMessenger.of(context).showSnackBar(
+                          //   const SnackBar(content: Text('Add to block list functionality not implemented')),
+                          // );
+                        } else if (value == 'Report') {
+                          // Handle report action
+                          // ScaffoldMessenger.of(context).showSnackBar(
+                          //   const SnackBar(content: Text('Report functionality not implemented')),
+                          // );
+                        }
+                      },
+                    ),
+            ),
           );
         },
         child: Align(
@@ -233,8 +246,7 @@ class _AudioChatWidgetState extends State<AudioChatWidget> {
           child: IntrinsicWidth(
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth:
-                    MediaQuery.of(context).size.width * 0.8, // Max 80% width
+                maxWidth: MediaQuery.of(context).size.width * 0.8, // Max 80% width
                 minHeight: 40.h,
               ),
               child: content,
@@ -268,10 +280,7 @@ class _AudioChatWidgetState extends State<AudioChatWidget> {
           errorBuilder: (context, error, stackTrace) => Container(
             height: badgeHeight,
             width: badgeWidth,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20.r),
-              color: const Color(0xFF5166C6),
-            ),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r), color: const Color(0xFF5166C6)),
           ),
         ),
       );
@@ -312,11 +321,7 @@ class _AudioChatWidgetState extends State<AudioChatWidget> {
                 SizedBox(width: 4.w),
                 Text(
                   'Lv.$level',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12.sp,
-                  ),
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12.sp),
                 ),
               ],
             ),
@@ -336,16 +341,8 @@ class _EquippedItemBadge extends StatefulWidget {
   State<_EquippedItemBadge> createState() => _EquippedItemBadgeState();
 }
 
-class _EquippedItemBadgeState extends State<_EquippedItemBadge>
-    with SingleTickerProviderStateMixin {
-  static const List<String> _imageExtensions = <String>[
-    '.png',
-    '.jpg',
-    '.jpeg',
-    '.gif',
-    '.webp',
-    '.bmp',
-  ];
+class _EquippedItemBadgeState extends State<_EquippedItemBadge> with SingleTickerProviderStateMixin {
+  static const List<String> _imageExtensions = <String>['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'];
 
   static const double _badgeSize = 18;
 
@@ -383,9 +380,7 @@ class _EquippedItemBadgeState extends State<_EquippedItemBadge>
     }
 
     try {
-      final SVGAAnimationController controller = SVGAAnimationController(
-        vsync: this,
-      );
+      final SVGAAnimationController controller = SVGAAnimationController(vsync: this);
       final movie = await SVGAParser.shared.decodeFromURL(widget.url);
 
       if (!mounted) {
@@ -429,22 +424,13 @@ class _EquippedItemBadgeState extends State<_EquippedItemBadge>
       child = SizedBox(
         height: _badgeSize,
         width: _badgeSize,
-        child: const Center(
-          child: SizedBox(
-            height: 12,
-            width: 12,
-            child: CircularProgressIndicator(strokeWidth: 1.5),
-          ),
-        ),
+        child: const Center(child: SizedBox(height: 12, width: 12, child: CircularProgressIndicator(strokeWidth: 1.5))),
       );
     } else if (_hasError) {
       child = Container(
         height: _badgeSize,
         width: _badgeSize,
-        decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(3),
-        ),
+        decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(3)),
         child: const Icon(Icons.error_outline, size: 12, color: Colors.white54),
       );
     } else if (_isImage) {
@@ -461,11 +447,7 @@ class _EquippedItemBadgeState extends State<_EquippedItemBadge>
               height: _badgeSize,
               width: _badgeSize,
               child: const Center(
-                child: SizedBox(
-                  height: 12,
-                  width: 12,
-                  child: CircularProgressIndicator(strokeWidth: 1.5),
-                ),
+                child: SizedBox(height: 12, width: 12, child: CircularProgressIndicator(strokeWidth: 1.5)),
               ),
             );
           },
@@ -478,11 +460,7 @@ class _EquippedItemBadgeState extends State<_EquippedItemBadge>
                 color: Colors.grey.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(3),
               ),
-              child: const Icon(
-                Icons.error_outline,
-                size: 12,
-                color: Colors.white54,
-              ),
+              child: const Icon(Icons.error_outline, size: 12, color: Colors.white54),
             );
           },
         ),
@@ -491,25 +469,14 @@ class _EquippedItemBadgeState extends State<_EquippedItemBadge>
       child = SizedBox(
         height: _badgeSize,
         width: _badgeSize,
-        child: SVGAImage(
-          _svgaController!,
-          fit: BoxFit.cover,
-          clearsAfterStop: false,
-        ),
+        child: SVGAImage(_svgaController!, fit: BoxFit.cover, clearsAfterStop: false),
       );
     } else {
       child = Container(
         height: _badgeSize,
         width: _badgeSize,
-        decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(3),
-        ),
-        child: const Icon(
-          Icons.image_not_supported,
-          size: 12,
-          color: Colors.white54,
-        ),
+        decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(3)),
+        child: const Icon(Icons.image_not_supported, size: 12, color: Colors.white54),
       );
     }
 

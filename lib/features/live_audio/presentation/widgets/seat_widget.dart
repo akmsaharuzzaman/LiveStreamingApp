@@ -1,5 +1,9 @@
+import 'package:dio/dio.dart';
+import 'package:dlstarlive/core/constants/app_constants.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/models/audio_member_model.dart';
 import '../../data/models/seat_model.dart';
@@ -16,6 +20,7 @@ class SeatWidget extends StatefulWidget {
   final Function(String seatId)? onTakeSeat;
   final Function(String seatId)? onLeaveSeat;
   final Function(String seatId, String targetId)? onRemoveUserFromSeat;
+  final Function(String seatId, String targetId)? onMuteUserFromSeat;
   final bool isHost;
   final String? activeSpeakerUserId;
 
@@ -31,6 +36,7 @@ class SeatWidget extends StatefulWidget {
     this.onTakeSeat,
     this.onLeaveSeat,
     this.onRemoveUserFromSeat,
+    this.onMuteUserFromSeat,
     this.isHost = false,
     this.activeSpeakerUserId,
   });
@@ -49,7 +55,14 @@ class _SeatWidgetState extends State<SeatWidget> {
   void _uiLog(String message) {
     const cyan = '\x1B[36m';
     const reset = '\x1B[0m';
-    debugPrint('\n$cyan[AUDIO_ROOM] : SeatWidget - $reset $message\n');
+    if (kDebugMode) debugPrint('\n$cyan[AUDIO_ROOM] : SeatWidget - $reset $message\n');
+  }
+
+  ScaffoldMessengerState? _scaffoldMessenger;
+  void _showErrorMessage(String message) {
+    _scaffoldMessenger?.showSnackBar(
+      SnackBar(content: Text(message), duration: Duration(seconds: 2), backgroundColor: Colors.red),
+    );
   }
 
   @override
@@ -69,6 +82,12 @@ class _SeatWidgetState extends State<SeatWidget> {
     }
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _scaffoldMessenger = ScaffoldMessenger.maybeOf(context);
+  }
+
   void _initializeSeats() {
     // Initialize host seat
     if (widget.isHost) {
@@ -77,6 +96,7 @@ class _SeatWidgetState extends State<SeatWidget> {
         name: widget.currentUserName,
         avatar: widget.currentUserAvatar,
         userId: widget.currentUserId,
+        isMuted: widget.hostDetails?.isMuted ?? false,
         isLocked: false,
       );
     } else {
@@ -85,16 +105,18 @@ class _SeatWidgetState extends State<SeatWidget> {
         name: widget.hostDetails?.name,
         avatar: widget.hostDetails?.avatar,
         userId: widget.hostDetails?.id,
+        isMuted: widget.hostDetails?.isMuted ?? false,
         isLocked: false,
       );
     }
 
     // Initialize special seat (premium seat)
     specialSeatData = SeatModel(
-      id: 'special',
+      id: 'premiumSeat',
       name: widget.premiumSeat?.member?.name,
       avatar: widget.premiumSeat?.member?.avatar,
       userId: widget.premiumSeat?.member?.id,
+      isMuted: widget.premiumSeat?.member?.isMuted ?? false,
       isLocked: !(widget.premiumSeat?.available ?? true),
     );
 
@@ -112,6 +134,7 @@ class _SeatWidgetState extends State<SeatWidget> {
             name: widget.seatsData!.seats!['seat-$i']!.member!.name,
             avatar: widget.seatsData!.seats!['seat-$i']!.member!.avatar,
             userId: widget.seatsData!.seats!['seat-$i']!.member!.id,
+            isMuted: widget.seatsData!.seats!['seat-$i']!.member!.isMuted ?? false,
             isLocked: !(widget.seatsData!.seats!['seat-$i']!.available ?? true),
           );
         }
@@ -163,12 +186,19 @@ class _SeatWidgetState extends State<SeatWidget> {
                     Navigator.pop(context);
                     // Implement seat lock functionality
                     _uiLog("Seat Lock functionality not implemented");
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Seat lock functionality not implemented")),
-                    );
+                    _showErrorMessage("Seat lock functionality not implemented");
                   },
                 ),
-              if (seat.userId != null)
+              if (seat.userId != null) ...[
+                if (seat.isMuted == false)
+                  ListTile(
+                    leading: Icon(Icons.mic_off),
+                    title: Text("Mute User"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onMuteUserFromSeat?.call(seat.id, seat.userId!);
+                    },
+                  ),
                 ListTile(
                   leading: Icon(Icons.settings),
                   title: Text("Remove from seat"),
@@ -177,6 +207,7 @@ class _SeatWidgetState extends State<SeatWidget> {
                     widget.onRemoveUserFromSeat?.call(seat.id, seat.userId!);
                   },
                 ),
+              ],
             ],
           ),
         );
@@ -202,14 +233,18 @@ class _SeatWidgetState extends State<SeatWidget> {
             children: [
               if (seat.name == null) ...[
                 // Seat is empty
-                ListTile(
-                  leading: Icon(Icons.event_seat),
-                  title: Text("Take Seat"),
-                  onTap: () {
-                    Navigator.pop(context);
-                    widget.onTakeSeat?.call(seat.id);
-                  },
-                ),
+                if (widget.seatsData?.seats?.entries.any((entry) => entry.value.member?.id == widget.currentUserId) ??
+                    false)
+                  ListTile(leading: Icon(Icons.event_seat), title: Text("You are already in a seat"))
+                else
+                  ListTile(
+                    leading: Icon(Icons.event_seat),
+                    title: Text("Take Seat"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onTakeSeat?.call(seat.id);
+                    },
+                  ),
               ] else if (seat.userId == widget.currentUserId) ...[
                 // Seat is user's own
                 ListTile(
@@ -222,6 +257,109 @@ class _SeatWidgetState extends State<SeatWidget> {
                 ),
               ] else ...[
                 // Seat occupied by others, no options
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<bool> _isPremiumSeatAvailable() async {
+    final prefs = await SharedPreferences.getInstance();
+    // print(prefs.getString('auth_token'));
+    var dio = Dio();
+    dio.options.headers = {
+      'Authorization': 'Bearer ${prefs.getString('auth_token')}',
+      // 'Cookie': 'connect.sid=s%3AGlChzC1eaJyWmjLU1idSY_lNpeHEAiYL.gSYLAhPtQK%2FARTn03c8pNpDi%2FYskHFPuXf8I9DbIHL8',
+    };
+    var response = await dio.get('${DataConstants.baseUrl}/api${ApiConstants.isPremium}');
+    if (response.data['success'] == true && response.data['result']['isPremium'] == true) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  void _showPremiumSeatOptions(SeatModel seat) {
+    _uiLog('\n\n_showPremiumSeatOptions called for seat: ${seat.id}');
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          height: 200.h,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.isHost) ...[
+                if (seat.isLocked == false && seat.userId == null)
+                  ListTile(
+                    leading: Icon(Icons.lock),
+                    title: Text("Seat Lock"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      // Implement seat lock functionality
+                      _uiLog("Seat Lock functionality not implemented");
+                      _showErrorMessage("Seat lock functionality not implemented");
+                    },
+                  ),
+                if (seat.userId != null)
+                  ListTile(
+                    leading: Icon(Icons.settings),
+                    title: Text("Remove from seat"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onRemoveUserFromSeat?.call('premiumSeat', seat.userId!);
+                    },
+                  ),
+                if (seat.userId != null && seat.isMuted == false)
+                  ListTile(
+                    leading: Icon(Icons.mic_off),
+                    title: Text("Mute User"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onMuteUserFromSeat?.call('premiumSeat', seat.userId!);
+                    },
+                  ),
+              ] else ...[
+                if (seat.name == null) ...[
+                  // Seat is empty
+                  if (widget.seatsData?.seats?.entries.any((entry) => entry.value.member?.id == widget.currentUserId) ??
+                      false)
+                    ListTile(leading: Icon(Icons.event_seat), title: Text("You are already in a seat"))
+                  else
+                    ListTile(
+                      leading: Icon(Icons.event_seat),
+                      title: Text("Take Seat"),
+                      onTap: () async {
+                        Navigator.pop(context);
+                        var response = await _isPremiumSeatAvailable();
+                        if (response) {
+                          widget.onTakeSeat?.call('premiumSeat');
+                        } else {
+                          _showErrorMessage("You are not a premium user");
+                        }
+                      },
+                    ),
+                ] else if (seat.userId == widget.currentUserId) ...[
+                  // Seat is user's own
+                  ListTile(
+                    leading: Icon(Icons.exit_to_app),
+                    title: Text("Leave Seat"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onLeaveSeat?.call('premiumSeat');
+                    },
+                  ),
+                ] else ...[
+                  // Seat occupied by others, no options
+                ],
               ],
             ],
           ),
@@ -384,13 +522,18 @@ class _SeatWidgetState extends State<SeatWidget> {
 
   Widget _buildPremiumSeat(SeatModel premiumSeatData) {
     final isActiveSpeaker = widget.activeSpeakerUserId != null && premiumSeatData.userId == widget.activeSpeakerUserId;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Stack(
-          alignment: Alignment.center,
-          clipBehavior: Clip.none,
-          children: [
+    return InkWell(
+      onTap: () {
+        _uiLog("\n\n\n Selected premium seat");
+        _showPremiumSeatOptions(premiumSeatData);
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
             // Glow background when speaking
             if (isActiveSpeaker)
               Container(
@@ -412,98 +555,99 @@ class _SeatWidgetState extends State<SeatWidget> {
                   ],
                 ),
               ),
-            // Seat circle
-            Container(
-              width: 70.w,
-              height: 70.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: premiumSeatData.name != null ? Colors.white.withOpacity(0.3) : Colors.white.withOpacity(0.5),
-                  width: 2,
+              // Seat circle
+              Container(
+                width: 70.w,
+                height: 70.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: premiumSeatData.name != null ? Colors.white.withOpacity(0.3) : Colors.white.withOpacity(0.5),
+                    width: 2,
+                  ),
+                  color: premiumSeatData.name != null ? Colors.transparent : Colors.white.withOpacity(0.1),
                 ),
-                color: premiumSeatData.name != null ? Colors.transparent : Colors.white.withOpacity(0.1),
-              ),
-              child: ClipOval(
-                child: premiumSeatData.name != null
-                    ? (premiumSeatData.avatar != null && premiumSeatData.avatar!.isNotEmpty
-                          ? Image.network(
-                              premiumSeatData.avatar!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: Colors.grey[800],
-                                  child: Icon(Icons.person, color: Colors.white54, size: 28.sp),
-                                );
-                              },
-                            )
-                          : Container(
-                              color: Colors.grey[800],
-                              child: Icon(Icons.person, color: Colors.white54, size: 28.sp),
-                            ))
-                    : Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          image: DecorationImage(
-                            image: AssetImage("assets/icons/audio_room/special_seat.png"),
-                            fit: BoxFit.contain,
+                child: ClipOval(
+                  child: premiumSeatData.name != null
+                      ? (premiumSeatData.avatar != null && premiumSeatData.avatar!.isNotEmpty
+                            ? Image.network(
+                                premiumSeatData.avatar!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey[800],
+                                    child: Icon(Icons.person, color: Colors.white54, size: 28.sp),
+                                  );
+                                },
+                              )
+                            : Container(
+                                color: Colors.grey[800],
+                                child: Icon(Icons.person, color: Colors.white54, size: 28.sp),
+                              ))
+                      : Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            image: DecorationImage(
+                              image: AssetImage("assets/icons/audio_room/special_seat.png"),
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
-                      ),
-              ),
-            ),
-
-            // Crown badge for all occupied seats
-            if (premiumSeatData.name != null)
-              Positioned(
-                top: -25,
-                child: Image.asset(
-                  "assets/icons/audio_room/crown_badge.png",
-                  width: 110.w,
-                  height: 110.h,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 110.w,
-                      height: 110.h,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.orange, width: 3),
-                      ),
-                    );
-                  },
                 ),
               ),
 
-            // Microphone icon if seat is occupied
-            if (premiumSeatData.name != null)
-              Positioned(
-                bottom: -3,
-                right: -3,
-                child: Container(
-                  width: 24.w,
-                  height: 24.w,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: Offset(0, 2))],
+              // Crown badge for all occupied seats
+              if (premiumSeatData.name != null)
+                Positioned(
+                  top: -25,
+                  child: Image.asset(
+                    "assets/icons/audio_room/crown_badge.png",
+                    width: 110.w,
+                    height: 110.h,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 110.w,
+                        height: 110.h,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.orange, width: 3),
+                        ),
+                      );
+                    },
                   ),
-                  child: Icon(Icons.mic, color: Colors.grey[700], size: 14.sp),
                 ),
-              ),
-          ],
-        ),
 
-        SizedBox(height: 6.h),
+              // Microphone icon if seat is occupied
+              if (premiumSeatData.name != null)
+                Positioned(
+                  bottom: -3,
+                  right: -3,
+                  child: Container(
+                    width: 24.w,
+                    height: 24.w,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: Offset(0, 2))],
+                    ),
+                    child: Icon(Icons.mic, color: Colors.grey[700], size: 14.sp),
+                  ),
+                ),
+            ],
+          ),
 
-        // User name or seat number
-        Text(
-          premiumSeatData.name ?? "Premium Seat",
-          style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w500),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-        ),
-      ],
+          SizedBox(height: 6.h),
+
+          // User name or seat number
+          Text(
+            premiumSeatData.name ?? "Premium Seat",
+            style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w500),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 

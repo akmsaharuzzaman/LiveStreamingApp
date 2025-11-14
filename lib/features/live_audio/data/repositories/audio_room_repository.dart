@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dlstarlive/core/network/models/gift_model.dart';
 import 'package:dlstarlive/features/live_audio/data/models/audio_member_model.dart';
 import 'package:injectable/injectable.dart';
 import '../models/audio_room_details.dart';
@@ -14,35 +15,32 @@ class AudioRoomRepository {
 
   /// Connection status stream
   Stream<bool> get connectionStatusStream => _socketService.connectionStatusStream;
-
-  /// Room streams
+  // Room streams
   Stream<List<AudioRoomDetails>> get getAllRoomsStream => _socketService.getAllRoomsStream;
   Stream<AudioRoomDetails?> get audioRoomDetailsStream => _socketService.audioRoomDetailsStream;
   Stream<AudioRoomDetails> get createRoomStream => _socketService.createRoomStream;
   Stream<List<String>> get closeRoomStream => _socketService.closeRoomStream;
   Stream<AudioMember> get joinRoomStream => _socketService.joinRoomStream;
   Stream<AudioRoomDetails> get leaveRoomStream => _socketService.leaveRoomStream;
-
-  /// User streams
+  // User streams
   Stream<dynamic> get userLeftStream => _socketService.userLeftStream;
-
-  /// Seat streams
+  // Seat streams
   Stream<dynamic> get joinSeatStream => _socketService.joinSeatStream;
   Stream<dynamic> get leaveSeatStream => _socketService.leaveSeatStream;
   Stream<dynamic> get removeFromSeatStream => _socketService.removeFromSeatStream;
-
-  /// Chat streams
+  // Chat streams
   Stream<AudioChatModel> get sendMessageStream => _socketService.sendMessageStream;
-
-  /// User management streams
+  // User management streams
   Stream<dynamic> get muteUnmuteUserStream => _socketService.muteUnmuteUserStream;
-  Stream<dynamic> get banUserStream => _socketService.banUserStream;
-  Stream<dynamic> get unbanUserStream => _socketService.unbanUserStream;
-
-  /// Host bonus stream
+  Stream<List<String>> get banUserStream => _socketService.banUserStream;
+  // Stream<dynamic> get unbanUserStream => _socketService.unbanUserStream;
+  // Host bonus stream
   Stream<int> get updateHostBonusStream => _socketService.updateHostBonusStream;
-
-  /// Error stream
+  // Sent audio gifts stream
+  Stream<GiftModel> get sentAudioGiftsStream => _socketService.sentAudioGiftsStream;
+  // Muted users stream
+  Stream<String> get mutedUserIdStream => _socketService.mutedUserIdStream;
+  // Error stream
   Stream<Map<String, dynamic>> get errorMessageStream => _socketService.errorMessageStream;
 
   /// Getters
@@ -61,7 +59,6 @@ class AudioRoomRepository {
 
   Future<bool> joinRoom(String roomId) => _socketService.joinRoom(roomId);
   Future<bool> leaveRoom(String roomId) => _socketService.leaveRoom(roomId);
-  Future<bool> deleteRoom(String roomId) => _socketService.deleteRoom(roomId);
   Future<bool> getRooms() => _socketService.getRooms();
   Future<AudioRoomDetails?> getRoomDetails(String roomId) => _socketService.getRoomDetails(roomId);
 
@@ -75,13 +72,16 @@ class AudioRoomRepository {
   Future<bool> removeFromSeat({required String roomId, required String seatKey, required String targetId}) =>
       _socketService.removeFromSeat(roomId: roomId, seatKey: seatKey, targetId: targetId);
 
+  Future<bool> muteUserFromSeat({required String roomId, required String seatKey, required String targetId}) =>
+      _socketService.muteUserFromSeat(roomId: roomId, seatKey: seatKey, targetId: targetId);
+
   /// Chat operations
   Future<bool> sendMessage(String roomId, String message) => _socketService.sendMessage(roomId, message);
 
   /// User operations
-  Future<bool> banUser(String userId) => _socketService.banUser(userId);
-  Future<bool> unbanUser(String userId) => _socketService.unbanUser(userId);
-  Future<bool> muteUnmuteUser(String userId) => _socketService.muteUnmuteUser(userId);
+  Future<bool> banUser(String targetUserId) => _socketService.banUser(targetUserId);
+  // Future<bool> unbanUser(String userId) => _socketService.unbanUser(userId);
+  Future<bool> muteUnmuteUser(String targetUserId) => _socketService.muteUnmuteUser(targetUserId);
 
   /// Dispose all subscriptions
   void dispose() {

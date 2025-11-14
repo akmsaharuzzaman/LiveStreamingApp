@@ -8,6 +8,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/auth/auth_bloc.dart';
 import '../../../../core/services/in_app_update_service.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
+import '../../../chat/presentation/bloc/chat_bloc.dart' show ChatBloc, StartAutoRefreshEvent, StopAutoRefreshEvent;
 import '../../../profile/presentation/pages/profile_page.dart';
 
 class MainNavigationPage extends StatefulWidget {
@@ -20,9 +21,24 @@ class MainNavigationPage extends StatefulWidget {
 class _MainNavigationPageState extends State<MainNavigationPage> {
   int _currentIndex = 0;
 
+  // Initialize pages once to preserve state across tab switches
+  late final List<Widget> _pages;
+
   @override
   void initState() {
     super.initState();
+
+    // Initialize pages ONCE - this preserves socket connections and state
+    _pages = [
+      const HomePage(), // No unique key - widget persists across tab switches
+      const NewsfeedPage(),
+      const SizedBox(),
+      const ChatPage(),
+      ProfilePage(
+        key: ValueKey('profile_${DateTime.now().millisecondsSinceEpoch}'),
+      ),
+    ];
+
     // Check for optional app updates when main navigation loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkForOptionalUpdates();
@@ -39,17 +55,6 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     }
   }
 
-  List<Widget> get _pages => [
-    // Use a unique key to force HomePage to rebuild and refresh each time
-    HomePage(key: ValueKey('home_${DateTime.now().millisecondsSinceEpoch}')),
-    const NewsfeedPage(),
-    const SizedBox(),
-    const ChatPage(),
-    // Use a unique key to force ProfilePage to rebuild each time
-    ProfilePage(
-      key: ValueKey('profile_${DateTime.now().millisecondsSinceEpoch}'),
-    ),
-  ];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -101,6 +106,16 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                   );
                 }
                 return;
+              }
+
+              // Stop polling when leaving chat tab
+              if (_currentIndex == 3 && index != 3) {
+                context.read<ChatBloc>().add(const StopAutoRefreshEvent());
+              }
+
+              // Start polling when entering chat tab
+              if (_currentIndex != 3 && index == 3) {
+                context.read<ChatBloc>().add(const StartAutoRefreshEvent());
               }
 
               // If home tab is selected, force rebuild to refresh data

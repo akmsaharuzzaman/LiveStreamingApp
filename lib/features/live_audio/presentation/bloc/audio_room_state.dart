@@ -1,3 +1,4 @@
+import 'package:dlstarlive/core/network/models/gift_model.dart';
 import 'package:dlstarlive/features/live_audio/data/models/audio_member_model.dart';
 import 'package:equatable/equatable.dart';
 import '../../data/models/audio_room_details.dart';
@@ -41,12 +42,11 @@ class AudioRoomLoaded extends AudioRoomState {
   final bool isMuted;
   final bool isAudioCaller;
   final List<int> audioCallerUids;
-  final bool animationPlaying;
-  final String? animationUrl;
-  final String? animationTitle;
-  final String? animationSubtitle;
   final bool isBroadcaster;
   final String? activeSpeakerUserId;
+  // Animation
+  final bool playAnimation;
+  final GiftModel? giftDetails;
 
   const AudioRoomLoaded({
     this.roomData,
@@ -60,10 +60,8 @@ class AudioRoomLoaded extends AudioRoomState {
     this.isMuted = false,
     this.isAudioCaller = false,
     this.audioCallerUids = const [],
-    this.animationPlaying = false,
-    this.animationUrl,
-    this.animationTitle,
-    this.animationSubtitle,
+    this.playAnimation = false,
+    this.giftDetails,
     this.isBroadcaster = false,
     this.activeSpeakerUserId,
   });
@@ -82,10 +80,8 @@ class AudioRoomLoaded extends AudioRoomState {
     List<int>? audioCallerUids,
     DateTime? streamStartTime,
     Duration? streamDuration,
-    bool? animationPlaying,
-    String? animationUrl,
-    String? animationTitle,
-    String? animationSubtitle,
+    bool? playAnimation,
+    GiftModel? giftDetails,
     bool? isBroadcaster,
     String? activeSpeakerUserId,
     bool clearActiveSpeaker = false,
@@ -102,10 +98,8 @@ class AudioRoomLoaded extends AudioRoomState {
       isMuted: isMuted ?? this.isMuted,
       isAudioCaller: isAudioCaller ?? this.isAudioCaller,
       audioCallerUids: audioCallerUids ?? this.audioCallerUids,
-      animationPlaying: animationPlaying ?? this.animationPlaying,
-      animationUrl: animationUrl ?? this.animationUrl,
-      animationTitle: animationTitle ?? this.animationTitle,
-      animationSubtitle: animationSubtitle ?? this.animationSubtitle,
+      playAnimation: playAnimation ?? this.playAnimation,
+      giftDetails: giftDetails ?? this.giftDetails,
       isBroadcaster: isBroadcaster ?? this.isBroadcaster,
       activeSpeakerUserId: clearActiveSpeaker ? null : (activeSpeakerUserId ?? this.activeSpeakerUserId),
     );
@@ -124,10 +118,8 @@ class AudioRoomLoaded extends AudioRoomState {
     isMuted,
     isAudioCaller,
     audioCallerUids,
-    animationPlaying,
-    animationUrl,
-    animationTitle,
-    animationSubtitle,
+    playAnimation,
+    giftDetails,
     isBroadcaster,
     activeSpeakerUserId,
   ];
@@ -141,18 +133,6 @@ class AudioRoomClosed extends AudioRoomState {
 
   @override
   List<Object?> get props => [reason];
-}
-
-/// Animation state
-class AnimationPlaying extends AudioRoomState {
-  final String? animationUrl;
-  final String? title;
-  final String? subtitle;
-
-  const AnimationPlaying({this.animationUrl, this.title, this.subtitle});
-
-  @override
-  List<Object?> get props => [animationUrl, title, subtitle];
 }
 
 /// Error state

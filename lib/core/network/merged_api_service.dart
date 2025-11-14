@@ -541,17 +541,68 @@ class ApiService {
       },
     );
 
-    // Add interceptors
-    // _dio.interceptors.add(AuthInterceptor());
-    // _dio.interceptors.add(LoggingInterceptor());
+    // Clear existing interceptors
+    _dio.interceptors.clear();
 
+    // Add auth interceptor to inject token from SharedPreferences
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          try {
+            // Get token from SharedPreferences
+            final prefs = await SharedPreferences.getInstance();
+            final String? token = prefs.getString(DataConstants.tokenKey);
+
+            // Debug log
+            if (kDebugMode) {
+               print(
+                '🔑 ApiService interceptor - Token: ${token != null ? '${token.substring(0, 10)}...' : 'NULL'}\nBase URL: ${DataConstants.baseUrl} ',
+              );
+            }
+
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            } else {
+              if (kDebugMode) {
+                print('⚠️ No auth token found in SharedPreferences (merged)');
+              }
+            }
+
+            // Add platform headers
+            options.headers['X-Platform'] = Platform.isIOS ? 'IOS' : 'ANDROID';
+            options.headers['X-Requested-With'] = 'XMLHttpRequest';
+          } catch (e) {
+            if (kDebugMode) {
+              print('❌ Error in merged auth interceptor: $e');
+            }
+          }
+
+          return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          return handler.next(response);
+        },
+        onError: (DioException e, handler) {
+          if (kDebugMode && e.response?.statusCode == 401) {
+            print(
+              '🔐 Received 401 Unauthorized (merged) - Check token validity',
+            );
+          }
+          return handler.next(e);
+        },
+      ),
+    );
+
+    // Disabled logging interceptor to reduce debug console noise
     // if (kDebugMode) {
     //   _dio.interceptors.add(
     //     LogInterceptor(
     //       requestBody: true,
     //       responseBody: true,
     //       requestHeader: true,
-    //       responseHeader: true,
+    //       responseHeader: false,
+    //       request: true,
+    //       error: true,
     //     ),
     //   );
     // }

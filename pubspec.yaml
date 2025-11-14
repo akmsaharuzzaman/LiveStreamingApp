@@ -11,21 +11,21 @@ dependencies:
 
   # Core Flutter UI
   cupertino_icons: ^1.0.8
-  flutter_svg: ^2.2.0
-  google_fonts: ^6.3.1
+  flutter_svg: ^2.2.2
+  google_fonts: ^6.3.2
   flutter_screenutil: ^5.9.3
   flutter_carousel_widget: ^3.1.0
 
   # State Management
   flutter_bloc: ^9.1.1
-  bloc: ^9.0.0
+  bloc: ^9.1.0
 
   # Dependency Injection
-  get_it: ^8.2.0
-  injectable: ^2.5.1
+  get_it: ^9.0.5
+  injectable: ^2.6.0
 
   # Routing
-  go_router: ^16.2.1
+  go_router: ^17.0.0
 
   # Networking
   dio: ^5.9.0
@@ -40,21 +40,21 @@ dependencies:
 
   # Utility Libraries
   dartz: ^0.10.1
-  device_info_plus: ^12.1.0
+  device_info_plus: ^12.2.0
   package_info_plus: ^9.0.0
   intl: any
 
   # File & Media Pickers
-  file_picker: ^10.3.2
-  image_picker: ^1.2.0
+  file_picker: ^10.3.6
+  image_picker: ^1.2.1
   image_cropper: ^11.0.0
   cached_network_image: ^3.4.1
-  video_player: ^2.10.0
+  video_player: ^2.10.1
 
   # Firebase & Authentication
-  firebase_core: ^4.0.0
-  firebase_auth: ^6.0.1
-  google_sign_in: ^7.1.1
+  firebase_core: ^4.2.1
+  firebase_auth: ^6.1.2
+  google_sign_in: ^7.2.0
 
   # Environment Variables
   flutter_dotenv: ^6.0.0
@@ -67,22 +67,22 @@ dependencies:
   path_provider: ^2.1.5
 
   # Real-Time & Video Communication
-  agora_rtc_engine: ^6.5.2
+  agora_rtc_engine: ^6.5.3
   permission_handler: ^12.0.1
-  wakelock_plus: ^1.3.2
+  wakelock_plus: ^1.4.0
   # deepar_flutter: ^0.0.5
 
   # Media Viewers & Editors
-  share_plus: ^12.0.0
+  share_plus: ^12.0.1
   video_editor: ^3.0.0
-  easy_video_editor: ^0.1.2
-  chewie: ^1.12.1
+  easy_video_editor: ^0.1.3
+  chewie: ^1.13.0
   card_swiper: ^3.0.1
 
   # UX Enhancements
   preload_page_view: ^0.2.0
-  flutter_svga: ^0.0.6
-  in_app_update: ^4.2.3
+  flutter_svga_easyplayer: ^0.0.2
+  in_app_update: ^4.2.5
   fluttertoast: ^9.0.0
   url_launcher: ^6.3.2
   country_picker: ^2.0.27
@@ -98,8 +98,8 @@ dev_dependencies:
   flutter_lints: ^6.0.0
 
   # Code Generation
-  build_runner: ^2.7.0
-  injectable_generator: ^2.8.1
+  build_runner: ^2.10.2
+  injectable_generator: ^2.9.1
   json_serializable: ^6.11.1
 
   # Package Renaming
@@ -144,7 +144,7 @@ flutter:
     - assets/games/greedyv3/Build/6dc6d81ba589edac407b6a78de2394ee.loader.js
     - assets/games/greedyv3/Build/5da486f778c9c89d8a96bca8c3161959.data.unityweb
     - assets/games/greedyv3/Build/50e5abe1b403cb19f393edf1af7ac85c.framework.js.unityweb
-    - assets/games/greedyv3/Build/c2b29f92deecf1946c9fbfb4f487858e.wasm.unityweb
+    - assets/games/greedyv3/Build/c2b29f92deecf1946c9fbfb4f487858e.wasm.unityweb 
 
     # Teen Patty Game
     - assets/games/teenpatty/
@@ -152,8 +152,8 @@ flutter:
     - assets/games/teenpatty/index.html
     - assets/games/teenpatty/bg.png
     - assets/games/teenpatty/game-icon.png
-    - assets/games/teenpatty/Build/TeenPatty V5.jpg
-    - assets/games/teenpatty/Build/bc2f559fbd0b87cfbb4a2414fc3cd99d.loader.js
+    - assets/games/teenpatty/Build/TeenPatty V10.jpg
+    - assets/games/teenpatty/Build/8a4e50e8b8d16db17d419aa0b2f1853a.loader.js
     - assets/games/teenpatty/Build/d24fba371edec7ed1a51165dc36908bf.framework.js
-    - assets/games/teenpatty/Build/ddea481e295f15076328e70a88d6933f.wasm
-    - assets/games/teenpatty/Build/f1608839abc2c62e4d2836e8cc771940.data
+    - assets/games/teenpatty/Build/36886a660319e3c635beff380937ce00.wasm
+    - assets/games/teenpatty/Build/84228ec7eeafaab48168c47efdc77afc.data

@@ -9,8 +9,12 @@ import 'socket_constants.dart';
 class AudioSocketSeatOperations {
   late socket_io.Socket socket;
   final StreamController<Map<String, dynamic>> errorController;
-
   AudioSocketSeatOperations(this.errorController);
+
+  /// joinSeat
+  /// leaveSeat
+  /// removeFromSeat
+  /// muteUserFromSeat
 
   void setSocket(socket_io.Socket socket) {
     this.socket = socket;
@@ -19,10 +23,7 @@ class AudioSocketSeatOperations {
   void _log(String message) {
     const yellow = '\x1B[33m';
     const reset = '\x1B[0m';
-
-    if (kDebugMode) {
-      debugPrint('\n$yellow[AUDIO_ROOM] : Seat - $reset $message\n');
-    }
+    if (kDebugMode) debugPrint('\n$yellow[AUDIO_ROOM] : Seat - $reset $message\n');
   }
 
   /// Join a specific seat in audio room
@@ -76,6 +77,29 @@ class AudioSocketSeatOperations {
     } catch (e) {
       _log('❌ Error removing from seat: $e');
       errorController.add({'status': 'error', 'message': 'Failed to remove from seat: $e'});
+      return false;
+    }
+  }
+
+  /// Mute user from a specific seat (host only)
+  Future<bool> muteUserFromSeat({required String roomId, required String seatKey, required String targetId}) async {
+    if (!_isConnected) {
+      errorController.add({'status': 'error', 'message': 'Socket not connected'});
+      return false;
+    }
+
+    try {
+      _log('🔇 Muting user from seat: $seatKey');
+
+      socket.emit(AudioSocketConstants.muteUnmuteUserEvent, {
+        'roomId': roomId,
+        'seatKey': seatKey,
+        'targetId': targetId,
+      });
+      return true;
+    } catch (e) {
+      _log('❌ Error muting from seat: $e');
+      errorController.add({'status': 'error', 'message': 'Failed to mute from seat: $e'});
       return false;
     }
   }

@@ -2,8 +2,9 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dlstarlive/core/auth/auth_bloc.dart';
 import 'package:dlstarlive/core/network/models/get_room_model.dart';
-import 'package:dlstarlive/core/network/socket_service.dart';
 import 'package:dlstarlive/core/network/api_clients.dart';
+import 'package:dlstarlive/features/home/service/video_all_room_service.dart';
+import 'package:dlstarlive/features/home/service/audio_all_room_service.dart';
 import 'package:dlstarlive/features/home/presentation/pages/ListPopularList.dart';
 import 'package:dlstarlive/injection/injection.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ import '../widgets/custom_networkimage.dart';
 import '../widgets/touchable_opacity_widget.dart';
 import 'ListAudioList.dart';
 import 'ListLiveStram.dart';
+import '../../../../routing/route_observer.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -26,15 +28,19 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
-  final SocketService _socketService = SocketService.instance;
+class _HomePageState extends State<HomePage>
+    with SingleTickerProviderStateMixin, RouteAware {
   final GenericApiClient _genericApiClient = getIt<GenericApiClient>();
-  List<GetRoomModel>? _availableRooms;
+  final VideoAllRoomService _videoRoomService = VideoAllRoomService();
+  final AudioAllRoomService _audioRoomService = AudioAllRoomService();
+
+  List<GetRoomModel> _availableRooms = [];
+  bool _isVideoLoading = false;
+  bool _servicesInitialized = false;
 
   // Stream subscriptions for proper cleanup
-  StreamSubscription? _connectionStatusSubscription;
-  StreamSubscription? _getRoomListSubscription;
-  StreamSubscription? _errorSubscription;
+  StreamSubscription? _videoRoomsSubscription;
+  StreamSubscription? _videoLoadingSubscription;
 
   // Tab controller for horizontal sliding tabs
   late TabController _tabController;
@@ -49,11 +55,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     debugPrint('\n$cyan[HOME_PAGE] - $reset $message\n');
   }
 
-  /// Initialize video socket connection when entering live streaming page
-  /// Returns true if the video socket is connected successfully
-  Future<bool> _initializeVideoSocket() async {
+  /// Initialize both video and audio services
+  Future<void> _initializeServices() async {
     try {
-      // Get user ID from AuthBloc instead of SharedPreferences
+      // Get user ID from AuthBloc
       final authBloc = context.read<AuthBloc>();
       final authState = authBloc.state;
 
@@ -65,88 +70,90 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       }
 
       if (userId == null || userId.isEmpty) {
-        _log('User ID is null or empty, cannot connect to socket');
-        return false;
+        _log('User ID is null or empty, cannot initialize services');
+        return;
       }
 
-      // Initialize video socket
-      _log('🔌 Connecting to video socket with user ID: $userId');
-      bool videoConnected = false;
-      if (!_socketService.isConnected) {
-        videoConnected = await _socketService.connect(userId);
-        if (videoConnected) {
-          _log('✅ Video socket connected successfully');
-          _setupSocketListeners();
-          // Get list of available rooms
-          await _socketService.getRooms();
-        } else {
-          _log('❌ Failed to connect to video server');
-        }
-      } else {
-        _log('✅ Video socket already connected');
-        videoConnected = true;
+      _log('🚀 Initializing services with user ID: $userId');
+
+      setState(() {
+        _isVideoLoading = true;
+      });
+
+      // Initialize both services
+      await Future.wait([
+        _videoRoomService.initialize(userId),
+        _audioRoomService.initialize(userId),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _availableRooms = _videoRoomService.cachedVideoRooms;
+          _isVideoLoading = _videoRoomService.isLoading;
+        });
       }
 
-      // Audio socket is now handled in ListAudioRooms widget
+      _setupVideoRoomListener();
+      _setupVideoLoadingListener();
 
-      return videoConnected;
+      _servicesInitialized = true;
+      _triggerPopularRefreshIfActive();
+
+      _log('✅ Services initialized successfully');
     } catch (e) {
-      _log('❌ Connection error: $e');
-      return false;
+      _log('❌ Error initializing services: $e');
     }
   }
 
-  /// Setup socket event listeners
-  void _setupSocketListeners() {
-    // Connection status
-    _log("Setting up socket listeners");
-    _connectionStatusSubscription = _socketService.connectionStatusStream.listen((isConnected) {
-      if (mounted) {
-        if (isConnected) {
-          // _showSnackBar('✅ Connected to server', Colors.green);
-          _log("Connected to server");
-        } else {
-          // _showSnackBar('❌ Disconnected from server', Colors.red);
-          _log("Disconnected from server");
+  /// Setup video room listener
+  void _setupVideoRoomListener() {
+    _videoRoomsSubscription?.cancel();
+    _videoRoomsSubscription = _videoRoomService.videoRoomsStream.listen(
+      (rooms) {
+        if (mounted) {
+          setState(() {
+            _availableRooms = rooms;
+          });
         }
-      }
-    }); // Room list updates
-    _getRoomListSubscription = _socketService.getRoomsStream.listen((rooms) {
-      if (mounted) {
-        setState(() {
-          _availableRooms = rooms;
-          // _log("Available rooms: ${rooms.map((room) => room.roomId)} from Frontend");
-        });
-      }
-    });
+      },
+      onError: (error) {
+        _log('❌ Video rooms error: $error');
+      },
+      cancelOnError: false,
+    );
+  }
+
+  /// Setup video loading listener
+  void _setupVideoLoadingListener() {
+    _videoLoadingSubscription?.cancel();
+    _videoLoadingSubscription = _videoRoomService.loadingStream.listen(
+      (isLoading) {
+        if (mounted) {
+          setState(() {
+            _isVideoLoading = isLoading;
+          });
+        }
+      },
+      onError: (error) {
+        _log('❌ Video loading error: $error');
+      },
+      cancelOnError: false,
+    );
   }
 
   /// Handle pull-to-refresh action
   Future<void> _handleRefresh() async {
     try {
-      _log('🔄 Home page refresh triggered - fetching latest rooms and banners');
+      _log(
+        '🔄 Home page refresh triggered - fetching latest rooms and banners',
+      );
 
-      // Refresh both rooms and banners simultaneously
+      // Refresh video rooms, audio rooms, and banners simultaneously
       await Future.wait([
-        // Check if socket is connected and get rooms
-        () async {
-          if (!_socketService.isConnected) {
-            _log('Socket not connected, attempting to reconnect...');
-            bool connected = await _initializeVideoSocket();
-            if (!connected) {
-              _log('⚠️ Failed to reconnect video socket during refresh');
-            }
-          } else {
-            // If already connected, just get the rooms
-            await _socketService.getRooms();
-          }
-        }(),
-        // Refresh banners
+        _videoRoomService.requestVideoRooms(),
+        _audioRoomService.requestAudioRooms(),
         _fetchBanners(),
       ]);
-
-      // Add a small delay to ensure the refresh indicator shows
-      await Future.delayed(const Duration(milliseconds: 500));
     } catch (e) {
       _log('Error during refresh: $e');
       if (mounted) {
@@ -161,14 +168,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
   }
 
-  // Audio-related functionality has been moved to ListAudioList.dart
-
   /// Fetch banner images from API
   Future<void> _fetchBanners() async {
     try {
       _log('🎨 Fetching banners from API');
 
-      final response = await _genericApiClient.get<Map<String, dynamic>>('/api/admin/banners');
+      final response = await _genericApiClient.get<Map<String, dynamic>>(
+        '/api/admin/banners',
+      );
 
       if (response.isSuccess && response.data != null) {
         final data = response.data!;
@@ -209,41 +216,82 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   @override
   void initState() {
-    // Initialize tab controller with 4 tabs
-    _tabController = TabController(length: 4, vsync: this);
-
-    // Initialize video socket and fetch initial data
-    _initializeVideoSocket().then((connected) {
-      if (connected) {
-        _log('✅ Video socket connected successfully');
-      } else {
-        _log('⚠️ Video socket failed to connect');
-      }
-    });
-
-    _fetchBanners(); // Fetch banners from API
-
-    // Trigger refresh each time HomePage is created
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _log('🏠 HomePage created - triggering auto-refresh');
-      _handleRefresh();
-    });
-
     super.initState();
+
+    // Initialize tab controller with 4 tabs
+    _tabController = TabController(length: 4, vsync: this)
+      ..addListener(_handleTabChange);
+
+    // Initialize services and fetch initial data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _log('🏠 HomePage created - initializing services');
+      _initializeServices();
+      _fetchBanners();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final ModalRoute<dynamic>? route = ModalRoute.of(context);
+    if (route is PageRoute<dynamic>) {
+      routeObserver.subscribe(this, route);
+    }
   }
 
   @override
   void dispose() {
-    // Cancel all stream subscriptions to prevent setState calls after disposal
-    _connectionStatusSubscription?.cancel();
-    _getRoomListSubscription?.cancel();
-    _errorSubscription?.cancel();
+    // Cancel stream subscriptions
+    _videoRoomsSubscription?.cancel();
+    _videoLoadingSubscription?.cancel();
 
     // Dispose tab controller
+    _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
+
+    routeObserver.unsubscribe(this);
 
     _log("HomePage disposed - all resources released");
     super.dispose();
+  }
+
+  @override
+  void didPush() {
+    _triggerPopularRefreshIfActive();
+  }
+
+  @override
+  void didPopNext() {
+    _triggerPopularRefreshIfActive();
+  }
+
+  void _triggerPopularRefreshIfActive() {
+    if (!_servicesInitialized) {
+      return;
+    }
+    if (_tabController.index == 0) {
+      _refreshPopularTab();
+    }
+  }
+
+  void _handleTabChange() {
+    if (_tabController.indexIsChanging) return;
+
+    if (_tabController.index == 0) {
+      _log('📱 Popular tab active - requesting latest rooms');
+      _refreshPopularTab();
+    }
+  }
+
+  Future<void> _refreshPopularTab() async {
+    try {
+      await Future.wait([
+        _audioRoomService.requestAudioRooms(),
+        _videoRoomService.requestVideoRooms(),
+      ]);
+    } catch (e) {
+      _log('❌ Error refreshing popular tab: $e');
+    }
   }
 
   @override
@@ -266,7 +314,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         title: Row(
           children: [
             // Logo
-            SvgPicture.asset('assets/icons/dl_star_logo.svg', height: 16, width: 40),
+            SvgPicture.asset(
+              'assets/icons/dl_star_logo.svg',
+              height: 16,
+              width: 40,
+            ),
             SizedBox(width: 12.w),
             // Tab Bar
             Expanded(
@@ -276,10 +328,19 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   controller: _tabController,
                   labelColor: Colors.black,
                   unselectedLabelColor: Colors.black54,
-                  labelStyle: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w600),
-                  unselectedLabelStyle: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w500),
+                  labelStyle: TextStyle(
+                    fontSize: 17.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  unselectedLabelStyle: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
                   indicator: const UnderlineTabIndicator(
-                    borderSide: BorderSide(width: 3.0, color: Color(0xFFFE82A7)),
+                    borderSide: BorderSide(
+                      width: 3.0,
+                      color: Color(0xFFFE82A7),
+                    ),
                     insets: EdgeInsets.symmetric(horizontal: 16.0),
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
@@ -296,9 +357,17 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             ),
             SizedBox(width: 16.w),
             // Search and notification icons
-            SvgPicture.asset('assets/icons/search_icon.svg', height: 22.sp, width: 22.sp),
+            SvgPicture.asset(
+              'assets/icons/search_icon.svg',
+              height: 22.sp,
+              width: 22.sp,
+            ),
             SizedBox(width: 12.sp),
-            Icon(Icons.notifications_active_rounded, size: 22.sp, color: Colors.black),
+            Icon(
+              Icons.notifications_active_rounded,
+              size: 22.sp,
+              color: Colors.black,
+            ),
           ],
         ),
       ),
@@ -339,14 +408,23 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               width: double.infinity,
               child: _isBannersLoading
                   ? Container(
-                      decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8.0)),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
                       child: const Center(child: CircularProgressIndicator()),
                     )
                   : _bannerUrls.isEmpty
                   ? Container(
-                      decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8.0)),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
                       child: const Center(
-                        child: Text('No banners available', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                        child: Text(
+                          'No banners available',
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                        ),
                       ),
                     )
                   : FlutterCarousel(
@@ -362,7 +440,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           slideIndicatorOptions: SlideIndicatorOptions(
                             alignment: Alignment.bottomCenter,
                             currentIndicatorColor: Colors.white,
-                            indicatorBackgroundColor: Colors.white.withValues(alpha: 0.5),
+                            indicatorBackgroundColor: Colors.white.withValues(
+                              alpha: 0.5,
+                            ),
                             indicatorBorderColor: Colors.transparent,
                             indicatorBorderWidth: 0.5,
                             indicatorRadius: 3.8,
@@ -378,7 +458,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           builder: (BuildContext context) {
                             return Container(
                               width: double.infinity,
-                              margin: const EdgeInsets.symmetric(horizontal: 8.0),
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 8.0,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.grey.shade200,
                                 borderRadius: BorderRadius.circular(8.0),
@@ -389,18 +471,33 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                     ? CachedNetworkImage(
                                         imageUrl: url,
                                         fit: BoxFit.cover,
-                                        placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                                        placeholder: (context, url) =>
+                                            const Center(
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            ),
                                         errorWidget: (context, url, error) =>
-                                            const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.red)),
+                                            const Center(
+                                              child: Icon(
+                                                Icons.broken_image,
+                                                size: 50,
+                                                color: Colors.red,
+                                              ),
+                                            ),
                                       )
                                     : Image.asset(
                                         url,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return const Center(
-                                            child: Icon(Icons.broken_image, size: 50, color: Colors.red),
-                                          );
-                                        },
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return const Center(
+                                                child: Icon(
+                                                  Icons.broken_image,
+                                                  size: 50,
+                                                  color: Colors.red,
+                                                ),
+                                              );
+                                            },
                                       ),
                               ),
                             );
@@ -432,7 +529,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           //   ),
           // ),
           SizedBox(height: 18.sp),
-          ListPopularRooms(availableVideoRooms: _availableRooms ?? [], handleVideoRefresh: _handleRefresh),
+          ListPopularRooms(
+            availableVideoRooms: _availableRooms,
+            isVideoLoading: _isVideoLoading,
+          ),
         ],
       ),
     );
@@ -446,7 +546,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(height: 18.sp),
-          ListLiveStream(availableRooms: _availableRooms ?? []),
+          ListLiveStream(availableRooms: _availableRooms),
         ],
       ),
     );
@@ -454,12 +554,15 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   // Audio tab with audio rooms grid
   Widget _buildAudioTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: 18.sp),
-        ListAudioRooms(),
-      ],
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 18.sp),
+          ListAudioRooms(),
+        ],
+      ),
     );
   }
 
@@ -473,7 +576,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           SizedBox(height: 20.h),
           Text(
             '$title Page',
-            style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+            style: TextStyle(
+              fontSize: 24.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade600,
+            ),
           ),
           SizedBox(height: 10.h),
           Text(
@@ -511,16 +618,28 @@ class ListUserFollow extends StatelessWidget {
           onTap: () {
             // Navigate to the leaderboard page
             // context.pushNamed('leaderBoard');
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Leaderboard feature coming soon!'), duration: Duration(seconds: 2)));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Leaderboard feature coming soon!'),
+                duration: Duration(seconds: 2),
+              ),
+            );
           },
           child: Column(
             children: [
               Padding(
-                padding: EdgeInsets.only(bottom: 8.sp, top: 8.sp, left: 8.sp, right: 8.sp),
+                padding: EdgeInsets.only(
+                  bottom: 8.sp,
+                  top: 8.sp,
+                  left: 8.sp,
+                  right: 8.sp,
+                ),
 
-                child: Image.asset('assets/images/general/rank_icon.png', height: 40.sp, width: 40.sp),
+                child: Image.asset(
+                  'assets/images/general/rank_icon.png',
+                  height: 40.sp,
+                  width: 40.sp,
+                ),
               ),
               SizedBox(height: 24.sp),
             ],
@@ -536,7 +655,12 @@ class CategoryCard extends StatelessWidget {
   final CategoryModel categoryModel;
   final Function() onTap;
   final bool isCheck;
-  const CategoryCard({super.key, required this.categoryModel, required this.onTap, required this.isCheck});
+  const CategoryCard({
+    super.key,
+    required this.categoryModel,
+    required this.onTap,
+    required this.isCheck,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -555,7 +679,10 @@ class CategoryCard extends StatelessWidget {
           children: [
             Text(
               categoryModel.title,
-              style: TextStyle(color: isCheck ? Colors.white : Colors.black, fontSize: 10.sp),
+              style: TextStyle(
+                color: isCheck ? Colors.white : Colors.black,
+                fontSize: 10.sp,
+              ),
             ),
           ],
         ),
@@ -603,12 +730,19 @@ class UserWidget extends StatelessWidget {
               child: Container(
                 alignment: Alignment.center,
                 child: Container(
-                  decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(10.sp)),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    borderRadius: BorderRadius.circular(10.sp),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),
                     child: Text(
                       'Live',
-                      style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),

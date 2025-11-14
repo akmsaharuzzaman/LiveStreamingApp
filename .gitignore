@@ -49,7 +49,8 @@ coverage/
 
 dlstarlive.7z
 firebase.json
-assets/games/
+assets/games/greedyv3/
+assets/games/teenpatty/
 assets/images/onboarding/intro_video.mp4
 android/app/upload-keystore.txt
 android/app/upload-keystore.jks

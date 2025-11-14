@@ -27,7 +27,7 @@ import 'package:dlstarlive/features/live/presentation/component/diamond_star_sta
 // From Audio Live
 import 'package:dlstarlive/features/live_audio/data/models/audio_room_details.dart';
 import 'package:dlstarlive/features/live_audio/presentation/widgets/show_host_menu_bottomsheet.dart';
-import 'package:dlstarlive/features/live_audio/presentation/widgets/joined_member_page.dart';
+import 'package:dlstarlive/features/live_audio/presentation/widgets/joined_listeners_info.dart';
 import 'package:dlstarlive/features/live_audio/presentation/widgets/show_audiance_menu_bottom_sheet.dart';
 import 'package:dlstarlive/features/live_audio/presentation/widgets/gift_bottom_sheet.dart';
 
@@ -64,6 +64,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   String userName = "You";
   String demoUserImageUrl = "https://thispersondoesnotexist.com/";
   String demoUserProfileFrame = "assets/images/general/profile_frame.png";
+  bool isMuted = false;
 
   // Agora SDK variables
   late final RtcEngine _engine;
@@ -71,6 +72,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   late final AudioRoomBloc _audioRoomBloc;
   late final AuthBloc _authBloc;
   Timer? _reconnectTimer;
+  StreamSubscription? _mutedUserSubscription;
   bool _isAgoraInitialized = false;
   bool _isInitializingAgora = false;
   bool _isJoiningAgoraChannel = false;
@@ -85,6 +87,13 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     const cyan = '\x1B[36m';
     const reset = '\x1B[0m';
     if (kDebugMode) debugPrint('\n$cyan[AUDIO_ROOM] : UI - $reset $message\n');
+  }
+
+  ScaffoldMessengerState? _scaffoldMessenger;
+  void _showSnackBar(String message, Color color) {
+    _scaffoldMessenger?.showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color, duration: const Duration(seconds: 2)),
+    );
   }
 
   @override
@@ -111,6 +120,14 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUidAndInitialize();
+      // Listen to muted user ID stream and mute user locally
+      _mutedUserSubscription = _audioRoomBloc.repository.mutedUserIdStream.listen((mutedUserId) {
+        if (mutedUserId == authUserId && _isAgoraInitialized) {
+          _uiLog('🔇 User muted by host, muting locally');
+          _engine.muteLocalAudioStream(true);
+          setState(() => isMuted = true);
+        }
+      });
     });
   }
 
@@ -179,13 +196,10 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   Future<void> _loadUidAndInitialize() async {
     final state = context.read<AuthBloc>().state;
     final String? uid = state is AuthAuthenticated ? state.user.id : null;
-
     if (uid != null && uid.isNotEmpty) {
       setState(() => authUserId = uid);
-
       // Connect to socket via Bloc
       _connectToAudioSocket();
-
       // Socket connection is handled by the BlocListener, which will then trigger Agora initialization.
     }
   }
@@ -235,7 +249,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       // Register event handlers
       _isAgoraInitialized = true;
       _uiLog("✅ Agora engine initialized successfully");
-
       _engine.registerEventHandler(
         RtcEngineEventHandler(
           onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
@@ -500,8 +513,58 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     }
   }
 
-  void _toggleMute() {
-    context.read<AudioRoomBloc>().add(ToggleMuteEvent());
+  void _muteUserFromSeat(String seatId, String targetId) {
+    final currentState = context.read<AudioRoomBloc>().state;
+    if (currentState is AudioRoomLoaded && currentState.currentRoomId != null) {
+      context.read<AudioRoomBloc>().add(
+        MuteUserFromSeatEvent(roomId: currentState.currentRoomId!, seatKey: seatId, targetId: targetId),
+      );
+    }
+  }
+
+  void _toggleMuteUnmute() {
+    _uiLog("Toggle mute");
+    final currentState = context.read<AudioRoomBloc>().state;
+
+    if (currentState is AudioRoomLoaded) {
+      // First check if user is a host
+      if (currentState.isHost) {
+        _engine.muteLocalAudioStream(!isMuted);
+        context.read<AudioRoomBloc>().add(
+          MuteUserFromSeatEvent(roomId: currentState.currentRoomId!, seatKey: 'host', targetId: authUserId),
+        );
+        setState(() => isMuted = !isMuted);
+      }
+      // If not host, check if user is in any seat
+      else if (currentState.roomData != null) {
+        String? userSeatKey;
+
+        // Check premium seat first
+        // if (currentState.roomData!.premiumSeat.member?.id == authUserId) {
+        //   userSeatKey = 'premium';
+        // } else {
+        // Check regular seats
+        final seats = currentState.roomData!.seatsData.seats ?? {};
+        userSeatKey = seats.entries
+            .firstWhere((entry) => entry.value.member?.id == authUserId, orElse: () => MapEntry('', SeatInfo()))
+            .key;
+        // }
+
+        if (userSeatKey.isNotEmpty) {
+          _engine.muteLocalAudioStream(!isMuted);
+          context.read<AudioRoomBloc>().add(
+            MuteUserFromSeatEvent(roomId: currentState.currentRoomId!, seatKey: userSeatKey, targetId: authUserId),
+          );
+
+          setState(() => isMuted = !isMuted);
+        } else {
+          // User is not in a seat, show message
+          _showSnackBar('You need to be in a seat to mute/unmute', Colors.orange);
+        }
+      } else {
+        _showSnackBar('Room data not available', Colors.orange);
+      }
+    }
   }
 
   /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -531,57 +594,50 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   void _endLiveStream() async {
     try {
       final currentState = context.read<AudioRoomBloc>().state;
-      final isHost = currentState is AudioRoomLoaded ? currentState.isHost : false;
+      if (currentState is AudioRoomLoaded && currentState.currentRoomId != null) {
+        // host, delete the room; viewer, leave the room
+        context.read<AudioRoomBloc>().add(LeaveRoomEvent(roomId: currentState.currentRoomId!));
 
-      if (isHost) {
-        // If host, delete the room
-        if (currentState.currentRoomId != null) {
-          context.read<AudioRoomBloc>().add(DeleteRoomEvent(roomId: currentState.currentRoomId!));
-        }
-      } else {
-        // If viewer, leave the room
-        if (currentState is AudioRoomLoaded && currentState.currentRoomId != null) {
-          context.read<AudioRoomBloc>().add(LeaveRoomEvent(memberID: authUserId));
-        }
-      }
-      // Close Agora
-      await _engine.leaveChannel().then((value) {
-        _uiLog("✅ Successfully left Agora channel");
-      });
+        // Close Agora
+        await _engine.leaveChannel().then((value) {
+          _uiLog("✅ Successfully left Agora channel");
+        });
 
-      _hasJoinedChannel = false; // Reset channel joined flag
+        _engine.release();
 
-      // Reset Bloc state for next room creation/joining
-      _resetBlocState();
+        // Immediately disconnect from socket to prevent context errors
+        _audioRoomBloc.add(DisconnectFromSocket());
 
-      if (isHost) {
-        if (mounted) {
-          final authState = context.read<AuthBloc>().state;
-          if (authState is AuthAuthenticated && currentState.currentRoomId != null) {
-            context.go(
-              AppRoutes.audioLiveSummary,
-              extra: {
-                'userName': authState.user.name,
-                'userId': authState.user.id.substring(0, 6),
-                'userAvatar': authState.user.avatar,
-              },
-            );
+        _hasJoinedChannel = false; // Reset channel joined flag
+
+        // Reset Bloc state for next room creation/joining
+        _resetBlocState();
+
+        if (widget.isHost) {
+          if (mounted) {
+            final authState = context.read<AuthBloc>().state;
+            if (authState is AuthAuthenticated && currentState.currentRoomId != null) {
+              context.go(
+                AppRoutes.audioLiveSummary,
+                extra: {
+                  'userName': authState.user.name,
+                  'userId': authState.user.id.substring(0, 6),
+                  'userAvatar': authState.user.avatar,
+                },
+              );
+            }
           }
+        } else {
+          if (mounted) context.go("/"); // If viewer, just navigate back
         }
       } else {
-        // If viewer, just navigate back
-        if (mounted) {
-          context.go("/");
-        }
+        _uiLog("Room is not loaded and navigate back");
+        if (mounted) context.go("/"); // Still navigate back even if update fails
       }
     } catch (e) {
       _uiLog('Error ending live stream: $e');
-      // Reset Bloc state even on error
-      _resetBlocState();
-      // Still navigate back even if update fails
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      _resetBlocState(); // Reset Bloc state even on error
+      if (mounted) context.go("/"); // Still navigate back even if update fails
     }
   }
 
@@ -605,38 +661,28 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     _reconnectTimer = reconnectTimer;
   }
 
-  void _showSnackBar(String message, Color color) {
-    // IMPORTANT: Check if widget is still mounted before showing SnackBar
-    if (!mounted) {
-      debugPrint("⚠️ Attempted to show SnackBar but widget is not mounted: $message");
-      return;
-    }
-
-    // Get a safe reference to the ScaffoldMessenger
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-    // Now safely show the SnackBar
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        scaffoldMessenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(content: Text(message), backgroundColor: color, duration: const Duration(seconds: 2)),
-          );
-      }
-    });
-  }
-
   /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   /// ###################### Widget build - This method is used to build the UI ######################
   /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: true,
+      canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) {
-        // Always trigger cleanup when back navigation is invoked
-        _endLiveStream();
+        if (widget.isHost) {
+          EndStreamOverlay.show(
+            context,
+            onKeepStream: () {
+              _uiLog("Keep stream pressed");
+            },
+            onEndStream: () {
+              _endLiveStream();
+              _uiLog("End stream pressed");
+            },
+          );
+        } else {
+          _endLiveStream();
+        }
         debugPrint('Back navigation invoked: (cleanup triggered)');
       },
       child: Scaffold(
@@ -657,10 +703,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
                 if (state is AudioRoomLoaded) {
                   _uiLog("✅ Room loaded: ${jsonEncode(state.roomData)}");
-                  if (state.roomData?.seatsData == null) return;
-                  final seatsData = state.roomData!.seatsData;
-                  _uiLog("✅ SeatsData: ${jsonEncode(seatsData)}");
-
                   // If the user is not the host and the room data has just been loaded,
                   // it's time to join the room.
                   if (widget.isHost == false && _hasAttemptedToJoin == false && state.currentRoomId != null) {
@@ -682,25 +724,19 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                     !_hasJoinedChannel &&
                     _hasAttemptedToJoin &&
                     !_isJoiningAgoraChannel) {
-                  setState(() {
-                    _isJoiningAgoraChannel = true;
-                  });
+                  setState(() => _isJoiningAgoraChannel = true);
                   // Join Agora channel only if we haven't joined already.
                   _uiLog("Attempting to join Agora channel...");
                   _joinAudioChannelWithDynamicToken(state.currentRoomId!);
                 } else if (state is AudioRoomConnected) {
                   // Socket connected, initialize Agora, then dispatch room events.
                   if (!_isAgoraInitialized && !_isInitializingAgora) {
-                    setState(() {
-                      _isInitializingAgora = true;
-                    });
+                    setState(() => _isInitializingAgora = true);
                     initAudioAgora().then((_) {
                       if (mounted && _isAgoraInitialized) {
                         _dispatchRoomEventsAfterConnection(context);
                       }
-                      setState(() {
-                        _isInitializingAgora = false;
-                      });
+                      setState(() => _isInitializingAgora = false);
                     });
                   }
                 } else if (state is AudioRoomLoaded && state.bannedUsers.contains(authUserId)) {
@@ -716,8 +752,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   _handleHostDisconnection(state.reason ?? 'Room ended');
                 } else if (state is AudioRoomError) {
                   _showSnackBar('❌ ${state.message}', Colors.red);
-                } else if (state is AnimationPlaying) {
-                  // Animation handled in UI
                 }
               },
               builder: (context, roomState) {
@@ -735,10 +769,10 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                         ),
                       ),
 
-                      // Main content with seats grid
+                      // Main content with seats grid and chat
                       Column(
                         children: [
-                          SizedBox(height: 160.h), // Space for top bar
+                          SizedBox(height: 150.h), // Space for top bar
                           SeatWidget(
                             numberOfSeats: widget.numberOfSeats,
                             currentUserId: authUserId,
@@ -750,34 +784,46 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                             onTakeSeat: _takeSeat,
                             onLeaveSeat: _leaveSeat,
                             onRemoveUserFromSeat: _removeUserFromSeat,
+                            onMuteUserFromSeat: _muteUserFromSeat,
                             isHost: roomState.isHost,
                             activeSpeakerUserId: roomState.activeSpeakerUserId,
                           ),
-                          Spacer(),
+                          // Chat widget inside the main column to prevent overlap
+                          Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 0.h),
+                              child: AudioChatWidget(messages: roomState.chatMessages, isHost: roomState.isHost),
+                            ),
+                          ),
+                          SizedBox(height: 50.h), // Space for bottom buttons
                         ],
                       ),
 
                       // Individual UI components (not blocking the entire screen)
                       _buildTopBar(authState, roomState),
-                      _buildChatWidget(roomState),
                       _buildBottomButtons(authState, roomState),
 
                       // Animation layer
-                      if (roomState.animationPlaying)
+                      if (roomState.playAnimation == true && roomState.giftDetails != null)
                         AnimatedLayer(
-                          gifts: [], // sentGifts,
-                          customAnimationUrl: roomState.animationUrl,
-                          customTitle: roomState.animationTitle,
-                          customSubtitle: roomState.animationSubtitle,
+                          gifts: [roomState.giftDetails!],
+                          onCompleted: () {
+                            context.read<AudioRoomBloc>().add(AnimationCompletedEvent());
+                          },
                         ),
                     ],
                   );
-                } else if (roomState is AudioRoomError) {
-                  _uiLog("Audio Room Error");
-                  return Center(child: Text('Failed to load audio room: ${roomState.message}'));
-                } else if (roomState is AudioRoomClosed) {
+                }
+                // else if (roomState is AudioRoomError) {
+                //   _uiLog("Audio Room Error");
+                //   return Center(child: Text('Failed to load audio room: ${roomState.message}'));
+                // }
+                else if (roomState is AudioRoomClosed) {
                   _uiLog("Audio Room Closed");
                   return Center(child: Text('Room closed: ${roomState.reason}'));
+                } else if (roomState is AudioRoomError) {
+                  _uiLog("Audio Room Error");
+                  return Center(child: Text('Room Error: ${roomState.message}'));
                 } else {
                   _uiLog("Audio Room Loading or Not found");
                   // For AudioRoomInitial, AudioRoomLoading, or any other intermediate state
@@ -824,7 +870,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                     currentUserId: authState.user.id,
                   ),
                 Spacer(),
-                JoindListenersPage(
+                JoinedListenersInfo(
+                  isHost: roomState.isHost,
                   activeUserList: roomState.listeners,
                   hostUserId: roomState.roomData?.hostDetails.id,
                   hostName: roomState.roomData?.hostDetails.name,
@@ -881,17 +928,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     );
   }
 
-  Widget _buildChatWidget(AudioRoomLoaded roomState) {
-    return Positioned(
-      left: 20.w,
-      bottom: 180.h, // Above the bottom buttons
-      child: Container(
-        color: Colors.transparent,
-        child: AudioChatWidget(messages: roomState.chatMessages),
-      ),
-    );
-  }
-
   Widget _buildBottomButtons(AuthAuthenticated authState, AudioRoomLoaded roomState) {
     return Positioned(
       bottom: 30.h,
@@ -925,9 +961,10 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                     },
                   ),
                   CustomLiveButton(
-                    iconPath: roomState.isMuted ? "assets/icons/mute_icon.png" : "assets/icons/unmute_icon.png",
+                    iconPath: isMuted ? "assets/icons/mute_icon.png" : "assets/icons/unmute_icon.png",
                     onTap: () {
-                      _showSnackBar('🔇 Not implemented yet', Colors.red);
+                      // _showSnackBar('🔇 Not implemented yet', Colors.red);
+                      _toggleMuteUnmute();
                     },
                   ),
                   CustomLiveButton(
@@ -972,9 +1009,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                         context,
                         userId: authUserId,
                         isHost: roomState.isHost,
-                        isMuted: roomState.isMuted,
+                        isMuted: isMuted,
                         isAdminMuted: false, // TODO: Implement admin mute logic
-                        onToggleMute: _toggleMute,
+                        onToggleMute: _toggleMuteUnmute,
                       );
                     },
                     height: 40.h,
@@ -1021,15 +1058,24 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
   @override
   void dispose() {
-    // Cancel any pending timer
+    _uiLog("🧹 Disposing audio room screen...");
+
+    // Cancel any pending timers first
     _reconnectTimer?.cancel();
-    // Reset Bloc state (but don't schedule any new timers)
+    _mutedUserSubscription?.cancel();
+
+    // Disconnect from socket and reset bloc state
     _audioRoomBloc.add(DisconnectFromSocket());
 
     // Dispose Agora engine
-    _engine.leaveChannel();
-    _engine.release();
+    try {
+      _engine.leaveChannel();
+      _engine.release();
+    } catch (e) {
+      _uiLog("⚠️ Error disposing Agora engine: $e");
+    }
 
+    _uiLog("✅ Audio room screen disposed");
     super.dispose();
   }
 }

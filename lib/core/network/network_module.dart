@@ -19,16 +19,16 @@ abstract class NetworkModule {
       },
     );
 
-    // Add interceptors for logging, authentication, etc.
-    dio.interceptors.add(
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        requestHeader: true,
-        responseHeader: false,
-        error: true,
-      ),
-    );
+    // Disabled logging interceptor to reduce debug console noise
+    // dio.interceptors.add(
+    //   LogInterceptor(
+    //     requestBody: true,
+    //     responseBody: true,
+    //     requestHeader: true,
+    //     responseHeader: false,
+    //     error: true,
+    //   ),
+    // );
 
     // Add auth interceptor
     dio.interceptors.add(

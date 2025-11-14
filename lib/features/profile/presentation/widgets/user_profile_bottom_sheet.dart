@@ -9,8 +9,9 @@ import '../../../../injection/injection.dart';
 
 class UserProfileBottomSheet extends StatefulWidget {
   final String userId;
+  final Widget? onManageButton;
 
-  const UserProfileBottomSheet({super.key, required this.userId});
+  const UserProfileBottomSheet({super.key, required this.userId, this.onManageButton});
 
   @override
   State<UserProfileBottomSheet> createState() => _UserProfileBottomSheetState();
@@ -201,12 +202,15 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
               ),
             ),
           ),
-          if (userProfile != null)
+          if (userProfile != null) ...[
             Positioned(
               top: 10.h,
               left: 16.w,
-              child: TextButton(onPressed: () {}, child: Text("Report")),
+              child: widget.onManageButton != null
+                  ? widget.onManageButton!
+                  : TextButton(onPressed: () {}, child: Text("Report")),
             ),
+          ],
         ],
       ),
     );
@@ -247,7 +251,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
     if (userProfile == null) {
       return const Center(child: Text('No user data available'));
     }
-    
+
     return Column(
       children: [
         // Profile Header with background
@@ -278,7 +282,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
     if (userProfile == null) {
       return const SizedBox.shrink();
     }
-    
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -295,7 +299,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
     if (userProfile == null) {
       return const SizedBox.shrink();
     }
-    
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -464,7 +468,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
     if (userProfile == null) {
       return const SizedBox.shrink();
     }
-    
+
     return InkWell(
       onTap: () {
         context.pushNamed('viewProfile', queryParameters: {'userId': userProfile!.id});
@@ -565,7 +569,7 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
     if (userProfile == null) {
       return const SizedBox.shrink();
     }
-    
+
     final relationship = userProfile?.relationship;
 
     return Row(

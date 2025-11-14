@@ -138,7 +138,7 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                       SizedBox(width: 8.w),
                       Text(
                         AppUtils.formatNumber(
-                          widget.user?.stats?.diamonds ?? 0,
+                          (widget.user?.stats?.diamonds ?? 0) + withdrawBonus,
                         ),
                         style: TextStyle(
                           fontSize: 36.sp,
@@ -196,9 +196,10 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                             Text(
                               '+${AppUtils.formatNumber(widget.user?.stats?.diamonds ?? 0)}',
                               style: TextStyle(
-                                fontSize: 16.sp,
+                                fontSize: 15.sp,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -207,9 +208,10 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                         Text(
                           'Actual Earnings',
                           style: TextStyle(
-                            fontSize: 12.sp,
+                            fontSize: 11.sp,
                             color: const Color(0xFF999999),
                             fontWeight: FontWeight.w400,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -235,7 +237,7 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                             Text(
                               videoHour.toString(),
                               style: TextStyle(
-                                fontSize: 16.sp,
+                                fontSize: 14.sp,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black,
                               ),
@@ -247,7 +249,7 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                           'Video live duration',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 12.sp,
+                            fontSize: 11.sp,
                             color: const Color(0xFF999999),
                             fontWeight: FontWeight.w400,
                           ),

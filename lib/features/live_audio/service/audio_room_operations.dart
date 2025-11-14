@@ -11,8 +11,14 @@ class AudioSocketRoomOperations {
   late socket_io.Socket socket;
   final StreamController<Map<String, dynamic>> errorController;
   AudioSocketEventListeners? eventListeners;
-
   AudioSocketRoomOperations(this.errorController, this.eventListeners);
+
+  /// createRoom
+  /// joinRoom
+  /// leaveRoom
+  /// getRooms
+  /// getRoomDetails
+  /// sendMessage
 
   void setSocket(socket_io.Socket socket) {
     this.socket = socket;
@@ -25,10 +31,7 @@ class AudioSocketRoomOperations {
   void _log(String message) {
     const yellow = '\x1B[33m';
     const reset = '\x1B[0m';
-
-    if (kDebugMode) {
-      debugPrint('\n$yellow[AUDIO_ROOM] : Room - $reset $message\n');
-    }
+    if (kDebugMode) debugPrint('\n$yellow[AUDIO_ROOM] : Room - $reset $message\n');
   }
 
   /// Create a new room
@@ -45,35 +48,13 @@ class AudioSocketRoomOperations {
     try {
       _log('🏠 Creating audio room: $roomId with $numberOfSeats seats');
 
-      final Map<String, dynamic> roomData = {
-        'roomId': roomId,
-        'title': title,
-        'numberOfSeats': numberOfSeats
-      };
+      final Map<String, dynamic> roomData = {'roomId': roomId, 'title': title, 'numberOfSeats': numberOfSeats};
 
       socket.emit(AudioSocketConstants.createRoomEvent, roomData);
       return true;
     } catch (e) {
       _log('❌ Error creating room: $e');
       errorController.add({'status': 'error', 'message': 'Failed to create room: $e'});
-      return false;
-    }
-  }
-
-  /// Delete a room (only host can delete)
-  Future<bool> deleteRoom(String roomId) async {
-    if (!_isConnected) {
-      errorController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    try {
-      _log('🗑️ Deleting room: $roomId');
-      socket.emit(AudioSocketConstants.leaveAudioRoomEvent, {'roomId': roomId});
-      return true;
-    } catch (e) {
-      _log('❌ Error deleting room: $e');
-      errorController.add({'status': 'error', 'message': 'Failed to delete room: $e'});
       return false;
     }
   }

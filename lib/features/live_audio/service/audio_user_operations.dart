@@ -10,8 +10,11 @@ class AudioSocketUserOperations {
   late socket_io.Socket socket;
   final StreamController<Map<String, dynamic>> errorController;
   final String? Function() getCurrentRoomId;
-
   AudioSocketUserOperations(this.errorController, this.getCurrentRoomId);
+
+  /// banUser
+  /// unbanUser - deprecated
+  /// muteUnmuteUser
 
   void setSocket(socket_io.Socket socket) {
     this.socket = socket;
@@ -20,14 +23,11 @@ class AudioSocketUserOperations {
   void _log(String message) {
     const yellow = '\x1B[33m';
     const reset = '\x1B[0m';
-
-    if (kDebugMode) {
-      debugPrint('\n$yellow[AUDIO_ROOM] : User - $reset $message\n');
-    }
+    if (kDebugMode) debugPrint('\n$yellow[AUDIO_ROOM] : User - $reset $message\n');
   }
 
   ///Ban User
-  Future<bool> banUser(String userId) async {
+  Future<bool> banUser(String targetUserId) async {
     if (!_isConnected) {
       errorController.add({'status': 'error', 'message': 'Socket not connected'});
       return false;
@@ -40,9 +40,9 @@ class AudioSocketUserOperations {
     }
 
     try {
-      _log('🚫 Banning audio user: $userId');
+      _log('🚫 Banning audio user: $targetUserId');
 
-      socket.emit(AudioSocketConstants.banUserEvent, {'roomId': roomId, 'targetId': userId});
+      socket.emit(AudioSocketConstants.banUserEvent, {'roomId': roomId, 'targetId': targetUserId});
       return true;
     } catch (e) {
       _log('❌ Error banning audio user: $e');
@@ -52,32 +52,29 @@ class AudioSocketUserOperations {
   }
 
   // Unban User
-  Future<bool> unbanUser(String userId) async {
-    if (!_isConnected) {
-      errorController.add({'status': 'error', 'message': 'Socket not connected'});
-      return false;
-    }
-
-    final roomId = getCurrentRoomId();
-    if (roomId == null) {
-      errorController.add({'status': 'error', 'message': 'No current room'});
-      return false;
-    }
-
-    try {
-      _log('🚫 Unbanning audio user: $userId');
-
-      socket.emit(AudioSocketConstants.unbanUserEvent, {'roomId': roomId, 'targetId': userId});
-      return true;
-    } catch (e) {
-      _log('❌ Error unbanning audio user: $e');
-      errorController.add({'status': 'error', 'message': 'Failed to unban user: $e'});
-      return false;
-    }
-  }
+  // Future<bool> unbanUser(String userId) async {
+  //   if (!_isConnected) {
+  //     errorController.add({'status': 'error', 'message': 'Socket not connected'});
+  //     return false;
+  //   }
+  //   final roomId = getCurrentRoomId();
+  //   if (roomId == null) {
+  //     errorController.add({'status': 'error', 'message': 'No current room'});
+  //     return false;
+  //   }
+  //   try {
+  //     _log('🚫 Unbanning audio user: $userId');
+  //     socket.emit(AudioSocketConstants.unbanUserEvent, {'roomId': roomId, 'targetId': userId});
+  //     return true;
+  //   } catch (e) {
+  //     _log('❌ Error unbanning audio user: $e');
+  //     errorController.add({'status': 'error', 'message': 'Failed to unban user: $e'});
+  //     return false;
+  //   }
+  // }
 
   ///Mute/Unmute User
-  Future<bool> muteUnmuteUser(String userId) async {
+  Future<bool> muteUnmuteUser(String targetUserId) async {
     if (!_isConnected) {
       errorController.add({'status': 'error', 'message': 'Socket not connected'});
       return false;
@@ -90,9 +87,9 @@ class AudioSocketUserOperations {
     }
 
     try {
-      _log('🔇 Muting/Unmuting audio user: $userId');
+      _log('🔇 Muting/Unmuting audio user: $targetUserId');
 
-      socket.emit(AudioSocketConstants.muteUnmuteUserEvent, {'roomId': roomId, 'targetId': userId});
+      socket.emit(AudioSocketConstants.muteUnmuteUserEvent, {'roomId': roomId, 'targetId': targetUserId});
       return true;
     } catch (e) {
       _log('❌ Error muting/Unmuting audio user: $e');

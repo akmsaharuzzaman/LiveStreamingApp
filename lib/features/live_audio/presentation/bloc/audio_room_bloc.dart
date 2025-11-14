@@ -36,6 +36,8 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   StreamSubscription? _closeRoomSubscription;
   // Host bonus events
   StreamSubscription? _updateHostBonusSubscription;
+  // Sent audio gifts events
+  StreamSubscription? _sentAudioGiftsSubscription;
   // Error handling
   StreamSubscription? _errorSubscription;
 
@@ -46,6 +48,8 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   AudioRoomBloc(this._repository) : super(AudioRoomInitial()) {
     _setupEventHandlers();
   }
+
+  AudioRoomRepository get repository => _repository;
 
   void _setupEventHandlers() {
     // Connection events
@@ -58,7 +62,6 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     on<InitializeWithRoomDataEvent>(_onInitializeWithRoomData);
     on<JoinRoomEvent>(_onJoinRoom);
     on<LeaveRoomEvent>(_onLeaveRoom);
-    on<DeleteRoomEvent>(_onDeleteRoom);
     on<GetRoomDetailsEvent>(_onGetRoomDetails);
     on<GetAllRoomsEvent>(_onGetAllRooms);
 
@@ -66,22 +69,23 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     on<JoinSeatEvent>(_onJoinSeat);
     on<LeaveSeatEvent>(_onLeaveSeat);
     on<RemoveFromSeatEvent>(_onRemoveFromSeat);
+    on<MuteUserFromSeatEvent>(_onMuteUserFromSeat);
 
     // Chat events
     on<SendMessageEvent>(_onSendMessage);
 
     // User management events
     on<BanUserEvent>(_onBanUser);
-    on<UnbanUserEvent>(_onUnbanUser);
+    // on<UnbanUserEvent>(_onUnbanUser);
     on<MuteUnmuteUserEvent>(_onMuteUnmuteUser);
 
     // Agora events
-    on<ToggleMuteEvent>(_onToggleMute);
     on<UpdateBroadcasterStatusEvent>(_onUpdateBroadcasterStatus);
 
     // UI events
     on<EndLiveStreamEvent>(_onEndLiveStream);
     on<PlayAnimationEvent>(_onPlayAnimation);
+    on<AnimationCompletedEvent>(_onAnimationCompleted);
 
     // Error handling
     on<HandleSocketErrorEvent>(_onHandleSocketError);
@@ -100,8 +104,6 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     on<UpdateListenersEvent>(_onUpdateListeners);
     on<SeatJoinedEvent>(_onSeatJoined);
     on<SeatLeftEvent>(_onSeatLeft);
-    on<UpdateBannedUsersEvent>(_onUpdateBannedUsers);
-    on<UpdateStreamTimeEvent>(_onUpdateStreamTime);
     on<UpdateActiveSpeakerEvent>(_onUpdateActiveSpeaker);
   }
 
@@ -205,8 +207,8 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     });
 
     // User management
-    _banUserSubscription = _repository.banUserStream.listen((data) {
-      add(UserBannedEvent(targetId: data.targetId));
+    _banUserSubscription = _repository.banUserStream.listen((List<String> data) {
+      add(UserBannedEvent(targetIdList: data));
     });
 
     _muteUserSubscription = _repository.muteUnmuteUserStream.listen((data) {
@@ -224,6 +226,12 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
           debugPrint('💰 Bloc: Updated host bonus to $hostBonus');
         }
       }
+    });
+
+    // Sent audio gifts
+    _sentAudioGiftsSubscription = _repository.sentAudioGiftsStream.listen((gift) {
+      add(PlayAnimationEvent(giftDetails: gift));
+      debugPrint('💰 Bloc: Updated gift to $gift');
     });
 
     // Room closed
@@ -265,6 +273,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     _banUserSubscription?.cancel();
     _muteUserSubscription?.cancel();
     _updateHostBonusSubscription?.cancel();
+    _sentAudioGiftsSubscription?.cancel();
     _closeRoomSubscription?.cancel();
     _errorSubscription?.cancel();
   }
@@ -345,17 +354,21 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
       "🎯 Bloc: Initializing with room data - Host: ${event.roomData.hostDetails.name}, Members: ${event.roomData.membersDetails.length}, RoomId: ${event.roomData.roomId}, isHost: ${event.isHost}",
     );
     final isHost = event.roomData.hostDetails.id == event.userId;
-    emit(
-      AudioRoomLoaded(
-        roomData: event.roomData,
-        currentRoomId: event.roomData.roomId,
-        isHost: isHost,
-        isConnected: true,
-        listeners: event.roomData.membersDetails,
-        chatMessages: event.roomData.messages,
-        userId: event.userId,
-      ),
-    );
+    if (event.roomData.bannedUsers.contains(event.userId)) {
+      emit(const AudioRoomError(message: 'You are banned from this room'));
+    } else {
+      emit(
+        AudioRoomLoaded(
+          roomData: event.roomData,
+          currentRoomId: event.roomData.roomId,
+          isHost: isHost,
+          isConnected: true,
+          listeners: event.roomData.membersDetails,
+          chatMessages: event.roomData.messages,
+          userId: event.userId,
+        ),
+      );
+    }
     debugPrint(
       "✅ Bloc: Emitted AudioRoomLoaded with room data, listeners: ${event.roomData.membersDetails.length}, messages: ${event.roomData.messages.length}",
     );
@@ -367,17 +380,10 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   }
 
   Future<void> _onLeaveRoom(LeaveRoomEvent event, Emitter<AudioRoomState> emit) async {
-    final success = await _repository.leaveRoom(event.memberID);
+    final success = await _repository.leaveRoom(event.roomId);
     if (success && state is AudioRoomLoaded) {
       final currentState = state as AudioRoomLoaded;
       emit(currentState.copyWith(currentRoomId: null));
-    }
-  }
-
-  Future<void> _onDeleteRoom(DeleteRoomEvent event, Emitter<AudioRoomState> emit) async {
-    final success = await _repository.deleteRoom(event.roomId);
-    if (success) {
-      emit(const AudioRoomClosed(reason: 'Room deleted'));
     }
   }
 
@@ -401,6 +407,10 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     await _repository.removeFromSeat(roomId: event.roomId, seatKey: event.seatKey, targetId: event.targetId);
   }
 
+  Future<void> _onMuteUserFromSeat(MuteUserFromSeatEvent event, Emitter<AudioRoomState> emit) async {
+    await _repository.muteUserFromSeat(roomId: event.roomId, seatKey: event.seatKey, targetId: event.targetId);
+  }
+
   Future<void> _onSendMessage(SendMessageEvent event, Emitter<AudioRoomState> emit) async {
     debugPrint("🔌 Socket: Sending message to room: '${event.roomId}'");
 
@@ -414,15 +424,15 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   }
 
   Future<void> _onBanUser(BanUserEvent event, Emitter<AudioRoomState> emit) async {
-    await _repository.banUser(event.userId);
+    await _repository.banUser(event.targetUserId);
   }
 
-  Future<void> _onUnbanUser(UnbanUserEvent event, Emitter<AudioRoomState> emit) async {
-    await _repository.unbanUser(event.userId);
-  }
+  // Future<void> _onUnbanUser(UnbanUserEvent event, Emitter<AudioRoomState> emit) async {
+  //   await _repository.unbanUser(event.userId);
+  // }
 
   Future<void> _onMuteUnmuteUser(MuteUnmuteUserEvent event, Emitter<AudioRoomState> emit) async {
-    await _repository.muteUnmuteUser(event.userId);
+    await _repository.muteUnmuteUser(event.targetUserId);
   }
 
   void _onUpdateBroadcasterStatus(UpdateBroadcasterStatusEvent event, Emitter<AudioRoomState> emit) {
@@ -432,28 +442,23 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     }
   }
 
-  void _onToggleMute(ToggleMuteEvent event, Emitter<AudioRoomState> emit) {
-    if (state is AudioRoomLoaded) {
-      final currentState = state as AudioRoomLoaded;
-      emit(currentState.copyWith(isMuted: !currentState.isMuted));
-    }
-  }
-
   void _onEndLiveStream(EndLiveStreamEvent event, Emitter<AudioRoomState> emit) {
     _stopStreamTimer();
     emit(const AudioRoomClosed(reason: 'Live stream ended'));
   }
 
   void _onPlayAnimation(PlayAnimationEvent event, Emitter<AudioRoomState> emit) {
-    emit(AnimationPlaying(animationUrl: event.animationUrl, title: event.title, subtitle: event.subtitle));
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      emit(currentState.copyWith(playAnimation: true, giftDetails: event.giftDetails));
+    }
+  }
 
-    // Auto-stop animation after 9 seconds
-    Future.delayed(const Duration(seconds: 9), () {
-      if (state is AudioRoomLoaded) {
-        final currentState = state as AudioRoomLoaded;
-        emit(currentState.copyWith(animationPlaying: false));
-      }
-    });
+  void _onAnimationCompleted(AnimationCompletedEvent event, Emitter<AudioRoomState> emit) {
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      emit(currentState.copyWith(playAnimation: false, giftDetails: null));
+    }
   }
 
   void _onHandleSocketError(HandleSocketErrorEvent event, Emitter<AudioRoomState> emit) {
@@ -521,14 +526,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
       final String normalizedMessage = message.text.trim().toLowerCase();
       final dynamic entryAnimation = message.equipedStoreItems?['entry'];
       if (normalizedMessage == 'joined the room' && entryAnimation is String && entryAnimation.isNotEmpty) {
-        emit(
-          currentState.copyWith(
-            chatMessages: updatedMessages,
-            animationPlaying: true,
-            animationUrl: entryAnimation,
-            animationTitle: '${message.name} joined the room',
-          ),
-        );
+        emit(currentState.copyWith(chatMessages: updatedMessages));
       } else {
         emit(currentState.copyWith(chatMessages: updatedMessages));
       }
@@ -536,7 +534,17 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   }
 
   void _onUserBanned(UserBannedEvent event, Emitter<AudioRoomState> emit) {
-    _handleUserBanned(event.targetId);
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      final updatedBannedUsers = event.targetIdList;
+      final updatedListeners = List<AudioMember>.from(currentState.listeners)
+        ..removeWhere((user) => event.targetIdList.contains(user.id));
+      emit(currentState.copyWith(bannedUsers: updatedBannedUsers, listeners: updatedListeners));
+
+      if (event.targetIdList.contains(currentState.userId)) {
+        emit(AudioRoomError(message: "You have been kicked out from this room"));
+      }
+    }
   }
 
   void _onUserMuted(UserMutedEvent event, Emitter<AudioRoomState> emit) {
@@ -603,23 +611,6 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     }
   }
 
-  void _onUpdateBannedUsers(UpdateBannedUsersEvent event, Emitter<AudioRoomState> emit) {
-    if (state is AudioRoomLoaded) {
-      final currentState = state as AudioRoomLoaded;
-      final updatedBannedUsers = List<String>.from(currentState.bannedUsers)..add(event.targetId);
-      final updatedListeners = List<AudioMember>.from(currentState.listeners)
-        ..removeWhere((user) => user.id == event.targetId);
-      emit(currentState.copyWith(bannedUsers: updatedBannedUsers, listeners: updatedListeners));
-    }
-  }
-
-  void _onUpdateStreamTime(UpdateStreamTimeEvent event, Emitter<AudioRoomState> emit) {
-    if (state is AudioRoomLoaded) {
-      final currentState = state as AudioRoomLoaded;
-      emit(currentState.copyWith(streamStartTime: event.startTime));
-    }
-  }
-
   // Handle active speaker updates
   void _onUpdateActiveSpeaker(UpdateActiveSpeakerEvent event, Emitter<AudioRoomState> emit) {
     if (state is AudioRoomLoaded) {
@@ -663,12 +654,6 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     }
     if (seatData.seatKey != null) {
       add(SeatLeftEvent(seatKey: seatData.seatKey!));
-    }
-  }
-
-  void _handleUserBanned(String targetId) {
-    if (state is AudioRoomLoaded) {
-      add(UpdateBannedUsersEvent(targetId: targetId));
     }
   }
 
