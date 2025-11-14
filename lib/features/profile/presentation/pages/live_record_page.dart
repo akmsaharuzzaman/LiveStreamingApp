@@ -138,7 +138,7 @@ class _LiveRecordPageState extends State<LiveRecordPage> {
                       SizedBox(width: 8.w),
                       Text(
                         AppUtils.formatNumber(
-                          widget.user?.stats?.diamonds ?? 0,
+                          (widget.user?.stats?.diamonds ?? 0) + withdrawBonus,
                         ),
                         style: TextStyle(
                           fontSize: 36.sp,
