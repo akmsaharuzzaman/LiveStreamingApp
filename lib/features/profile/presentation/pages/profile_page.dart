@@ -102,6 +102,9 @@ class _ProfileContentState extends State<_ProfileContent> {
   bool isLoadingReels = true;
   String? reelsErrorMessage;
   int _currentReelsPage = 1;
+
+  // Bonus/Withdraw data
+  int withdrawBonus = 0;
   Future<void> _loadFollowerCounts() async {
     final friendsService = getIt<FriendsApiService>();
 
@@ -132,12 +135,30 @@ class _ProfileContentState extends State<_ProfileContent> {
     }
   }
 
+  Future<void> _loadWithdrawBonus() async {
+    try {
+      final apiService = ApiService();
+      final bonusResponse = await apiService.get('/api/auth/withdraw-bonus');
+      final bonus = bonusResponse.dataOrNull?['result']?['bonus'] ?? 0;
+      if (!mounted) return;
+      setState(() {
+        withdrawBonus = bonus is num ? bonus.toInt() : 0;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        withdrawBonus = 0;
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _postService = PostService(ApiService.instance, AuthBlocAdapter(context));
     _reelsService = ReelsService(ApiService.instance, AuthBlocAdapter(context));
     _loadInitialData();
+    _loadWithdrawBonus();
   }
 
   @override
@@ -177,6 +198,7 @@ class _ProfileContentState extends State<_ProfileContent> {
     });
 
     _loadInitialData();
+    _loadWithdrawBonus();
   }
 
   /// Handle pull-to-refresh
@@ -1282,9 +1304,10 @@ class _ProfileContentState extends State<_ProfileContent> {
     final TextEditingController phoneController = TextEditingController();
     String selectedAccountType = 'bkash';
     bool isLoading = false;
+    final actualAmount = widget.user.stats?.diamonds ?? 0;
 
-    // Set max amount from user's diamonds
-    final maxAmount = widget.user.stats?.diamonds ?? 0;
+    // Calculate max amount (diamonds + bonus)
+    final maxAmount = (widget.user.stats?.diamonds ?? 0) + withdrawBonus;
     amountController.text = maxAmount.toString();
 
     showDialog(
@@ -1323,7 +1346,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                   children: [
                     // Amount Field
                     Text(
-                      'Amount (Max: ${AppUtils.formatNumber(maxAmount)})',
+                      'Amount ${AppUtils.formatNumber(actualAmount)} + ${AppUtils.formatNumber(withdrawBonus)} Bonus \n=(Max: ${AppUtils.formatNumber(maxAmount)})',
                       style: TextStyle(
                         fontSize: 14.sp,
                         fontWeight: FontWeight.w500,
