@@ -182,7 +182,14 @@ class _ProfileContentState extends State<_ProfileContent> {
   /// Handle pull-to-refresh
   Future<void> _handleRefresh() async {
     debugPrint('🔄 Profile page refreshing...');
+    
+    // Refresh auth profile data
+    final authBloc = context.read<AuthBloc>();
+    authBloc.add(const AuthCheckStatusEvent());
+    
+    // Refresh profile content data (posts, reels, follower counts)
     refreshData();
+    
     await Future.delayed(const Duration(milliseconds: 800));
   }
 
