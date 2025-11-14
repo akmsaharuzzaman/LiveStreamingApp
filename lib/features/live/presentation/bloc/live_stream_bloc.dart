@@ -160,18 +160,60 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   ) async {
     try {
       final currentState = state;
-      debugPrint(' \n \n Current state: $currentState \n \n');
       if (currentState is LiveStreamStreaming) {
-        debugPrint(' \n \n Current state: $currentState \n \n');
-        debugPrint(' \n \n Current state isHost: ${currentState.isHost} \n \n');
         // Stop timer
         _durationTimer?.cancel();
 
+        // Call daily bonus API on stream end for hosts
+        if (currentState.isHost) {
+          final totalMinutes = currentState.duration.inMinutes;
+
+          final bonusResult = await _repository.callDailyBonus(
+            totalMinutes: totalMinutes,
+            type: 'video',
+          );
+
+          bonusResult.fold(
+            (failure) {
+              debugPrint('❌ Final bonus API call failed: ${failure.message}');
+            },
+            (bonusDiamonds) {
+              if (bonusDiamonds > 0) {
+                debugPrint('💎 Final bonus earned: $bonusDiamonds diamonds');
+                // Update total bonus diamonds before ending
+                emit(
+                  currentState.copyWith(
+                    totalBonusDiamonds:
+                        currentState.totalBonusDiamonds + bonusDiamonds,
+                  ),
+                );
+              }
+            },
+          );
+        }
+
         // Delete room (host only)
-        // if (currentState.isHost) {
-          debugPrint(' \n \n Deleting room: ${currentState.roomId} \n \n');
-          await _repository.deleteRoom(currentState.roomId);
-        // }
+        if (currentState.isHost) {
+          final deleteResult = await _repository.deleteRoom(
+            currentState.roomId,
+          );
+          deleteResult.fold(
+            (failure) => emit(
+              LiveStreamError('Failed to end stream: ${failure.message}'),
+            ),
+            (_) {
+              emit(
+                LiveStreamEnded(
+                  roomId: currentState.roomId,
+                  totalDuration: currentState.duration,
+                  earnedDiamonds: currentState.totalBonusDiamonds,
+                  totalViewers: currentState.viewers.length,
+                ),
+              );
+            },
+          );
+          return;
+        }
 
         emit(
           LiveStreamEnded(
@@ -287,15 +329,26 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   ) async {
     // Prevent multiple simultaneous API calls (except for stream end)
     if (!event.isStreamEnd && _isCallingBonusAPI) {
+      debugPrint("⏳ Bonus API call already in progress, skipping...");
       return;
     }
 
     try {
       final currentState = state;
       if (currentState is LiveStreamStreaming && currentState.isHost) {
-        _isCallingBonusAPI = true;
+        if (!event.isStreamEnd) {
+          _isCallingBonusAPI = true;
+          debugPrint("🔒 Setting bonus API flag to prevent duplicate calls");
+        }
 
         final totalMinutes = currentState.duration.inMinutes;
+        final currentMilestone = event.isStreamEnd
+            ? totalMinutes
+            : (totalMinutes ~/ 50) * 50;
+
+        debugPrint(
+          "🏆 Calling daily bonus API for $totalMinutes minutes of streaming ${event.isStreamEnd ? '(final call)' : '(milestone: ${currentMilestone}m)'}",
+        );
 
         final result = await _repository.callDailyBonus(
           totalMinutes: totalMinutes,
@@ -304,22 +357,45 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
 
         result.fold(
           (failure) {
-            // Silent fail for bonus
+            debugPrint("❌ Daily bonus API call failed: ${failure.message}");
+            // Update milestone even on error to prevent continuous retries
+            if (!event.isStreamEnd) {
+              emit(currentState.copyWith(lastBonusMilestone: currentMilestone));
+            }
           },
           (bonusDiamonds) {
+            debugPrint("✅ Daily bonus API call successful");
+
             if (bonusDiamonds > 0) {
+              debugPrint("💎 Received daily bonus: $bonusDiamonds diamonds");
               emit(
                 currentState.copyWith(
                   totalBonusDiamonds:
                       currentState.totalBonusDiamonds + bonusDiamonds,
+                  lastBonusMilestone: event.isStreamEnd
+                      ? currentState.lastBonusMilestone
+                      : currentMilestone,
                 ),
               );
+              debugPrint(
+                "💰 Total bonus diamonds now: ${currentState.totalBonusDiamonds + bonusDiamonds}",
+              );
+            } else {
+              // Update milestone even when no bonus received
+              if (!event.isStreamEnd) {
+                emit(
+                  currentState.copyWith(lastBonusMilestone: currentMilestone),
+                );
+              }
             }
           },
         );
       }
     } finally {
-      _isCallingBonusAPI = false;
+      if (!event.isStreamEnd) {
+        _isCallingBonusAPI = false;
+        debugPrint("🔓 Resetting bonus API flag");
+      }
     }
   }
 

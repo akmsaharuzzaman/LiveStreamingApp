@@ -102,6 +102,9 @@ class _ProfileContentState extends State<_ProfileContent> {
   bool isLoadingReels = true;
   String? reelsErrorMessage;
   int _currentReelsPage = 1;
+
+  // Bonus/Withdraw data
+  int withdrawBonus = 0;
   Future<void> _loadFollowerCounts() async {
     final friendsService = getIt<FriendsApiService>();
 
@@ -132,12 +135,30 @@ class _ProfileContentState extends State<_ProfileContent> {
     }
   }
 
+  Future<void> _loadWithdrawBonus() async {
+    try {
+      final apiService = ApiService();
+      final bonusResponse = await apiService.get('/api/auth/withdraw-bonus');
+      final bonus = bonusResponse.dataOrNull?['result']?['bonus'] ?? 0;
+      if (!mounted) return;
+      setState(() {
+        withdrawBonus = bonus is num ? bonus.toInt() : 0;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        withdrawBonus = 0;
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _postService = PostService(ApiService.instance, AuthBlocAdapter(context));
     _reelsService = ReelsService(ApiService.instance, AuthBlocAdapter(context));
     _loadInitialData();
+    _loadWithdrawBonus();
   }
 
   @override
@@ -177,152 +198,177 @@ class _ProfileContentState extends State<_ProfileContent> {
     });
 
     _loadInitialData();
+    _loadWithdrawBonus();
+  }
+
+  /// Handle pull-to-refresh
+  Future<void> _handleRefresh() async {
+    debugPrint('🔄 Profile page refreshing...');
+
+    // Refresh auth profile data
+    final authBloc = context.read<AuthBloc>();
+    authBloc.add(const AuthCheckStatusEvent());
+
+    // Refresh profile content data (posts, reels, follower counts)
+    refreshData();
+
+    await Future.delayed(const Duration(milliseconds: 800));
   }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Stack(
-        children: [
-          Column(
-            children: [
-              // Cover Photo and Top Icons
-              Stack(
-                children: [
-                  (widget.user.coverPicture != null)
-                      ? Container(
-                          width: double.infinity,
-                          height: 170.h,
-                          decoration: const BoxDecoration(color: Colors.white),
-                          child: Image.network(
-                            widget.user.coverPicture ?? '',
-                            fit: BoxFit.cover,
-                          ),
-                        )
-                      : Container(
-                          height: 170.h,
-                          width: double.infinity,
-                          color: Color(0xFF888686),
-                          child: Center(
-                            child: Text(
-                              'No Cover Photo',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16.sp,
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                // Cover Photo and Top Icons
+                Stack(
+                  children: [
+                    (widget.user.coverPicture != null)
+                        ? Container(
+                            width: double.infinity,
+                            height: 170.h,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                            ),
+                            child: Image.network(
+                              widget.user.coverPicture ?? '',
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : Container(
+                            height: 170.h,
+                            width: double.infinity,
+                            color: Color(0xFF888686),
+                            child: Center(
+                              child: Text(
+                                'No Cover Photo',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16.sp,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                  Positioned.fill(
-                    // top: 10.h,
-                    // left: 20.w,
-                    bottom: 70.h,
-                    child: Padding(
-                      padding: EdgeInsets.all(20.w),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Spacer(),
-                          GestureDetector(
-                            behavior: HitTestBehavior.translucent,
-
-                            onTap: () {
-                              context.push(AppRoutes.profileUpdate);
-                            },
-                            child: Image.asset(
-                              'assets/images/general/edit_icon.png',
-                              width: 24.w,
-                              height: 24.h,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (widget.user.userRole == 'admin')
                     Positioned.fill(
-                      top: 125.h,
-                      left: MediaQuery.of(context).size.width - 160.w,
-                      // bottom: 100.h,
-                      child: Image.asset(
-                        "assets/images/general/super_admin_frame.png",
-                        height: 26.h,
+                      // top: 10.h,
+                      // left: 20.w,
+                      bottom: 70.h,
+                      child: Padding(
+                        padding: EdgeInsets.all(20.w),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Spacer(),
+                            GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+
+                              onTap: () {
+                                context.push(AppRoutes.profileUpdate);
+                              },
+                              child: Image.asset(
+                                'assets/images/general/edit_icon.png',
+                                width: 24.w,
+                                height: 24.h,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                ],
-              ),
-
-              // Content section with padding for overlapping profile picture
-              Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.centerLeft,
-                    colors: [Color(0xFFD7CAFE), Color(0xFFFFFFFF)],
-                  ),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.only(top: 50.h, left: 20.w, right: 20.w),
-                  child: Column(
-                    children: [
-                      // Space and layout for profile picture with user info
-                      SizedBox(height: 36.h),
-
-                      // Profile info section - positioned next to profile picture
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Space for the overlapping profile picture
-                          // SizedBox(width: 110.w),
-
-                          // User information positioned to the right of profile
-                          Expanded(child: _buildTagsWidgetRow()),
-                        ],
+                    if (widget.user.userRole == 'admin')
+                      Positioned.fill(
+                        top: 125.h,
+                        left: MediaQuery.of(context).size.width - 160.w,
+                        // bottom: 100.h,
+                        child: Image.asset(
+                          "assets/images/general/super_admin_frame.png",
+                          height: 26.h,
+                        ),
                       ),
+                  ],
+                ),
 
-                      SizedBox(height: 20.h),
+                // Content section with padding for overlapping profile picture
+                Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.centerLeft,
+                      colors: [Color(0xFFD7CAFE), Color(0xFFFFFFFF)],
+                    ),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      top: 50.h,
+                      left: 20.w,
+                      right: 20.w,
+                    ),
+                    child: Column(
+                      children: [
+                        // Space and layout for profile picture with user info
+                        SizedBox(height: 36.h),
 
-                      // Friends/Followers/Following
-                      _buildSocialStats(),
+                        // Profile info section - positioned next to profile picture
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Space for the overlapping profile picture
+                            // SizedBox(width: 110.w),
 
-                      SizedBox(height: 20.h),
+                            // User information positioned to the right of profile
+                            Expanded(child: _buildTagsWidgetRow()),
+                          ],
+                        ),
 
-                      // Stats Row (Gold and Diamonds)
-                      _buildStatsRow(),
+                        SizedBox(height: 20.h),
 
-                      SizedBox(height: 10.h),
+                        // Friends/Followers/Following
+                        _buildSocialStats(),
 
-                      // Profile Card Section
-                      _buildProfileCard(),
-                      SizedBox(height: 20.h),
+                        SizedBox(height: 20.h),
 
-                      // Feature Icons Grid
-                      _buildFeatureGrid(context),
+                        // Stats Row (Gold and Diamonds)
+                        _buildStatsRow(),
 
-                      SizedBox(height: 20.h),
+                        SizedBox(height: 10.h),
 
-                      // Reels and Posts Section
-                      _buildReelsAndPostsSection(context),
-                    ],
+                        // Profile Card Section
+                        _buildProfileCard(),
+                        SizedBox(height: 20.h),
+
+                        // Feature Icons Grid
+                        _buildFeatureGrid(context),
+
+                        SizedBox(height: 20.h),
+
+                        // Reels and Posts Section
+                        _buildReelsAndPostsSection(context),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
 
-          // Overlapping Profile Picture
-          Positioned(
-            top: 120.h, // Position to overlap cover photo and content
-            left: 25.w, // Left position closer to left edge
-            child: _buildOverlappingProfilePicture(),
-          ),
-          //Build Overlaping UserInformation
-          Positioned(
-            top: 160.h, // Position to overlap cover photo and content
-            left: 140.w, // Left position closer to left edge
-            child: _buildOverlapingUserInformation(),
-          ),
-        ],
+            // Overlapping Profile Picture
+            Positioned(
+              top: 120.h, // Position to overlap cover photo and content
+              left: 25.w, // Left position closer to left edge
+              child: _buildOverlappingProfilePicture(),
+            ),
+            //Build Overlaping UserInformation
+            Positioned(
+              top: 160.h, // Position to overlap cover photo and content
+              left: 140.w, // Left position closer to left edge
+              child: _buildOverlapingUserInformation(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1258,9 +1304,10 @@ class _ProfileContentState extends State<_ProfileContent> {
     final TextEditingController phoneController = TextEditingController();
     String selectedAccountType = 'bkash';
     bool isLoading = false;
+    final actualAmount = widget.user.stats?.diamonds ?? 0;
 
-    // Set max amount from user's diamonds
-    final maxAmount = widget.user.stats?.diamonds ?? 0;
+    // Calculate max amount (diamonds + bonus)
+    final maxAmount = (widget.user.stats?.diamonds ?? 0) + withdrawBonus;
     amountController.text = maxAmount.toString();
 
     showDialog(
@@ -1299,7 +1346,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                   children: [
                     // Amount Field
                     Text(
-                      'Amount (Max: ${AppUtils.formatNumber(maxAmount)})',
+                      'Amount ${AppUtils.formatNumber(actualAmount)} + ${AppUtils.formatNumber(withdrawBonus)} Bonus \n=(Max: ${AppUtils.formatNumber(maxAmount)})',
                       style: TextStyle(
                         fontSize: 14.sp,
                         fontWeight: FontWeight.w500,
