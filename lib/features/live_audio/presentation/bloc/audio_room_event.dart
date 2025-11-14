@@ -26,7 +26,8 @@ class DisconnectFromSocket extends AudioRoomEvent {}
 /// Reset Bloc to initial state
 class ResetBlocState extends AudioRoomEvent {}
 
-/// Room Management Events
+/// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Room Management Events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+/// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Room Management Events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 class CreateRoomEvent extends AudioRoomEvent {
   final String roomId; // User's ID becomes the room ID
   final String? roomTitle; // Optional room title
@@ -83,7 +84,8 @@ class GetRoomDetailsEvent extends AudioRoomEvent {
 
 class GetAllRoomsEvent extends AudioRoomEvent {}
 
-/// Seat Management Events
+/// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Seat Management Events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+/// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Seat Management Events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 class JoinSeatEvent extends AudioRoomEvent {
   final String roomId;
   final String seatKey;
@@ -128,7 +130,7 @@ class MuteUserFromSeatEvent extends AudioRoomEvent {
   List<Object?> get props => [roomId, seatKey, targetId];
 }
 
-/// Chat Events
+/// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Chat Events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 class SendMessageEvent extends AudioRoomEvent {
   final String roomId;
   final String message;
@@ -139,36 +141,35 @@ class SendMessageEvent extends AudioRoomEvent {
   List<Object?> get props => [roomId, message];
 }
 
-/// User Management Events
+/// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ User Management Events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 class BanUserEvent extends AudioRoomEvent {
-  final String userId;
+  final String targetUserId;
 
-  const BanUserEvent({required this.userId});
-
-  @override
-  List<Object?> get props => [userId];
-}
-
-class UnbanUserEvent extends AudioRoomEvent {
-  final String userId;
-
-  const UnbanUserEvent({required this.userId});
+  const BanUserEvent({required this.targetUserId});
 
   @override
-  List<Object?> get props => [userId];
+  List<Object?> get props => [targetUserId];
 }
+
+// class UnbanUserEvent extends AudioRoomEvent {
+//   final String userId;
+
+//   const UnbanUserEvent({required this.userId});
+
+//   @override
+//   List<Object?> get props => [userId];
+// }
 
 class MuteUnmuteUserEvent extends AudioRoomEvent {
-  final String userId;
+  final String targetUserId;
 
-  const MuteUnmuteUserEvent({required this.userId});
+  const MuteUnmuteUserEvent({required this.targetUserId});
 
   @override
-  List<Object?> get props => [userId];
+  List<Object?> get props => [targetUserId];
 }
 
-/// Agora/Stream Events
-
+/// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Agora Stream Events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 class UpdateBroadcasterStatusEvent extends AudioRoomEvent {
   final bool isBroadcaster;
 
@@ -180,7 +181,7 @@ class UpdateBroadcasterStatusEvent extends AudioRoomEvent {
 
 class EndLiveStreamEvent extends AudioRoomEvent {}
 
-/// UI Events
+/// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ UI Events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 class PlayAnimationEvent extends AudioRoomEvent {
   final GiftModel giftDetails;
 
@@ -194,7 +195,7 @@ class AnimationCompletedEvent extends AudioRoomEvent {
   const AnimationCompletedEvent();
 }
 
-/// Error Handling
+/// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Error Handling @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 class HandleSocketErrorEvent extends AudioRoomEvent {
   final Map<String, dynamic> error;
 
@@ -204,7 +205,10 @@ class HandleSocketErrorEvent extends AudioRoomEvent {
   List<Object?> get props => [error];
 }
 
-/// Socket Stream Events
+/// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Socket Stream Events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+/// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Socket Stream Events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+/// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Socket Stream Events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 class UpdateConnectionStatusEvent extends AudioRoomEvent {
   final bool isConnected;
 
@@ -237,12 +241,12 @@ class NewMessageReceivedEvent extends AudioRoomEvent {
 }
 
 class UserBannedEvent extends AudioRoomEvent {
-  final String targetId;
+  final List<String> targetIdList;
 
-  const UserBannedEvent({required this.targetId});
+  const UserBannedEvent({required this.targetIdList});
 
   @override
-  List<Object?> get props => [targetId];
+  List<Object?> get props => [targetIdList];
 }
 
 class UserMutedEvent extends AudioRoomEvent {
@@ -272,7 +276,10 @@ class UserJoinedEvent extends AudioRoomEvent {
   List<Object?> get props => [member];
 }
 
-/// Helper method events
+/// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Helper method events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+/// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Helper method events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+/// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Helper method events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 class UpdateListenersEvent extends AudioRoomEvent {
   final String userId;
 
@@ -299,22 +306,4 @@ class SeatLeftEvent extends AudioRoomEvent {
 
   @override
   List<Object?> get props => [seatKey];
-}
-
-class UpdateBannedUsersEvent extends AudioRoomEvent {
-  final String targetId;
-
-  const UpdateBannedUsersEvent({required this.targetId});
-
-  @override
-  List<Object?> get props => [targetId];
-}
-
-class UpdateStreamTimeEvent extends AudioRoomEvent {
-  final DateTime startTime;
-
-  const UpdateStreamTimeEvent({required this.startTime});
-
-  @override
-  List<Object?> get props => [startTime];
 }

@@ -1,17 +1,27 @@
 import 'package:dlstarlive/features/live_audio/data/models/audio_member_model.dart';
+import 'package:dlstarlive/features/live_audio/presentation/bloc/audio_room_bloc.dart';
+import 'package:dlstarlive/features/live_audio/presentation/bloc/audio_room_event.dart';
 import 'package:dlstarlive/features/profile/presentation/widgets/user_profile_bottom_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-
 
 class ListenersListPage extends StatefulWidget {
   final List<AudioMember> listeners;
   final String? hostUserId;
   final String? hostName;
   final String? hostAvatar;
+  final bool isHost;
 
-  const ListenersListPage({super.key, required this.listeners, this.hostUserId, this.hostName, this.hostAvatar});
+  const ListenersListPage({
+    super.key,
+    required this.listeners,
+    this.hostUserId,
+    this.hostName,
+    this.hostAvatar,
+    required this.isHost,
+  });
 
   @override
   State<ListenersListPage> createState() => _ListenersListPageState();
@@ -260,7 +270,60 @@ class _ListenersListPageState extends State<ListenersListPage> {
                   context: context,
                   isScrollControlled: true,
                   backgroundColor: Colors.transparent,
-                  builder: (context) => UserProfileBottomSheet(userId: listener.id ?? ''),
+                  builder: (context) => UserProfileBottomSheet(
+                    userId: listener.id ?? '',
+                    onManageButton: !widget.isHost
+                        ? null
+                        : PopupMenuButton(
+                            // icon: const Icon(Icons.more_vert),
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 8.0, bottom: .0, left: 16.0, right: 16.0),
+                              child: Text(
+                                "Manage",
+                                style: TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(value: 'Kick Out', child: Text('Kick Out')),
+                              const PopupMenuItem(value: 'Add to Block List', child: Text('Add to Block List')),
+                              const PopupMenuItem(value: 'Report', child: Text('Report')),
+                            ],
+                            onSelected: (value) {
+                              if (value == 'Kick Out') {
+                                // Handle manage action
+                                context.read<AudioRoomBloc>().add(BanUserEvent(targetUserId: listener.id!));
+                                // pop bottom sheet
+                                Navigator.pop(context);
+                                Navigator.pop(context);
+                                // show snackbar
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('User has been kicked out from this room'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              } else if (value == 'Add to Block List') {
+                                // Handle report action
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Add to block list functionality not implemented yet'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              } else if (value == 'Report') {
+                                // Handle report action
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Report functionality not implemented yet'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                  ),
                 );
               },
               child: Column(
@@ -312,12 +375,7 @@ class _ListenersListPageState extends State<ListenersListPage> {
                             child: Row(
                               children: [
                                 (listener.currentTag != null)
-                                    ? Image.network(
-                                        listener.currentTag!,
-                                        fit: BoxFit.fill,
-                                        height: 20.h,
-                                        width: 20.w,
-                                      )
+                                    ? Image.network(listener.currentTag!, fit: BoxFit.fill, height: 20.h, width: 20.w)
                                     : SizedBox(width: 20.w),
                                 SizedBox(width: 4.w),
                                 Text(

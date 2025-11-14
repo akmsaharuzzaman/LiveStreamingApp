@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:dlstarlive/core/constants/app_constants.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -52,16 +53,13 @@ class _SeatWidgetState extends State<SeatWidget> {
   void _uiLog(String message) {
     const cyan = '\x1B[36m';
     const reset = '\x1B[0m';
-    debugPrint('\n$cyan[AUDIO_ROOM] : SeatWidget - $reset $message\n');
+    if (kDebugMode) debugPrint('\n$cyan[AUDIO_ROOM] : SeatWidget - $reset $message\n');
   }
 
-  _showErrorMessage(String message) {
+  ScaffoldMessengerState? _scaffoldMessenger;
+  void _showErrorMessage(String message) {
     _scaffoldMessenger?.showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: Duration(seconds: 2),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), duration: Duration(seconds: 2), backgroundColor: Colors.red),
     );
   }
 
@@ -81,8 +79,6 @@ class _SeatWidgetState extends State<SeatWidget> {
       _initializeSeats();
     }
   }
-
-  ScaffoldMessengerState? _scaffoldMessenger;
 
   @override
   void didChangeDependencies() {
@@ -191,7 +187,16 @@ class _SeatWidgetState extends State<SeatWidget> {
                     _showErrorMessage("Seat lock functionality not implemented");
                   },
                 ),
-              if (seat.userId != null)
+              if (seat.userId != null) ...[
+                if (seat.isMuted == false)
+                  ListTile(
+                    leading: Icon(Icons.mic_off),
+                    title: Text("Mute User"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onMuteUserFromSeat?.call(seat.id, seat.userId!);
+                    },
+                  ),
                 ListTile(
                   leading: Icon(Icons.settings),
                   title: Text("Remove from seat"),
@@ -200,15 +205,7 @@ class _SeatWidgetState extends State<SeatWidget> {
                     widget.onRemoveUserFromSeat?.call(seat.id, seat.userId!);
                   },
                 ),
-              if (seat.userId != null && seat.isMuted == false)
-                ListTile(
-                  leading: Icon(Icons.mic_off),
-                  title: Text("Mute User"),
-                  onTap: () {
-                    Navigator.pop(context);
-                    widget.onMuteUserFromSeat?.call(seat.id, seat.userId!);
-                  },
-                ),
+              ],
             ],
           ),
         );

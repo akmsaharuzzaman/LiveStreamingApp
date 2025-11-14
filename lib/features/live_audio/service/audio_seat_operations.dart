@@ -9,8 +9,12 @@ import 'socket_constants.dart';
 class AudioSocketSeatOperations {
   late socket_io.Socket socket;
   final StreamController<Map<String, dynamic>> errorController;
-
   AudioSocketSeatOperations(this.errorController);
+
+  /// joinSeat
+  /// leaveSeat
+  /// removeFromSeat
+  /// muteUserFromSeat
 
   void setSocket(socket_io.Socket socket) {
     this.socket = socket;
@@ -19,10 +23,7 @@ class AudioSocketSeatOperations {
   void _log(String message) {
     const yellow = '\x1B[33m';
     const reset = '\x1B[0m';
-
-    if (kDebugMode) {
-      debugPrint('\n$yellow[AUDIO_ROOM] : Seat - $reset $message\n');
-    }
+    if (kDebugMode) debugPrint('\n$yellow[AUDIO_ROOM] : Seat - $reset $message\n');
   }
 
   /// Join a specific seat in audio room
