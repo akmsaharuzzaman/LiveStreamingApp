@@ -1,5 +1,17 @@
 import 'package:dlstarlive/core/utils/app_utils.dart';
 
+extension SeatModelExtensions on SeatModel {
+  bool isActiveSpeaker({required int? activeSpeakerUID, required int? currentUserUID}) {
+    return activeSpeakerUID != null &&
+        isMuted == false &&
+        (activeSpeakerUID == userUID || (activeSpeakerUID == 0 && userUID == currentUserUID));
+    // final isActiveSpeaker =
+    //     (widget.activeSpeakerUID != null && seat.isMuted == false) &&
+    //     (widget.activeSpeakerUID == seat.userUID ||
+    //         (widget.activeSpeakerUID == 0 && seat.userUID == widget.currentUserUID));
+  }
+}
+
 class SeatModel {
   final String id;
   final String? name;

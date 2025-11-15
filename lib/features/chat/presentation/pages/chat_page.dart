@@ -29,12 +29,12 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
     // context.read<ChatBloc>().add(const StartAutoRefreshEvent());
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Save reference to ChatBloc while widget tree is stable
-    _chatBloc = context.read<ChatBloc>();
-  }
+  // @override
+  // void didChangeDependencies() {
+  //   super.didChangeDependencies();
+  //   // Save reference to ChatBloc while widget tree is stable
+  //   _chatBloc = context.read<ChatBloc>();
+  // }
 
   void _refreshConversations() {
     // Only refresh if we're not already loading

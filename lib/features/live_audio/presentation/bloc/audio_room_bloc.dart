@@ -613,6 +613,8 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
 
   // Handle active speaker updates
   void _onUpdateActiveSpeaker(UpdateActiveSpeakerEvent event, Emitter<AudioRoomState> emit) {
+    // debugPrint("\n\n Active speaker updated: ${event.activeSpeakerUID}");
+    // debugPrint("State: $state\n\n");
     if (state is AudioRoomLoaded) {
       final currentState = state as AudioRoomLoaded;
       emit(currentState.copyWith(

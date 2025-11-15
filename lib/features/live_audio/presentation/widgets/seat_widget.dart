@@ -380,7 +380,8 @@ class _SeatWidgetState extends State<SeatWidget> {
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
         children: [
-          Text(widget.currentUserUID.toString(), style: TextStyle(color: Colors.white)),
+          // Text(widget.currentUserUID.toString(), style: TextStyle(color: Colors.white)),
+          // Text(widget.activeSpeakerUID.toString(), style: TextStyle(color: Colors.white)),
           // Top row: Host + Special seat (always 2 seats)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -412,10 +413,14 @@ class _SeatWidgetState extends State<SeatWidget> {
   }
 
   Widget _buildHostSeat(SeatModel hostSeatData) {
-    final isActiveSpeaker =
-        widget.activeSpeakerUID != null &&
-        (widget.activeSpeakerUID == hostSeatData.userUID ||
-            (widget.activeSpeakerUID == 0 && hostSeatData.userUID == widget.currentUserUID));
+    // final isActiveSpeaker =
+    //     (widget.activeSpeakerUID != null && hostSeatData.isMuted == false) &&
+    //     (widget.activeSpeakerUID == hostSeatData.userUID ||
+    //         (widget.activeSpeakerUID == 0 && hostSeatData.userUID == widget.currentUserUID));
+    final isActiveSpeaker = hostSeatData.isActiveSpeaker(
+      activeSpeakerUID: widget.activeSpeakerUID,
+      currentUserUID: widget.currentUserUID,
+    );
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -468,11 +473,11 @@ class _SeatWidgetState extends State<SeatWidget> {
             ),
 
             // Crown badge for all occupied seats
-            if (hostSeatData.name != null)
-              Positioned(
-                top: -25,
-                child: Image.asset("assets/icons/audio_room/crown_badge.png", width: 120.w, height: 120.h),
-              ),
+            // if (hostSeatData.name != null)
+            //   Positioned(
+            //     top: -25,
+            //     child: Image.asset("assets/icons/audio_room/crown_badge.png", width: 120.w, height: 120.h),
+            //   ),
 
             // Microphone icon if seat is not muted
             if (hostSeatData.isMuted == false)
@@ -512,8 +517,8 @@ class _SeatWidgetState extends State<SeatWidget> {
 
         // User name or seat number
         Text(
-          // hostSeatData.name ?? "Host Seat",
-          hostSeatData.userUID.toString(),
+          hostSeatData.name ?? "Host Seat",
+          // hostSeatData.userUID.toString(),
           style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w500),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -524,10 +529,14 @@ class _SeatWidgetState extends State<SeatWidget> {
   }
 
   Widget _buildPremiumSeat(SeatModel premiumSeatData) {
-    final isActiveSpeaker =
-        widget.activeSpeakerUID != null &&
-        (premiumSeatData.userUID == widget.activeSpeakerUID ||
-            (widget.activeSpeakerUID == 0 && premiumSeatData.userUID == widget.currentUserUID));
+    // final isActiveSpeaker =
+    //     (widget.activeSpeakerUID != null && premiumSeatData.isMuted == false) &&
+    //     (premiumSeatData.userUID == widget.activeSpeakerUID ||
+    //         (widget.activeSpeakerUID == 0 && premiumSeatData.userUID == widget.currentUserUID));
+    final isActiveSpeaker = premiumSeatData.isActiveSpeaker(
+      activeSpeakerUID: widget.activeSpeakerUID,
+      currentUserUID: widget.currentUserUID,
+    );
     return InkWell(
       onTap: () {
         _uiLog("\n\n\n Selected premium seat");
@@ -595,25 +604,25 @@ class _SeatWidgetState extends State<SeatWidget> {
               ),
 
               // Crown badge for all occupied seats
-              if (premiumSeatData.name != null)
-                Positioned(
-                  top: -25,
-                  child: Image.asset(
-                    "assets/icons/audio_room/crown_badge.png",
-                    width: 110.w,
-                    height: 110.h,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 110.w,
-                        height: 110.h,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.orange, width: 3),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+              // if (premiumSeatData.name != null)
+              //   Positioned(
+              //     top: -25,
+              //     child: Image.asset(
+              //       "assets/icons/audio_room/crown_badge.png",
+              //       width: 110.w,
+              //       height: 110.h,
+              //       errorBuilder: (context, error, stackTrace) {
+              //         return Container(
+              //           width: 110.w,
+              //           height: 110.h,
+              //           decoration: BoxDecoration(
+              //             shape: BoxShape.circle,
+              //             border: Border.all(color: Colors.orange, width: 3),
+              //           ),
+              //         );
+              //       },
+              //     ),
+              //   ),
 
               // Microphone icon if seat is occupied
               if (premiumSeatData.name != null)
@@ -650,10 +659,14 @@ class _SeatWidgetState extends State<SeatWidget> {
   }
 
   Widget _buildSeatItem(SeatModel seat, int index) {
-    final isActiveSpeaker =
-        widget.activeSpeakerUID != null &&
-        (widget.activeSpeakerUID == seat.userUID ||
-            (widget.activeSpeakerUID == 0 && seat.userUID == widget.currentUserUID));
+    // final isActiveSpeaker =
+    //     (widget.activeSpeakerUID != null && seat.isMuted == false) &&
+    //     (widget.activeSpeakerUID == seat.userUID ||
+    //         (widget.activeSpeakerUID == 0 && seat.userUID == widget.currentUserUID));
+    final isActiveSpeaker = seat.isActiveSpeaker(
+      activeSpeakerUID: widget.activeSpeakerUID,
+      currentUserUID: widget.currentUserUID,
+    );
     return GestureDetector(
       onTap: () {
         _uiLog("\n\n\n Selected seat index: $index");
@@ -732,11 +745,11 @@ class _SeatWidgetState extends State<SeatWidget> {
               ),
 
               // Crown badge for all occupied seats
-              if (seat.name != null)
-                Positioned(
-                  top: -25,
-                  child: Image.asset("assets/icons/audio_room/crown_badge.png", width: 120.w, height: 120.h),
-                ),
+              // if (seat.name != null)
+              //   Positioned(
+              //     top: -25,
+              //     child: Image.asset("assets/icons/audio_room/crown_badge.png", width: 120.w, height: 120.h),
+              //   ),
 
               // Microphone icon if seat is occupied
               if (seat.userId != null) ...[
@@ -782,8 +795,8 @@ class _SeatWidgetState extends State<SeatWidget> {
 
           // User name or seat number
           Text(
-            // seat.name ?? "Seat ${index + 1}",
-            seat.userUID.toString(),
+            seat.name ?? "Seat ${index + 1}",
+            // seat.userUID.toString(),
             style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w500),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
