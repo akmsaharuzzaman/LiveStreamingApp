@@ -186,6 +186,9 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   // Chat messages
   final List<ChatModel> _chatMessages = [];
 
+  // ✅ Track previous viewers for detecting disconnects
+  List<JoinedUserModel> _previousViewers = [];
+
   @override
   void initState() {
     super.initState();
@@ -195,6 +198,16 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     extractRoomId();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUidAndDispatchEvent();
+      // Initialize _previousViewers after first build to track future changes
+      Future.delayed(Duration(milliseconds: 100), () {
+        final liveStreamState = context.read<LiveStreamBloc>().state;
+        if (liveStreamState is LiveStreamStreaming) {
+          _previousViewers = List.from(liveStreamState.viewers);
+          debugPrint(
+            "📊 [INIT] Initial viewers snapshot: ${_previousViewers.map((v) => v.name).toList()}",
+          );
+        }
+      });
     });
   }
 
@@ -1042,6 +1055,40 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                   debugPrint('❌ Error applying microphone state: $error');
                 }
               }
+            }
+          },
+        ),
+        // ✅ Listen for viewer changes and remove disconnected users from call list
+        BlocListener<LiveStreamBloc, LiveStreamState>(
+          listenWhen: (previous, current) {
+            // Only listen when in streaming state
+            if (previous is LiveStreamStreaming &&
+                current is LiveStreamStreaming) {
+              // Trigger when viewers list changes
+              return previous.viewers != current.viewers;
+            }
+            return false;
+          },
+          listener: (context, state) {
+            if (state is LiveStreamStreaming) {
+              // Find viewers that were in _previousViewers but not in current state.viewers
+              for (var oldViewer in _previousViewers) {
+                bool stillExists = state.viewers.any(
+                  (v) => v.id == oldViewer.id,
+                );
+                if (!stillExists) {
+                  // This user left - remove from call requests
+                  debugPrint(
+                    "🚪 [DISCONNECT] Viewer ${oldViewer.name} (${oldViewer.id}) left stream - removing from all calls",
+                  );
+                  context.read<CallRequestBloc>().add(
+                    UserDisconnected(oldViewer.id),
+                  );
+                }
+              }
+
+              // Update _previousViewers to current viewers
+              _previousViewers = List.from(state.viewers);
             }
           },
         ),

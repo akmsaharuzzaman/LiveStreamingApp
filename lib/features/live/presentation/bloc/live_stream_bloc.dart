@@ -291,7 +291,23 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
       final viewers = List<JoinedUserModel>.from(currentState.viewers);
+
+      // Find the viewer being removed for logging
+      final removedViewer = viewers.firstWhere(
+        (v) => v.id == event.userId,
+        orElse: () => JoinedUserModel(
+          id: event.userId,
+          name: 'Unknown',
+          avatar: '',
+          uid: '0',
+        ),
+      );
+
       viewers.removeWhere((v) => v.id == event.userId);
+
+      debugPrint(
+        "👋 [USER LEFT] ${removedViewer.name} (${event.userId}) removed from viewers (${viewers.length} remaining)",
+      );
 
       emit(currentState.copyWith(viewers: viewers));
     }

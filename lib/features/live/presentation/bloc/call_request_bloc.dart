@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import '../../data/repositories/call_request_repository.dart';
@@ -31,6 +32,9 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
     on<LoadInitialBroadcasters>(_onLoadInitialBroadcasters);
     on<ClearCallRequests>(_onClearRequests);
     on<ResolvePendingRequest>(_onResolvePendingRequest);
+    on<UserDisconnected>(
+      _onUserDisconnected,
+    ); // ✅ Handle user disconnect from stream
 
     // Setup stream listeners
     _setupListeners();
@@ -43,10 +47,12 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
     // Don't add duplicates
     if (!_pendingRequests.any((r) => r.userId == event.request.userId)) {
       _pendingRequests.add(event.request);
-      emit(CallRequestLoaded(
-        pendingRequests: List.from(_pendingRequests),
-        activeBroadcasters: List.from(_activeBroadcasters),
-      ));
+      emit(
+        CallRequestLoaded(
+          pendingRequests: List.from(_pendingRequests),
+          activeBroadcasters: List.from(_activeBroadcasters),
+        ),
+      );
     }
   }
 
@@ -56,10 +62,12 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
   ) {
     _pendingRequests.clear();
     _pendingRequests.addAll(event.requests);
-    emit(CallRequestLoaded(
-      pendingRequests: List.from(_pendingRequests),
-      activeBroadcasters: List.from(_activeBroadcasters),
-    ));
+    emit(
+      CallRequestLoaded(
+        pendingRequests: List.from(_pendingRequests),
+        activeBroadcasters: List.from(_activeBroadcasters),
+      ),
+    );
   }
 
   Future<void> _onAcceptRequest(
@@ -77,28 +85,34 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
       result.fold(
         (failure) {
           emit(CallRequestError(failure.message));
-          emit(CallRequestLoaded(
-            pendingRequests: List.from(_pendingRequests),
-            activeBroadcasters: List.from(_activeBroadcasters),
-          ));
+          emit(
+            CallRequestLoaded(
+              pendingRequests: List.from(_pendingRequests),
+              activeBroadcasters: List.from(_activeBroadcasters),
+            ),
+          );
         },
         (_) {
           // Remove from pending
           _pendingRequests.removeWhere((r) => r.userId == event.userId);
-          
+
           emit(CallRequestAccepted(event.userId));
-          emit(CallRequestLoaded(
-            pendingRequests: List.from(_pendingRequests),
-            activeBroadcasters: List.from(_activeBroadcasters),
-          ));
+          emit(
+            CallRequestLoaded(
+              pendingRequests: List.from(_pendingRequests),
+              activeBroadcasters: List.from(_activeBroadcasters),
+            ),
+          );
         },
       );
     } catch (e) {
       emit(CallRequestError('Failed to accept request: $e'));
-      emit(CallRequestLoaded(
-        pendingRequests: List.from(_pendingRequests),
-        activeBroadcasters: List.from(_activeBroadcasters),
-      ));
+      emit(
+        CallRequestLoaded(
+          pendingRequests: List.from(_pendingRequests),
+          activeBroadcasters: List.from(_activeBroadcasters),
+        ),
+      );
     }
   }
 
@@ -117,28 +131,34 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
       result.fold(
         (failure) {
           emit(CallRequestError(failure.message));
-          emit(CallRequestLoaded(
-            pendingRequests: List.from(_pendingRequests),
-            activeBroadcasters: List.from(_activeBroadcasters),
-          ));
+          emit(
+            CallRequestLoaded(
+              pendingRequests: List.from(_pendingRequests),
+              activeBroadcasters: List.from(_activeBroadcasters),
+            ),
+          );
         },
         (_) {
           // Remove from pending
           _pendingRequests.removeWhere((r) => r.userId == event.userId);
-          
+
           emit(CallRequestRejected(event.userId));
-          emit(CallRequestLoaded(
-            pendingRequests: List.from(_pendingRequests),
-            activeBroadcasters: List.from(_activeBroadcasters),
-          ));
+          emit(
+            CallRequestLoaded(
+              pendingRequests: List.from(_pendingRequests),
+              activeBroadcasters: List.from(_activeBroadcasters),
+            ),
+          );
         },
       );
     } catch (e) {
       emit(CallRequestError('Failed to reject request: $e'));
-      emit(CallRequestLoaded(
-        pendingRequests: List.from(_pendingRequests),
-        activeBroadcasters: List.from(_activeBroadcasters),
-      ));
+      emit(
+        CallRequestLoaded(
+          pendingRequests: List.from(_pendingRequests),
+          activeBroadcasters: List.from(_activeBroadcasters),
+        ),
+      );
     }
   }
 
@@ -157,28 +177,34 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
       result.fold(
         (failure) {
           emit(CallRequestError(failure.message));
-          emit(CallRequestLoaded(
-            pendingRequests: List.from(_pendingRequests),
-            activeBroadcasters: List.from(_activeBroadcasters),
-          ));
+          emit(
+            CallRequestLoaded(
+              pendingRequests: List.from(_pendingRequests),
+              activeBroadcasters: List.from(_activeBroadcasters),
+            ),
+          );
         },
         (_) {
           // Remove from active broadcasters
           _activeBroadcasters.removeWhere((b) => b.id == event.userId);
-          
+
           emit(BroadcasterRemoved(event.userId));
-          emit(CallRequestLoaded(
-            pendingRequests: List.from(_pendingRequests),
-            activeBroadcasters: List.from(_activeBroadcasters),
-          ));
+          emit(
+            CallRequestLoaded(
+              pendingRequests: List.from(_pendingRequests),
+              activeBroadcasters: List.from(_activeBroadcasters),
+            ),
+          );
         },
       );
     } catch (e) {
       emit(CallRequestError('Failed to remove broadcaster: $e'));
-      emit(CallRequestLoaded(
-        pendingRequests: List.from(_pendingRequests),
-        activeBroadcasters: List.from(_activeBroadcasters),
-      ));
+      emit(
+        CallRequestLoaded(
+          pendingRequests: List.from(_pendingRequests),
+          activeBroadcasters: List.from(_activeBroadcasters),
+        ),
+      );
     }
   }
 
@@ -189,46 +215,49 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
     try {
       emit(const CallRequestProcessing());
 
-      final result = await _repository.joinCallRequest(
-        roomId: event.roomId,
-      );
+      final result = await _repository.joinCallRequest(roomId: event.roomId);
 
       result.fold(
         (failure) {
           emit(CallRequestError(failure.message));
-          emit(CallRequestLoaded(
-            pendingRequests: List.from(_pendingRequests),
-            activeBroadcasters: List.from(_activeBroadcasters),
-          ));
+          emit(
+            CallRequestLoaded(
+              pendingRequests: List.from(_pendingRequests),
+              activeBroadcasters: List.from(_activeBroadcasters),
+            ),
+          );
         },
         (_) {
           emit(CallRequestJoinSubmitted(event.roomId));
-          emit(CallRequestLoaded(
-            pendingRequests: List.from(_pendingRequests),
-            activeBroadcasters: List.from(_activeBroadcasters),
-          ));
+          emit(
+            CallRequestLoaded(
+              pendingRequests: List.from(_pendingRequests),
+              activeBroadcasters: List.from(_activeBroadcasters),
+            ),
+          );
         },
       );
     } catch (e) {
       emit(CallRequestError('Failed to submit call request: $e'));
-      emit(CallRequestLoaded(
-        pendingRequests: List.from(_pendingRequests),
-        activeBroadcasters: List.from(_activeBroadcasters),
-      ));
+      emit(
+        CallRequestLoaded(
+          pendingRequests: List.from(_pendingRequests),
+          activeBroadcasters: List.from(_activeBroadcasters),
+        ),
+      );
     }
   }
 
-  void _onAddBroadcaster(
-    AddBroadcaster event,
-    Emitter<CallRequestState> emit,
-  ) {
+  void _onAddBroadcaster(AddBroadcaster event, Emitter<CallRequestState> emit) {
     // Don't add duplicates
     if (!_activeBroadcasters.any((b) => b.id == event.broadcaster.id)) {
       _activeBroadcasters.add(event.broadcaster);
-      emit(CallRequestLoaded(
-        pendingRequests: List.from(_pendingRequests),
-        activeBroadcasters: List.from(_activeBroadcasters),
-      ));
+      emit(
+        CallRequestLoaded(
+          pendingRequests: List.from(_pendingRequests),
+          activeBroadcasters: List.from(_activeBroadcasters),
+        ),
+      );
     }
   }
 
@@ -238,10 +267,12 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
   ) {
     _activeBroadcasters.clear();
     _activeBroadcasters.addAll(event.broadcasters);
-    emit(CallRequestLoaded(
-      pendingRequests: List.from(_pendingRequests),
-      activeBroadcasters: List.from(_activeBroadcasters),
-    ));
+    emit(
+      CallRequestLoaded(
+        pendingRequests: List.from(_pendingRequests),
+        activeBroadcasters: List.from(_activeBroadcasters),
+      ),
+    );
   }
 
   void _onClearRequests(
@@ -261,10 +292,45 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
     _pendingRequests.removeWhere((request) => request.userId == event.userId);
 
     if (_pendingRequests.length != originalLength) {
-      emit(CallRequestLoaded(
-        pendingRequests: List.from(_pendingRequests),
-        activeBroadcasters: List.from(_activeBroadcasters),
-      ));
+      emit(
+        CallRequestLoaded(
+          pendingRequests: List.from(_pendingRequests),
+          activeBroadcasters: List.from(_activeBroadcasters),
+        ),
+      );
+    }
+  }
+
+  /// ✅ Handle user disconnect - remove from both pending requests and active broadcasters
+  /// Called when userLeftStream fires (user disconnected from stream)
+  void _onUserDisconnected(
+    UserDisconnected event,
+    Emitter<CallRequestState> emit,
+  ) {
+    bool wasPending = false;
+    bool wasActive = false;
+
+    // Remove from pending call requests
+    final initialPendingLength = _pendingRequests.length;
+    _pendingRequests.removeWhere((r) => r.userId == event.userId);
+    wasPending = _pendingRequests.length != initialPendingLength;
+
+    // Remove from active broadcasters in call
+    final initialBroadcasterLength = _activeBroadcasters.length;
+    _activeBroadcasters.removeWhere((b) => b.id == event.userId);
+    wasActive = _activeBroadcasters.length != initialBroadcasterLength;
+
+    // Only emit state if something actually changed
+    if (wasPending || wasActive) {
+      debugPrint(
+        "🚪 [CALL REQUEST] User ${event.userId} disconnected (was pending: $wasPending, was active: $wasActive)",
+      );
+      emit(
+        CallRequestLoaded(
+          pendingRequests: List.from(_pendingRequests),
+          activeBroadcasters: List.from(_activeBroadcasters),
+        ),
+      );
     }
   }
 
@@ -289,13 +355,14 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
           roomId: '', // Will be set by the UI
         );
       }).toList();
-      
+
       add(LoadCallRequestList(requests));
     });
 
     // Listen for active broadcasters
-    _broadcastersSubscription =
-        _repository.broadcasterListStream.listen((broadcasters) {
+    _broadcastersSubscription = _repository.broadcasterListStream.listen((
+      broadcasters,
+    ) {
       add(LoadInitialBroadcasters(broadcasters));
     });
   }
