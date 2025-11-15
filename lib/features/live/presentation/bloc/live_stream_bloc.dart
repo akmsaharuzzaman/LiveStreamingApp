@@ -17,6 +17,7 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   StreamSubscription? _userJoinedSubscription;
   StreamSubscription? _userLeftSubscription;
   StreamSubscription? _bannedUserSubscription;
+  StreamSubscription? _sentMessageSubscription;
 
   List<JoinedUserModel>? _initialViewersBuffer;
 
@@ -522,6 +523,14 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     _bannedUserSubscription = _socketService.bannedUserStream.listen((data) {
       add(UserBannedNotification(userId: data.targetId, message: data.message));
     });
+
+    // ✅ Listen for incoming messages from socket
+    // Messages are handled by ChatBloc, not LiveStreamBloc
+    // ChatBloc already subscribes to sentMessageStream
+    _sentMessageSubscription = _socketService.sentMessageStream.listen((data) {
+      debugPrint("💬 Message received from socket: ${data.text}");
+      // Message is broadcast to ChatBloc via socket subscription there
+    });
   }
 
   void _startDurationTimer(int initialDurationSeconds) {
@@ -550,6 +559,7 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     _userJoinedSubscription?.cancel();
     _userLeftSubscription?.cancel();
     _bannedUserSubscription?.cancel();
+    _sentMessageSubscription?.cancel();
     return super.close();
   }
 }

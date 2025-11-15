@@ -74,17 +74,17 @@ class LiveStreamStreaming extends LiveStreamState {
 
   @override
   List<Object?> get props => [
-        roomId,
-        isHost,
-        userId,
-        viewers,
-        duration,
-        isCameraEnabled,
-        isMicEnabled,
-        totalBonusDiamonds,
-        bannedUsers,
-        lastBonusMilestone,
-      ];
+    roomId,
+    isHost,
+    userId,
+    viewers,
+    duration,
+    isCameraEnabled,
+    isMicEnabled,
+    totalBonusDiamonds,
+    bannedUsers,
+    lastBonusMilestone,
+  ];
 }
 
 /// Stream ended state
@@ -102,7 +102,12 @@ class LiveStreamEnded extends LiveStreamState {
   });
 
   @override
-  List<Object?> get props => [roomId, totalDuration, earnedDiamonds, totalViewers];
+  List<Object?> get props => [
+    roomId,
+    totalDuration,
+    earnedDiamonds,
+    totalViewers,
+  ];
 }
 
 /// Error state
