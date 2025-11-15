@@ -18,6 +18,7 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   StreamSubscription? _userLeftSubscription;
   StreamSubscription? _bannedUserSubscription;
   StreamSubscription? _sentMessageSubscription;
+  StreamSubscription? _sentGiftSubscription; // ✅ Gift socket subscription
 
   List<JoinedUserModel>? _initialViewersBuffer;
 
@@ -45,6 +46,7 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     on<UserBannedNotification>(_onUserBannedNotification);
     on<UpdateActiveRoom>(_onUpdateActiveRoom);
     on<SeedInitialViewers>(_onSeedInitialViewers);
+    on<GiftReceived>(_onGiftReceived);
   }
 
   Future<void> _onInitialize(
@@ -504,6 +506,42 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     _initialViewersBuffer = buffer;
   }
 
+  /// Handle gift received - update viewer diamonds
+  /// ✅ Mirrors backup.dart pattern: gift received → update viewer diamonds in state
+  void _onGiftReceived(GiftReceived event, Emitter<LiveStreamState> emit) {
+    final currentState = state;
+    if (currentState is LiveStreamStreaming) {
+      final gift = event.gift;
+
+      debugPrint("🎁 Gift received: ${gift.gift.name}");
+      debugPrint("💰 Diamond amount: ${gift.diamonds}");
+      debugPrint("🎯 Receiver IDs: ${gift.recieverIds}");
+
+      // Update viewers list with new diamond amounts for each receiver
+      final updatedViewers = <JoinedUserModel>[];
+
+      for (var viewer in currentState.viewers) {
+        if (gift.recieverIds.contains(viewer.id)) {
+          // This viewer received the gift - add diamonds
+          final updatedViewer = viewer.copyWith(
+            diamonds: viewer.diamonds + gift.diamonds,
+          );
+          updatedViewers.add(updatedViewer);
+          debugPrint(
+            "💎 Updated ${viewer.name}: ${viewer.diamonds} → ${updatedViewer.diamonds} diamonds",
+          );
+        } else {
+          // This viewer didn't receive the gift - keep as is
+          updatedViewers.add(viewer);
+        }
+      }
+
+      // Emit updated state with new viewer diamonds
+      emit(currentState.copyWith(viewers: updatedViewers));
+      debugPrint("📊 Viewers updated with gift diamonds");
+    }
+  }
+
   void _setupSocketListeners() {
     _userJoinedSubscription = _socketService.userJoinedStream.listen((data) {
       add(
@@ -530,6 +568,15 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     _sentMessageSubscription = _socketService.sentMessageStream.listen((data) {
       debugPrint("💬 Message received from socket: ${data.text}");
       // Message is broadcast to ChatBloc via socket subscription there
+    });
+
+    // ✅ Listen for gifts sent to viewers - updates their diamond amounts
+    _sentGiftSubscription = _socketService.sentGiftStream.listen((data) {
+      debugPrint(
+        "🎁 Gift from socket: ${data.gift.name} (${data.diamonds} diamonds)",
+      );
+      debugPrint("🎯 Receivers: ${data.recieverIds}");
+      add(GiftReceived(data));
     });
   }
 
@@ -560,6 +607,7 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     _userLeftSubscription?.cancel();
     _bannedUserSubscription?.cancel();
     _sentMessageSubscription?.cancel();
+    _sentGiftSubscription?.cancel(); // ✅ Clean up gift subscription
     return super.close();
   }
 }
