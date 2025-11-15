@@ -17,11 +17,13 @@ class ChatInitial extends ChatState {
 /// Chat loaded with messages
 class ChatLoaded extends ChatState {
   final List<ChatModel> messages;
+  final int _timestamp; // ✅ Add timestamp to force state change detection
 
-  const ChatLoaded(this.messages);
+  ChatLoaded(this.messages, {int? timestamp})
+    : _timestamp = timestamp ?? DateTime.now().millisecondsSinceEpoch;
 
   @override
-  List<Object?> get props => [messages];
+  List<Object?> get props => [_timestamp]; // ✅ Use timestamp for equality
 }
 
 /// Sending message
