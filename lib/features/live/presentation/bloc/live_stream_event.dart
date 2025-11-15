@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../../core/network/models/joined_user_model.dart';
+import '../../../../core/network/models/gift_model.dart';
 import '../../../../core/network/socket_service.dart';
 
 /// Events for LiveStream feature
@@ -182,4 +183,14 @@ class SeedInitialViewers extends LiveStreamEvent {
 
   @override
   List<Object?> get props => [viewers];
+}
+
+/// Gift received from socket - update viewer diamonds
+class GiftReceived extends LiveStreamEvent {
+  final GiftModel gift;
+
+  const GiftReceived(this.gift);
+
+  @override
+  List<Object?> get props => [gift];
 }

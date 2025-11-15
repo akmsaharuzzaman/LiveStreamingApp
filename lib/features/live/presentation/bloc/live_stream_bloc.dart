@@ -17,6 +17,8 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   StreamSubscription? _userJoinedSubscription;
   StreamSubscription? _userLeftSubscription;
   StreamSubscription? _bannedUserSubscription;
+  StreamSubscription? _sentMessageSubscription;
+  StreamSubscription? _sentGiftSubscription; // ✅ Gift socket subscription
 
   List<JoinedUserModel>? _initialViewersBuffer;
 
@@ -44,6 +46,7 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     on<UserBannedNotification>(_onUserBannedNotification);
     on<UpdateActiveRoom>(_onUpdateActiveRoom);
     on<SeedInitialViewers>(_onSeedInitialViewers);
+    on<GiftReceived>(_onGiftReceived);
   }
 
   Future<void> _onInitialize(
@@ -160,18 +163,60 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   ) async {
     try {
       final currentState = state;
-      debugPrint(' \n \n Current state: $currentState \n \n');
       if (currentState is LiveStreamStreaming) {
-        debugPrint(' \n \n Current state: $currentState \n \n');
-        debugPrint(' \n \n Current state isHost: ${currentState.isHost} \n \n');
         // Stop timer
         _durationTimer?.cancel();
 
+        // Call daily bonus API on stream end for hosts
+        if (currentState.isHost) {
+          final totalMinutes = currentState.duration.inMinutes;
+
+          final bonusResult = await _repository.callDailyBonus(
+            totalMinutes: totalMinutes,
+            type: 'video',
+          );
+
+          bonusResult.fold(
+            (failure) {
+              debugPrint('❌ Final bonus API call failed: ${failure.message}');
+            },
+            (bonusDiamonds) {
+              if (bonusDiamonds > 0) {
+                debugPrint('💎 Final bonus earned: $bonusDiamonds diamonds');
+                // Update total bonus diamonds before ending
+                emit(
+                  currentState.copyWith(
+                    totalBonusDiamonds:
+                        currentState.totalBonusDiamonds + bonusDiamonds,
+                  ),
+                );
+              }
+            },
+          );
+        }
+
         // Delete room (host only)
-        // if (currentState.isHost) {
-          debugPrint(' \n \n Deleting room: ${currentState.roomId} \n \n');
-          await _repository.deleteRoom(currentState.roomId);
-        // }
+        if (currentState.isHost) {
+          final deleteResult = await _repository.deleteRoom(
+            currentState.roomId,
+          );
+          deleteResult.fold(
+            (failure) => emit(
+              LiveStreamError('Failed to end stream: ${failure.message}'),
+            ),
+            (_) {
+              emit(
+                LiveStreamEnded(
+                  roomId: currentState.roomId,
+                  totalDuration: currentState.duration,
+                  earnedDiamonds: currentState.totalBonusDiamonds,
+                  totalViewers: currentState.viewers.length,
+                ),
+              );
+            },
+          );
+          return;
+        }
 
         emit(
           LiveStreamEnded(
@@ -246,7 +291,23 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
       final viewers = List<JoinedUserModel>.from(currentState.viewers);
+
+      // Find the viewer being removed for logging
+      final removedViewer = viewers.firstWhere(
+        (v) => v.id == event.userId,
+        orElse: () => JoinedUserModel(
+          id: event.userId,
+          name: 'Unknown',
+          avatar: '',
+          uid: '0',
+        ),
+      );
+
       viewers.removeWhere((v) => v.id == event.userId);
+
+      debugPrint(
+        "👋 [USER LEFT] ${removedViewer.name} (${event.userId}) removed from viewers (${viewers.length} remaining)",
+      );
 
       emit(currentState.copyWith(viewers: viewers));
     }
@@ -287,15 +348,26 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   ) async {
     // Prevent multiple simultaneous API calls (except for stream end)
     if (!event.isStreamEnd && _isCallingBonusAPI) {
+      debugPrint("⏳ Bonus API call already in progress, skipping...");
       return;
     }
 
     try {
       final currentState = state;
       if (currentState is LiveStreamStreaming && currentState.isHost) {
-        _isCallingBonusAPI = true;
+        if (!event.isStreamEnd) {
+          _isCallingBonusAPI = true;
+          debugPrint("🔒 Setting bonus API flag to prevent duplicate calls");
+        }
 
         final totalMinutes = currentState.duration.inMinutes;
+        final currentMilestone = event.isStreamEnd
+            ? totalMinutes
+            : (totalMinutes ~/ 50) * 50;
+
+        debugPrint(
+          "🏆 Calling daily bonus API for $totalMinutes minutes of streaming ${event.isStreamEnd ? '(final call)' : '(milestone: ${currentMilestone}m)'}",
+        );
 
         final result = await _repository.callDailyBonus(
           totalMinutes: totalMinutes,
@@ -304,22 +376,45 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
 
         result.fold(
           (failure) {
-            // Silent fail for bonus
+            debugPrint("❌ Daily bonus API call failed: ${failure.message}");
+            // Update milestone even on error to prevent continuous retries
+            if (!event.isStreamEnd) {
+              emit(currentState.copyWith(lastBonusMilestone: currentMilestone));
+            }
           },
           (bonusDiamonds) {
+            debugPrint("✅ Daily bonus API call successful");
+
             if (bonusDiamonds > 0) {
+              debugPrint("💎 Received daily bonus: $bonusDiamonds diamonds");
               emit(
                 currentState.copyWith(
                   totalBonusDiamonds:
                       currentState.totalBonusDiamonds + bonusDiamonds,
+                  lastBonusMilestone: event.isStreamEnd
+                      ? currentState.lastBonusMilestone
+                      : currentMilestone,
                 ),
               );
+              debugPrint(
+                "💰 Total bonus diamonds now: ${currentState.totalBonusDiamonds + bonusDiamonds}",
+              );
+            } else {
+              // Update milestone even when no bonus received
+              if (!event.isStreamEnd) {
+                emit(
+                  currentState.copyWith(lastBonusMilestone: currentMilestone),
+                );
+              }
             }
           },
         );
       }
     } finally {
-      _isCallingBonusAPI = false;
+      if (!event.isStreamEnd) {
+        _isCallingBonusAPI = false;
+        debugPrint("🔓 Resetting bonus API flag");
+      }
     }
   }
 
@@ -427,6 +522,42 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     _initialViewersBuffer = buffer;
   }
 
+  /// Handle gift received - update viewer diamonds
+  /// ✅ Mirrors backup.dart pattern: gift received → update viewer diamonds in state
+  void _onGiftReceived(GiftReceived event, Emitter<LiveStreamState> emit) {
+    final currentState = state;
+    if (currentState is LiveStreamStreaming) {
+      final gift = event.gift;
+
+      debugPrint("🎁 Gift received: ${gift.gift.name}");
+      debugPrint("💰 Diamond amount: ${gift.diamonds}");
+      debugPrint("🎯 Receiver IDs: ${gift.recieverIds}");
+
+      // Update viewers list with new diamond amounts for each receiver
+      final updatedViewers = <JoinedUserModel>[];
+
+      for (var viewer in currentState.viewers) {
+        if (gift.recieverIds.contains(viewer.id)) {
+          // This viewer received the gift - add diamonds
+          final updatedViewer = viewer.copyWith(
+            diamonds: viewer.diamonds + gift.diamonds,
+          );
+          updatedViewers.add(updatedViewer);
+          debugPrint(
+            "💎 Updated ${viewer.name}: ${viewer.diamonds} → ${updatedViewer.diamonds} diamonds",
+          );
+        } else {
+          // This viewer didn't receive the gift - keep as is
+          updatedViewers.add(viewer);
+        }
+      }
+
+      // Emit updated state with new viewer diamonds
+      emit(currentState.copyWith(viewers: updatedViewers));
+      debugPrint("📊 Viewers updated with gift diamonds");
+    }
+  }
+
   void _setupSocketListeners() {
     _userJoinedSubscription = _socketService.userJoinedStream.listen((data) {
       add(
@@ -445,6 +576,23 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
 
     _bannedUserSubscription = _socketService.bannedUserStream.listen((data) {
       add(UserBannedNotification(userId: data.targetId, message: data.message));
+    });
+
+    // ✅ Listen for incoming messages from socket
+    // Messages are handled by ChatBloc, not LiveStreamBloc
+    // ChatBloc already subscribes to sentMessageStream
+    _sentMessageSubscription = _socketService.sentMessageStream.listen((data) {
+      debugPrint("💬 Message received from socket: ${data.text}");
+      // Message is broadcast to ChatBloc via socket subscription there
+    });
+
+    // ✅ Listen for gifts sent to viewers - updates their diamond amounts
+    _sentGiftSubscription = _socketService.sentGiftStream.listen((data) {
+      debugPrint(
+        "🎁 Gift from socket: ${data.gift.name} (${data.diamonds} diamonds)",
+      );
+      debugPrint("🎯 Receivers: ${data.recieverIds}");
+      add(GiftReceived(data));
     });
   }
 
@@ -474,6 +622,8 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     _userJoinedSubscription?.cancel();
     _userLeftSubscription?.cancel();
     _bannedUserSubscription?.cancel();
+    _sentMessageSubscription?.cancel();
+    _sentGiftSubscription?.cancel(); // ✅ Clean up gift subscription
     return super.close();
   }
 }

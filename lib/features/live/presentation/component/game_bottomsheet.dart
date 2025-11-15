@@ -1,8 +1,11 @@
 import 'package:dlstarlive/features/live/presentation/component/local_game_config.dart';
 import 'package:dlstarlive/features/live/presentation/component/local_game_manager.dart';
 import 'package:dlstarlive/features/live/presentation/pages/local_game_page.dart';
+import 'package:dlstarlive/features/live/presentation/bloc/live_stream_bloc.dart';
+import 'package:dlstarlive/features/live/presentation/bloc/live_stream_state.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 void showGameBottomSheet(
@@ -15,8 +18,9 @@ void showGameBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
-    builder: (context) {
+    builder: (modalContext) {
       return GameBottomSheet(
+        parentContext: context,
         userId: userId,
         isHost: isHost,
         streamDuration: streamDuration ?? Duration.zero,
@@ -26,12 +30,14 @@ void showGameBottomSheet(
 }
 
 class GameBottomSheet extends StatefulWidget {
+  final BuildContext? parentContext;
   final String? userId;
   final bool isHost;
   final Duration streamDuration;
 
   const GameBottomSheet({
     super.key,
+    this.parentContext,
     this.userId,
     required this.isHost,
     required this.streamDuration,
@@ -117,29 +123,56 @@ class _GameBottomSheetState extends State<GameBottomSheet> {
                   ),
                 ),
 
-                // Stream Duration and Game Status
-                Container(
-                  margin: EdgeInsets.symmetric(vertical: 16.h),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 8.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2A2A3E),
-                    borderRadius: BorderRadius.all(Radius.circular(10.r)),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Stream Duration: ${_formatDuration(widget.streamDuration)}',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
+                // ✅ Stream Duration - Real-time update from LiveStreamBloc
+                // ✅ Safe access using parent context that has the provider
+                Builder(
+                  builder: (builderContext) {
+                    // Try to get bloc from parent context, fallback to current context
+                    final bloc = widget.parentContext != null
+                        ? widget.parentContext!.read<LiveStreamBloc>()
+                        : builderContext.read<LiveStreamBloc>();
+
+                    return BlocBuilder<LiveStreamBloc, LiveStreamState>(
+                      bloc: bloc,
+                      builder: (context, state) {
+                        Duration currentDuration = widget.streamDuration;
+
+                        // Get real-time duration from LiveStreamBloc if available
+                        if (state is LiveStreamStreaming) {
+                          currentDuration = state.duration;
+                          debugPrint(
+                            "⏱️ [GAME SHEET] Duration updated: ${_formatDuration(currentDuration)}",
+                          );
+                        }
+
+                        return Container(
+                          margin: EdgeInsets.symmetric(vertical: 16.h),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 8.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2A2A3E),
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(10.r),
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                'Stream Duration: ${_formatDuration(currentDuration)}',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
                 SizedBox(height: 8.h),
 

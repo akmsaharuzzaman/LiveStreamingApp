@@ -35,10 +35,7 @@ class AcceptCallRequest extends CallRequestEvent {
   final String userId;
   final String roomId;
 
-  const AcceptCallRequest({
-    required this.userId,
-    required this.roomId,
-  });
+  const AcceptCallRequest({required this.userId, required this.roomId});
 
   @override
   List<Object?> get props => [userId, roomId];
@@ -49,10 +46,7 @@ class RejectCallRequest extends CallRequestEvent {
   final String userId;
   final String roomId;
 
-  const RejectCallRequest({
-    required this.userId,
-    required this.roomId,
-  });
+  const RejectCallRequest({required this.userId, required this.roomId});
 
   @override
   List<Object?> get props => [userId, roomId];
@@ -63,10 +57,7 @@ class RemoveBroadcaster extends CallRequestEvent {
   final String userId;
   final String roomId;
 
-  const RemoveBroadcaster({
-    required this.userId,
-    required this.roomId,
-  });
+  const RemoveBroadcaster({required this.userId, required this.roomId});
 
   @override
   List<Object?> get props => [userId, roomId];
@@ -112,6 +103,16 @@ class ResolvePendingRequest extends CallRequestEvent {
   final String userId;
 
   const ResolvePendingRequest(this.userId);
+
+  @override
+  List<Object?> get props => [userId];
+}
+
+/// User disconnected from stream - remove from all call-related lists
+class UserDisconnected extends CallRequestEvent {
+  final String userId;
+
+  const UserDisconnected(this.userId);
 
   @override
   List<Object?> get props => [userId];
