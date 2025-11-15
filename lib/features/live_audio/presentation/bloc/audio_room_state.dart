@@ -43,7 +43,7 @@ class AudioRoomLoaded extends AudioRoomState {
   final bool isAudioCaller;
   final List<int> audioCallerUids;
   final bool isBroadcaster;
-  final String? activeSpeakerUserId;
+  final int? activeSpeakerUID;
   // Animation
   final bool playAnimation;
   final GiftModel? giftDetails;
@@ -63,7 +63,7 @@ class AudioRoomLoaded extends AudioRoomState {
     this.playAnimation = false,
     this.giftDetails,
     this.isBroadcaster = false,
-    this.activeSpeakerUserId,
+    this.activeSpeakerUID,
   });
 
   AudioRoomLoaded copyWith({
@@ -83,7 +83,7 @@ class AudioRoomLoaded extends AudioRoomState {
     bool? playAnimation,
     GiftModel? giftDetails,
     bool? isBroadcaster,
-    String? activeSpeakerUserId,
+    int? activeSpeakerUID,
     bool clearActiveSpeaker = false,
   }) {
     return AudioRoomLoaded(
@@ -101,7 +101,7 @@ class AudioRoomLoaded extends AudioRoomState {
       playAnimation: playAnimation ?? this.playAnimation,
       giftDetails: giftDetails ?? this.giftDetails,
       isBroadcaster: isBroadcaster ?? this.isBroadcaster,
-      activeSpeakerUserId: clearActiveSpeaker ? null : (activeSpeakerUserId ?? this.activeSpeakerUserId),
+      activeSpeakerUID: clearActiveSpeaker ? null : (activeSpeakerUID ?? this.activeSpeakerUID),
     );
   }
 
@@ -121,7 +121,7 @@ class AudioRoomLoaded extends AudioRoomState {
     playAnimation,
     giftDetails,
     isBroadcaster,
-    activeSpeakerUserId,
+    activeSpeakerUID,
   ];
 }
 

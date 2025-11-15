@@ -347,7 +347,7 @@ class AudioRoomCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'ID: ${audioRoomModel.hostDetails.uid?.substring(0, 6) ?? 'Unknown ID'}',
+                          'ID: ${audioRoomModel.hostDetails.uid?.toString().substring(0, 6) ?? 'Unknown ID'}',
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.black,

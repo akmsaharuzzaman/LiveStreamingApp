@@ -78,7 +78,7 @@ class AudioRoomDetails {
           hostDetails = AudioMember(
             name: 'Host',
             avatar: '',
-            uid: '',
+            uid: 0,
             id: '',
             currentLevel: 0,
             equipedStoreItems: null,

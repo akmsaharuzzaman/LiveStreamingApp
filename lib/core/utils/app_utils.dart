@@ -24,9 +24,7 @@ class AppUtils {
 
   static bool isValidPassword(String password) {
     // At least 8 characters, 1 uppercase, 1 lowercase, 1 number
-    return RegExp(
-      r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$',
-    ).hasMatch(password);
+    return RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$').hasMatch(password);
   }
 
   // UI utilities
@@ -36,13 +34,9 @@ class AppUtils {
     Color? backgroundColor,
     Duration duration = const Duration(seconds: 3),
   }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: backgroundColor,
-        duration: duration,
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: backgroundColor, duration: duration));
   }
 
   static Future<bool?> showConfirmDialog(
@@ -58,14 +52,8 @@ class AppUtils {
         title: Text(title),
         content: Text(content),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(cancelText),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(confirmText),
-          ),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(cancelText)),
+          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: Text(confirmText)),
         ],
       ),
     );
@@ -91,8 +79,7 @@ class AppUtils {
     if (number >= 1000000) {
       formatted = '${(number / 1000000).toStringAsFixed(2)}M';
     } else if (number >= 1000) {
-      formatted =
-          '${(number / 1000).toStringAsFixed(number % 1000 >= 100 ? 2 : 0)}K';
+      formatted = '${(number / 1000).toStringAsFixed(number % 1000 >= 100 ? 2 : 0)}K';
     } else {
       formatted = number.toStringAsFixed(0);
     }
@@ -103,5 +90,15 @@ class AppUtils {
     }
 
     return formatted;
+  }
+
+  static int? getIntFromUid(String? uid) {
+    if (uid == null) return null;
+    // Take what fits in 64-bit int (max 19 digits but last digit limited)
+    String numericPart = uid.replaceAll(RegExp(r'[^0-9]'), '');
+    if (numericPart.length > 10) {
+      numericPart = numericPart.substring(0, 10); // 3827043126
+    }
+    return int.parse(numericPart);
   }
 }
