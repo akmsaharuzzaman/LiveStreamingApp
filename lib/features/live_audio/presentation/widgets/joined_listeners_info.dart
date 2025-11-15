@@ -6,13 +6,14 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'listeners_list_page.dart';
 
-class JoindListenersPage extends StatelessWidget {
+class JoinedListenersInfo extends StatelessWidget {
   final List<AudioMember> activeUserList;
   final String? hostUserId;
   final String? hostName;
   final String? hostAvatar;
+  final bool isHost;
 
-  const JoindListenersPage({super.key, required this.activeUserList, this.hostUserId, this.hostName, this.hostAvatar});
+  const JoinedListenersInfo({super.key, required this.activeUserList, this.hostUserId, this.hostName, this.hostAvatar, required this.isHost});
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +84,7 @@ class JoindListenersPage extends StatelessWidget {
                       hostUserId: hostUserId,
                       hostName: hostName,
                       hostAvatar: hostAvatar,
+                      isHost: isHost,
                     ),
                   ),
                 );

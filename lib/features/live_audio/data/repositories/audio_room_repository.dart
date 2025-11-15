@@ -32,8 +32,8 @@ class AudioRoomRepository {
   Stream<AudioChatModel> get sendMessageStream => _socketService.sendMessageStream;
   // User management streams
   Stream<dynamic> get muteUnmuteUserStream => _socketService.muteUnmuteUserStream;
-  Stream<dynamic> get banUserStream => _socketService.banUserStream;
-  Stream<dynamic> get unbanUserStream => _socketService.unbanUserStream;
+  Stream<List<String>> get banUserStream => _socketService.banUserStream;
+  // Stream<dynamic> get unbanUserStream => _socketService.unbanUserStream;
   // Host bonus stream
   Stream<int> get updateHostBonusStream => _socketService.updateHostBonusStream;
   // Sent audio gifts stream
@@ -79,9 +79,9 @@ class AudioRoomRepository {
   Future<bool> sendMessage(String roomId, String message) => _socketService.sendMessage(roomId, message);
 
   /// User operations
-  Future<bool> banUser(String userId) => _socketService.banUser(userId);
-  Future<bool> unbanUser(String userId) => _socketService.unbanUser(userId);
-  Future<bool> muteUnmuteUser(String userId) => _socketService.muteUnmuteUser(userId);
+  Future<bool> banUser(String targetUserId) => _socketService.banUser(targetUserId);
+  // Future<bool> unbanUser(String userId) => _socketService.unbanUser(userId);
+  Future<bool> muteUnmuteUser(String targetUserId) => _socketService.muteUnmuteUser(targetUserId);
 
   /// Dispose all subscriptions
   void dispose() {

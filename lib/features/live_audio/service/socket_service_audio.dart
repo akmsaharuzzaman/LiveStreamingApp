@@ -3,7 +3,6 @@ import 'package:dlstarlive/core/network/models/gift_model.dart';
 import 'package:dlstarlive/features/live_audio/data/models/audio_member_model.dart';
 import 'package:injectable/injectable.dart';
 
-import '../../../core/network/models/ban_user_model.dart';
 import '../../../core/network/models/mute_user_model.dart';
 import '../data/models/audio_room_details.dart';
 import '../data/models/chat_model.dart';
@@ -53,8 +52,6 @@ class AudioSocketService {
     // Initialize other operation classes
     _seatOperations = AudioSocketSeatOperations(_errorController);
     _userOperations = AudioSocketUserOperations(_errorController, () => _connectionManager.currentRoomId);
-    // Setup listeners after all components are initialized
-    // _eventHandler.setupListeners(); // Moved to connect method
   }
 
   /// Stream getters for listening to events
@@ -77,8 +74,7 @@ class AudioSocketService {
   Stream<Map<String, dynamic>> get errorMessageStream => _eventListeners.errorMessageStream;
   // User events
   Stream<MuteUserModel> get muteUnmuteUserStream => _eventListeners.muteUnmuteUserStream;
-  Stream<BanUserModel> get banUserStream => _eventListeners.banUserStream;
-  Stream<BanUserModel> get unbanUserStream => _eventListeners.unbanUserStream;
+  Stream<List<String>> get banUserStream => _eventListeners.banUserStream;
   // Host bonus events
   Stream<int> get updateHostBonusStream => _eventListeners.updateHostBonusStream;
   // Sent audio gifts events
@@ -178,11 +174,9 @@ class AudioSocketService {
       _seatOperations.muteUserFromSeat(roomId: roomId, seatKey: seatKey, targetId: targetId);
 
   /// User operations
-  Future<bool> banUser(String userId) => _userOperations.banUser(userId);
+  Future<bool> banUser(String targetUserId) => _userOperations.banUser(targetUserId);
 
-  Future<bool> unbanUser(String userId) => _userOperations.unbanUser(userId);
-
-  Future<bool> muteUnmuteUser(String userId) => _userOperations.muteUnmuteUser(userId);
+  Future<bool> muteUnmuteUser(String targetUserId) => _userOperations.muteUnmuteUser(targetUserId);
 
   /// Send custom event
   void emit(String event, [dynamic data]) {

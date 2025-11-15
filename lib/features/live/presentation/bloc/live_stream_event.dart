@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../../core/network/models/joined_user_model.dart';
+import '../../../../core/network/models/gift_model.dart';
 import '../../../../core/network/socket_service.dart';
 
 /// Events for LiveStream feature
@@ -15,15 +16,22 @@ class InitializeLiveStream extends LiveStreamEvent {
   final String? roomId;
   final String? hostUserId;
   final bool isHost;
+  final int? initialDurationSeconds; // ✅ Initial duration from existing room
 
   const InitializeLiveStream({
     this.roomId,
     this.hostUserId,
     required this.isHost,
+    this.initialDurationSeconds,
   });
 
   @override
-  List<Object?> get props => [roomId, hostUserId, isHost];
+  List<Object?> get props => [
+    roomId,
+    hostUserId,
+    isHost,
+    initialDurationSeconds,
+  ];
 }
 
 /// Create a new room (host)
@@ -141,10 +149,7 @@ class UserBannedNotification extends LiveStreamEvent {
   final String userId;
   final String message;
 
-  const UserBannedNotification({
-    required this.userId,
-    required this.message,
-  });
+  const UserBannedNotification({required this.userId, required this.message});
 
   @override
   List<Object?> get props => [userId, message];
@@ -178,4 +183,14 @@ class SeedInitialViewers extends LiveStreamEvent {
 
   @override
   List<Object?> get props => [viewers];
+}
+
+/// Gift received from socket - update viewer diamonds
+class GiftReceived extends LiveStreamEvent {
+  final GiftModel gift;
+
+  const GiftReceived(this.gift);
+
+  @override
+  List<Object?> get props => [gift];
 }

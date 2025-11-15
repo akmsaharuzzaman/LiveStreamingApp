@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import '../../data/repositories/live_stream_repository.dart';
@@ -16,20 +17,20 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   StreamSubscription? _userJoinedSubscription;
   StreamSubscription? _userLeftSubscription;
   StreamSubscription? _bannedUserSubscription;
+  StreamSubscription? _sentMessageSubscription;
+  StreamSubscription? _sentGiftSubscription; // ✅ Gift socket subscription
 
   List<JoinedUserModel>? _initialViewersBuffer;
 
   // Timer for duration updates
   Timer? _durationTimer;
   DateTime? _streamStartTime;
-  
+
   // Flag to prevent multiple bonus API calls
   bool _isCallingBonusAPI = false;
 
-  LiveStreamBloc(
-    this._repository,
-    this._socketService,
-  ) : super(const LiveStreamInitial()) {
+  LiveStreamBloc(this._repository, this._socketService)
+    : super(const LiveStreamInitial()) {
     on<InitializeLiveStream>(_onInitialize);
     on<CreateRoom>(_onCreateRoom);
     on<JoinRoom>(_onJoinRoom);
@@ -45,6 +46,7 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     on<UserBannedNotification>(_onUserBannedNotification);
     on<UpdateActiveRoom>(_onUpdateActiveRoom);
     on<SeedInitialViewers>(_onSeedInitialViewers);
+    on<GiftReceived>(_onGiftReceived);
   }
 
   Future<void> _onInitialize(
@@ -57,30 +59,40 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
       // Setup socket listeners
       _setupSocketListeners();
 
-      // Start duration timer
-      _startDurationTimer();
+      // ✅ Start duration timer with initial duration from room data
+      // If joining existing room, use the elapsed time; if host, start from 0
+      _startDurationTimer(event.initialDurationSeconds ?? 0);
 
-      emit(LiveStreamStreaming(
-        roomId: event.roomId ?? '',
-        isHost: event.isHost,
-        userId: event.hostUserId ?? '',
-      ));
+      emit(
+        LiveStreamStreaming(
+          roomId: event.roomId ?? '',
+          isHost: event.isHost,
+          userId: event.hostUserId ?? '',
+          duration: Duration(seconds: event.initialDurationSeconds ?? 0),
+        ),
+      );
 
       if (_initialViewersBuffer != null && _initialViewersBuffer!.isNotEmpty) {
         final currentState = state;
         if (currentState is LiveStreamStreaming) {
-          final existingIds = currentState.viewers.map((viewer) => viewer.id).toSet();
+          final existingIds = currentState.viewers
+              .map((viewer) => viewer.id)
+              .toSet();
           final additions = _initialViewersBuffer!
-              .where((viewer) =>
-                  viewer.id != currentState.userId &&
-                  !existingIds.contains(viewer.id))
+              .where(
+                (viewer) =>
+                    viewer.id != currentState.userId &&
+                    !existingIds.contains(viewer.id),
+              )
               .toList();
 
           if (additions.isNotEmpty) {
-            emit(currentState.copyWith(
-              viewers: List<JoinedUserModel>.from(currentState.viewers)
-                ..addAll(additions),
-            ));
+            emit(
+              currentState.copyWith(
+                viewers: List<JoinedUserModel>.from(currentState.viewers)
+                  ..addAll(additions),
+              ),
+            );
           }
         }
         _initialViewersBuffer = null;
@@ -101,13 +113,10 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
         roomType: event.roomType,
       );
 
-      result.fold(
-        (failure) => emit(LiveStreamError(failure.message)),
-        (_) {
-          // Room created successfully
-          // The actual room ID will come from socket response
-        },
-      );
+      result.fold((failure) => emit(LiveStreamError(failure.message)), (_) {
+        // Room created successfully
+        // The actual room ID will come from socket response
+      });
     } catch (e) {
       emit(LiveStreamError('Failed to create room: $e'));
     }
@@ -123,12 +132,9 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
         userId: event.userId,
       );
 
-      result.fold(
-        (failure) => emit(LiveStreamError(failure.message)),
-        (_) {
-          // Joined successfully
-        },
-      );
+      result.fold((failure) => emit(LiveStreamError(failure.message)), (_) {
+        // Joined successfully
+      });
     } catch (e) {
       emit(LiveStreamError('Failed to join room: $e'));
     }
@@ -161,17 +167,65 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
         // Stop timer
         _durationTimer?.cancel();
 
-        // Delete room (host only)
+        // Call daily bonus API on stream end for hosts
         if (currentState.isHost) {
-          await _repository.deleteRoom(currentState.roomId);
+          final totalMinutes = currentState.duration.inMinutes;
+
+          final bonusResult = await _repository.callDailyBonus(
+            totalMinutes: totalMinutes,
+            type: 'video',
+          );
+
+          bonusResult.fold(
+            (failure) {
+              debugPrint('❌ Final bonus API call failed: ${failure.message}');
+            },
+            (bonusDiamonds) {
+              if (bonusDiamonds > 0) {
+                debugPrint('💎 Final bonus earned: $bonusDiamonds diamonds');
+                // Update total bonus diamonds before ending
+                emit(
+                  currentState.copyWith(
+                    totalBonusDiamonds:
+                        currentState.totalBonusDiamonds + bonusDiamonds,
+                  ),
+                );
+              }
+            },
+          );
         }
 
-        emit(LiveStreamEnded(
-          roomId: currentState.roomId,
-          totalDuration: currentState.duration,
-          earnedDiamonds: currentState.totalBonusDiamonds,
-          totalViewers: currentState.viewers.length,
-        ));
+        // Delete room (host only)
+        if (currentState.isHost) {
+          final deleteResult = await _repository.deleteRoom(
+            currentState.roomId,
+          );
+          deleteResult.fold(
+            (failure) => emit(
+              LiveStreamError('Failed to end stream: ${failure.message}'),
+            ),
+            (_) {
+              emit(
+                LiveStreamEnded(
+                  roomId: currentState.roomId,
+                  totalDuration: currentState.duration,
+                  earnedDiamonds: currentState.totalBonusDiamonds,
+                  totalViewers: currentState.viewers.length,
+                ),
+              );
+            },
+          );
+          return;
+        }
+
+        emit(
+          LiveStreamEnded(
+            roomId: currentState.roomId,
+            totalDuration: currentState.duration,
+            earnedDiamonds: currentState.totalBonusDiamonds,
+            totalViewers: currentState.viewers.length,
+          ),
+        );
       }
     } catch (e) {
       emit(LiveStreamError('Failed to end stream: $e'));
@@ -185,72 +239,93 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
       final newDuration = event.duration;
-      
+
       // Check for bonus milestone (every 50 minutes by default)
       const bonusIntervalMinutes = 50;
-      if (currentState.isHost && newDuration.inMinutes >= bonusIntervalMinutes) {
-        final currentMilestone = (newDuration.inMinutes ~/ bonusIntervalMinutes) * bonusIntervalMinutes;
-        
+      if (currentState.isHost &&
+          newDuration.inMinutes >= bonusIntervalMinutes) {
+        final currentMilestone =
+            (newDuration.inMinutes ~/ bonusIntervalMinutes) *
+            bonusIntervalMinutes;
+
         // Call bonus API if we've reached a new milestone
         if (currentMilestone > currentState.lastBonusMilestone) {
           add(CallDailyBonus(isStreamEnd: false));
-          emit(currentState.copyWith(
-            duration: newDuration,
-            lastBonusMilestone: currentMilestone,
-          ));
+          emit(
+            currentState.copyWith(
+              duration: newDuration,
+              lastBonusMilestone: currentMilestone,
+            ),
+          );
           return;
         }
       }
-      
+
       emit(currentState.copyWith(duration: newDuration));
     }
   }
 
-  void _onUserJoined(
-    UserJoined event,
-    Emitter<LiveStreamState> emit,
-  ) {
+  void _onUserJoined(UserJoined event, Emitter<LiveStreamState> emit) {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
       final viewers = List<JoinedUserModel>.from(currentState.viewers);
-      
+
       // Don't add if already exists
       if (!viewers.any((v) => v.id == event.userId)) {
-        viewers.add(JoinedUserModel(
-          id: event.userId,
-          name: event.userName,
-          avatar: event.avatar ?? '',
-          uid: event.uid ?? '',
-          diamonds: 0,
-        ));
-        
+        viewers.add(
+          JoinedUserModel(
+            id: event.userId,
+            name: event.userName,
+            avatar: event.avatar ?? '',
+            uid: event.uid ?? '',
+            diamonds: 0,
+          ),
+        );
+
         emit(currentState.copyWith(viewers: viewers));
       }
     }
   }
 
-  void _onUserLeft(
-    UserLeft event,
-    Emitter<LiveStreamState> emit,
-  ) {
+  void _onUserLeft(UserLeft event, Emitter<LiveStreamState> emit) {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
       final viewers = List<JoinedUserModel>.from(currentState.viewers);
+
+      // Find the viewer being removed for logging
+      final removedViewer = viewers.firstWhere(
+        (v) => v.id == event.userId,
+        orElse: () => JoinedUserModel(
+          id: event.userId,
+          name: 'Unknown',
+          avatar: '',
+          uid: '0',
+        ),
+      );
+
       viewers.removeWhere((v) => v.id == event.userId);
-      
+
+      debugPrint(
+        "👋 [USER LEFT] ${removedViewer.name} (${event.userId}) removed from viewers (${viewers.length} remaining)",
+      );
+
       emit(currentState.copyWith(viewers: viewers));
     }
   }
 
-  void _onToggleCamera(
-    ToggleCamera event,
-    Emitter<LiveStreamState> emit,
-  ) {
+  void _onToggleCamera(ToggleCamera event, Emitter<LiveStreamState> emit) {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
-      emit(currentState.copyWith(
-        isCameraEnabled: !currentState.isCameraEnabled,
-      ));
+      // ✅ SECURITY: Only hosts can toggle camera
+      // Viewers/audio callers cannot turn on their own camera
+      if (currentState.isHost) {
+        emit(
+          currentState.copyWith(isCameraEnabled: !currentState.isCameraEnabled),
+        );
+      } else {
+        // ⚠️ Non-host attempted to toggle camera - silently ignore
+        // This prevents camera access for viewers/callers
+      }
     }
   }
 
@@ -260,9 +335,10 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   ) {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
-      emit(currentState.copyWith(
-        isMicEnabled: !currentState.isMicEnabled,
-      ));
+      // ✅ SECURITY: Hosts can always toggle microphone
+      // Audio callers can also toggle (already in call)
+      // Viewers cannot toggle microphone
+      emit(currentState.copyWith(isMicEnabled: !currentState.isMicEnabled));
     }
   }
 
@@ -272,16 +348,27 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   ) async {
     // Prevent multiple simultaneous API calls (except for stream end)
     if (!event.isStreamEnd && _isCallingBonusAPI) {
+      debugPrint("⏳ Bonus API call already in progress, skipping...");
       return;
     }
-    
+
     try {
       final currentState = state;
       if (currentState is LiveStreamStreaming && currentState.isHost) {
-        _isCallingBonusAPI = true;
-        
+        if (!event.isStreamEnd) {
+          _isCallingBonusAPI = true;
+          debugPrint("🔒 Setting bonus API flag to prevent duplicate calls");
+        }
+
         final totalMinutes = currentState.duration.inMinutes;
-        
+        final currentMilestone = event.isStreamEnd
+            ? totalMinutes
+            : (totalMinutes ~/ 50) * 50;
+
+        debugPrint(
+          "🏆 Calling daily bonus API for $totalMinutes minutes of streaming ${event.isStreamEnd ? '(final call)' : '(milestone: ${currentMilestone}m)'}",
+        );
+
         final result = await _repository.callDailyBonus(
           totalMinutes: totalMinutes,
           type: 'video',
@@ -289,33 +376,56 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
 
         result.fold(
           (failure) {
-            // Silent fail for bonus
+            debugPrint("❌ Daily bonus API call failed: ${failure.message}");
+            // Update milestone even on error to prevent continuous retries
+            if (!event.isStreamEnd) {
+              emit(currentState.copyWith(lastBonusMilestone: currentMilestone));
+            }
           },
           (bonusDiamonds) {
+            debugPrint("✅ Daily bonus API call successful");
+
             if (bonusDiamonds > 0) {
-              emit(currentState.copyWith(
-                totalBonusDiamonds: currentState.totalBonusDiamonds + bonusDiamonds,
-              ));
+              debugPrint("💎 Received daily bonus: $bonusDiamonds diamonds");
+              emit(
+                currentState.copyWith(
+                  totalBonusDiamonds:
+                      currentState.totalBonusDiamonds + bonusDiamonds,
+                  lastBonusMilestone: event.isStreamEnd
+                      ? currentState.lastBonusMilestone
+                      : currentMilestone,
+                ),
+              );
+              debugPrint(
+                "💰 Total bonus diamonds now: ${currentState.totalBonusDiamonds + bonusDiamonds}",
+              );
+            } else {
+              // Update milestone even when no bonus received
+              if (!event.isStreamEnd) {
+                emit(
+                  currentState.copyWith(lastBonusMilestone: currentMilestone),
+                );
+              }
             }
           },
         );
       }
     } finally {
-      _isCallingBonusAPI = false;
+      if (!event.isStreamEnd) {
+        _isCallingBonusAPI = false;
+        debugPrint("🔓 Resetting bonus API flag");
+      }
     }
   }
 
-  Future<void> _onBanUser(
-    BanUser event,
-    Emitter<LiveStreamState> emit,
-  ) async {
+  Future<void> _onBanUser(BanUser event, Emitter<LiveStreamState> emit) async {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
       final bannedUsers = List<String>.from(currentState.bannedUsers);
-      
+
       if (!bannedUsers.contains(event.userId)) {
         bannedUsers.add(event.userId);
-        
+
         // Remove from viewers
         final viewers = List<JoinedUserModel>.from(currentState.viewers);
         viewers.removeWhere((v) => v.id == event.userId);
@@ -325,11 +435,8 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
           roomId: currentState.roomId,
           userId: event.userId,
         );
-        
-        emit(currentState.copyWith(
-          bannedUsers: bannedUsers,
-          viewers: viewers,
-        ));
+
+        emit(currentState.copyWith(bannedUsers: bannedUsers, viewers: viewers));
       }
     }
   }
@@ -341,18 +448,15 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
       final bannedUsers = List<String>.from(currentState.bannedUsers);
-      
+
       if (!bannedUsers.contains(event.userId)) {
         bannedUsers.add(event.userId);
-        
+
         // Remove from viewers
         final viewers = List<JoinedUserModel>.from(currentState.viewers);
         viewers.removeWhere((v) => v.id == event.userId);
-        
-        emit(currentState.copyWith(
-          bannedUsers: bannedUsers,
-          viewers: viewers,
-        ));
+
+        emit(currentState.copyWith(bannedUsers: bannedUsers, viewers: viewers));
       }
     }
   }
@@ -380,21 +484,27 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     final sanitized = event.viewers;
 
     if (currentState is LiveStreamStreaming) {
-      final existingIds = currentState.viewers.map((viewer) => viewer.id).toSet();
+      final existingIds = currentState.viewers
+          .map((viewer) => viewer.id)
+          .toSet();
       final additions = sanitized
-          .where((viewer) =>
-              viewer.id != currentState.userId &&
-              !existingIds.contains(viewer.id))
+          .where(
+            (viewer) =>
+                viewer.id != currentState.userId &&
+                !existingIds.contains(viewer.id),
+          )
           .toList();
 
       if (additions.isEmpty) {
         return;
       }
 
-      emit(currentState.copyWith(
-        viewers: List<JoinedUserModel>.from(currentState.viewers)
-          ..addAll(additions),
-      ));
+      emit(
+        currentState.copyWith(
+          viewers: List<JoinedUserModel>.from(currentState.viewers)
+            ..addAll(additions),
+        ),
+      );
       return;
     }
 
@@ -412,14 +522,52 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     _initialViewersBuffer = buffer;
   }
 
+  /// Handle gift received - update viewer diamonds
+  /// ✅ Mirrors backup.dart pattern: gift received → update viewer diamonds in state
+  void _onGiftReceived(GiftReceived event, Emitter<LiveStreamState> emit) {
+    final currentState = state;
+    if (currentState is LiveStreamStreaming) {
+      final gift = event.gift;
+
+      debugPrint("🎁 Gift received: ${gift.gift.name}");
+      debugPrint("💰 Diamond amount: ${gift.diamonds}");
+      debugPrint("🎯 Receiver IDs: ${gift.recieverIds}");
+
+      // Update viewers list with new diamond amounts for each receiver
+      final updatedViewers = <JoinedUserModel>[];
+
+      for (var viewer in currentState.viewers) {
+        if (gift.recieverIds.contains(viewer.id)) {
+          // This viewer received the gift - add diamonds
+          final updatedViewer = viewer.copyWith(
+            diamonds: viewer.diamonds + gift.diamonds,
+          );
+          updatedViewers.add(updatedViewer);
+          debugPrint(
+            "💎 Updated ${viewer.name}: ${viewer.diamonds} → ${updatedViewer.diamonds} diamonds",
+          );
+        } else {
+          // This viewer didn't receive the gift - keep as is
+          updatedViewers.add(viewer);
+        }
+      }
+
+      // Emit updated state with new viewer diamonds
+      emit(currentState.copyWith(viewers: updatedViewers));
+      debugPrint("📊 Viewers updated with gift diamonds");
+    }
+  }
+
   void _setupSocketListeners() {
     _userJoinedSubscription = _socketService.userJoinedStream.listen((data) {
-      add(UserJoined(
-        userId: data.id,
-        userName: data.name,
-        avatar: data.avatar,
-        uid: data.uid,
-      ));
+      add(
+        UserJoined(
+          userId: data.id,
+          userName: data.name,
+          avatar: data.avatar,
+          uid: data.uid,
+        ),
+      );
     });
 
     _userLeftSubscription = _socketService.userLeftStream.listen((data) {
@@ -427,15 +575,39 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     });
 
     _bannedUserSubscription = _socketService.bannedUserStream.listen((data) {
-      add(UserBannedNotification(
-        userId: data.targetId,
-        message: data.message,
-      ));
+      add(UserBannedNotification(userId: data.targetId, message: data.message));
+    });
+
+    // ✅ Listen for incoming messages from socket
+    // Messages are handled by ChatBloc, not LiveStreamBloc
+    // ChatBloc already subscribes to sentMessageStream
+    _sentMessageSubscription = _socketService.sentMessageStream.listen((data) {
+      debugPrint("💬 Message received from socket: ${data.text}");
+      // Message is broadcast to ChatBloc via socket subscription there
+    });
+
+    // ✅ Listen for gifts sent to viewers - updates their diamond amounts
+    _sentGiftSubscription = _socketService.sentGiftStream.listen((data) {
+      debugPrint(
+        "🎁 Gift from socket: ${data.gift.name} (${data.diamonds} diamonds)",
+      );
+      debugPrint("🎯 Receivers: ${data.recieverIds}");
+      add(GiftReceived(data));
     });
   }
 
-  void _startDurationTimer() {
-    _streamStartTime = DateTime.now();
+  void _startDurationTimer(int initialDurationSeconds) {
+    // ✅ Initialize with existing elapsed time (for viewers joining mid-stream)
+    // This ensures duration counter continues from where it was, not from zero
+    int elapsedSeconds = initialDurationSeconds;
+    _streamStartTime = DateTime.now().subtract(
+      Duration(seconds: elapsedSeconds),
+    );
+
+    print(
+      '⏱️ [DURATION] Starting timer with initial offset: ${elapsedSeconds}s (${elapsedSeconds ~/ 60}m ${elapsedSeconds % 60}s)',
+    );
+
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_streamStartTime != null) {
         final duration = DateTime.now().difference(_streamStartTime!);
@@ -450,6 +622,8 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     _userJoinedSubscription?.cancel();
     _userLeftSubscription?.cancel();
     _bannedUserSubscription?.cancel();
+    _sentMessageSubscription?.cancel();
+    _sentGiftSubscription?.cancel(); // ✅ Clean up gift subscription
     return super.close();
   }
 }

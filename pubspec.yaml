@@ -45,11 +45,11 @@ dependencies:
   intl: any
 
   # File & Media Pickers
-  file_picker: ^10.3.3
-  image_picker: ^1.2.0
+  file_picker: ^10.3.6
+  image_picker: ^1.2.1
   image_cropper: ^11.0.0
   cached_network_image: ^3.4.1
-  video_player: ^2.10.0
+  video_player: ^2.10.1
 
   # Firebase & Authentication
   firebase_core: ^4.2.1
@@ -98,7 +98,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
 
   # Code Generation
-  build_runner: ^2.10.1
+  build_runner: ^2.10.2
   injectable_generator: ^2.9.1
   json_serializable: ^6.11.1
 
@@ -144,7 +144,7 @@ flutter:
     - assets/games/greedyv3/Build/6dc6d81ba589edac407b6a78de2394ee.loader.js
     - assets/games/greedyv3/Build/5da486f778c9c89d8a96bca8c3161959.data.unityweb
     - assets/games/greedyv3/Build/50e5abe1b403cb19f393edf1af7ac85c.framework.js.unityweb
-    - assets/games/greedyv3/Build/c2b29f92deecf1946c9fbfb4f487858e.wasm.unityweb
+    - assets/games/greedyv3/Build/c2b29f92deecf1946c9fbfb4f487858e.wasm.unityweb 
 
     # Teen Patty Game
     - assets/games/teenpatty/
@@ -152,8 +152,8 @@ flutter:
     - assets/games/teenpatty/index.html
     - assets/games/teenpatty/bg.png
     - assets/games/teenpatty/game-icon.png
-    - assets/games/teenpatty/Build/TeenPatty V8.jpg
-    - assets/games/teenpatty/Build/5083e1a0b98aabab26708ce02f734937.loader.js
+    - assets/games/teenpatty/Build/TeenPatty V10.jpg
+    - assets/games/teenpatty/Build/8a4e50e8b8d16db17d419aa0b2f1853a.loader.js
     - assets/games/teenpatty/Build/d24fba371edec7ed1a51165dc36908bf.framework.js
-    - assets/games/teenpatty/Build/e6e5974b8d4564a4a3e41cf6177cd8aa.wasm
-    - assets/games/teenpatty/Build/910fe52ee5864a52fb7abcba5798e1ea.data
+    - assets/games/teenpatty/Build/36886a660319e3c635beff380937ce00.wasm
+    - assets/games/teenpatty/Build/84228ec7eeafaab48168c47efdc77afc.data
