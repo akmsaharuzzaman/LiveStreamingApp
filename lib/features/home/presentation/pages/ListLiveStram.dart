@@ -50,11 +50,7 @@ class _ListLiveStreamState extends State<ListLiveStream> {
     _videoRoomsSubscription = _videoRoomService.videoRoomsStream.listen(
       (rooms) {
         _log('📺 Video rooms received: ${rooms.length}');
-        if (mounted) {
-          setState(() {
-            _localRooms = rooms;
-          });
-        }
+        if (mounted) setState(() => _localRooms = rooms);
       },
       onError: (error) {
         _log('❌ Video rooms error: $error');
@@ -67,11 +63,7 @@ class _ListLiveStreamState extends State<ListLiveStream> {
   void _setupLoadingListener() {
     _loadingSubscription = _videoRoomService.loadingStream.listen(
       (loading) {
-        if (mounted) {
-          setState(() {
-            _isLoading = loading;
-          });
-        }
+        if (mounted) setState(() => _isLoading = loading);
       },
       onError: (error) {
         _log('❌ Loading state error: $error');
@@ -85,9 +77,7 @@ class _ListLiveStreamState extends State<ListLiveStream> {
     super.didUpdateWidget(oldWidget);
     // Update local rooms when parent passes new data
     if (widget.availableRooms != oldWidget.availableRooms) {
-      setState(() {
-        _localRooms = widget.availableRooms;
-      });
+      setState(() => _localRooms = widget.availableRooms);
     }
   }
 
@@ -106,51 +96,35 @@ class _ListLiveStreamState extends State<ListLiveStream> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isEmpty = _localRooms.isEmpty;
-
-    final Widget scrollableContent = isEmpty
-        ? ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
+    if (_localRooms.isEmpty) {
+      return Expanded(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SizedBox(height: MediaQuery.of(context).size.height * 0.2),
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.live_tv,
-                      size: 80.sp,
-                      color: Colors.grey.shade400,
-                    ),
-                    SizedBox(height: 20.h),
-                    Text(
-                      'No Live Streams Available',
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    SizedBox(height: 8.h),
-                    Text(
-                      'No one has started live streaming yet',
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                  ],
-                ),
+              Icon(Icons.live_tv, size: 80.sp, color: Colors.grey.shade400),
+              SizedBox(height: 20.h),
+              Text(
+                'No Live Streams Available',
+                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w500, color: Colors.grey.shade600),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                'No one has started live streaming yet',
+                style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade500),
               ),
             ],
-          )
-        : GridView.builder(
-            padding: EdgeInsets.symmetric(
-              horizontal: 16.sp,
-            ).add(EdgeInsets.only(bottom: 80.sp)),
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
-            ),
+          ),
+        ),
+      );
+    }
+
+    return Expanded(
+      child: Stack(
+        children: [
+          GridView.builder(
+            padding: EdgeInsets.symmetric(horizontal: 16.sp).add(EdgeInsets.only(bottom: 80.sp)),
+            physics: const BouncingScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               mainAxisSpacing: 0.sp,
@@ -167,38 +141,26 @@ class _ListLiveStreamState extends State<ListLiveStream> {
                     'onGoingLive',
                     queryParameters: {
                       'roomId': _localRooms[index].roomId,
-                      'hostName':
-                          _localRooms[index].hostDetails?.name ??
-                          'Unknown Host',
-                      'hostUserId':
-                          _localRooms[index].hostDetails?.id ?? 'Unknown User',
-                      'hostAvatar':
-                          _localRooms[index].hostDetails?.avatar ??
-                          'Unknown Avatar',
+                      'hostName': _localRooms[index].hostDetails?.name ?? 'Unknown Host',
+                      'hostUserId': _localRooms[index].hostDetails?.id ?? 'Unknown User',
+                      'hostAvatar': _localRooms[index].hostDetails?.avatar ?? 'Unknown Avatar',
                     },
                     extra: {
                       'existingViewers': _localRooms[index].membersDetails,
                       'hostCoins': _localRooms[index].hostCoins,
-                      'roomData': _localRooms[index],
+                      'roomData': _localRooms[index], // Pass complete room data
                     },
                   );
                 },
               );
             },
-          );
-
-    return Expanded(
-      child: Stack(
-        children: [
-          scrollableContent,
+          ),
           if (_isLoading)
             Positioned.fill(
               child: Container(
                 color: Colors.black.withOpacity(0.3),
                 child: const Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.pink),
-                  ),
+                  child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.pink)),
                 ),
               ),
             ),
@@ -211,11 +173,7 @@ class _ListLiveStreamState extends State<ListLiveStream> {
 class LiveStreamCard extends StatelessWidget {
   final GetRoomModel liveStreamModel;
   final Function() onTap;
-  const LiveStreamCard({
-    super.key,
-    required this.liveStreamModel,
-    required this.onTap,
-  });
+  const LiveStreamCard({super.key, required this.liveStreamModel, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -239,10 +197,7 @@ class LiveStreamCard extends StatelessWidget {
                 padding: EdgeInsets.all(8.sp),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.89),
-                    ],
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.89)],
                     end: Alignment.bottomCenter,
                     begin: Alignment.topCenter,
                   ),
@@ -261,29 +216,16 @@ class LiveStreamCard extends StatelessWidget {
                           child: BackdropFilter(
                             filter: ImageFilter.blur(sigmaX: 5, sigmaY: 10),
                             child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 6.sp,
-                                vertical: 2.sp,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.45),
-                              ),
+                              padding: EdgeInsets.symmetric(horizontal: 6.sp, vertical: 2.sp),
+                              decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.45)),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(
-                                    Icons.voice_chat,
-                                    size: 17.sp,
-                                    color: Colors.white,
-                                  ),
+                                  Icon(Icons.voice_chat, size: 17.sp, color: Colors.white),
                                   SizedBox(width: 5.sp),
                                   Text(
                                     '${liveStreamModel.members.length}',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 9.sp,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                    style: TextStyle(color: Colors.white, fontSize: 9.sp, fontWeight: FontWeight.w500),
                                   ),
                                 ],
                               ),
@@ -291,22 +233,14 @@ class LiveStreamCard extends StatelessWidget {
                           ),
                         ),
                         Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8.sp,
-                            vertical: 2.sp,
-                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 8.sp, vertical: 2.sp),
                           decoration: BoxDecoration(
-                            color:
-                                Colors.redAccent, // Always red for live streams
+                            color: Colors.redAccent, // Always red for live streams
                             borderRadius: BorderRadius.circular(9.sp),
                           ),
                           child: Text(
                             'Live',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 9.sp,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: TextStyle(color: Colors.white, fontSize: 9.sp, fontWeight: FontWeight.w500),
                           ),
                         ),
                       ],
@@ -338,20 +272,12 @@ class LiveStreamCard extends StatelessWidget {
                         Text(
                           liveStreamModel.hostDetails?.name ?? 'Unknown Host',
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: TextStyle(color: Colors.black, fontSize: 11.sp, fontWeight: FontWeight.w700),
                         ),
                         Text(
                           'ID: ${liveStreamModel.hostDetails?.uid.substring(0, 6) ?? 'Unknown ID'}',
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 9.sp,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: TextStyle(color: Colors.black, fontSize: 9.sp, fontWeight: FontWeight.w500),
                         ),
                       ],
                     ),
@@ -361,59 +287,54 @@ class LiveStreamCard extends StatelessWidget {
                     position: PopupMenuPosition.under,
                     icon: Container(
                       color: Colors.transparent,
-                      child: Icon(
-                        Icons.more_horiz,
-                        size: 20.sp,
-                        color: Colors.black,
-                      ),
+                      child: Icon(Icons.more_horiz, size: 20.sp, color: Colors.black),
                     ),
                     onSelected: (String result) {
                       // Handle your menu selection here
                     },
-                    itemBuilder: (BuildContext context) =>
-                        <PopupMenuEntry<String>>[
-                          PopupMenuItem<String>(
-                            value: 'Option 3',
-                            child: GestureDetector(
-                              onTap: () {},
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Follow",
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 14.sp,
-                                      fontFamily: 'Aeonik',
-                                      fontWeight: FontWeight.w500,
-                                      height: 0,
-                                    ),
-                                  ),
-                                ],
+                    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                      PopupMenuItem<String>(
+                        value: 'Option 3',
+                        child: GestureDetector(
+                          onTap: () {},
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Follow",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 14.sp,
+                                  fontFamily: 'Aeonik',
+                                  fontWeight: FontWeight.w500,
+                                  height: 0,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      PopupMenuItem<String>(
+                        value: 'Option 2',
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Report',
+                              style: TextStyle(
+                                color: Color(0xFFDC3030),
+                                fontSize: 14.sp,
+                                fontFamily: 'Aeonik',
+                                fontWeight: FontWeight.w500,
+                                height: 0,
                               ),
                             ),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'Option 2',
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Report',
-                                  style: TextStyle(
-                                    color: Color(0xFFDC3030),
-                                    fontSize: 14.sp,
-                                    fontFamily: 'Aeonik',
-                                    fontWeight: FontWeight.w500,
-                                    height: 0,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

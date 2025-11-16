@@ -22,11 +22,11 @@ class AudioSocketConstants {
   static const String sentAudioGiftsEvent = 'sent-audio-gift'; // 16
 
   // Connection timeouts
-  static const Duration connectionTimeout = Duration(seconds: 30);
-  static const Duration roomDetailsTimeout = Duration(seconds: 30);
+  static const Duration connectionTimeout = Duration(seconds: 60);
+  static const Duration roomDetailsTimeout = Duration(seconds: 60);
 
   // Reconnection settings
-  static const int reconnectionAttempts = 5;
+  static const int reconnectionAttempts = 6;
   static const int reconnectionDelayMs = 1000;
 
   // Default values
