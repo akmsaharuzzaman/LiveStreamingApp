@@ -32,11 +32,11 @@
                 "index.html",
                 "bg.png",
                 "game-icon.png",
-                "Build/TeenPatty V10.jpg",
-                "Build/8a4e50e8b8d16db17d419aa0b2f1853a.loader.js",
+                "Build/TeenPatty V11.jpg",
+                "Build/9dd6a5199d254b5d27300a399c3ea665.loader.js",
                 "Build/d24fba371edec7ed1a51165dc36908bf.framework.js",
-                "Build/36886a660319e3c635beff380937ce00.wasm",
-                "Build/84228ec7eeafaab48168c47efdc77afc.data"
+                "Build/572c03c6bcf371bb3613fe08b571aeba.wasm",
+                "Build/376765e00f4ba6efb6841b8a0f3ec072.data"
             ],
             "gameParameters": {
                 "serverIPWithPort": "ws://31.97.222.97:9000/",
