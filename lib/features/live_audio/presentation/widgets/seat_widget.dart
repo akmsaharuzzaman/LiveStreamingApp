@@ -442,11 +442,11 @@ class _SeatWidgetState extends State<SeatWidget> {
             ),
 
             // Crown badge for all occupied seats
-            if (hostSeatData.name != null)
-              Positioned(
-                top: -25,
-                child: Image.asset("assets/icons/audio_room/crown_badge.png", width: 120.w, height: 120.h),
-              ),
+            // if (hostSeatData.name != null)
+            //   Positioned(
+            //     top: -25,
+            //     child: Image.asset("assets/icons/audio_room/crown_badge.png", width: 120.w, height: 120.h),
+            //   ),
 
             // Microphone icon if seat is not muted
             if (hostSeatData.isMuted == false)
@@ -551,25 +551,25 @@ class _SeatWidgetState extends State<SeatWidget> {
               ),
 
               // Crown badge for all occupied seats
-              if (premiumSeatData.name != null)
-                Positioned(
-                  top: -25,
-                  child: Image.asset(
-                    "assets/icons/audio_room/crown_badge.png",
-                    width: 110.w,
-                    height: 110.h,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 110.w,
-                        height: 110.h,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.orange, width: 3),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+              // if (premiumSeatData.name != null)
+              //   Positioned(
+              //     top: -25,
+              //     child: Image.asset(
+              //       "assets/icons/audio_room/crown_badge.png",
+              //       width: 110.w,
+              //       height: 110.h,
+              //       errorBuilder: (context, error, stackTrace) {
+              //         return Container(
+              //           width: 110.w,
+              //           height: 110.h,
+              //           decoration: BoxDecoration(
+              //             shape: BoxShape.circle,
+              //             border: Border.all(color: Colors.orange, width: 3),
+              //           ),
+              //         );
+              //       },
+              //     ),
+              //   ),
 
               // Microphone icon if seat is occupied
               if (premiumSeatData.name != null)
@@ -671,11 +671,11 @@ class _SeatWidgetState extends State<SeatWidget> {
               ),
 
               // Crown badge for all occupied seats
-              if (seat.name != null)
-                Positioned(
-                  top: -25,
-                  child: Image.asset("assets/icons/audio_room/crown_badge.png", width: 120.w, height: 120.h),
-                ),
+              // if (seat.name != null)
+              //   Positioned(
+              //     top: -25,
+              //     child: Image.asset("assets/icons/audio_room/crown_badge.png", width: 120.w, height: 120.h),
+              //   ),
 
               // Microphone icon if seat is occupied
               if (seat.userId != null) ...[
