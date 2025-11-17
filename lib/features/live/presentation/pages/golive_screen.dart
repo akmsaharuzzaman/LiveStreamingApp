@@ -1941,7 +1941,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                     return;
                                   }
 
-                                  if (isAudioCaller) {
+                                  // ✅ Check both isAudioCaller and userInCall to handle leave
+                                  if (isAudioCaller || userInCall) {
                                     final currentUserId = userId;
                                     if (currentUserId == null ||
                                         currentUserId.isEmpty ||
