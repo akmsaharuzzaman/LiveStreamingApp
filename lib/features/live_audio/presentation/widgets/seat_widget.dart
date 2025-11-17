@@ -23,7 +23,7 @@ class SeatWidget extends StatefulWidget {
   final Function(String seatId, String targetId)? onRemoveUserFromSeat;
   final Function(String seatId, String targetId)? onMuteUserFromSeat;
   final bool isHost;
-  final int? activeSpeakerUID;
+  final List<int>? activeSpeakersUIDList;
 
   const SeatWidget({
     super.key,
@@ -40,7 +40,7 @@ class SeatWidget extends StatefulWidget {
     this.onRemoveUserFromSeat,
     this.onMuteUserFromSeat,
     this.isHost = false,
-    this.activeSpeakerUID,
+    this.activeSpeakersUIDList,
   });
 
   @override
@@ -380,8 +380,9 @@ class _SeatWidgetState extends State<SeatWidget> {
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
         children: [
-          // Text(widget.currentUserUID.toString(), style: TextStyle(color: Colors.white)),
-          // Text(widget.activeSpeakerUID.toString(), style: TextStyle(color: Colors.white)),
+          Text("currentUserUID: " + widget.currentUserUID.toString(), style: TextStyle(color: Colors.white)),
+          for (var element in widget.activeSpeakersUIDList ?? [])
+            Text("activeSpeakerUID: " + element.toString(), style: TextStyle(color: Colors.white)),
           // Top row: Host + Special seat (always 2 seats)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -418,7 +419,7 @@ class _SeatWidgetState extends State<SeatWidget> {
     //     (widget.activeSpeakerUID == hostSeatData.userUID ||
     //         (widget.activeSpeakerUID == 0 && hostSeatData.userUID == widget.currentUserUID));
     final isActiveSpeaker = hostSeatData.isActiveSpeaker(
-      activeSpeakerUID: widget.activeSpeakerUID,
+      activeSpeakersUIDList: widget.activeSpeakersUIDList,
       currentUserUID: widget.currentUserUID,
     );
     return Column(
@@ -431,8 +432,8 @@ class _SeatWidgetState extends State<SeatWidget> {
             // Glow background when speaking
             if (isActiveSpeaker)
               Container(
-                width: 90.w,
-                height: 90.w,
+                width: 70.w,
+                height: 70.w,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   boxShadow: [
@@ -534,7 +535,7 @@ class _SeatWidgetState extends State<SeatWidget> {
     //     (premiumSeatData.userUID == widget.activeSpeakerUID ||
     //         (widget.activeSpeakerUID == 0 && premiumSeatData.userUID == widget.currentUserUID));
     final isActiveSpeaker = premiumSeatData.isActiveSpeaker(
-      activeSpeakerUID: widget.activeSpeakerUID,
+      activeSpeakersUIDList: widget.activeSpeakersUIDList,
       currentUserUID: widget.currentUserUID,
     );
     return InkWell(
@@ -664,7 +665,7 @@ class _SeatWidgetState extends State<SeatWidget> {
     //     (widget.activeSpeakerUID == seat.userUID ||
     //         (widget.activeSpeakerUID == 0 && seat.userUID == widget.currentUserUID));
     final isActiveSpeaker = seat.isActiveSpeaker(
-      activeSpeakerUID: widget.activeSpeakerUID,
+      activeSpeakersUIDList: widget.activeSpeakersUIDList,
       currentUserUID: widget.currentUserUID,
     );
     return GestureDetector(

@@ -617,10 +617,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     // debugPrint("State: $state\n\n");
     if (state is AudioRoomLoaded) {
       final currentState = state as AudioRoomLoaded;
-      emit(currentState.copyWith(
-        activeSpeakerUID: event.activeSpeakerUID,
-        clearActiveSpeaker: event.activeSpeakerUID == null,
-      ));
+      emit(currentState.copyWith(activeSpeakersUIDList: event.activeSpeakersUIDList));
     }
   }
 

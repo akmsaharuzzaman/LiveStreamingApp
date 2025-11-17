@@ -250,8 +250,8 @@ class SeatLeftEvent extends AudioRoomEvent {
 }
 
 class UpdateActiveSpeakerEvent extends AudioRoomEvent {
-  final int? activeSpeakerUID;
-  const UpdateActiveSpeakerEvent({this.activeSpeakerUID});
+  final List<int>? activeSpeakersUIDList;
+  const UpdateActiveSpeakerEvent({this.activeSpeakersUIDList});
   @override
-  List<Object?> get props => [activeSpeakerUID];
+  List<Object?> get props => [activeSpeakersUIDList];
 }

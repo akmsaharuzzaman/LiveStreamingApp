@@ -214,7 +214,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
       // Enable audio volume indication for speaker detection
       await _engine.enableAudioVolumeIndication(
-        interval: 1000, // Callback interval in milliseconds - 1 second
+        interval: 200, // Callback interval in milliseconds - 200 milliseconds
         smooth: 3, // Smoothing factor
         reportVad: true, // Report voice activity detection
       );
@@ -255,65 +255,69 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           //       _uiLog("🔊 Audio State Change - UID: $remoteUid, State: $state");
           //     },
           ///////////////////////////////
-          // onAudioVolumeIndication: (RtcConnection connection, List<AudioVolumeInfo> speakers, int totalVolume, int elapsed) {
-          //   // Find the speaker with highest volume (actual speaker)
-          //   if (speakers.isNotEmpty) {
-          //     // Filter speakers with volume > 100 (includes local user UID 0)
-          //     final activeSpeakers = speakers.where((s) => (s.volume ?? 0) > 50).toList(); // Upto 3 remote speakers
-
-          //     if (activeSpeakers.isNotEmpty) {
-          //       // Cancel any pending clear timer since someone is speaking
-          //       _clearSpeakerTimer?.cancel();
-
-          //       // Sort by volume to get the loudest speaker
-          //       activeSpeakers.sort((a, b) => (b.volume ?? 0).compareTo(a.volume ?? 0));
-          //       final loudestSpeaker = activeSpeakers.first;
-
-          //       if (loudestSpeaker.uid == 0) {
-          //         _uiLog(
-          //           "🔊 Volume Indication - LOCAL USER: Volume: ${loudestSpeaker.volume}, UID: ${loudestSpeaker.uid}",
-          //         );
-          //         context.read<AudioRoomBloc>().add(const UpdateActiveSpeakerEvent(activeSpeakerUID: 0));
-          //       } else {
-          //         _uiLog(
-          //           "🔊 Volume Indication - REMOTE USER: Volume: ${loudestSpeaker.volume}, UID: ${loudestSpeaker.uid}",
-          //         );
-          //         context.read<AudioRoomBloc>().add(UpdateActiveSpeakerEvent(activeSpeakerUID: loudestSpeaker.uid));
-          //       }
-          //     } else {
-          //       // Debounce clearing: wait 0.5 seconds before clearing active speaker
-          //       _clearSpeakerTimer?.cancel();
-          //       _clearSpeakerTimer = Timer(const Duration(milliseconds: 500), () {
-          //         if (mounted) {
-          //           context.read<AudioRoomBloc>().add(const UpdateActiveSpeakerEvent(activeSpeakerUID: null));
+          // onAudioVolumeIndication:
+          //     /// Loudest speaker setup
+          //     (RtcConnection connection, List<AudioVolumeInfo> speakers, int totalVolume, int elapsed) {
+          //       AudioVolumeInfo? loudestSpeaker;
+          //       // Single pass: find loudest speaker with volume > 50
+          //       for (final speaker in speakers) {
+          //         if ((speaker.volume ?? 0) > 50) {
+          //           if (loudestSpeaker == null || (speaker.volume ?? 0) > (loudestSpeaker.volume ?? 0)) {
+          //             loudestSpeaker = speaker;
+          //           }
           //         }
-          //       });
-          //     }
-          //   }
-          // },
+          //       }
+          //       if (loudestSpeaker != null) {
+          //         _clearSpeakerTimer?.cancel();
+          //         _uiLog("🔊 Volume Indication - UID: ${loudestSpeaker.uid}, Volume: ${loudestSpeaker.volume}");
+          //         context.read<AudioRoomBloc>().add(UpdateActiveSpeakerEvent(activeSpeakerUID: loudestSpeaker.uid));
+          //       } else {
+          //         _clearSpeakerTimer?.cancel();
+          //         _clearSpeakerTimer = Timer(const Duration(seconds: 2), () {
+          //           if (mounted) {
+          //             context.read<AudioRoomBloc>().add(const UpdateActiveSpeakerEvent(activeSpeakerUID: null));
+          //           }
+          //         });
+          //       }
+          //     },
           onAudioVolumeIndication:
               (RtcConnection connection, List<AudioVolumeInfo> speakers, int totalVolume, int elapsed) {
-                AudioVolumeInfo? loudestSpeaker;
-                // Single pass: find loudest speaker with volume > 50
-                for (final speaker in speakers) {
-                  if ((speaker.volume ?? 0) > 50) {
-                    if (loudestSpeaker == null || (speaker.volume ?? 0) > (loudestSpeaker.volume ?? 0)) {
-                      loudestSpeaker = speaker;
+                AudioRoomState state = context.read<AudioRoomBloc>().state;
+                if (state is AudioRoomLoaded) {
+                  List<int> activeSpeakersUIDList = state.activeSpeakersUIDList ?? [];
+                  for (int i = 0; i < speakers.length; i++) {
+                    if (speakers[i].volume! > 5) {
+                      if (!activeSpeakersUIDList.contains(speakers[i].uid!)) {
+                        activeSpeakersUIDList.add(speakers[i].uid!);
+                      }
+                      _uiLog("🔊 Volume Indication - UID: ${speakers[i].uid}, Volume: ${speakers[i].volume}");
+                    } else {
+                      if (activeSpeakersUIDList.contains(speakers[i].uid!)) {
+                        activeSpeakersUIDList.remove(speakers[i].uid!);
+                      }
                     }
                   }
+                  for (int i = 0; i < activeSpeakersUIDList.length; i++) {
+                    _uiLog("🔊 Active Speakers UID List: ${activeSpeakersUIDList[i]}");
+                  }
+                  context.read<AudioRoomBloc>().add(
+                    UpdateActiveSpeakerEvent(activeSpeakersUIDList: activeSpeakersUIDList),
+                  );
                 }
-                if (loudestSpeaker != null) {
-                  _clearSpeakerTimer?.cancel();
-                  _uiLog("🔊 Volume Indication - UID: ${loudestSpeaker.uid}, Volume: ${loudestSpeaker.volume}");
-                  context.read<AudioRoomBloc>().add(UpdateActiveSpeakerEvent(activeSpeakerUID: loudestSpeaker.uid));
-                } else {
-                  _clearSpeakerTimer?.cancel();
-                  _clearSpeakerTimer = Timer(const Duration(seconds: 2), () {
-                    if (mounted) {
-                      context.read<AudioRoomBloc>().add(const UpdateActiveSpeakerEvent(activeSpeakerUID: null));
-                    }
-                  });
-                }
+                // for (int i = 0; i < speakers.length; i++) {
+                //   if (speakers[i].volume! > 8) {
+                //     if (speakers[i].uid == 0) {
+                //       _controller.activeSpeakers.add(stateUserModelController.userModel.value!.getUid!);
+                //     } else
+                //       _controller.activeSpeakers.add(speakers[i].uid!);
+                //   } else {
+                //     if (speakers[i].uid == 0) {
+                //       _controller.activeSpeakers.remove(stateUserModelController.userModel.value!.getUid!);
+                //     } else
+                //       _controller.activeSpeakers.remove(speakers[i].uid);
+                //   }
+                // }
+                // print("_controller 1: ${_controller.activeSpeakers}");
               },
           // onActiveSpeaker: (RtcConnection connection, int uid) {
           //   _uiLog("Active speaker changed to: $uid");
@@ -723,7 +727,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               builder: (context, roomState) {
                 if (roomState is AudioRoomLoaded) {
                   _uiLog("Audio Room Loaded");
-                  _uiLog("activeSpeakerUID -> ${roomState.activeSpeakerUID}");
+                  _uiLog("activeSpeakerUID -> ${roomState.activeSpeakersUIDList}");
                   return Stack(
                     children: [
                       // Background
@@ -754,7 +758,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                             onRemoveUserFromSeat: _removeUserFromSeat,
                             onMuteUserFromSeat: _muteUserFromSeat,
                             isHost: roomState.isHost,
-                            activeSpeakerUID: roomState.activeSpeakerUID,
+                            activeSpeakersUIDList: roomState.activeSpeakersUIDList,
                           ),
                           // Chat widget inside the main column to prevent overlap
                           Expanded(
