@@ -380,9 +380,9 @@ class _SeatWidgetState extends State<SeatWidget> {
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
         children: [
-          Text("currentUserUID: " + widget.currentUserUID.toString(), style: TextStyle(color: Colors.white)),
-          for (var element in widget.activeSpeakersUIDList ?? [])
-            Text("activeSpeakerUID: " + element.toString(), style: TextStyle(color: Colors.white)),
+          // Text("currentUserUID: " + widget.currentUserUID.toString()+'k', style: TextStyle(color: Colors.white)),
+          // for (var element in widget.activeSpeakersUIDList ?? [])
+          //   Text("activeSpeakerUID: " + element.toString()+'k', style: TextStyle(color: Colors.white)),
           // Top row: Host + Special seat (always 2 seats)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -422,6 +422,9 @@ class _SeatWidgetState extends State<SeatWidget> {
       activeSpeakersUIDList: widget.activeSpeakersUIDList,
       currentUserUID: widget.currentUserUID,
     );
+    
+    // 🔍 DEBUG: Log host seat (ALWAYS for debugging)
+    // _uiLog("🪑 HOST: userUID=${hostSeatData.userUID}, isMuted=${hostSeatData.isMuted}, isActive=$isActiveSpeaker, activeList=${widget.activeSpeakersUIDList}");
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -538,6 +541,11 @@ class _SeatWidgetState extends State<SeatWidget> {
       activeSpeakersUIDList: widget.activeSpeakersUIDList,
       currentUserUID: widget.currentUserUID,
     );
+    
+    // 🔍 DEBUG: Log premium seat (ALWAYS for debugging)
+    // if (premiumSeatData.userId != null) {
+    //   _uiLog("🪑 PREMIUM: userUID=${premiumSeatData.userUID}, isMuted=${premiumSeatData.isMuted}, isActive=$isActiveSpeaker, activeList=${widget.activeSpeakersUIDList}");
+    // }
     return InkWell(
       onTap: () {
         _uiLog("\n\n\n Selected premium seat");
@@ -668,6 +676,11 @@ class _SeatWidgetState extends State<SeatWidget> {
       activeSpeakersUIDList: widget.activeSpeakersUIDList,
       currentUserUID: widget.currentUserUID,
     );
+    
+    // 🔍 DEBUG: Log seat UID vs active speakers (ALWAYS for debugging)
+    // if (seat.userId != null) {
+    //   _uiLog("🪑 Seat ${seat.id}: userUID=${seat.userUID}, isMuted=${seat.isMuted}, isActive=$isActiveSpeaker, activeList=${widget.activeSpeakersUIDList}");
+    // }
     return GestureDetector(
       onTap: () {
         _uiLog("\n\n\n Selected seat index: $index");

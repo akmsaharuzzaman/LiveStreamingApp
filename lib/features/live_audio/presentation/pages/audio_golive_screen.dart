@@ -34,6 +34,7 @@ import 'package:dlstarlive/features/live_audio/presentation/widgets/gift_bottom_
 import '../bloc/audio_room_bloc.dart';
 import '../bloc/audio_room_event.dart';
 import '../bloc/audio_room_state.dart';
+import '../notifiers/active_speakers_notifier.dart';
 import '../widgets/chat_widget.dart';
 import '../widgets/seat_widget.dart';
 
@@ -78,6 +79,9 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   bool _isJoiningAgoraChannel = false;
   bool _hasJoinedChannel = false;
   bool _hasAttemptedToJoin = false;
+  
+  // Real-time speaker tracking (lightweight for high-frequency updates)
+  final ActiveSpeakersNotifier _activeSpeakersNotifier = ActiveSpeakersNotifier();
 
   // UI Log
   void _uiLog(String message) {
@@ -282,42 +286,20 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
           //     },
           onAudioVolumeIndication:
               (RtcConnection connection, List<AudioVolumeInfo> speakers, int totalVolume, int elapsed) {
-                AudioRoomState state = context.read<AudioRoomBloc>().state;
-                if (state is AudioRoomLoaded) {
-                  List<int> activeSpeakersUIDList = state.activeSpeakersUIDList ?? [];
-                  for (int i = 0; i < speakers.length; i++) {
-                    if (speakers[i].volume! > 5) {
-                      if (!activeSpeakersUIDList.contains(speakers[i].uid!)) {
-                        activeSpeakersUIDList.add(speakers[i].uid!);
-                      }
-                      _uiLog("🔊 Volume Indication - UID: ${speakers[i].uid}, Volume: ${speakers[i].volume}");
-                    } else {
-                      if (activeSpeakersUIDList.contains(speakers[i].uid!)) {
-                        activeSpeakersUIDList.remove(speakers[i].uid!);
-                      }
-                    }
-                  }
-                  for (int i = 0; i < activeSpeakersUIDList.length; i++) {
-                    _uiLog("🔊 Active Speakers UID List: ${activeSpeakersUIDList[i]}");
-                  }
-                  context.read<AudioRoomBloc>().add(
-                    UpdateActiveSpeakerEvent(activeSpeakersUIDList: activeSpeakersUIDList),
-                  );
-                }
-                // for (int i = 0; i < speakers.length; i++) {
-                //   if (speakers[i].volume! > 8) {
-                //     if (speakers[i].uid == 0) {
-                //       _controller.activeSpeakers.add(stateUserModelController.userModel.value!.getUid!);
-                //     } else
-                //       _controller.activeSpeakers.add(speakers[i].uid!);
-                //   } else {
-                //     if (speakers[i].uid == 0) {
-                //       _controller.activeSpeakers.remove(stateUserModelController.userModel.value!.getUid!);
-                //     } else
-                //       _controller.activeSpeakers.remove(speakers[i].uid);
-                //   }
+                // ✅ NEW ARCHITECTURE: Use lightweight notifier for real-time updates
+                // Extract speaking UIDs (volume > 5)
+                final speakingUIDs = speakers
+                    .where((s) => (s.volume ?? 0) > 5)
+                    .map((s) => s.uid ?? 0)
+                    .toList();
+                
+                // Update notifier (only triggers rebuild if state changed)
+                _activeSpeakersNotifier.updateSpeakers(speakingUIDs);
+                
+                // Optional: Log active speakers (less verbose)
+                // if (speakingUIDs.isNotEmpty && kDebugMode) {
+                //   _uiLog("🔊 Active Speakers: $speakingUIDs");
                 // }
-                // print("_controller 1: ${_controller.activeSpeakers}");
               },
           // onActiveSpeaker: (RtcConnection connection, int uid) {
           //   _uiLog("Active speaker changed to: $uid");
@@ -744,21 +726,27 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                       Column(
                         children: [
                           SizedBox(height: 150.h), // Space for top bar
-                          SeatWidget(
-                            numberOfSeats: widget.numberOfSeats,
-                            currentUserId: authUserId,
-                            currentUserUID: authUID,
-                            currentUserName: authState.user.name,
-                            currentUserAvatar: authState.user.avatar,
-                            hostDetails: roomState.roomData?.hostDetails,
-                            premiumSeat: roomState.roomData?.premiumSeat,
-                            seatsData: roomState.roomData?.seatsData,
-                            onTakeSeat: _takeSeat,
-                            onLeaveSeat: _leaveSeat,
-                            onRemoveUserFromSeat: _removeUserFromSeat,
-                            onMuteUserFromSeat: _muteUserFromSeat,
-                            isHost: roomState.isHost,
-                            activeSpeakersUIDList: roomState.activeSpeakersUIDList,
+                          // ✅ NEW ARCHITECTURE: Use ListenableBuilder for real-time speaker updates
+                          ListenableBuilder(
+                            listenable: _activeSpeakersNotifier,
+                            builder: (context, child) {
+                              return SeatWidget(
+                                numberOfSeats: widget.numberOfSeats,
+                                currentUserId: authUserId,
+                                currentUserUID: authUID,
+                                currentUserName: authState.user.name,
+                                currentUserAvatar: authState.user.avatar,
+                                hostDetails: roomState.roomData?.hostDetails,
+                                premiumSeat: roomState.roomData?.premiumSeat,
+                                seatsData: roomState.roomData?.seatsData,
+                                onTakeSeat: _takeSeat,
+                                onLeaveSeat: _leaveSeat,
+                                onRemoveUserFromSeat: _removeUserFromSeat,
+                                onMuteUserFromSeat: _muteUserFromSeat,
+                                isHost: roomState.isHost,
+                                activeSpeakersUIDList: _activeSpeakersNotifier.activeSpeakerUIDs.toList(),
+                              );
+                            },
                           ),
                           // Chat widget inside the main column to prevent overlap
                           Expanded(
@@ -1036,6 +1024,10 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     _reconnectTimer?.cancel();
     _clearSpeakerTimer?.cancel();
     _mutedUserSubscription?.cancel();
+    
+    // Clear active speakers notifier
+    _activeSpeakersNotifier.clear();
+    _activeSpeakersNotifier.dispose();
 
     // Disconnect from socket and reset bloc state
     _audioRoomBloc.add(DisconnectFromSocket());

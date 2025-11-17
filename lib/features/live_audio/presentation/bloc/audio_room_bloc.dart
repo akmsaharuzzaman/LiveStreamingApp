@@ -104,7 +104,6 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     on<UpdateListenersEvent>(_onUpdateListeners);
     on<SeatJoinedEvent>(_onSeatJoined);
     on<SeatLeftEvent>(_onSeatLeft);
-    on<UpdateActiveSpeakerEvent>(_onUpdateActiveSpeaker);
   }
 
   void _setupSocketSubscriptions() {
@@ -608,16 +607,6 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
         seatsData: currentState.roomData!.seatsData.copyWith(seats: newSeats),
       );
       emit(currentState.copyWith(roomData: newRoomData));
-    }
-  }
-
-  // Handle active speaker updates
-  void _onUpdateActiveSpeaker(UpdateActiveSpeakerEvent event, Emitter<AudioRoomState> emit) {
-    // debugPrint("\n\n Active speaker updated: ${event.activeSpeakerUID}");
-    // debugPrint("State: $state\n\n");
-    if (state is AudioRoomLoaded) {
-      final currentState = state as AudioRoomLoaded;
-      emit(currentState.copyWith(activeSpeakersUIDList: event.activeSpeakersUIDList));
     }
   }
 
