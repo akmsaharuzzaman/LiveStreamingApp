@@ -1883,8 +1883,13 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                             children.add(SizedBox(height: 80.h));
 
                             final isAudioCaller = sessionState.isAudioCaller;
+                            // ✅ Check if current user is in the broadcasters list (they're in call)
+                            final userInCall = displayBroadcasters.any(
+                              (b) => b.id == userId,
+                            );
                             final isJoiningRequestPending =
                                 !isAudioCaller &&
+                                !userInCall &&
                                 callState is CallRequestLoaded &&
                                 userId != null &&
                                 callState.pendingRequests.any(
@@ -1894,6 +1899,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                             final canJoinAudioCall =
                                 !sessionState.isHost &&
                                 !isAudioCaller &&
+                                !userInCall &&
                                 displayBroadcasters.length <
                                     LiveSessionState.maxAudioCallers &&
                                 !sessionState.isJoiningAudioCaller;
@@ -2020,7 +2026,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                       Text(
                                         isJoiningRequestPending
                                             ? 'Joining'
-                                            : isAudioCaller
+                                            : (isAudioCaller || userInCall)
                                             ? 'Leave'
                                             : canJoinAudioCall
                                             ? _getAudioCallerText(sessionState)
