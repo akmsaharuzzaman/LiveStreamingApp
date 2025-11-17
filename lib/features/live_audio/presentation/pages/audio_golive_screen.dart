@@ -34,6 +34,7 @@ import 'package:dlstarlive/features/live_audio/presentation/widgets/gift_bottom_
 import '../bloc/audio_room_bloc.dart';
 import '../bloc/audio_room_event.dart';
 import '../bloc/audio_room_state.dart';
+import '../notifiers/active_speakers_notifier.dart';
 import '../widgets/chat_widget.dart';
 import '../widgets/seat_widget.dart';
 
@@ -60,6 +61,7 @@ class AudioGoLiveScreen extends StatefulWidget {
 class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   // User data
   String authUserId = "";
+  int authUID = 0; // Converted from uid string for Agora
   String userName = "You";
   String demoUserImageUrl = "https://thispersondoesnotexist.com/";
   String demoUserProfileFrame = "assets/images/general/profile_frame.png";
@@ -67,16 +69,19 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
   // Agora SDK variables
   late final RtcEngine _engine;
-  // final ApiService _apiService = ApiService.instance;
   late final AudioRoomBloc _audioRoomBloc;
   late final AuthBloc _authBloc;
   Timer? _reconnectTimer;
+  Timer? _clearSpeakerTimer;
   StreamSubscription? _mutedUserSubscription;
   bool _isAgoraInitialized = false;
   bool _isInitializingAgora = false;
   bool _isJoiningAgoraChannel = false;
   bool _hasJoinedChannel = false;
   bool _hasAttemptedToJoin = false;
+  
+  // Real-time speaker tracking (lightweight for high-frequency updates)
+  final ActiveSpeakersNotifier _activeSpeakersNotifier = ActiveSpeakersNotifier();
 
   // UI Log
   void _uiLog(String message) {
@@ -102,18 +107,23 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     final authState = _authBloc.state;
     if (authState is AuthAuthenticated) {
       authUserId = authState.user.id;
+      // Convert uid string to int for Agora, use hashCode as fallback
+      // authUID = int.tryParse(authState.user.uid!.substring(0, 10)) ?? 0;
+      authUID = AppUtils.getIntFromUid(authState.user.uid!) ?? 0;
+      // print(" \n\n\n Auth UID: $authUID \n\n\n");
+      // print(" \n\n\n Auth UID: ${authState.user.uid} \n\n\n");
+      // print(" \n\n\n Auth UID: ${authState.user.uid.hashCode} \n\n\n");
       userName = authState.user.name;
       // Connect to socket first
       _connectToAudioSocket();
     } else {
       _uiLog("❌ User is not authenticated");
-      _showSnackBar('❌ User is not authenticated', Colors.red);
+      _showSnackBar('❌ You are not authenticated. Please login again to continue.', Colors.red);
       context.read<AuthBloc>().add(AuthLogoutEvent());
       return;
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadUidAndInitialize();
       // Listen to muted user ID stream and mute user locally
       _mutedUserSubscription = _audioRoomBloc.repository.mutedUserIdStream.listen((mutedUserId) {
         if (mutedUserId == authUserId && _isAgoraInitialized) {
@@ -125,20 +135,12 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     });
   }
 
-  // void _refreshRoomData() {
-  //   final currentState = context.read<AudioRoomBloc>().state;
-  //   if (currentState is AudioRoomLoaded && currentState.currentRoomId != null) {
-  //     _uiLog("🔄 Refreshing room data for roomId: ${currentState.currentRoomId}");
-  //     context.read<AudioRoomBloc>().add(GetRoomDetailsEvent(roomId: currentState.currentRoomId!));
-  //   }
-  // }
-
   /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   /// ################## Socket Connection and Room Initialization ##################
   /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   void _dispatchRoomEventsAfterConnection(BuildContext context) {
     _uiLog(
-      "🎯 Dispatching room events after connection - isHost: ${widget.isHost}, roomId: '${widget.roomId}', uid: $authUserId",
+      "🎯 Dispatching room events after connection - isHost: ${widget.isHost}, roomId: '${widget.roomId}', userId: $authUserId",
     );
 
     if (widget.isHost) {
@@ -187,17 +189,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     }
   }
 
-  Future<void> _loadUidAndInitialize() async {
-    final state = context.read<AuthBloc>().state;
-    final String? uid = state is AuthAuthenticated ? state.user.id : null;
-    if (uid != null && uid.isNotEmpty) {
-      setState(() => authUserId = uid);
-      // Connect to socket via Bloc
-      _connectToAudioSocket();
-      // Socket connection is handled by the BlocListener, which will then trigger Agora initialization.
-    }
-  }
-
   // Initialize Agora for audio room
   Future<void> initAudioAgora() async {
     try {
@@ -225,6 +216,13 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       await _engine.enableAudio();
       await _engine.disableVideo();
 
+      // Enable audio volume indication for speaker detection
+      await _engine.enableAudioVolumeIndication(
+        interval: 200, // Callback interval in milliseconds - 200 milliseconds
+        smooth: 3, // Smoothing factor
+        reportVad: true, // Report voice activity detection
+      );
+
       // Register event handlers
       _isAgoraInitialized = true;
       _uiLog("✅ Agora engine initialized successfully");
@@ -243,23 +241,70 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               _isJoiningAgoraChannel = false;
             });
           },
-          onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
-            _uiLog("User $remoteUid joined audio channel");
-          },
-          onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
-            _uiLog("User $remoteUid left audio channel");
-          },
-          onRemoteAudioStateChanged:
-              (
-                RtcConnection connection,
-                int remoteUid,
-                RemoteAudioState state,
-                RemoteAudioStateReason reason,
-                int elapsed,
-              ) {
-                // Handle audio state changes if needed
-                _uiLog("Remote audio state changed for user $remoteUid: $state");
+          // onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
+          //   _uiLog("👤 User $remoteUid joined Agora channel");
+          // },
+          // onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
+          //   _uiLog("User $remoteUid left");
+          // },
+          // onRemoteAudioStateChanged:
+          //     (
+          //       RtcConnection connection,
+          //       int remoteUid,
+          //       RemoteAudioState state,
+          //       RemoteAudioStateReason reason,
+          //       int elapsed,
+          //     ) {
+          //       // Just log state changes, volume indication handles UI updates
+          //       _uiLog("🔊 Audio State Change - UID: $remoteUid, State: $state");
+          //     },
+          ///////////////////////////////
+          // onAudioVolumeIndication:
+          //     /// Loudest speaker setup
+          //     (RtcConnection connection, List<AudioVolumeInfo> speakers, int totalVolume, int elapsed) {
+          //       AudioVolumeInfo? loudestSpeaker;
+          //       // Single pass: find loudest speaker with volume > 50
+          //       for (final speaker in speakers) {
+          //         if ((speaker.volume ?? 0) > 50) {
+          //           if (loudestSpeaker == null || (speaker.volume ?? 0) > (loudestSpeaker.volume ?? 0)) {
+          //             loudestSpeaker = speaker;
+          //           }
+          //         }
+          //       }
+          //       if (loudestSpeaker != null) {
+          //         _clearSpeakerTimer?.cancel();
+          //         _uiLog("🔊 Volume Indication - UID: ${loudestSpeaker.uid}, Volume: ${loudestSpeaker.volume}");
+          //         context.read<AudioRoomBloc>().add(UpdateActiveSpeakerEvent(activeSpeakerUID: loudestSpeaker.uid));
+          //       } else {
+          //         _clearSpeakerTimer?.cancel();
+          //         _clearSpeakerTimer = Timer(const Duration(seconds: 2), () {
+          //           if (mounted) {
+          //             context.read<AudioRoomBloc>().add(const UpdateActiveSpeakerEvent(activeSpeakerUID: null));
+          //           }
+          //         });
+          //       }
+          //     },
+          onAudioVolumeIndication:
+              (RtcConnection connection, List<AudioVolumeInfo> speakers, int totalVolume, int elapsed) {
+                // ✅ NEW ARCHITECTURE: Use lightweight notifier for real-time updates
+                // Extract speaking UIDs (volume > 5)
+                final speakingUIDs = speakers
+                    .where((s) => (s.volume ?? 0) > 5)
+                    .map((s) => s.uid ?? 0)
+                    .toList();
+                
+                // Update notifier (only triggers rebuild if state changed)
+                _activeSpeakersNotifier.updateSpeakers(speakingUIDs);
+                
+                // Optional: Log active speakers (less verbose)
+                // if (speakingUIDs.isNotEmpty && kDebugMode) {
+                //   _uiLog("🔊 Active Speakers: $speakingUIDs");
+                // }
               },
+          // onActiveSpeaker: (RtcConnection connection, int uid) {
+          //   _uiLog("Active speaker changed to: $uid");
+          //   context.read<AudioRoomBloc>().add(UpdateActiveSpeakerEvent(userUID: uid));
+          // },
         ),
       );
     } catch (e) {
@@ -268,7 +313,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     }
   }
 
-  // Update client role to broadcaster
+  // Update client role to audience
   Future<void> _updateClientRoleToAudience() async {
     _uiLog('🎧 Attempting to update client role to Audience...');
     try {
@@ -279,6 +324,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     }
   }
 
+  // Update client role to broadcaster
   Future<void> _updateClientRoleToBroadcaster() async {
     _uiLog('👑 Attempting to update client role to Broadcaster...');
     try {
@@ -317,7 +363,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     _uiLog("🎯 Joining Agora channel with roomId: '$roomId'");
     try {
       final isHost = currentState.isHost;
-
       final result = await AgoraTokenService.getRtcToken(
         channelName: roomId,
         role: isHost ? 'publisher' : 'subscriber',
@@ -333,12 +378,13 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         final role = isHost ? ClientRoleType.clientRoleBroadcaster : ClientRoleType.clientRoleAudience;
         await _engine.setClientRole(role: role);
         _uiLog("👑 Setting client role to: $role");
+        _uiLog("👑 Setting uid to: $authUID");
 
         // _showSnackBar('📡 Joining live stream...', Colors.blue);
         await _engine.joinChannel(
           token: dynamicToken,
           channelId: roomId,
-          uid: 0,
+          uid: authUID,
           options: ChannelMediaOptions(
             channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
             clientRoleType: role,
@@ -374,8 +420,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       uid: 0,
       options: const ChannelMediaOptions(),
     );
+    _hasJoinedChannel = true;
     _uiLog("✅ Successfully joined Agora channel: ${dotenv.env['DEFAULT_CHANNEL']}");
-    // _showSnackBar('📡 Joining live stream...', Colors.blue);
   }
 
   /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -663,6 +709,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               builder: (context, roomState) {
                 if (roomState is AudioRoomLoaded) {
                   _uiLog("Audio Room Loaded");
+                  _uiLog("activeSpeakerUID -> ${roomState.activeSpeakersUIDList}");
                   return Stack(
                     children: [
                       // Background
@@ -679,19 +726,27 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                       Column(
                         children: [
                           SizedBox(height: 150.h), // Space for top bar
-                          SeatWidget(
-                            numberOfSeats: widget.numberOfSeats,
-                            currentUserId: authUserId,
-                            currentUserName: authState.user.name,
-                            currentUserAvatar: authState.user.avatar,
-                            hostDetails: roomState.roomData?.hostDetails,
-                            premiumSeat: roomState.roomData?.premiumSeat,
-                            seatsData: roomState.roomData?.seatsData,
-                            onTakeSeat: _takeSeat,
-                            onLeaveSeat: _leaveSeat,
-                            onRemoveUserFromSeat: _removeUserFromSeat,
-                            onMuteUserFromSeat: _muteUserFromSeat,
-                            isHost: roomState.isHost,
+                          // ✅ NEW ARCHITECTURE: Use ListenableBuilder for real-time speaker updates
+                          ListenableBuilder(
+                            listenable: _activeSpeakersNotifier,
+                            builder: (context, child) {
+                              return SeatWidget(
+                                numberOfSeats: widget.numberOfSeats,
+                                currentUserId: authUserId,
+                                currentUserUID: authUID,
+                                currentUserName: authState.user.name,
+                                currentUserAvatar: authState.user.avatar,
+                                hostDetails: roomState.roomData?.hostDetails,
+                                premiumSeat: roomState.roomData?.premiumSeat,
+                                seatsData: roomState.roomData?.seatsData,
+                                onTakeSeat: _takeSeat,
+                                onLeaveSeat: _leaveSeat,
+                                onRemoveUserFromSeat: _removeUserFromSeat,
+                                onMuteUserFromSeat: _muteUserFromSeat,
+                                isHost: roomState.isHost,
+                                activeSpeakersUIDList: _activeSpeakersNotifier.activeSpeakerUIDs.toList(),
+                              );
+                            },
                           ),
                           // Chat widget inside the main column to prevent overlap
                           Expanded(
@@ -967,7 +1022,12 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
 
     // Cancel any pending timers first
     _reconnectTimer?.cancel();
+    _clearSpeakerTimer?.cancel();
     _mutedUserSubscription?.cancel();
+    
+    // Clear active speakers notifier
+    _activeSpeakersNotifier.clear();
+    _activeSpeakersNotifier.dispose();
 
     // Disconnect from socket and reset bloc state
     _audioRoomBloc.add(DisconnectFromSocket());

@@ -12,6 +12,7 @@ import '../../data/models/audio_room_details.dart';
 class SeatWidget extends StatefulWidget {
   final int numberOfSeats;
   final String? currentUserId;
+  final int? currentUserUID;
   final String? currentUserName;
   final String? currentUserAvatar;
   final AudioMember? hostDetails;
@@ -22,11 +23,13 @@ class SeatWidget extends StatefulWidget {
   final Function(String seatId, String targetId)? onRemoveUserFromSeat;
   final Function(String seatId, String targetId)? onMuteUserFromSeat;
   final bool isHost;
+  final List<int>? activeSpeakersUIDList;
 
   const SeatWidget({
     super.key,
     required this.numberOfSeats,
     this.currentUserId,
+    this.currentUserUID,
     this.currentUserName,
     this.currentUserAvatar,
     this.hostDetails,
@@ -37,6 +40,7 @@ class SeatWidget extends StatefulWidget {
     this.onRemoveUserFromSeat,
     this.onMuteUserFromSeat,
     this.isHost = false,
+    this.activeSpeakersUIDList,
   });
 
   @override
@@ -96,6 +100,7 @@ class _SeatWidgetState extends State<SeatWidget> {
         userId: widget.currentUserId,
         isMuted: widget.hostDetails?.isMuted ?? false,
         isLocked: false,
+        userUID: widget.currentUserUID,
       );
     } else {
       hostSeatData = SeatModel(
@@ -105,6 +110,7 @@ class _SeatWidgetState extends State<SeatWidget> {
         userId: widget.hostDetails?.id,
         isMuted: widget.hostDetails?.isMuted ?? false,
         isLocked: false,
+        userUID: widget.hostDetails?.uid,
       );
     }
 
@@ -116,6 +122,7 @@ class _SeatWidgetState extends State<SeatWidget> {
       userId: widget.premiumSeat?.member?.id,
       isMuted: widget.premiumSeat?.member?.isMuted ?? false,
       isLocked: !(widget.premiumSeat?.available ?? true),
+      userUID: widget.premiumSeat?.member?.uid,
     );
 
     broadcasterSeatData.clear();
@@ -134,6 +141,7 @@ class _SeatWidgetState extends State<SeatWidget> {
             userId: widget.seatsData!.seats!['seat-$i']!.member!.id,
             isMuted: widget.seatsData!.seats!['seat-$i']!.member!.isMuted ?? false,
             isLocked: !(widget.seatsData!.seats!['seat-$i']!.available ?? true),
+            userUID: widget.seatsData!.seats!['seat-$i']!.member!.uid,
           );
         }
       }
@@ -372,6 +380,9 @@ class _SeatWidgetState extends State<SeatWidget> {
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
         children: [
+          // Text("currentUserUID: " + widget.currentUserUID.toString()+'k', style: TextStyle(color: Colors.white)),
+          // for (var element in widget.activeSpeakersUIDList ?? [])
+          //   Text("activeSpeakerUID: " + element.toString()+'k', style: TextStyle(color: Colors.white)),
           // Top row: Host + Special seat (always 2 seats)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -403,6 +414,17 @@ class _SeatWidgetState extends State<SeatWidget> {
   }
 
   Widget _buildHostSeat(SeatModel hostSeatData) {
+    // final isActiveSpeaker =
+    //     (widget.activeSpeakerUID != null && hostSeatData.isMuted == false) &&
+    //     (widget.activeSpeakerUID == hostSeatData.userUID ||
+    //         (widget.activeSpeakerUID == 0 && hostSeatData.userUID == widget.currentUserUID));
+    final isActiveSpeaker = hostSeatData.isActiveSpeaker(
+      activeSpeakersUIDList: widget.activeSpeakersUIDList,
+      currentUserUID: widget.currentUserUID,
+    );
+    
+    // 🔍 DEBUG: Log host seat (ALWAYS for debugging)
+    // _uiLog("🪑 HOST: userUID=${hostSeatData.userUID}, isMuted=${hostSeatData.isMuted}, isActive=$isActiveSpeaker, activeList=${widget.activeSpeakersUIDList}");
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -410,6 +432,19 @@ class _SeatWidgetState extends State<SeatWidget> {
           alignment: Alignment.center,
           clipBehavior: Clip.none,
           children: [
+            // Glow background when speaking
+            if (isActiveSpeaker)
+              Container(
+                width: 70.w,
+                height: 70.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(color: Colors.cyan.withOpacity(0.6), blurRadius: 20, spreadRadius: 5),
+                    BoxShadow(color: Colors.blue.withOpacity(0.4), blurRadius: 30, spreadRadius: 10),
+                  ],
+                ),
+              ),
             // Seat circle
             Container(
               width: 70.w,
@@ -487,6 +522,7 @@ class _SeatWidgetState extends State<SeatWidget> {
         // User name or seat number
         Text(
           hostSeatData.name ?? "Host Seat",
+          // hostSeatData.userUID.toString(),
           style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w500),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -497,6 +533,19 @@ class _SeatWidgetState extends State<SeatWidget> {
   }
 
   Widget _buildPremiumSeat(SeatModel premiumSeatData) {
+    // final isActiveSpeaker =
+    //     (widget.activeSpeakerUID != null && premiumSeatData.isMuted == false) &&
+    //     (premiumSeatData.userUID == widget.activeSpeakerUID ||
+    //         (widget.activeSpeakerUID == 0 && premiumSeatData.userUID == widget.currentUserUID));
+    final isActiveSpeaker = premiumSeatData.isActiveSpeaker(
+      activeSpeakersUIDList: widget.activeSpeakersUIDList,
+      currentUserUID: widget.currentUserUID,
+    );
+    
+    // 🔍 DEBUG: Log premium seat (ALWAYS for debugging)
+    // if (premiumSeatData.userId != null) {
+    //   _uiLog("🪑 PREMIUM: userUID=${premiumSeatData.userUID}, isMuted=${premiumSeatData.isMuted}, isActive=$isActiveSpeaker, activeList=${widget.activeSpeakersUIDList}");
+    // }
     return InkWell(
       onTap: () {
         _uiLog("\n\n\n Selected premium seat");
@@ -509,6 +558,19 @@ class _SeatWidgetState extends State<SeatWidget> {
             alignment: Alignment.center,
             clipBehavior: Clip.none,
             children: [
+              // Glow background when speaking
+              if (isActiveSpeaker)
+                Container(
+                  width: 90.w,
+                  height: 90.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(color: Colors.cyan.withOpacity(0.6), blurRadius: 20, spreadRadius: 5),
+                      BoxShadow(color: Colors.blue.withOpacity(0.4), blurRadius: 30, spreadRadius: 10),
+                    ],
+                  ),
+                ),
               // Seat circle
               Container(
                 width: 70.w,
@@ -606,6 +668,19 @@ class _SeatWidgetState extends State<SeatWidget> {
   }
 
   Widget _buildSeatItem(SeatModel seat, int index) {
+    // final isActiveSpeaker =
+    //     (widget.activeSpeakerUID != null && seat.isMuted == false) &&
+    //     (widget.activeSpeakerUID == seat.userUID ||
+    //         (widget.activeSpeakerUID == 0 && seat.userUID == widget.currentUserUID));
+    final isActiveSpeaker = seat.isActiveSpeaker(
+      activeSpeakersUIDList: widget.activeSpeakersUIDList,
+      currentUserUID: widget.currentUserUID,
+    );
+    
+    // 🔍 DEBUG: Log seat UID vs active speakers (ALWAYS for debugging)
+    // if (seat.userId != null) {
+    //   _uiLog("🪑 Seat ${seat.id}: userUID=${seat.userUID}, isMuted=${seat.isMuted}, isActive=$isActiveSpeaker, activeList=${widget.activeSpeakersUIDList}");
+    // }
     return GestureDetector(
       onTap: () {
         _uiLog("\n\n\n Selected seat index: $index");
@@ -625,6 +700,19 @@ class _SeatWidgetState extends State<SeatWidget> {
             alignment: Alignment.center,
             clipBehavior: Clip.none,
             children: [
+              // Glow background when speaking
+              if (isActiveSpeaker)
+                Container(
+                  width: 70.w,
+                  height: 70.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(color: Colors.cyan.withOpacity(0.6), blurRadius: 20, spreadRadius: 5),
+                      BoxShadow(color: Colors.blue.withOpacity(0.4), blurRadius: 30, spreadRadius: 10),
+                    ],
+                  ),
+                ),
               // Seat circle
               Container(
                 width: 70.w,
@@ -722,6 +810,7 @@ class _SeatWidgetState extends State<SeatWidget> {
           // User name or seat number
           Text(
             seat.name ?? "Seat ${index + 1}",
+            // seat.userUID.toString(),
             style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w500),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
