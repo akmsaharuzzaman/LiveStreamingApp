@@ -87,16 +87,33 @@ class UserJoined extends LiveStreamEvent {
   final String userName;
   final String? avatar;
   final String? uid;
+  final int? currentLevel;
+  final String? currentBackground;
+  final String? currentTag;
+  final int diamonds;
 
   const UserJoined({
     required this.userId,
     required this.userName,
     this.avatar,
     this.uid,
+    this.currentLevel,
+    this.currentBackground,
+    this.currentTag,
+    this.diamonds = 0,
   });
 
   @override
-  List<Object?> get props => [userId, userName, avatar, uid];
+  List<Object?> get props => [
+    userId,
+    userName,
+    avatar,
+    uid,
+    currentLevel,
+    currentBackground,
+    currentTag,
+    diamonds,
+  ];
 }
 
 /// User left the stream
