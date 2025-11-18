@@ -3,6 +3,7 @@ import 'package:dlstarlive/core/constants/app_constants.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svga_easyplayer/flutter_svga_easyplayer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/models/audio_member_model.dart';
@@ -422,7 +423,7 @@ class _SeatWidgetState extends State<SeatWidget> {
       activeSpeakersUIDList: widget.activeSpeakersUIDList,
       currentUserUID: widget.currentUserUID,
     );
-    
+
     // 🔍 DEBUG: Log host seat (ALWAYS for debugging)
     // _uiLog("🪑 HOST: userUID=${hostSeatData.userUID}, isMuted=${hostSeatData.isMuted}, isActive=$isActiveSpeaker, activeList=${widget.activeSpeakersUIDList}");
     return Column(
@@ -433,18 +434,16 @@ class _SeatWidgetState extends State<SeatWidget> {
           clipBehavior: Clip.none,
           children: [
             // Glow background when speaking
-            if (isActiveSpeaker)
-              Container(
-                width: 70.w,
-                height: 70.w,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(color: Colors.cyan.withValues(alpha: 0.6), blurRadius: 20, spreadRadius: 5),
-                    BoxShadow(color: Colors.blue.withValues(alpha: 0.4), blurRadius: 30, spreadRadius: 10),
-                  ],
-                ),
+            Opacity(
+              // The opacity controls visibility without removing the widget from the layout. maintaining the Stack's size.
+              opacity: isActiveSpeaker ? 1.0 : 0.0,
+              child: SizedBox(
+                height: 90.w,
+                width: 90.w,
+                child: SVGAEasyPlayer(assetsName: "assets/icons/audio_room/speaker_seat_glow.svga", fit: BoxFit.cover),
               ),
+            ),
+
             // Seat circle
             Container(
               width: 70.w,
@@ -452,7 +451,9 @@ class _SeatWidgetState extends State<SeatWidget> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: hostSeatData.name != null ? Colors.white.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.5),
+                  color: hostSeatData.name != null
+                      ? Colors.white.withValues(alpha: 0.3)
+                      : Colors.white.withValues(alpha: 0.5),
                   width: 2,
                 ),
                 color: hostSeatData.name != null ? Colors.transparent : Colors.white.withValues(alpha: 0.1),
@@ -486,30 +487,34 @@ class _SeatWidgetState extends State<SeatWidget> {
             // Microphone icon if seat is not muted
             if (hostSeatData.isMuted == false)
               Positioned(
-                bottom: -3,
-                right: -3,
+                bottom: 6.w,
+                right: 6.w,
                 child: Container(
                   width: 24.w,
                   height: 24.w,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: Offset(0, 2))],
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: Offset(0, 2)),
+                    ],
                   ),
                   child: Icon(Icons.mic, color: Colors.grey[700], size: 14.sp),
                 ),
               )
             else
               Positioned(
-                bottom: -3,
-                right: -3,
+                bottom: 6.w,
+                right: 6.w,
                 child: Container(
                   width: 24.w,
                   height: 24.w,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: Offset(0, 2))],
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: Offset(0, 2)),
+                    ],
                   ),
                   child: Icon(Icons.mic_off, color: Colors.grey[700], size: 14.sp),
                 ),
@@ -541,7 +546,7 @@ class _SeatWidgetState extends State<SeatWidget> {
       activeSpeakersUIDList: widget.activeSpeakersUIDList,
       currentUserUID: widget.currentUserUID,
     );
-    
+
     // 🔍 DEBUG: Log premium seat (ALWAYS for debugging)
     // if (premiumSeatData.userId != null) {
     //   _uiLog("🪑 PREMIUM: userUID=${premiumSeatData.userUID}, isMuted=${premiumSeatData.isMuted}, isActive=$isActiveSpeaker, activeList=${widget.activeSpeakersUIDList}");
@@ -559,18 +564,19 @@ class _SeatWidgetState extends State<SeatWidget> {
             clipBehavior: Clip.none,
             children: [
               // Glow background when speaking
-              if (isActiveSpeaker)
-                Container(
-                  width: 90.w,
+              Opacity(
+                // The opacity controls visibility without removing the widget from the layout. maintaining the Stack's size.
+                opacity: isActiveSpeaker ? 1.0 : 0.0,
+                child: SizedBox(
                   height: 90.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(color: Colors.cyan.withValues(alpha: 0.6), blurRadius: 20, spreadRadius: 5),
-                      BoxShadow(color: Colors.blue.withValues(alpha: 0.4), blurRadius: 30, spreadRadius: 10),
-                    ],
+                  width: 90.w,
+                  child: SVGAEasyPlayer(
+                    assetsName: "assets/icons/audio_room/speaker_seat_glow.svga",
+                    fit: BoxFit.cover,
                   ),
                 ),
+              ),
+
               // Seat circle
               Container(
                 width: 70.w,
@@ -578,7 +584,9 @@ class _SeatWidgetState extends State<SeatWidget> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: premiumSeatData.name != null ? Colors.white.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.5),
+                    color: premiumSeatData.name != null
+                        ? Colors.white.withValues(alpha: 0.3)
+                        : Colors.white.withValues(alpha: 0.5),
                     width: 2,
                   ),
                   color: premiumSeatData.name != null ? Colors.transparent : Colors.white.withValues(alpha: 0.1),
@@ -636,15 +644,17 @@ class _SeatWidgetState extends State<SeatWidget> {
               // Microphone icon if seat is occupied
               if (premiumSeatData.name != null)
                 Positioned(
-                  bottom: -3,
-                  right: -3,
+                  bottom: 6.w,
+                  right: 6.w,
                   child: Container(
                     width: 24.w,
                     height: 24.w,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: Offset(0, 2))],
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: Offset(0, 2)),
+                      ],
                     ),
                     child: Icon(Icons.mic, color: Colors.grey[700], size: 14.sp),
                   ),
@@ -676,7 +686,7 @@ class _SeatWidgetState extends State<SeatWidget> {
       activeSpeakersUIDList: widget.activeSpeakersUIDList,
       currentUserUID: widget.currentUserUID,
     );
-    
+
     // 🔍 DEBUG: Log seat UID vs active speakers (ALWAYS for debugging)
     // if (seat.userId != null) {
     //   _uiLog("🪑 Seat ${seat.id}: userUID=${seat.userUID}, isMuted=${seat.isMuted}, isActive=$isActiveSpeaker, activeList=${widget.activeSpeakersUIDList}");
@@ -701,18 +711,19 @@ class _SeatWidgetState extends State<SeatWidget> {
             clipBehavior: Clip.none,
             children: [
               // Glow background when speaking
-              if (isActiveSpeaker)
-                Container(
-                  width: 70.w,
-                  height: 70.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(color: Colors.cyan.withValues(alpha: 0.6), blurRadius: 20, spreadRadius: 5),
-                      BoxShadow(color: Colors.blue.withValues(alpha: 0.4), blurRadius: 30, spreadRadius: 10),
-                    ],
+              // Glow background when speaking
+              Opacity(
+                // The opacity controls visibility without removing the widget from the layout. maintaining the Stack's size.
+                opacity: isActiveSpeaker ? 1.0 : 0.0,
+                child: SizedBox(
+                  height: 90.w,
+                  width: 90.w,
+                  child: SVGAEasyPlayer(
+                    assetsName: "assets/icons/audio_room/speaker_seat_glow.svga",
+                    fit: BoxFit.cover,
                   ),
                 ),
+              ),
               // Seat circle
               Container(
                 width: 70.w,
@@ -721,7 +732,9 @@ class _SeatWidgetState extends State<SeatWidget> {
                   color: Colors.transparent, // Add transparent background for InkWell
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: seat.name != null ? Colors.white.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.5),
+                    color: seat.name != null
+                        ? Colors.white.withValues(alpha: 0.3)
+                        : Colors.white.withValues(alpha: 0.5),
                     width: 2,
                   ),
                 ),
@@ -769,8 +782,8 @@ class _SeatWidgetState extends State<SeatWidget> {
               if (seat.userId != null) ...[
                 if (seat.isMuted == false)
                   Positioned(
-                    bottom: -3,
-                    right: -3,
+                    bottom: 6.w,
+                    right: 6.w,
                     child: Container(
                       width: 24.w,
                       height: 24.w,
@@ -786,8 +799,8 @@ class _SeatWidgetState extends State<SeatWidget> {
                   )
                 else
                   Positioned(
-                    bottom: -3,
-                    right: -3,
+                    bottom: 6.w,
+                    right: 6.w,
                     child: Container(
                       width: 24.w,
                       height: 24.w,
