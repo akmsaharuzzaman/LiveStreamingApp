@@ -152,7 +152,7 @@ class ActiveViewers extends StatelessWidget {
                   color: Color(0xff888686),
                   borderRadius: BorderRadius.circular(8.r),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -170,7 +170,7 @@ class ActiveViewers extends StatelessWidget {
                     SizedBox(width: 2.w),
                     Icon(
                       Icons.keyboard_arrow_right,
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                       size: 16.sp,
                     ),
                   ],

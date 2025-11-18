@@ -226,7 +226,7 @@ class _StoreContent extends StatelessWidget {
                       : Icon(
                           Icons.shopping_bag_outlined,
                           size: 120.sp,
-                          color: Colors.white.withOpacity(0.5),
+                          color: Colors.white.withValues(alpha: 0.5),
                         ),
                 ),
               ),

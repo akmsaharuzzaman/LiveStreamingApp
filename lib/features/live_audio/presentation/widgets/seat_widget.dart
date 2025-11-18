@@ -440,8 +440,8 @@ class _SeatWidgetState extends State<SeatWidget> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   boxShadow: [
-                    BoxShadow(color: Colors.cyan.withOpacity(0.6), blurRadius: 20, spreadRadius: 5),
-                    BoxShadow(color: Colors.blue.withOpacity(0.4), blurRadius: 30, spreadRadius: 10),
+                    BoxShadow(color: Colors.cyan.withValues(alpha: 0.6), blurRadius: 20, spreadRadius: 5),
+                    BoxShadow(color: Colors.blue.withValues(alpha: 0.4), blurRadius: 30, spreadRadius: 10),
                   ],
                 ),
               ),
@@ -452,10 +452,10 @@ class _SeatWidgetState extends State<SeatWidget> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: hostSeatData.name != null ? Colors.white.withOpacity(0.3) : Colors.white.withOpacity(0.5),
+                  color: hostSeatData.name != null ? Colors.white.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.5),
                   width: 2,
                 ),
-                color: hostSeatData.name != null ? Colors.transparent : Colors.white.withOpacity(0.1),
+                color: hostSeatData.name != null ? Colors.transparent : Colors.white.withValues(alpha: 0.1),
               ),
               child: ClipOval(
                 child: (hostSeatData.avatar != null && hostSeatData.avatar!.isNotEmpty
@@ -494,7 +494,7 @@ class _SeatWidgetState extends State<SeatWidget> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: Offset(0, 2))],
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: Offset(0, 2))],
                   ),
                   child: Icon(Icons.mic, color: Colors.grey[700], size: 14.sp),
                 ),
@@ -509,7 +509,7 @@ class _SeatWidgetState extends State<SeatWidget> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: Offset(0, 2))],
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: Offset(0, 2))],
                   ),
                   child: Icon(Icons.mic_off, color: Colors.grey[700], size: 14.sp),
                 ),
@@ -566,8 +566,8 @@ class _SeatWidgetState extends State<SeatWidget> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     boxShadow: [
-                      BoxShadow(color: Colors.cyan.withOpacity(0.6), blurRadius: 20, spreadRadius: 5),
-                      BoxShadow(color: Colors.blue.withOpacity(0.4), blurRadius: 30, spreadRadius: 10),
+                      BoxShadow(color: Colors.cyan.withValues(alpha: 0.6), blurRadius: 20, spreadRadius: 5),
+                      BoxShadow(color: Colors.blue.withValues(alpha: 0.4), blurRadius: 30, spreadRadius: 10),
                     ],
                   ),
                 ),
@@ -578,10 +578,10 @@ class _SeatWidgetState extends State<SeatWidget> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: premiumSeatData.name != null ? Colors.white.withOpacity(0.3) : Colors.white.withOpacity(0.5),
+                    color: premiumSeatData.name != null ? Colors.white.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.5),
                     width: 2,
                   ),
-                  color: premiumSeatData.name != null ? Colors.transparent : Colors.white.withOpacity(0.1),
+                  color: premiumSeatData.name != null ? Colors.transparent : Colors.white.withValues(alpha: 0.1),
                 ),
                 child: ClipOval(
                   child: premiumSeatData.name != null
@@ -644,7 +644,7 @@ class _SeatWidgetState extends State<SeatWidget> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: Offset(0, 2))],
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: Offset(0, 2))],
                     ),
                     child: Icon(Icons.mic, color: Colors.grey[700], size: 14.sp),
                   ),
@@ -708,8 +708,8 @@ class _SeatWidgetState extends State<SeatWidget> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     boxShadow: [
-                      BoxShadow(color: Colors.cyan.withOpacity(0.6), blurRadius: 20, spreadRadius: 5),
-                      BoxShadow(color: Colors.blue.withOpacity(0.4), blurRadius: 30, spreadRadius: 10),
+                      BoxShadow(color: Colors.cyan.withValues(alpha: 0.6), blurRadius: 20, spreadRadius: 5),
+                      BoxShadow(color: Colors.blue.withValues(alpha: 0.4), blurRadius: 30, spreadRadius: 10),
                     ],
                   ),
                 ),
@@ -721,7 +721,7 @@ class _SeatWidgetState extends State<SeatWidget> {
                   color: Colors.transparent, // Add transparent background for InkWell
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: seat.name != null ? Colors.white.withOpacity(0.3) : Colors.white.withOpacity(0.5),
+                    color: seat.name != null ? Colors.white.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.5),
                     width: 2,
                   ),
                 ),
@@ -778,7 +778,7 @@ class _SeatWidgetState extends State<SeatWidget> {
                         color: Colors.white,
                         shape: BoxShape.circle,
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: Offset(0, 2)),
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: Offset(0, 2)),
                         ],
                       ),
                       child: Icon(Icons.mic, color: Colors.grey[700], size: 14.sp),
@@ -795,7 +795,7 @@ class _SeatWidgetState extends State<SeatWidget> {
                         color: Colors.white,
                         shape: BoxShape.circle,
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: Offset(0, 2)),
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: Offset(0, 2)),
                         ],
                       ),
                       child: Icon(Icons.mic_off, color: Colors.grey[700], size: 14.sp),

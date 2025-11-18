@@ -2931,7 +2931,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.8),
+                color: Colors.red.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -2974,7 +2974,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.8),
+                color: Colors.blue.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -3022,7 +3022,7 @@ class _GoliveScreenState extends State<GoliveScreen> {
                 height: 50.h,
                 width: 50.w,
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.8),
+                  color: Colors.blue.withValues(alpha: 0.8),
                   borderRadius: BorderRadius.circular(25.r),
                 ),
                 child: Icon(
@@ -3041,8 +3041,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                 width: 50.w,
                 decoration: BoxDecoration(
                   color: _currentEffect == null
-                      ? Colors.white.withOpacity(0.9)
-                      : Colors.white.withOpacity(0.3),
+                      ? Colors.white.withValues(alpha: 0.9)
+                      : Colors.white.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(25.r),
                 ),
                 child: Icon(
@@ -3069,8 +3069,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                         width: 60.w,
                         decoration: BoxDecoration(
                           color: _currentEffect == null
-                              ? Colors.green.withOpacity(0.9)
-                              : Colors.grey.withOpacity(0.3),
+                              ? Colors.green.withValues(alpha: 0.9)
+                              : Colors.grey.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(25.r),
                           border: Border.all(
                             color: _currentEffect == null
@@ -3119,8 +3119,8 @@ class _GoliveScreenState extends State<GoliveScreen> {
                       width: 50.w,
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? Colors.orange.withOpacity(0.9)
-                            : Colors.white.withOpacity(0.3),
+                            ? Colors.orange.withValues(alpha: 0.9)
+                            : Colors.white.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(25.r),
                         border: Border.all(
                           color: isSelected ? Colors.orange : Colors.white,

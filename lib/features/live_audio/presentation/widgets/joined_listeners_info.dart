@@ -94,7 +94,7 @@ class JoinedListenersInfo extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Color(0xff888686),
                   borderRadius: BorderRadius.circular(8.r),
-                  border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -104,7 +104,7 @@ class JoinedListenersInfo extends StatelessWidget {
                       style: TextStyle(fontSize: 18.sp, color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                     SizedBox(width: 2.w),
-                    Icon(Icons.keyboard_arrow_right, color: Colors.white.withOpacity(0.8), size: 16.sp),
+                    Icon(Icons.keyboard_arrow_right, color: Colors.white.withValues(alpha: 0.8), size: 16.sp),
                   ],
                 ),
               ),

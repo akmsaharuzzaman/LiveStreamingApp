@@ -262,7 +262,7 @@ class _LevelPageState extends State<LevelPage> with SingleTickerProviderStateMix
             onTap: () => _showLevelRules(),
             child: Container(
               padding: EdgeInsets.all(8.w),
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
               child: Icon(Icons.help_outline, color: Colors.white, size: 20.sp),
             ),
           ),
@@ -349,7 +349,7 @@ class _LevelPageState extends State<LevelPage> with SingleTickerProviderStateMix
                     Container(
                       height: 6.h,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.5),
+                        color: Colors.white.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(4.r),
                       ),
                     ),
@@ -448,7 +448,7 @@ class _LevelPageState extends State<LevelPage> with SingleTickerProviderStateMix
               decoration: BoxDecoration(
                 gradient: isSelected
                     ? LinearGradient(
-                        colors: [levelRangeColors[index].withOpacity(0.9), levelRangeColors[index].withOpacity(0.6)],
+                        colors: [levelRangeColors[index].withValues(alpha: 0.9), levelRangeColors[index].withValues(alpha: 0.6)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       )
@@ -458,7 +458,7 @@ class _LevelPageState extends State<LevelPage> with SingleTickerProviderStateMix
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: levelRangeColors[index].withOpacity(0.4),
+                          color: levelRangeColors[index].withValues(alpha: 0.4),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),
@@ -608,7 +608,7 @@ class _LevelPageState extends State<LevelPage> with SingleTickerProviderStateMix
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 4))],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -752,7 +752,7 @@ class LevelRulesPage extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(15.r),
           boxShadow: [
-            BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 2, blurRadius: 5, offset: const Offset(0, 3)),
+            BoxShadow(color: Colors.grey.withValues(alpha: 0.1), spreadRadius: 2, blurRadius: 5, offset: const Offset(0, 3)),
           ],
         ),
         child: Column(
