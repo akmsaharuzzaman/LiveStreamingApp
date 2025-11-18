@@ -75,6 +75,11 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
     Emitter<CallRequestState> emit,
   ) async {
     try {
+      debugPrint('🎤 [CALL_BLOC] _onAcceptRequest called');
+      debugPrint(
+        '🎤 [CALL_BLOC] Accepting user: ${event.userId} for room: ${event.roomId}',
+      );
+
       emit(const CallRequestProcessing());
 
       final result = await _repository.acceptRequest(
@@ -84,6 +89,9 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
 
       result.fold(
         (failure) {
+          debugPrint(
+            '🎤 [CALL_BLOC] ❌ Error accepting request: ${failure.message}',
+          );
           emit(CallRequestError(failure.message));
           emit(
             CallRequestLoaded(
@@ -93,8 +101,12 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
           );
         },
         (_) {
+          debugPrint('🎤 [CALL_BLOC] ✅ Request accepted successfully');
           // Remove from pending
           _pendingRequests.removeWhere((r) => r.userId == event.userId);
+          debugPrint(
+            '🎤 [CALL_BLOC] Pending requests count after acceptance: ${_pendingRequests.length}',
+          );
 
           emit(CallRequestAccepted(event.userId));
           emit(
@@ -106,6 +118,7 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
         },
       );
     } catch (e) {
+      debugPrint('🎤 [CALL_BLOC] ❌ Exception in _onAcceptRequest: $e');
       emit(CallRequestError('Failed to accept request: $e'));
       emit(
         CallRequestLoaded(
@@ -121,6 +134,11 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
     Emitter<CallRequestState> emit,
   ) async {
     try {
+      debugPrint('🎤 [CALL_BLOC] _onRejectRequest called');
+      debugPrint(
+        '🎤 [CALL_BLOC] Rejecting user: ${event.userId} for room: ${event.roomId}',
+      );
+
       emit(const CallRequestProcessing());
 
       final result = await _repository.rejectRequest(
@@ -130,6 +148,9 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
 
       result.fold(
         (failure) {
+          debugPrint(
+            '🎤 [CALL_BLOC] ❌ Error rejecting request: ${failure.message}',
+          );
           emit(CallRequestError(failure.message));
           emit(
             CallRequestLoaded(
@@ -139,8 +160,12 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
           );
         },
         (_) {
+          debugPrint('🎤 [CALL_BLOC] ✅ Request rejected successfully');
           // Remove from pending
           _pendingRequests.removeWhere((r) => r.userId == event.userId);
+          debugPrint(
+            '🎤 [CALL_BLOC] Pending requests count after rejection: ${_pendingRequests.length}',
+          );
 
           emit(CallRequestRejected(event.userId));
           emit(
@@ -167,6 +192,11 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
     Emitter<CallRequestState> emit,
   ) async {
     try {
+      debugPrint('🎤 [CALL_BLOC] _onRemoveBroadcaster called');
+      debugPrint(
+        '🎤 [CALL_BLOC] Removing user: ${event.userId} from room: ${event.roomId}',
+      );
+
       emit(const CallRequestProcessing());
 
       final result = await _repository.removeBroadcaster(
@@ -176,6 +206,9 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
 
       result.fold(
         (failure) {
+          debugPrint(
+            '🎤 [CALL_BLOC] ❌ Error removing broadcaster: ${failure.message}',
+          );
           emit(CallRequestError(failure.message));
           emit(
             CallRequestLoaded(
@@ -185,8 +218,12 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
           );
         },
         (_) {
+          debugPrint('🎤 [CALL_BLOC] ✅ Broadcaster removed successfully');
           // Remove from active broadcasters
           _activeBroadcasters.removeWhere((b) => b.id == event.userId);
+          debugPrint(
+            '🎤 [CALL_BLOC] Active broadcasters count after removal: ${_activeBroadcasters.length}',
+          );
 
           emit(BroadcasterRemoved(event.userId));
           emit(
@@ -198,6 +235,7 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
         },
       );
     } catch (e) {
+      debugPrint('🎤 [CALL_BLOC] ❌ Exception in _onRemoveBroadcaster: $e');
       emit(CallRequestError('Failed to remove broadcaster: $e'));
       emit(
         CallRequestLoaded(
@@ -213,12 +251,16 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
     Emitter<CallRequestState> emit,
   ) async {
     try {
+      debugPrint('🎤 [CALL_BLOC] _onSubmitJoinRequest called');
+      debugPrint('🎤 [CALL_BLOC] Joining call for room: ${event.roomId}');
+
       emit(const CallRequestProcessing());
 
       final result = await _repository.joinCallRequest(roomId: event.roomId);
 
       result.fold(
         (failure) {
+          debugPrint('🎤 [CALL_BLOC] ❌ Error joining call: ${failure.message}');
           emit(CallRequestError(failure.message));
           emit(
             CallRequestLoaded(
@@ -228,6 +270,7 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
           );
         },
         (_) {
+          debugPrint('🎤 [CALL_BLOC] ✅ Join request submitted successfully');
           emit(CallRequestJoinSubmitted(event.roomId));
           emit(
             CallRequestLoaded(
@@ -238,6 +281,7 @@ class CallRequestBloc extends Bloc<CallRequestEvent, CallRequestState> {
         },
       );
     } catch (e) {
+      debugPrint('🎤 [CALL_BLOC] ❌ Exception in _onSubmitJoinRequest: $e');
       emit(CallRequestError('Failed to submit call request: $e'));
       emit(
         CallRequestLoaded(

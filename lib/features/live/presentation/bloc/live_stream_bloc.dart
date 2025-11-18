@@ -266,12 +266,27 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
   }
 
   void _onUserJoined(UserJoined event, Emitter<LiveStreamState> emit) {
+    debugPrint('🎤 [BLOC] _onUserJoined event handler called');
+    debugPrint(
+      '🎤 [BLOC] Event userId: ${event.userId}, userName: ${event.userName}, uid: ${event.uid}',
+    );
+    debugPrint('🎤 [BLOC] Current state type: ${state.runtimeType}');
+
     final currentState = state;
     if (currentState is LiveStreamStreaming) {
+      debugPrint('🎤 [BLOC] ✅ Current state is LiveStreamStreaming');
+      debugPrint(
+        '🎤 [BLOC] Current viewers count: ${currentState.viewers.length}',
+      );
+
       final viewers = List<JoinedUserModel>.from(currentState.viewers);
 
       // Don't add if already exists
-      if (!viewers.any((v) => v.id == event.userId)) {
+      final alreadyExists = viewers.any((v) => v.id == event.userId);
+      debugPrint('🎤 [BLOC] User already exists in viewers? $alreadyExists');
+
+      if (!alreadyExists) {
+        debugPrint('🎤 [BLOC] ✅ Adding new user to viewers');
         viewers.add(
           JoinedUserModel(
             id: event.userId,
@@ -284,9 +299,20 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
             currentTag: event.currentTag,
           ),
         );
+        debugPrint('🎤 [BLOC] New viewers count: ${viewers.length}');
+        debugPrint(
+          '🎤 [BLOC] Current viewers: ${viewers.map((v) => '${v.name}(${v.id})').join(', ')}',
+        );
 
         emit(currentState.copyWith(viewers: viewers));
+        debugPrint('🎤 [BLOC] ✅ State emitted with updated viewers');
+      } else {
+        debugPrint('🎤 [BLOC] ⚠️ User already in viewers, skipping duplicate');
       }
+    } else {
+      debugPrint(
+        '🎤 [BLOC] ❌ Current state is NOT LiveStreamStreaming (${currentState.runtimeType}), cannot add user',
+      );
     }
   }
 
@@ -563,6 +589,14 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
 
   void _setupSocketListeners() {
     _userJoinedSubscription = _socketService.userJoinedStream.listen((data) {
+      debugPrint('🎤 [SOCKET] User joined event received from socket');
+      debugPrint(
+        '🎤 [SOCKET] userId: ${data.id}, userName: ${data.name}, uid: ${data.uid}',
+      );
+      debugPrint(
+        '🎤 [SOCKET] level: ${data.currentLevel}, background: ${data.currentBackground}, tag: ${data.currentTag}',
+      );
+
       add(
         UserJoined(
           userId: data.id,
@@ -575,13 +609,16 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
           diamonds: data.diamonds,
         ),
       );
+      debugPrint('🎤 [SOCKET] UserJoined event added to bloc');
     });
 
     _userLeftSubscription = _socketService.userLeftStream.listen((data) {
+      debugPrint('🎤 [SOCKET] User left event received: ${data.id}');
       add(UserLeft(data.id));
     });
 
     _bannedUserSubscription = _socketService.bannedUserStream.listen((data) {
+      debugPrint('🎤 [SOCKET] User banned event received: ${data.targetId}');
       add(UserBannedNotification(userId: data.targetId, message: data.message));
     });
 

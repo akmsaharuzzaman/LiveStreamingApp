@@ -1788,6 +1788,23 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                               .where((b) => !hostIdentifiers.contains(b.id))
                               .toList();
 
+                          debugPrint('🎤 [UI] displayBroadcasters computed:');
+                          debugPrint(
+                            '🎤 [UI] Total broadcasters: ${broadcasters.length}',
+                          );
+                          debugPrint(
+                            '🎤 [UI] hostIdentifiers: $hostIdentifiers',
+                          );
+                          debugPrint(
+                            '🎤 [UI] displayBroadcasters count: ${displayBroadcasters.length}',
+                          );
+                          for (var i = 0; i < displayBroadcasters.length; i++) {
+                            final b = displayBroadcasters[i];
+                            debugPrint(
+                              '🎤 [UI]   [$i] ID: ${b.id}, Name: ${b.name}',
+                            );
+                          }
+
                           WhoAmI resolveRole(String broadcasterId) {
                             final authState = context.read<AuthBloc>().state;
                             final currentUserId = authState is AuthAuthenticated
@@ -1933,7 +1950,30 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                             children.add(
                               GestureDetector(
                                 onTap: () {
+                                  debugPrint(
+                                    '🎤 [UI] Join/Leave button tapped',
+                                  );
+                                  debugPrint(
+                                    '🎤 [UI] isAudioCaller: $isAudioCaller',
+                                  );
+                                  debugPrint('🎤 [UI] userInCall: $userInCall');
+                                  debugPrint(
+                                    '🎤 [UI] isJoiningRequestPending: $isJoiningRequestPending',
+                                  );
+                                  debugPrint(
+                                    '🎤 [UI] canJoinAudioCall: $canJoinAudioCall',
+                                  );
+                                  debugPrint(
+                                    '🎤 [UI] displayBroadcasters.length: ${displayBroadcasters.length}',
+                                  );
+                                  debugPrint(
+                                    '🎤 [UI] maxAudioCallers: ${LiveSessionState.maxAudioCallers}',
+                                  );
+
                                   if (isJoiningRequestPending) {
+                                    debugPrint(
+                                      '🎤 [UI] Already joining, waiting...',
+                                    );
                                     _showSnackBar(
                                       '🎤 Please wait...',
                                       Colors.orange,
@@ -1943,10 +1983,23 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
 
                                   // ✅ Check both isAudioCaller and userInCall to handle leave
                                   if (isAudioCaller || userInCall) {
+                                    debugPrint(
+                                      '🎤 [UI] ✅ User in call, initiating LEAVE',
+                                    );
                                     final currentUserId = userId;
+                                    debugPrint(
+                                      '🎤 [UI] currentUserId: $currentUserId',
+                                    );
+                                    debugPrint(
+                                      '🎤 [UI] currentRoomId: $currentRoomId',
+                                    );
+
                                     if (currentUserId == null ||
                                         currentUserId.isEmpty ||
                                         currentRoomId.isEmpty) {
+                                      debugPrint(
+                                        '🎤 [UI] ❌ Missing userId or roomId',
+                                      );
                                       _showSnackBar(
                                         '❌ Unable to leave call right now',
                                         Colors.red,
@@ -1954,6 +2007,9 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                       return;
                                     }
 
+                                    debugPrint(
+                                      '🎤 [UI] Sending RemoveBroadcaster event to bloc',
+                                    );
                                     callRequestBloc.add(
                                       RemoveBroadcaster(
                                         userId: currentUserId,
@@ -1962,7 +2018,11 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                     );
                                     debugPrint("Leaving audio caller");
                                   } else {
+                                    debugPrint(
+                                      '🎤 [UI] 🎤 User NOT in call, checking if can JOIN',
+                                    );
                                     if (currentRoomId.isEmpty) {
+                                      debugPrint('🎤 [UI] ❌ Room not ready');
                                       _showSnackBar(
                                         '❌ Room not ready, please try again',
                                         Colors.red,
@@ -1971,6 +2031,9 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                     }
 
                                     if (!canJoinAudioCall) {
+                                      debugPrint(
+                                        '🎤 [UI] ❌ Cannot join - call full or other condition failed',
+                                      );
                                       _showSnackBar(
                                         '🎤 Audio call is full',
                                         Colors.red,
@@ -1978,6 +2041,9 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                       return;
                                     }
 
+                                    debugPrint(
+                                      '🎤 [UI] ✅ Sending SubmitJoinCallRequest to bloc',
+                                    );
                                     callRequestBloc.add(
                                       SubmitJoinCallRequest(
                                         roomId: currentRoomId,

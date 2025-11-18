@@ -39,6 +39,8 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
   late final List<int> _remoteUsers;
   late final List<int> _audioCallerUids;
   late final List<int> _videoCallerUids;
+  int?
+  _hostAgoraUid; // ✅ Track the host's Agora UID (first remote user is the host)
   bool _isProcessingAudioJoin = false;
 
   static const int _inactivityTimeoutSeconds = 60;
@@ -211,15 +213,43 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
   }
 
   Future<void> promoteToAudioCaller() async {
+    debugPrint('🎤 [PROMOTE] Starting audio caller promotion...');
+    debugPrint('🎤 [PROMOTE] Current isAudioCaller: ${state.isAudioCaller}');
+    debugPrint('🎤 [PROMOTE] isProcessingAudioJoin: $_isProcessingAudioJoin');
+    debugPrint(
+      '🎤 [PROMOTE] Current audioCallerUids: $_audioCallerUids (length: ${_audioCallerUids.length})',
+    );
+    debugPrint(
+      '🎤 [PROMOTE] maxAudioCallers: ${LiveSessionState.maxAudioCallers}',
+    );
+
     if (state.isAudioCaller) {
+      debugPrint('🎤 [PROMOTE] ❌ Already an audio caller, returning');
       return;
     }
 
     if (_isProcessingAudioJoin) {
+      debugPrint('🎤 [PROMOTE] ❌ Already processing audio join, returning');
       return;
     }
 
-    if (_audioCallerUids.length >= LiveSessionState.maxAudioCallers) {
+    // ✅ IMPORTANT: Only non-hosts count against the audio caller limit
+    // Exclude: local UID (0) and the host's Agora UID from the count
+    final nonHostAudioCallers = _audioCallerUids
+        .where((uid) => uid != 0 && uid != _hostAgoraUid)
+        .length;
+
+    debugPrint('🎤 [PROMOTE] Current audioCallerUids: $_audioCallerUids');
+    debugPrint('🎤 [PROMOTE] Host Agora UID: $_hostAgoraUid');
+    debugPrint(
+      '🎤 [PROMOTE] Non-host audio callers: $nonHostAudioCallers / ${LiveSessionState.maxAudioCallers}',
+    );
+
+    if (!state.isHost &&
+        nonHostAudioCallers >= LiveSessionState.maxAudioCallers) {
+      debugPrint(
+        '🎤 [PROMOTE] ❌ Audio call FULL! ($nonHostAudioCallers >= ${LiveSessionState.maxAudioCallers})',
+      );
       emit(
         state.copyWith(
           snackBar: LiveSessionSnackBar.warning('Audio call is full'),
@@ -228,14 +258,32 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
       return;
     }
 
+    if (state.isHost) {
+      debugPrint(
+        '🎤 [PROMOTE] ✅ User is host - allowing promotion regardless of caller count',
+      );
+    }
+
     _isProcessingAudioJoin = true;
+    debugPrint(
+      '🎤 [PROMOTE] ✅ Promotion allowed, setting _isProcessingAudioJoin = true',
+    );
 
     if (!state.isJoiningAudioCaller) {
       emit(state.copyWith(isJoiningAudioCaller: true));
+      debugPrint('🎤 [PROMOTE] 📤 Emitted isJoiningAudioCaller = true');
     }
 
     try {
+      debugPrint('🎤 [PROMOTE] 🔄 Calling _switchToAudioCaller()...');
       await _switchToAudioCaller();
+      debugPrint(
+        '🎤 [PROMOTE] ✅ _switchToAudioCaller() completed successfully',
+      );
+      debugPrint(
+        '🎤 [PROMOTE] 📋 audioCallerUids after switch: $_audioCallerUids (length: ${_audioCallerUids.length})',
+      );
+
       emit(
         state.copyWith(
           isJoiningAudioCaller: false,
@@ -245,7 +293,9 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
               : LiveSessionSnackBar.success('Joined audio call'),
         ),
       );
-    } catch (_) {
+      debugPrint('🎤 [PROMOTE] ✅ State emitted: isAudioCaller = true');
+    } catch (e) {
+      debugPrint('🎤 [PROMOTE] ❌ Error during promotion: $e');
       emit(
         state.copyWith(
           isJoiningAudioCaller: false,
@@ -254,6 +304,9 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
       );
     } finally {
       _isProcessingAudioJoin = false;
+      debugPrint(
+        '🎤 [PROMOTE] 🏁 Promotion complete, _isProcessingAudioJoin = false',
+      );
     }
   }
 
@@ -341,7 +394,6 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
           channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
         ),
       );
-
       await _engine!.setClientRole(
         role: isHost
             ? ClientRoleType.clientRoleBroadcaster
@@ -394,6 +446,15 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
           onUserJoined: (connection, remoteUid, elapsed) {
             if (!_remoteUsers.contains(remoteUid)) {
               _remoteUsers.add(remoteUid);
+            }
+
+            // ✅ CRITICAL: Track the first remote UID as the host (for non-hosts)
+            // Hosts already know they're hosts, so we capture the first remote user's UID
+            if (!state.isHost && _hostAgoraUid == null) {
+              _hostAgoraUid = remoteUid;
+              debugPrint(
+                '👥 [AGORA] First remote user (host) UID set: $_hostAgoraUid',
+              );
             }
 
             debugPrint(
@@ -459,29 +520,84 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
                 }
                 _evaluateHostActivity();
               },
-          onRemoteAudioStateChanged:
-              (connection, remoteUid, state, reason, elapsed) {
-                if (state == RemoteAudioState.remoteAudioStateDecoding &&
-                    !_audioCallerUids.contains(remoteUid) &&
-                    _audioCallerUids.length <
-                        LiveSessionState.maxAudioCallers) {
-                  _audioCallerUids.add(remoteUid);
-                  emit(
-                    this.state.copyWith(
-                      audioCallerUids: List<int>.from(_audioCallerUids),
-                    ),
-                  );
-                }
+          onRemoteAudioStateChanged: (connection, remoteUid, state, reason, elapsed) {
+            debugPrint(
+              '🎤 [AUDIO_CALLBACK] Remote audio state changed for UID: $remoteUid',
+            );
+            debugPrint('🎤 [AUDIO_CALLBACK] State: $state, Reason: $reason');
+            debugPrint(
+              '🎤 [AUDIO_CALLBACK] Current audioCallerUids: $_audioCallerUids (length: ${_audioCallerUids.length})',
+            );
+            debugPrint(
+              '🎤 [AUDIO_CALLBACK] maxAudioCallers: ${LiveSessionState.maxAudioCallers}',
+            );
 
-                if (state == RemoteAudioState.remoteAudioStateStopped) {
-                  _audioCallerUids.remove(remoteUid);
-                  emit(
-                    this.state.copyWith(
-                      audioCallerUids: List<int>.from(_audioCallerUids),
-                    ),
-                  );
-                }
-              },
+            if (state == RemoteAudioState.remoteAudioStateDecoding) {
+              debugPrint(
+                '🎤 [AUDIO_CALLBACK] 📥 Audio DECODING from $remoteUid',
+              );
+              debugPrint(
+                '🎤 [AUDIO_CALLBACK] Already in list? ${_audioCallerUids.contains(remoteUid)}',
+              );
+              debugPrint('🎤 [AUDIO_CALLBACK] Current list: $_audioCallerUids');
+
+              // ✅ IMPORTANT FIX: Count remote UIDs only (exclude local UID 0) for capacity check
+              // Local UID (0) is just tracking, not a real remote caller
+              final remoteUidCount = _audioCallerUids
+                  .where((uid) => uid != 0)
+                  .length;
+              debugPrint(
+                '🎤 [AUDIO_CALLBACK] Remote UID count (excluding local 0): $remoteUidCount / ${LiveSessionState.maxAudioCallers}',
+              );
+              debugPrint(
+                '🎤 [AUDIO_CALLBACK] Can add more? $remoteUidCount < ${LiveSessionState.maxAudioCallers}',
+              );
+
+              if (!_audioCallerUids.contains(remoteUid) &&
+                  remoteUidCount < LiveSessionState.maxAudioCallers) {
+                debugPrint(
+                  '🎤 [AUDIO_CALLBACK] ✅ Adding remote UID $remoteUid to audioCallerUids',
+                );
+                _audioCallerUids.add(remoteUid);
+                debugPrint(
+                  '🎤 [AUDIO_CALLBACK] audioCallerUids after add: $_audioCallerUids (length: ${_audioCallerUids.length})',
+                );
+
+                emit(
+                  this.state.copyWith(
+                    audioCallerUids: List<int>.from(_audioCallerUids),
+                  ),
+                );
+              } else if (_audioCallerUids.contains(remoteUid)) {
+                debugPrint(
+                  '🎤 [AUDIO_CALLBACK] ⚠️ Remote UID already in list, skipping',
+                );
+              } else {
+                debugPrint(
+                  '🎤 [AUDIO_CALLBACK] ❌ Cannot add - remote UIDs FULL ($remoteUidCount >= ${LiveSessionState.maxAudioCallers})',
+                );
+              }
+            }
+
+            if (state == RemoteAudioState.remoteAudioStateStopped) {
+              debugPrint(
+                '🎤 [AUDIO_CALLBACK] ⏹️ Audio STOPPED from $remoteUid',
+              );
+              debugPrint(
+                '🎤 [AUDIO_CALLBACK] Removing UID $remoteUid from audioCallerUids',
+              );
+              _audioCallerUids.remove(remoteUid);
+              debugPrint(
+                '🎤 [AUDIO_CALLBACK] audioCallerUids after remove: $_audioCallerUids (length: ${_audioCallerUids.length})',
+              );
+
+              emit(
+                this.state.copyWith(
+                  audioCallerUids: List<int>.from(_audioCallerUids),
+                ),
+              );
+            }
+          },
           onNetworkQuality: (connection, remoteUid, txQuality, rxQuality) {
             // rxQuality 0-1 means good, 6 means very bad
             if (rxQuality.value() >= 5) {
@@ -558,33 +674,108 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
   }
 
   Future<void> _switchToAudioCaller() async {
-    await _engine?.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
-    await _engine?.enableLocalAudio(true);
-    await _engine?.enableLocalVideo(false);
-    await _engine?.muteLocalVideoStream(true);
-    await _engine?.muteLocalAudioStream(false);
+    debugPrint('🎤 [SWITCH→BROADCASTER] Starting switch to audio caller...');
+    debugPrint(
+      '🎤 [SWITCH→BROADCASTER] state.localUserJoined: ${state.localUserJoined}',
+    );
+    debugPrint(
+      '🎤 [SWITCH→BROADCASTER] audioCallerUids before: $_audioCallerUids (length: ${_audioCallerUids.length})',
+    );
 
-    // ✅ Add current user's UID to audioCallerUids so the count is correct
-    final localUid = state.localUserJoined
-        ? 0
-        : null; // Local user UID is typically 0
-    if (localUid != null && !_audioCallerUids.contains(localUid)) {
-      _audioCallerUids.add(localUid);
+    try {
+      debugPrint(
+        '🎤 [SWITCH→BROADCASTER] 🔄 Setting client role to BROADCASTER...',
+      );
+      await _engine?.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
+      debugPrint('🎤 [SWITCH→BROADCASTER] ✅ Client role set');
+
+      debugPrint('🎤 [SWITCH→BROADCASTER] 🔄 Enabling local audio...');
+      await _engine?.enableLocalAudio(true);
+      debugPrint('🎤 [SWITCH→BROADCASTER] ✅ Local audio enabled');
+
+      debugPrint('🎤 [SWITCH→BROADCASTER] 🔄 Disabling local video...');
+      await _engine?.enableLocalVideo(false);
+      debugPrint('🎤 [SWITCH→BROADCASTER] ✅ Local video disabled');
+
+      debugPrint('🎤 [SWITCH→BROADCASTER] 🔄 Muting video stream...');
+      await _engine?.muteLocalVideoStream(true);
+      debugPrint('🎤 [SWITCH→BROADCASTER] ✅ Video stream muted');
+
+      debugPrint('🎤 [SWITCH→BROADCASTER] 🔄 Unmuting audio stream...');
+      await _engine?.muteLocalAudioStream(false);
+      debugPrint('🎤 [SWITCH→BROADCASTER] ✅ Audio stream unmuted');
+
+      // ✅ Add current user's UID to audioCallerUids so the count is correct
+      final localUid = state.localUserJoined
+          ? 0
+          : null; // Local user UID is typically 0
+      debugPrint(
+        '🎤 [SWITCH→BROADCASTER] 🔄 Adding local UID ($localUid) to audioCallerUids...',
+      );
+
+      if (localUid != null && !_audioCallerUids.contains(localUid)) {
+        _audioCallerUids.add(localUid);
+        debugPrint('🎤 [SWITCH→BROADCASTER] ✅ Local UID added to list');
+      } else if (localUid != null) {
+        debugPrint('🎤 [SWITCH→BROADCASTER] ⚠️ Local UID already in list');
+      } else {
+        debugPrint(
+          '🎤 [SWITCH→BROADCASTER] ⚠️ localUid is null (localUserJoined: ${state.localUserJoined})',
+        );
+      }
+
+      debugPrint(
+        '🎤 [SWITCH→BROADCASTER] audioCallerUids after: $_audioCallerUids (length: ${_audioCallerUids.length})',
+      );
+
+      emit(state.copyWith(isCameraEnabled: false, isMicEnabled: true));
+      debugPrint(
+        '🎤 [SWITCH→BROADCASTER] ✅ State emitted (isMicEnabled: true)',
+      );
+    } catch (e) {
+      debugPrint('🎤 [SWITCH→BROADCASTER] ❌ Error: $e');
+      rethrow;
     }
-
-    emit(state.copyWith(isCameraEnabled: false, isMicEnabled: true));
   }
 
   Future<void> _switchToAudience() async {
-    await _engine?.setClientRole(role: ClientRoleType.clientRoleAudience);
-    await _engine?.enableLocalAudio(false);
-    await _engine?.enableLocalVideo(false);
-    await _engine?.muteLocalAudioStream(true);
+    debugPrint('🎤 [SWITCH→AUDIENCE] Starting switch to audience...');
+    debugPrint(
+      '🎤 [SWITCH→AUDIENCE] audioCallerUids before: $_audioCallerUids (length: ${_audioCallerUids.length})',
+    );
 
-    // ✅ Remove current user's UID from audioCallerUids when leaving
-    _audioCallerUids.remove(0); // Local user UID is typically 0
+    try {
+      debugPrint('🎤 [SWITCH→AUDIENCE] 🔄 Setting client role to AUDIENCE...');
+      await _engine?.setClientRole(role: ClientRoleType.clientRoleAudience);
+      debugPrint('🎤 [SWITCH→AUDIENCE] ✅ Client role set');
 
-    emit(state.copyWith(isCameraEnabled: false, isMicEnabled: false));
+      debugPrint('🎤 [SWITCH→AUDIENCE] 🔄 Disabling local audio...');
+      await _engine?.enableLocalAudio(false);
+      debugPrint('🎤 [SWITCH→AUDIENCE] ✅ Local audio disabled');
+
+      debugPrint('🎤 [SWITCH→AUDIENCE] 🔄 Disabling local video...');
+      await _engine?.enableLocalVideo(false);
+      debugPrint('🎤 [SWITCH→AUDIENCE] ✅ Local video disabled');
+
+      debugPrint('🎤 [SWITCH→AUDIENCE] 🔄 Muting audio stream...');
+      await _engine?.muteLocalAudioStream(true);
+      debugPrint('🎤 [SWITCH→AUDIENCE] ✅ Audio stream muted');
+
+      // ✅ Remove current user's UID from audioCallerUids when leaving
+      debugPrint(
+        '🎤 [SWITCH→AUDIENCE] 🔄 Removing local UID (0) from audioCallerUids...',
+      );
+      _audioCallerUids.remove(0); // Local user UID is typically 0
+      debugPrint(
+        '🎤 [SWITCH→AUDIENCE] audioCallerUids after: $_audioCallerUids (length: ${_audioCallerUids.length})',
+      );
+
+      emit(state.copyWith(isCameraEnabled: false, isMicEnabled: false));
+      debugPrint('🎤 [SWITCH→AUDIENCE] ✅ State emitted (isMicEnabled: false)');
+    } catch (e) {
+      debugPrint('🎤 [SWITCH→AUDIENCE] ❌ Error: $e');
+      rethrow;
+    }
   }
 
   Future<void> _applyCameraPreference() async {
