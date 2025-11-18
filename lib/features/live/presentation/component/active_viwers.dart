@@ -50,76 +50,26 @@ class ActiveViewers extends StatelessWidget {
                         radius: 20.r,
                         child: Image.network(user.avatar, fit: BoxFit.cover),
                       ),
-                      // ✅ Level Badge - Show level with background if available
-                      if (user.currentLevel != null && user.currentLevel! > 0)
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withAlpha(
-                                (255 * 0.58).toInt(),
-                              ),
-                              borderRadius: BorderRadius.circular(100.r),
-                            ),
-                            child: Center(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // Show tag icon if available
-                                  if (user.currentTag != null &&
-                                      user.currentTag!.isNotEmpty)
-                                    Image.network(
-                                      user.currentTag!,
-                                      fit: BoxFit.fill,
-                                      height: 14.h,
-                                      width: 14.w,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              SizedBox(width: 14.w),
-                                    )
-                                  else
-                                    SizedBox(width: 14.w),
-                                  SizedBox(width: 2.w),
-                                  Text(
-                                    "Lv.${user.currentLevel}",
-                                    style: TextStyle(
-                                      fontSize: 9.sp,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withAlpha((255 * 0.58).toInt()),
+                            borderRadius: BorderRadius.circular(100.r),
                           ),
-                        )
-                      // ✅ Diamonds Badge - Show if user has diamonds
-                      else if (user.diamonds > 0)
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withAlpha(
-                                (255 * 0.58).toInt(),
-                              ),
-                              borderRadius: BorderRadius.circular(100.r),
-                            ),
-                            child: Center(
-                              child: Text(
-                                AppUtils.formatNumber(user.diamonds),
-                                style: TextStyle(
-                                  fontSize: 10.sp,
-                                  color: Colors.white,
-                                ),
+                          child: Center(
+                            child: Text(
+                              AppUtils.formatNumber(user.diamonds ?? 0),
+                              style: TextStyle(
+                                fontSize: 10.sp,
+                                color: Colors.white,
                               ),
                             ),
                           ),
                         ),
+                      ),
                     ],
                   ),
                 ),
