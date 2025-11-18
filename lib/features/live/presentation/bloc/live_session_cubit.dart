@@ -17,7 +17,8 @@ part 'live_session_state.dart';
 
 @injectable
 class LiveSessionCubit extends Cubit<LiveSessionState> {
-  LiveSessionCubit(this._socketService, this._liveStreamRepository) : super(const LiveSessionState()) {
+  LiveSessionCubit(this._socketService, this._liveStreamRepository)
+    : super(const LiveSessionState()) {
     _remoteUsers = <int>[];
     _audioCallerUids = <int>[];
     _videoCallerUids = <int>[];
@@ -42,7 +43,11 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
 
   static const int _inactivityTimeoutSeconds = 60;
 
-  Future<void> initializeSession({required bool isHost, required String? initialRoomId, required String userId}) async {
+  Future<void> initializeSession({
+    required bool isHost,
+    required String? initialRoomId,
+    required String userId,
+  }) async {
     emit(
       state.copyWith(
         status: LiveSessionStatus.initializing,
@@ -54,7 +59,8 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
       ),
     );
 
-    final permissionsGranted = await PermissionHelper.hasLiveStreamPermissions();
+    final permissionsGranted =
+        await PermissionHelper.hasLiveStreamPermissions();
 
     if (!permissionsGranted) {
       final granted = await PermissionHelper.requestLiveStreamPermissions();
@@ -81,7 +87,12 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
 
     final connected = await _socketService.connect(userId);
     if (!connected) {
-      emit(state.copyWith(status: LiveSessionStatus.error, errorMessage: 'Failed to connect to live server'));
+      emit(
+        state.copyWith(
+          status: LiveSessionStatus.error,
+          errorMessage: 'Failed to connect to live server',
+        ),
+      );
       return;
     }
 
@@ -100,7 +111,12 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
 
       await createResult.fold(
         (failure) async {
-          emit(state.copyWith(status: LiveSessionStatus.error, errorMessage: failure.message));
+          emit(
+            state.copyWith(
+              status: LiveSessionStatus.error,
+              errorMessage: failure.message,
+            ),
+          );
         },
         (_) async {
           emit(state.copyWith(currentRoomId: resolvedRoomId));
@@ -108,15 +124,28 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
       );
     } else {
       if (resolvedRoomId == null || resolvedRoomId.isEmpty) {
-        emit(state.copyWith(status: LiveSessionStatus.error, errorMessage: 'Invalid room'));
+        emit(
+          state.copyWith(
+            status: LiveSessionStatus.error,
+            errorMessage: 'Invalid room',
+          ),
+        );
         return;
       }
 
-      final joinResult = await _liveStreamRepository.joinRoom(roomId: resolvedRoomId, userId: userId);
+      final joinResult = await _liveStreamRepository.joinRoom(
+        roomId: resolvedRoomId,
+        userId: userId,
+      );
 
       await joinResult.fold(
         (failure) async {
-          emit(state.copyWith(status: LiveSessionStatus.error, errorMessage: failure.message));
+          emit(
+            state.copyWith(
+              status: LiveSessionStatus.error,
+              errorMessage: failure.message,
+            ),
+          );
         },
         (_) async {
           emit(state.copyWith(currentRoomId: resolvedRoomId));
@@ -128,7 +157,10 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
       return;
     }
 
-    await _joinChannelWithDynamicToken(channelId: resolvedRoomId, isHost: isHost);
+    await _joinChannelWithDynamicToken(
+      channelId: resolvedRoomId,
+      isHost: isHost,
+    );
 
     emit(state.copyWith(status: LiveSessionStatus.ready));
   }
@@ -148,7 +180,11 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
         print('❌ Error applying camera state: $error');
         print(stackTrace);
       }
-      emit(state.copyWith(snackBar: LiveSessionSnackBar.error('Failed to toggle camera')));
+      emit(
+        state.copyWith(
+          snackBar: LiveSessionSnackBar.error('Failed to toggle camera'),
+        ),
+      );
     }
   }
 
@@ -166,7 +202,11 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
         print('❌ Error applying microphone state: $error');
         print(stackTrace);
       }
-      emit(state.copyWith(snackBar: LiveSessionSnackBar.error('Failed to toggle microphone')));
+      emit(
+        state.copyWith(
+          snackBar: LiveSessionSnackBar.error('Failed to toggle microphone'),
+        ),
+      );
     }
   }
 
@@ -180,7 +220,11 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
     }
 
     if (_audioCallerUids.length >= LiveSessionState.maxAudioCallers) {
-      emit(state.copyWith(snackBar: LiveSessionSnackBar.warning('Audio call is full')));
+      emit(
+        state.copyWith(
+          snackBar: LiveSessionSnackBar.warning('Audio call is full'),
+        ),
+      );
       return;
     }
 
@@ -196,12 +240,17 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
         state.copyWith(
           isJoiningAudioCaller: false,
           isAudioCaller: true,
-          snackBar: state.isHost ? null : LiveSessionSnackBar.success('Joined audio call'),
+          snackBar: state.isHost
+              ? null
+              : LiveSessionSnackBar.success('Joined audio call'),
         ),
       );
     } catch (_) {
       emit(
-        state.copyWith(isJoiningAudioCaller: false, snackBar: LiveSessionSnackBar.error('Failed to join audio call')),
+        state.copyWith(
+          isJoiningAudioCaller: false,
+          snackBar: LiveSessionSnackBar.error('Failed to join audio call'),
+        ),
       );
     } finally {
       _isProcessingAudioJoin = false;
@@ -215,9 +264,18 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
 
     try {
       await _switchToAudience();
-      emit(state.copyWith(isAudioCaller: false, snackBar: LiveSessionSnackBar.success('Left audio call')));
+      emit(
+        state.copyWith(
+          isAudioCaller: false,
+          snackBar: LiveSessionSnackBar.success('Left audio call'),
+        ),
+      );
     } catch (_) {
-      emit(state.copyWith(snackBar: LiveSessionSnackBar.error('Failed to leave audio call')));
+      emit(
+        state.copyWith(
+          snackBar: LiveSessionSnackBar.error('Failed to leave audio call'),
+        ),
+      );
     }
   }
 
@@ -257,7 +315,9 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
   }
 
   void _subscribeToSocketEvents() {
-    _connectionStatusSub = _socketService.connectionStatusStream.listen((isConnected) {
+    _connectionStatusSub = _socketService.connectionStatusStream.listen((
+      isConnected,
+    ) {
       emit(state.copyWith(isSocketConnected: isConnected));
     });
 
@@ -283,7 +343,9 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
       );
 
       await _engine!.setClientRole(
-        role: isHost ? ClientRoleType.clientRoleBroadcaster : ClientRoleType.clientRoleAudience,
+        role: isHost
+            ? ClientRoleType.clientRoleBroadcaster
+            : ClientRoleType.clientRoleAudience,
       );
 
       await _engine!.enableVideo();
@@ -314,7 +376,13 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
               Future.delayed(const Duration(milliseconds: 500), () async {
                 await _applyCameraPreference();
                 debugPrint('🎥 [AGORA] Host video ready');
-                emit(state.copyWith(isLocalVideoReady: true, isVideoReady: true, isVideoConnecting: false));
+                emit(
+                  state.copyWith(
+                    isLocalVideoReady: true,
+                    isVideoReady: true,
+                    isVideoConnecting: false,
+                  ),
+                );
               });
             } else {
               // ✅ For viewers: set isVideoReady=true immediately so video view is prepared
@@ -328,7 +396,9 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
               _remoteUsers.add(remoteUid);
             }
 
-            debugPrint('👥 [AGORA] User joined: $remoteUid, total remoteUsers=${_remoteUsers.length}');
+            debugPrint(
+              '👥 [AGORA] User joined: $remoteUid, total remoteUsers=${_remoteUsers.length}',
+            );
 
             // ✅ CRITICAL FIX: When a remote user joins, assume they have/may have video capability
             // Set isVideoReady=true so viewer can see the video stream if it arrives
@@ -359,47 +429,68 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
 
             _evaluateHostActivity();
           },
-          onRemoteVideoStateChanged: (connection, remoteUid, state, reason, elapsed) {
-            if (state == RemoteVideoState.remoteVideoStateDecoding) {
-              debugPrint('🎥 [AGORA] Remote video DECODING from $remoteUid');
-              if (!_videoCallerUids.contains(remoteUid)) {
-                _videoCallerUids.add(remoteUid);
-              }
-              // ✅ CRITICAL: Set video ready when remote video starts
-              emit(
-                this.state.copyWith(
-                  videoCallerUids: List<int>.from(_videoCallerUids),
-                  isVideoReady: true,
-                  isVideoConnecting: false,
-                ),
-              );
-            }
+          onRemoteVideoStateChanged:
+              (connection, remoteUid, state, reason, elapsed) {
+                if (state == RemoteVideoState.remoteVideoStateDecoding) {
+                  debugPrint(
+                    '🎥 [AGORA] Remote video DECODING from $remoteUid',
+                  );
+                  if (!_videoCallerUids.contains(remoteUid)) {
+                    _videoCallerUids.add(remoteUid);
+                  }
+                  // ✅ CRITICAL: Set video ready when remote video starts
+                  emit(
+                    this.state.copyWith(
+                      videoCallerUids: List<int>.from(_videoCallerUids),
+                      isVideoReady: true,
+                      isVideoConnecting: false,
+                    ),
+                  );
+                }
 
-            if (state == RemoteVideoState.remoteVideoStateStopped) {
-              debugPrint('⏹️ [AGORA] Remote video STOPPED from $remoteUid');
-              _videoCallerUids.remove(remoteUid);
-              emit(this.state.copyWith(videoCallerUids: List<int>.from(_videoCallerUids)));
-            }
-            _evaluateHostActivity();
-          },
-          onRemoteAudioStateChanged: (connection, remoteUid, state, reason, elapsed) {
-            if (state == RemoteAudioState.remoteAudioStateDecoding &&
-                !_audioCallerUids.contains(remoteUid) &&
-                _audioCallerUids.length < LiveSessionState.maxAudioCallers) {
-              _audioCallerUids.add(remoteUid);
-              emit(this.state.copyWith(audioCallerUids: List<int>.from(_audioCallerUids)));
-            }
+                if (state == RemoteVideoState.remoteVideoStateStopped) {
+                  debugPrint('⏹️ [AGORA] Remote video STOPPED from $remoteUid');
+                  _videoCallerUids.remove(remoteUid);
+                  emit(
+                    this.state.copyWith(
+                      videoCallerUids: List<int>.from(_videoCallerUids),
+                    ),
+                  );
+                }
+                _evaluateHostActivity();
+              },
+          onRemoteAudioStateChanged:
+              (connection, remoteUid, state, reason, elapsed) {
+                if (state == RemoteAudioState.remoteAudioStateDecoding &&
+                    !_audioCallerUids.contains(remoteUid) &&
+                    _audioCallerUids.length <
+                        LiveSessionState.maxAudioCallers) {
+                  _audioCallerUids.add(remoteUid);
+                  emit(
+                    this.state.copyWith(
+                      audioCallerUids: List<int>.from(_audioCallerUids),
+                    ),
+                  );
+                }
 
-            if (state == RemoteAudioState.remoteAudioStateStopped) {
-              _audioCallerUids.remove(remoteUid);
-              emit(this.state.copyWith(audioCallerUids: List<int>.from(_audioCallerUids)));
-            }
-          },
+                if (state == RemoteAudioState.remoteAudioStateStopped) {
+                  _audioCallerUids.remove(remoteUid);
+                  emit(
+                    this.state.copyWith(
+                      audioCallerUids: List<int>.from(_audioCallerUids),
+                    ),
+                  );
+                }
+              },
           onNetworkQuality: (connection, remoteUid, txQuality, rxQuality) {
             // rxQuality 0-1 means good, 6 means very bad
             if (rxQuality.value() >= 5) {
               // Show poor connection warning to user
-              emit(state.copyWith(snackBar: LiveSessionSnackBar.warning('Poor connection')));
+              emit(
+                state.copyWith(
+                  snackBar: LiveSessionSnackBar.warning('Poor connection'),
+                ),
+              );
             }
           },
         ),
@@ -417,7 +508,10 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
     }
   }
 
-  Future<void> _joinChannelWithDynamicToken({required String channelId, required bool isHost}) async {
+  Future<void> _joinChannelWithDynamicToken({
+    required String channelId,
+    required bool isHost,
+  }) async {
     try {
       final result = await AgoraTokenService.getRtcToken(
         channelName: channelId,
@@ -434,14 +528,22 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
         return;
       }
 
-      emit(state.copyWith(snackBar: LiveSessionSnackBar.warning('Using fallback token')));
+      emit(
+        state.copyWith(
+          snackBar: LiveSessionSnackBar.warning('Using fallback token'),
+        ),
+      );
       await _joinChannelWithStaticToken(channelId: channelId);
     } catch (error, stackTrace) {
       if (kDebugMode) {
         print('❌ Error generating token: $error');
         print(stackTrace);
       }
-      emit(state.copyWith(snackBar: LiveSessionSnackBar.warning('Using fallback token')));
+      emit(
+        state.copyWith(
+          snackBar: LiveSessionSnackBar.warning('Using fallback token'),
+        ),
+      );
       await _joinChannelWithStaticToken(channelId: channelId);
     }
   }
@@ -461,6 +563,15 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
     await _engine?.enableLocalVideo(false);
     await _engine?.muteLocalVideoStream(true);
     await _engine?.muteLocalAudioStream(false);
+
+    // ✅ Add current user's UID to audioCallerUids so the count is correct
+    final localUid = state.localUserJoined
+        ? 0
+        : null; // Local user UID is typically 0
+    if (localUid != null && !_audioCallerUids.contains(localUid)) {
+      _audioCallerUids.add(localUid);
+    }
+
     emit(state.copyWith(isCameraEnabled: false, isMicEnabled: true));
   }
 
@@ -469,6 +580,10 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
     await _engine?.enableLocalAudio(false);
     await _engine?.enableLocalVideo(false);
     await _engine?.muteLocalAudioStream(true);
+
+    // ✅ Remove current user's UID from audioCallerUids when leaving
+    _audioCallerUids.remove(0); // Local user UID is typically 0
+
     emit(state.copyWith(isCameraEnabled: false, isMicEnabled: false));
   }
 
@@ -480,7 +595,9 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
       if (kDebugMode) {
         print('🔍 [CAMERA PREFERENCE] Reading from SharedPreferences');
         print('📱 Stored value: is_front_camera = $isFrontCamera');
-        print('🔄 Action: ${isFrontCamera ? '✅ Using front camera (default)' : '🔄 Switching to rear camera'}');
+        print(
+          '🔄 Action: ${isFrontCamera ? '✅ Using front camera (default)' : '🔄 Switching to rear camera'}',
+        );
       }
 
       if (!isFrontCamera) {
@@ -490,12 +607,16 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
         }
       } else {
         if (kDebugMode) {
-          print('✅ [CAMERA PREFERENCE] Front camera confirmed (no switch needed)');
+          print(
+            '✅ [CAMERA PREFERENCE] Front camera confirmed (no switch needed)',
+          );
         }
       }
     } catch (error) {
       if (kDebugMode) {
-        print('⚠️ [CAMERA PREFERENCE] Error applying camera preference: $error');
+        print(
+          '⚠️ [CAMERA PREFERENCE] Error applying camera preference: $error',
+        );
       }
     }
   }
@@ -505,12 +626,20 @@ class LiveSessionCubit extends Cubit<LiveSessionState> {
       return;
     }
 
-    final hasVideoBroadcasters = _remoteUsers.isNotEmpty || _videoCallerUids.isNotEmpty;
+    final hasVideoBroadcasters =
+        _remoteUsers.isNotEmpty || _videoCallerUids.isNotEmpty;
 
     if (!hasVideoBroadcasters) {
-      _hostActivityTimer ??= Timer(const Duration(seconds: _inactivityTimeoutSeconds), () {
-        emit(state.copyWith(forceExitReason: 'Host disconnected. Live session ended.'));
-      });
+      _hostActivityTimer ??= Timer(
+        const Duration(seconds: _inactivityTimeoutSeconds),
+        () {
+          emit(
+            state.copyWith(
+              forceExitReason: 'Host disconnected. Live session ended.',
+            ),
+          );
+        },
+      );
     } else {
       _hostActivityTimer?.cancel();
       _hostActivityTimer = null;

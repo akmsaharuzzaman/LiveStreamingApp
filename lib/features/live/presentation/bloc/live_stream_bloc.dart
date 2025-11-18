@@ -278,7 +278,10 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
             name: event.userName,
             avatar: event.avatar ?? '',
             uid: event.uid ?? '',
-            diamonds: 0,
+            diamonds: event.diamonds,
+            currentLevel: event.currentLevel,
+            currentBackground: event.currentBackground,
+            currentTag: event.currentTag,
           ),
         );
 
@@ -566,6 +569,10 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
           userName: data.name,
           avatar: data.avatar,
           uid: data.uid,
+          currentLevel: data.currentLevel,
+          currentBackground: data.currentBackground,
+          currentTag: data.currentTag,
+          diamonds: data.diamonds,
         ),
       );
     });

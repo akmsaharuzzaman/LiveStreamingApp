@@ -130,14 +130,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
 
   LiveSessionState get _sessionState => context.read<LiveSessionCubit>().state;
 
-  bool _canJoinAudioCall(LiveSessionState sessionState) {
-    return !sessionState.isHost &&
-        !sessionState.isAudioCaller &&
-        sessionState.audioCallerUids.length <
-            LiveSessionState.maxAudioCallers &&
-        !sessionState.isJoiningAudioCaller;
-  }
-
   String _getAudioCallerText(LiveSessionState sessionState) {
     if (sessionState.isJoiningAudioCaller) {
       return 'Joining...';
@@ -1508,6 +1500,25 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                                                           BroadcasterModel
                                                                         >[];
 
+                                                                  // ✅ Filter out host from activeBroadcasters for call management display
+                                                                  final hostId =
+                                                                      isHost
+                                                                      ? userId
+                                                                      : widget
+                                                                            .hostUserId;
+                                                                  final filteredBroadcasters = activeBroadcasters
+                                                                      .where(
+                                                                        (b) =>
+                                                                            b.id !=
+                                                                                hostId &&
+                                                                            b.id !=
+                                                                                widget.hostUserId &&
+                                                                            !(isHost &&
+                                                                                b.id ==
+                                                                                    userId),
+                                                                      )
+                                                                      .toList();
+
                                                                   return CallManageBottomSheet(
                                                                     onAcceptCall: (userId) {
                                                                       debugPrint(
@@ -1554,7 +1565,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                                                     callers:
                                                                         pendingRequests,
                                                                     inCallList:
-                                                                        activeBroadcasters,
+                                                                        filteredBroadcasters,
                                                                   );
                                                                 },
                                                           ),
@@ -1872,16 +1883,26 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                             children.add(SizedBox(height: 80.h));
 
                             final isAudioCaller = sessionState.isAudioCaller;
+                            // ✅ Check if current user is in the broadcasters list (they're in call)
+                            final userInCall = displayBroadcasters.any(
+                              (b) => b.id == userId,
+                            );
                             final isJoiningRequestPending =
                                 !isAudioCaller &&
+                                !userInCall &&
                                 callState is CallRequestLoaded &&
                                 userId != null &&
                                 callState.pendingRequests.any(
                                   (request) => request.userId == userId,
                                 );
-                            final canJoinAudioCall = _canJoinAudioCall(
-                              sessionState,
-                            );
+                            // ✅ Check against actual displayBroadcasters count (already filtered, audio callers only)
+                            final canJoinAudioCall =
+                                !sessionState.isHost &&
+                                !isAudioCaller &&
+                                !userInCall &&
+                                displayBroadcasters.length <
+                                    LiveSessionState.maxAudioCallers &&
+                                !sessionState.isJoiningAudioCaller;
                             final maxAudioCallers =
                                 LiveSessionState.maxAudioCallers;
 
@@ -1920,7 +1941,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                     return;
                                   }
 
-                                  if (isAudioCaller) {
+                                  // ✅ Check both isAudioCaller and userInCall to handle leave
+                                  if (isAudioCaller || userInCall) {
                                     final currentUserId = userId;
                                     if (currentUserId == null ||
                                         currentUserId.isEmpty ||
@@ -2005,7 +2027,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                       Text(
                                         isJoiningRequestPending
                                             ? 'Joining'
-                                            : isAudioCaller
+                                            : (isAudioCaller || userInCall)
                                             ? 'Leave'
                                             : canJoinAudioCall
                                             ? _getAudioCallerText(sessionState)

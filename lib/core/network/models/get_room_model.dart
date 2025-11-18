@@ -22,7 +22,10 @@ class HostDetails {
   factory HostDetails.fromJson(Map<String, dynamic> json) {
     return HostDetails(
       id: json['_id'] as String,
-      avatar: json['avatar'] as String,
+      avatar:
+          (json['avatar'] ??
+                  "https://via.assets.so/img.jpg?w=400&h=300&bg=e5e7eb&f=png")
+              as String,
       name: json['name'] as String,
       uid: json['uid'] as String,
       currentLevel: json['currentLevel'],
