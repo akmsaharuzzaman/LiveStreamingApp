@@ -118,6 +118,7 @@ flutter:
     - assets/fonts/
     - assets/icons/
     - assets/icons/audio_room/
+    - assets/icons/audio_room/emojis/
     - assets/images/
     - .env
 
