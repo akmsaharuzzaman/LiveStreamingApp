@@ -28,6 +28,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   StreamSubscription? _joinSeatSubscription;
   StreamSubscription? _leaveSeatSubscription;
   StreamSubscription? _removeFromSeatSubscription;
+  StreamSubscription? _lockUnlockSeatSubscription;
   // Chat events
   StreamSubscription? _sendMessageSubscription;
   // User management events
@@ -70,6 +71,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     on<LeaveSeatEvent>(_onLeaveSeat);
     on<RemoveFromSeatEvent>(_onRemoveFromSeat);
     on<MuteUserFromSeatEvent>(_onMuteUserFromSeat);
+    on<LockUnlockSeatEvent>(_onLockUnlockSeat);
 
     // Chat events
     on<SendMessageEvent>(_onSendMessage);
@@ -104,6 +106,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     on<UpdateListenersEvent>(_onUpdateListeners);
     on<SeatJoinedEvent>(_onSeatJoined);
     on<SeatLeftEvent>(_onSeatLeft);
+    on<SeatLockUnlockedEvent>(_onSeatLockUnlocked);
   }
 
   void _setupSocketSubscriptions() {
@@ -200,6 +203,10 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
       _handleSeatLeft(data, isRemoval: true);
     });
 
+    _lockUnlockSeatSubscription = _repository.lockUnlockSeatStream.listen((data) {
+      _handleSeatLockUnlock(data);
+    });
+
     // Chat messages
     _sendMessageSubscription = _repository.sendMessageStream.listen((message) {
       add(NewMessageReceivedEvent(message: message));
@@ -268,6 +275,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     _joinSeatSubscription?.cancel();
     _leaveSeatSubscription?.cancel();
     _removeFromSeatSubscription?.cancel();
+    _lockUnlockSeatSubscription?.cancel();
     _sendMessageSubscription?.cancel();
     _banUserSubscription?.cancel();
     _muteUserSubscription?.cancel();
@@ -408,6 +416,10 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
 
   Future<void> _onMuteUserFromSeat(MuteUserFromSeatEvent event, Emitter<AudioRoomState> emit) async {
     await _repository.muteUserFromSeat(roomId: event.roomId, seatKey: event.seatKey, targetId: event.targetId);
+  }
+
+  Future<void> _onLockUnlockSeat(LockUnlockSeatEvent event, Emitter<AudioRoomState> emit) async {
+    await _repository.lockUnlockSeat(roomId: event.roomId, seatKey: event.seatKey);
   }
 
   Future<void> _onSendMessage(SendMessageEvent event, Emitter<AudioRoomState> emit) async {
@@ -610,6 +622,29 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     }
   }
 
+  void _onSeatLockUnlocked(SeatLockUnlockedEvent event, Emitter<AudioRoomState> emit) {
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      if (currentState.roomData?.seatsData == null) {
+        debugPrint("❌ Socket: Received null seatsData in seat lock/unlock response, ignoring update");
+        return;
+      }
+      final newSeats = Map<String, SeatInfo>.from(currentState.roomData!.seatsData.seats ?? {});
+      final currentSeat = newSeats[event.seatKey];
+      if (currentSeat != null) {
+        // Use the server's authoritative value directly (available=false means locked, available=true means unlocked)
+        newSeats[event.seatKey] = SeatInfo(member: currentSeat.member, available: event.available);
+        final newRoomData = currentState.roomData!.copyWith(
+          seatsData: currentState.roomData!.seatsData.copyWith(seats: newSeats),
+        );
+        emit(currentState.copyWith(roomData: newRoomData));
+        debugPrint(
+          "🔒 Seat ${event.seatKey} lock status updated to: ${event.available ? 'UNLOCKED' : 'LOCKED'}",
+        );
+      }
+    }
+  }
+
   // Helper methods
   void _handleUserLeft(String userId) {
     // Update listeners list
@@ -642,6 +677,17 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     }
     if (seatData.seatKey != null) {
       add(SeatLeftEvent(seatKey: seatData.seatKey!));
+    }
+  }
+
+  void _handleSeatLockUnlock(Map<String, dynamic> seatData) {
+    debugPrint('🔒 Lock/Unlock seat Bloc response: ${jsonEncode(seatData)}');
+    // Update room data with seat lock status change from server
+    if (seatData['seatKey'] != null && seatData['available'] != null) {
+      add(SeatLockUnlockedEvent(
+        seatKey: seatData['seatKey']!,
+        available: seatData['available']!,
+      ));
     }
   }
 

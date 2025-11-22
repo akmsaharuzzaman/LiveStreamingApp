@@ -104,5 +104,27 @@ class AudioSocketSeatOperations {
     }
   }
 
+  /// Lock or unlock a specific seat (host only)
+  Future<bool> lockUnlockSeat({required String roomId, required String seatKey}) async {
+    if (!_isConnected) {
+      errorController.add({'status': 'error', 'message': 'Socket not connected'});
+      return false;
+    }
+
+    try {
+      _log('🔒 Toggling lock for seat: $seatKey in room: $roomId');
+
+      socket.emit(AudioSocketConstants.lockUnlockSeatEvent, {
+        'roomId': roomId,
+        'seatKey': seatKey,
+      });
+      return true;
+    } catch (e) {
+      _log('❌ Error locking/unlocking seat: $e');
+      errorController.add({'status': 'error', 'message': 'Failed to lock/unlock seat: $e'});
+      return false;
+    }
+  }
+
   bool get _isConnected => socket.connected;
 }

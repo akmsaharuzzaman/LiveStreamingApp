@@ -105,6 +105,14 @@ class MuteUserFromSeatEvent extends AudioRoomEvent {
   List<Object?> get props => [roomId, seatKey, targetId];
 }
 
+class LockUnlockSeatEvent extends AudioRoomEvent {
+  final String roomId;
+  final String seatKey;
+  const LockUnlockSeatEvent({required this.roomId, required this.seatKey});
+  @override
+  List<Object?> get props => [roomId, seatKey];
+}
+
 /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Chat Events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 class SendMessageEvent extends AudioRoomEvent {
   final String roomId;
@@ -221,6 +229,14 @@ class UserJoinedEvent extends AudioRoomEvent {
   const UserJoinedEvent({required this.member});
   @override
   List<Object?> get props => [member];
+}
+
+class SeatLockUnlockedEvent extends AudioRoomEvent {
+  final String seatKey;
+  final bool available;
+  const SeatLockUnlockedEvent({required this.seatKey, required this.available});
+  @override
+  List<Object?> get props => [seatKey, available];
 }
 
 /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Helper method events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@

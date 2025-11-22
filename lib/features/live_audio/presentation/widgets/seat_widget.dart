@@ -23,6 +23,7 @@ class SeatWidget extends StatefulWidget {
   final Function(String seatId)? onLeaveSeat;
   final Function(String seatId, String targetId)? onRemoveUserFromSeat;
   final Function(String seatId, String targetId)? onMuteUserFromSeat;
+  final Function(String seatId)? onLockUnlockSeat;
   final bool isHost;
   final List<int>? activeSpeakersUIDList;
 
@@ -40,6 +41,7 @@ class SeatWidget extends StatefulWidget {
     this.onLeaveSeat,
     this.onRemoveUserFromSeat,
     this.onMuteUserFromSeat,
+    this.onLockUnlockSeat,
     this.isHost = false,
     this.activeSpeakersUIDList,
   });
@@ -129,22 +131,22 @@ class _SeatWidgetState extends State<SeatWidget> {
     broadcasterSeatData.clear();
     // Initialize seats from seatsData
     if (widget.seatsData?.seats != null) {
-      for (int i = 1; i < widget.numberOfSeats + 1; i++) {
-        broadcasterSeatData.add(SeatModel(id: 'seat-$i', name: null, avatar: null, isLocked: false));
-      }
       for (int i = 1; i < widget.seatsData!.seats!.length + 1; i++) {
-        _uiLog("Seat-$i is updating with user ${widget.seatsData!.seats!['seat-$i']!.member?.name}");
-        if (widget.seatsData!.seats!['seat-$i']!.member != null) {
-          broadcasterSeatData[i - 1] = SeatModel(
+        SeatInfo seatInfo = widget.seatsData!.seats!['seat-$i']!;
+        _uiLog("Seat-$i is updating with user ${seatInfo.member?.name}, available: ${seatInfo.available}");
+
+        // Create seat with correct lock status regardless of whether it's occupied
+        broadcasterSeatData.add(
+          SeatModel(
             id: 'seat-$i',
-            name: widget.seatsData!.seats!['seat-$i']!.member!.name,
-            avatar: widget.seatsData!.seats!['seat-$i']!.member!.avatar,
-            userId: widget.seatsData!.seats!['seat-$i']!.member!.id,
-            isMuted: widget.seatsData!.seats!['seat-$i']!.member!.isMuted ?? false,
-            isLocked: !(widget.seatsData!.seats!['seat-$i']!.available ?? true),
-            userUID: widget.seatsData!.seats!['seat-$i']!.member!.uid,
-          );
-        }
+            name: seatInfo.member?.name,
+            avatar: seatInfo.member?.avatar,
+            userId: seatInfo.member?.id,
+            isMuted: seatInfo.member?.isMuted ?? false,
+            isLocked: !(seatInfo.available ?? true),
+            userUID: seatInfo.member?.uid,
+          ),
+        );
       }
     } else {
       // Fallback: Initialize empty seats based on totalSeats configuration
@@ -185,15 +187,14 @@ class _SeatWidgetState extends State<SeatWidget> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (seat.isLocked == false && seat.userId == null)
+              if (seat.userId == null)
                 ListTile(
-                  leading: Icon(Icons.lock),
-                  title: Text("Seat Lock"),
+                  leading: Icon(seat.isLocked ? Icons.lock_open : Icons.lock),
+                  title: Text(seat.isLocked ? "Unlock Seat" : "Lock Seat"),
                   onTap: () {
                     Navigator.pop(context);
-                    // Implement seat lock functionality
-                    _uiLog("Seat Lock functionality not implemented");
-                    _showErrorMessage("Seat lock functionality not implemented");
+                    widget.onLockUnlockSeat?.call(seat.id);
+                    _uiLog("${seat.isLocked ? 'Unlocking' : 'Locking'} seat ${seat.id}");
                   },
                 ),
               if (seat.userId != null) ...[
@@ -243,6 +244,12 @@ class _SeatWidgetState extends State<SeatWidget> {
                 if (widget.seatsData?.seats?.entries.any((entry) => entry.value.member?.id == widget.currentUserId) ??
                     false)
                   ListTile(leading: Icon(Icons.event_seat), title: Text("You are already in a seat"))
+                else if (seat.isLocked == true)
+                  ListTile(
+                    leading: Icon(Icons.lock_open),
+                    title: Text("The seat is locked"),
+                    onTap: () => Navigator.pop(context),
+                  )
                 else
                   ListTile(
                     leading: Icon(Icons.event_seat),
@@ -264,6 +271,11 @@ class _SeatWidgetState extends State<SeatWidget> {
                 ),
               ] else ...[
                 // Seat occupied by others, no options
+                ListTile(
+                  leading: Icon(Icons.lock_open),
+                  title: Text("The seat is occupied by ${seat.name}"),
+                  onTap: () => Navigator.pop(context),
+                ),
               ],
             ],
           ),
@@ -305,15 +317,14 @@ class _SeatWidgetState extends State<SeatWidget> {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (widget.isHost) ...[
-                if (seat.isLocked == false && seat.userId == null)
+                if (seat.userId == null)
                   ListTile(
-                    leading: Icon(Icons.lock),
-                    title: Text("Seat Lock"),
+                    leading: Icon(seat.isLocked ? Icons.lock_open : Icons.lock),
+                    title: Text(seat.isLocked ? "Unlock Seat" : "Lock Seat"),
                     onTap: () {
                       Navigator.pop(context);
-                      // Implement seat lock functionality
-                      _uiLog("Seat Lock functionality not implemented");
-                      _showErrorMessage("Seat lock functionality not implemented");
+                      widget.onLockUnlockSeat?.call('premiumSeat');
+                      _uiLog("${seat.isLocked ? 'Unlocking' : 'Locking'} premium seat");
                     },
                   ),
                 if (seat.userId != null)
@@ -402,7 +413,7 @@ class _SeatWidgetState extends State<SeatWidget> {
               crossAxisCount: _getGridColumns(),
               crossAxisSpacing: 16.w,
               mainAxisSpacing: 0.h,
-              childAspectRatio: 0.8,
+              childAspectRatio: widget.numberOfSeats > 6 ? 0.7 : 0.9,
             ),
             itemCount: broadcasterSeatData.length, // Exclude host and special seat
             itemBuilder: (context, index) {
@@ -521,8 +532,6 @@ class _SeatWidgetState extends State<SeatWidget> {
               ),
           ],
         ),
-
-        SizedBox(height: 6.h),
 
         // User name or seat number
         Text(
@@ -661,8 +670,6 @@ class _SeatWidgetState extends State<SeatWidget> {
                 ),
             ],
           ),
-
-          SizedBox(height: 6.h),
 
           // User name or seat number
           Text(
@@ -817,8 +824,6 @@ class _SeatWidgetState extends State<SeatWidget> {
               ],
             ],
           ),
-
-          SizedBox(height: 6.h),
 
           // User name or seat number
           Text(

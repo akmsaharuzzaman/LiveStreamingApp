@@ -28,6 +28,7 @@ class AudioRoomRepository {
   Stream<dynamic> get joinSeatStream => _socketService.joinSeatStream;
   Stream<dynamic> get leaveSeatStream => _socketService.leaveSeatStream;
   Stream<dynamic> get removeFromSeatStream => _socketService.removeFromSeatStream;
+  Stream<dynamic> get lockUnlockSeatStream => _socketService.lockUnlockSeatStream;
   // Chat streams
   Stream<AudioChatModel> get sendMessageStream => _socketService.sendMessageStream;
   // User management streams
@@ -74,6 +75,9 @@ class AudioRoomRepository {
 
   Future<bool> muteUserFromSeat({required String roomId, required String seatKey, required String targetId}) =>
       _socketService.muteUserFromSeat(roomId: roomId, seatKey: seatKey, targetId: targetId);
+
+  Future<bool> lockUnlockSeat({required String roomId, required String seatKey}) =>
+      _socketService.lockUnlockSeat(roomId: roomId, seatKey: seatKey);
 
   /// Chat operations
   Future<bool> sendMessage(String roomId, String message) => _socketService.sendMessage(roomId, message);

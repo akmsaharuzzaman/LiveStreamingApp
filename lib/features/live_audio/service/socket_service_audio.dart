@@ -68,6 +68,7 @@ class AudioSocketService {
   Stream<JoinedSeatModel> get joinSeatStream => _eventListeners.joinSeatStream;
   Stream<JoinedSeatModel> get leaveSeatStream => _eventListeners.leaveSeatStream;
   Stream<JoinedSeatModel> get removeFromSeatStream => _eventListeners.removeFromSeatStream;
+  Stream<Map<String, dynamic>> get lockUnlockSeatStream => _eventListeners.lockUnlockSeatStream;
   // Chat events
   Stream<AudioChatModel> get sendMessageStream => _eventListeners.sendMessageStream;
   // Error events
@@ -172,6 +173,9 @@ class AudioSocketService {
 
   Future<bool> muteUserFromSeat({required String roomId, required String seatKey, required String targetId}) =>
       _seatOperations.muteUserFromSeat(roomId: roomId, seatKey: seatKey, targetId: targetId);
+
+  Future<bool> lockUnlockSeat({required String roomId, required String seatKey}) =>
+      _seatOperations.lockUnlockSeat(roomId: roomId, seatKey: seatKey);
 
   /// User operations
   Future<bool> banUser(String targetUserId) => _userOperations.banUser(targetUserId);

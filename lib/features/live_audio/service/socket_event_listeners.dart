@@ -35,6 +35,8 @@ class AudioSocketEventListeners {
   final StreamController<JoinedSeatModel> _leaveSeatController = StreamController<JoinedSeatModel>.broadcast(); // 8
   final StreamController<JoinedSeatModel> _removeFromSeatController =
       StreamController<JoinedSeatModel>.broadcast(); // 9
+  final StreamController<Map<String, dynamic>> _lockUnlockSeatController =
+      StreamController<Map<String, dynamic>>.broadcast(); // 17
   // Chat events
   final StreamController<AudioChatModel> _sendMessageController = StreamController<AudioChatModel>.broadcast(); // 10
   // User events
@@ -74,6 +76,7 @@ class AudioSocketEventListeners {
   Stream<JoinedSeatModel> get joinSeatStream => _joinSeatController.stream; // 7 - Seat events
   Stream<JoinedSeatModel> get leaveSeatStream => _leaveSeatController.stream; // 8
   Stream<JoinedSeatModel> get removeFromSeatStream => _removeFromSeatController.stream; // 9
+  Stream<Map<String, dynamic>> get lockUnlockSeatStream => _lockUnlockSeatController.stream; // 17
   Stream<AudioChatModel> get sendMessageStream => _sendMessageController.stream; // 10 - Chat events
   Stream<Map<String, dynamic>> get errorMessageStream => errorController.stream; // 11 - Error events
   Stream<MuteUserModel> get muteUnmuteUserStream => _muteUnmuteUserController.stream; // 12 - User events
@@ -110,6 +113,7 @@ class AudioSocketEventListeners {
     socket.on(AudioSocketConstants.userLeftEvent, _handleUserLeft); // 6
     socket.on(AudioSocketConstants.joinSeatEvent, _handleJoinSeat); // 7
     socket.on(AudioSocketConstants.leaveSeatEvent, _handleLeaveSeat); // 8
+    socket.on(AudioSocketConstants.lockUnlockSeatEvent, _handleLockUnlockSeat); // 17
     socket.on(AudioSocketConstants.sendMessageEvent, _handleSendMessage); // 10
     socket.on(AudioSocketConstants.errorMessageEvent, _handleErrorMessage); // 11
     socket.on(AudioSocketConstants.banUserEvent, _handleBanUser); // 13
@@ -129,6 +133,7 @@ class AudioSocketEventListeners {
     socket.off(AudioSocketConstants.joinSeatEvent);
     socket.off(AudioSocketConstants.leaveSeatEvent);
     socket.off(AudioSocketConstants.removeFromSeatEvent);
+    socket.off(AudioSocketConstants.lockUnlockSeatEvent);
     socket.off(AudioSocketConstants.sendMessageEvent);
     socket.off(AudioSocketConstants.errorMessageEvent);
     // socket.off(AudioSocketConstants.muteUnmuteUserEvent);
@@ -300,6 +305,21 @@ class AudioSocketEventListeners {
     }
   }
 
+  void _handleLockUnlockSeat(dynamic data) {
+    _log('🔒 Lock/Unlock seat listener response: $data');
+    // {
+    //   "success": true,
+    //   "data": {"seatKey": "seat-1", "available": false},
+    // };
+    try {
+      if (data is Map<String, dynamic>) {
+        _lockUnlockSeatController.add(data['data']);
+      }
+    } catch (e) {
+      _log('🔒 Lock/Unlock seat listener error: $e');
+    }
+  }
+
   void _handleSendMessage(dynamic data) {
     _log('💬 Audio message listener response: ${data['message']}');
     try {
@@ -395,6 +415,7 @@ class AudioSocketEventListeners {
     _joinSeatController.close();
     _leaveSeatController.close();
     _removeFromSeatController.close();
+    _lockUnlockSeatController.close();
     _sendMessageController.close();
     _muteUnmuteUserController.close();
     _banUserController.close();

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:dlstarlive/features/live_audio/presentation/widgets/emoji_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -79,7 +80,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
   bool _isJoiningAgoraChannel = false;
   bool _hasJoinedChannel = false;
   bool _hasAttemptedToJoin = false;
-  
+
   // Real-time speaker tracking (lightweight for high-frequency updates)
   final ActiveSpeakersNotifier _activeSpeakersNotifier = ActiveSpeakersNotifier();
 
@@ -288,14 +289,11 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
               (RtcConnection connection, List<AudioVolumeInfo> speakers, int totalVolume, int elapsed) {
                 // ✅ NEW ARCHITECTURE: Use lightweight notifier for real-time updates
                 // Extract speaking UIDs (volume > 5)
-                final speakingUIDs = speakers
-                    .where((s) => (s.volume ?? 0) > 5)
-                    .map((s) => s.uid ?? 0)
-                    .toList();
-                
+                final speakingUIDs = speakers.where((s) => (s.volume ?? 0) > 5).map((s) => s.uid ?? 0).toList();
+
                 // Update notifier (only triggers rebuild if state changed)
                 _activeSpeakersNotifier.updateSpeakers(speakingUIDs);
-                
+
                 // Optional: Log active speakers (less verbose)
                 // if (speakingUIDs.isNotEmpty && kDebugMode) {
                 //   _uiLog("🔊 Active Speakers: $speakingUIDs");
@@ -471,6 +469,14 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       context.read<AudioRoomBloc>().add(
         MuteUserFromSeatEvent(roomId: currentState.currentRoomId!, seatKey: seatId, targetId: targetId),
       );
+    }
+  }
+
+  void _lockUnlockSeat(String seatId) {
+    final currentState = context.read<AudioRoomBloc>().state;
+    if (currentState is AudioRoomLoaded && currentState.currentRoomId != null) {
+      context.read<AudioRoomBloc>().add(LockUnlockSeatEvent(roomId: currentState.currentRoomId!, seatKey: seatId));
+      _uiLog("🔒 Toggling lock for seat: $seatId");
     }
   }
 
@@ -725,7 +731,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                       // Main content with seats grid and chat
                       Column(
                         children: [
-                          SizedBox(height: 150.h), // Space for top bar
+                          SizedBox(height: 140.h), // Space for top bar
                           // ✅ NEW ARCHITECTURE: Use ListenableBuilder for real-time speaker updates
                           ListenableBuilder(
                             listenable: _activeSpeakersNotifier,
@@ -743,6 +749,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                                 onLeaveSeat: _leaveSeat,
                                 onRemoveUserFromSeat: _removeUserFromSeat,
                                 onMuteUserFromSeat: _muteUserFromSeat,
+                                onLockUnlockSeat: _lockUnlockSeat,
                                 isHost: roomState.isHost,
                                 activeSpeakersUIDList: _activeSpeakersNotifier.activeSpeakerUIDs.toList(),
                               );
@@ -895,7 +902,10 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
       right: 20.w,
       child: Container(
         color: Colors.transparent,
-        child: roomState.isHost
+        child:
+            roomState.isHost ||
+                (roomState.roomData?.seatsData.seats?.values.any((entry) => entry.member?.id != authState.user.id) ??
+                    false)
             ? Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
@@ -903,7 +913,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   CustomLiveButton(
                     iconPath: "assets/icons/gift_user_icon.png",
                     onTap: () {
-                      // _showSnackBar('🎁 Not implemented yet', Colors.red);
                       showAudioGiftBottomSheet(
                         context,
                         activeViewers: roomState.listeners,
@@ -917,7 +926,8 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   CustomLiveButton(
                     iconPath: "assets/icons/emoji_icon.png",
                     onTap: () {
-                      _showSnackBar('🎶 Not implemented yet', Colors.red);
+                      // _showSnackBar('🎶 Not implemented yet', Colors.red);
+                      showEmojiBottomSheet(context);
                     },
                   ),
                   CustomLiveButton(
@@ -1024,7 +1034,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
     _reconnectTimer?.cancel();
     _clearSpeakerTimer?.cancel();
     _mutedUserSubscription?.cancel();
-    
+
     // Clear active speakers notifier
     _activeSpeakersNotifier.clear();
     _activeSpeakersNotifier.dispose();
