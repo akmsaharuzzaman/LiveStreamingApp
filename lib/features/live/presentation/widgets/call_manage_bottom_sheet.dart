@@ -42,7 +42,7 @@ class _CallManageBottomSheetState extends State<CallManageBottomSheet>
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.60.h,
+      height: MediaQuery.of(context).size.height * 0.50.h,
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -66,7 +66,7 @@ class _CallManageBottomSheetState extends State<CallManageBottomSheet>
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: [_buildInCallTab(), _buildCallRequestTab()],
+              children: [_buildCallRequestTab(), _buildInCallTab()],
             ),
           ),
         ],
@@ -140,8 +140,8 @@ class _CallManageBottomSheetState extends State<CallManageBottomSheet>
           fontWeight: FontWeight.w400,
         ),
         tabs: const [
-          Tab(text: 'In Call'),
           Tab(text: 'Call request'),
+          Tab(text: 'In Call'),
         ],
       ),
     );

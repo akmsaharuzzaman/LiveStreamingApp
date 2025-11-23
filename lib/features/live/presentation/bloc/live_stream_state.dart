@@ -26,7 +26,6 @@ class LiveStreamStreaming extends LiveStreamState {
   final String userId;
   final List<JoinedUserModel> viewers;
   final Duration duration;
-  final bool isCameraEnabled;
   final bool isMicEnabled;
   final int totalBonusDiamonds;
   final List<String> bannedUsers;
@@ -38,7 +37,6 @@ class LiveStreamStreaming extends LiveStreamState {
     required this.userId,
     this.viewers = const [],
     this.duration = Duration.zero,
-    this.isCameraEnabled = true,
     this.isMicEnabled = true,
     this.totalBonusDiamonds = 0,
     this.bannedUsers = const [],
@@ -52,7 +50,6 @@ class LiveStreamStreaming extends LiveStreamState {
     String? userId,
     List<JoinedUserModel>? viewers,
     Duration? duration,
-    bool? isCameraEnabled,
     bool? isMicEnabled,
     int? totalBonusDiamonds,
     List<String>? bannedUsers,
@@ -64,7 +61,6 @@ class LiveStreamStreaming extends LiveStreamState {
       userId: userId ?? this.userId,
       viewers: viewers ?? this.viewers,
       duration: duration ?? this.duration,
-      isCameraEnabled: isCameraEnabled ?? this.isCameraEnabled,
       isMicEnabled: isMicEnabled ?? this.isMicEnabled,
       totalBonusDiamonds: totalBonusDiamonds ?? this.totalBonusDiamonds,
       bannedUsers: bannedUsers ?? this.bannedUsers,
@@ -79,7 +75,6 @@ class LiveStreamStreaming extends LiveStreamState {
     userId,
     viewers,
     duration,
-    isCameraEnabled,
     isMicEnabled,
     totalBonusDiamonds,
     bannedUsers,

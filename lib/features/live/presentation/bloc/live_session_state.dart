@@ -92,7 +92,6 @@ class LiveSessionState extends Equatable {
     bool? isVideoReady,
     bool? isVideoConnecting,
     bool? isLocalVideoReady,
-    bool? isCameraEnabled,
     bool? isMicEnabled,
     bool? isAudioCaller,
     bool? isJoiningAudioCaller,
@@ -117,7 +116,6 @@ class LiveSessionState extends Equatable {
       isVideoReady: isVideoReady ?? this.isVideoReady,
       isVideoConnecting: isVideoConnecting ?? this.isVideoConnecting,
       isLocalVideoReady: isLocalVideoReady ?? this.isLocalVideoReady,
-      isCameraEnabled: isCameraEnabled ?? this.isCameraEnabled,
       isMicEnabled: isMicEnabled ?? this.isMicEnabled,
       isAudioCaller: isAudioCaller ?? this.isAudioCaller,
       isJoiningAudioCaller:
@@ -145,7 +143,6 @@ class LiveSessionState extends Equatable {
         isVideoReady,
         isVideoConnecting,
         isLocalVideoReady,
-        isCameraEnabled,
         isMicEnabled,
         isAudioCaller,
         isJoiningAudioCaller,

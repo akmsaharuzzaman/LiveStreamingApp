@@ -39,7 +39,6 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
     on<UpdateStreamDuration>(_onUpdateDuration);
     on<UserJoined>(_onUserJoined);
     on<UserLeft>(_onUserLeft);
-    on<ToggleCamera>(_onToggleCamera);
     on<ToggleMicrophone>(_onToggleMicrophone);
     on<CallDailyBonus>(_onCallDailyBonus);
     on<BanUser>(_onBanUser);
@@ -339,22 +338,6 @@ class LiveStreamBloc extends Bloc<LiveStreamEvent, LiveStreamState> {
       );
 
       emit(currentState.copyWith(viewers: viewers));
-    }
-  }
-
-  void _onToggleCamera(ToggleCamera event, Emitter<LiveStreamState> emit) {
-    final currentState = state;
-    if (currentState is LiveStreamStreaming) {
-      // ✅ SECURITY: Only hosts can toggle camera
-      // Viewers/audio callers cannot turn on their own camera
-      if (currentState.isHost) {
-        emit(
-          currentState.copyWith(isCameraEnabled: !currentState.isCameraEnabled),
-        );
-      } else {
-        // ⚠️ Non-host attempted to toggle camera - silently ignore
-        // This prevents camera access for viewers/callers
-      }
     }
   }
 

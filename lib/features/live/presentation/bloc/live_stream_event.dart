@@ -126,11 +126,6 @@ class UserLeft extends LiveStreamEvent {
   List<Object?> get props => [userId];
 }
 
-/// Toggle camera
-class ToggleCamera extends LiveStreamEvent {
-  const ToggleCamera();
-}
-
 /// Toggle microphone
 class ToggleMicrophone extends LiveStreamEvent {
   const ToggleMicrophone();

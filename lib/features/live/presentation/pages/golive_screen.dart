@@ -70,24 +70,13 @@ class GoliveScreen extends StatelessWidget {
               ),
             ),
         ),
-        BlocProvider<ChatBloc>(
-          create: (context) =>
-              getIt<ChatBloc>()..add(const LoadInitialMessages([])),
-        ),
-        BlocProvider<GiftBloc>(
-          create: (context) =>
-              getIt<GiftBloc>()..add(const LoadInitialGifts([])),
-        ),
+        BlocProvider<ChatBloc>(create: (context) => getIt<ChatBloc>()..add(const LoadInitialMessages([]))),
+        BlocProvider<GiftBloc>(create: (context) => getIt<GiftBloc>()..add(const LoadInitialGifts([]))),
         BlocProvider<CallRequestBloc>(
-          create: (context) =>
-              getIt<CallRequestBloc>()..add(const LoadInitialBroadcasters([])),
+          create: (context) => getIt<CallRequestBloc>()..add(const LoadInitialBroadcasters([])),
         ),
-        BlocProvider<ModerationBloc>(
-          create: (context) => getIt<ModerationBloc>(),
-        ),
-        BlocProvider<LiveSessionCubit>(
-          create: (context) => getIt<LiveSessionCubit>(),
-        ),
+        BlocProvider<ModerationBloc>(create: (context) => getIt<ModerationBloc>()),
+        BlocProvider<LiveSessionCubit>(create: (context) => getIt<LiveSessionCubit>()),
       ],
       child: _GoliveScreenContent(
         roomId: roomId,
@@ -126,28 +115,7 @@ class _GoliveScreenContent extends StatefulWidget {
 }
 
 class _GoliveScreenContentState extends State<_GoliveScreenContent> {
-  final TextEditingController _titleController = TextEditingController();
-
   LiveSessionState get _sessionState => context.read<LiveSessionCubit>().state;
-
-  String _getAudioCallerText(LiveSessionState sessionState) {
-    if (sessionState.isJoiningAudioCaller) {
-      return 'Joining...';
-    }
-    return sessionState.isAudioCaller ? 'Leave' : 'Join';
-  }
-
-  void _toggleMute() {
-    final sessionState = _sessionState;
-    if (sessionState.isHost || sessionState.isAudioCaller) {
-      context.read<LiveStreamBloc>().add(const ToggleMicrophone());
-    } else {
-      _showSnackBar(
-        '🎤 Only hosts and audio callers can use microphone',
-        Colors.orange,
-      );
-    }
-  }
 
   String? _currentRoomId;
   String? userId;
@@ -166,16 +134,11 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   int _lastBonusMilestone = 0;
 
   // Configurable interval for bonus API calls (in minutes) - for debugging
-  // Set to 1 for testing, 50 for production
   static const int _bonusIntervalMinutes = 50;
 
-  //Live inactivity timeout duration
-  // Host activity tracking for viewers
   bool _animationPlaying = false;
   Timer? _giftAnimationTimer;
   int _lastGiftCount = 0;
-
-  // Chat messages
   final List<ChatModel> _chatMessages = [];
 
   // ✅ Track previous viewers for detecting disconnects
@@ -195,9 +158,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
         final liveStreamState = context.read<LiveStreamBloc>().state;
         if (liveStreamState is LiveStreamStreaming) {
           _previousViewers = List.from(liveStreamState.viewers);
-          debugPrint(
-            "📊 [INIT] Initial viewers snapshot: ${_previousViewers.map((v) => v.name).toList()}",
-          );
+          debugPrint("📊 [INIT] Initial viewers snapshot: ${_previousViewers.map((v) => v.name).toList()}");
         }
       });
     });
@@ -229,9 +190,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       // Initialize from existing duration
       if (roomData.duration > 0) {
         _streamDuration = Duration(seconds: roomData.duration);
-        debugPrint(
-          "🕒 Initialized stream with existing duration: ${roomData.duration}s",
-        );
+        debugPrint("🕒 Initialized stream with existing duration: ${roomData.duration}s");
       }
 
       // ✅ Bonus data now in LiveStreamBloc state
@@ -240,16 +199,13 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       // Calculate last milestone based on existing duration to prevent duplicate API calls
       if (roomData.duration > 0) {
         int existingMinutes = (roomData.duration / 60).floor();
-        _lastBonusMilestone =
-            (existingMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
+        _lastBonusMilestone = (existingMinutes ~/ _bonusIntervalMinutes) * _bonusIntervalMinutes;
         debugPrint(
           "🎯 Set last milestone to: $_lastBonusMilestone minutes based on duration: $existingMinutes minutes",
         );
       }
 
-      debugPrint(
-        "💰 Initialized with existing bonus: ${roomData.hostBonus} diamonds",
-      );
+      debugPrint("💰 Initialized with existing bonus: ${roomData.hostBonus} diamonds");
 
       // Initialize chat messages if any
 
@@ -267,9 +223,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
           }
         }
         debugPrint("💬 Loaded ${_chatMessages.length} existing messages");
-        context.read<ChatBloc>().add(
-          LoadInitialMessages(List.from(_chatMessages)),
-        );
+        context.read<ChatBloc>().add(LoadInitialMessages(List.from(_chatMessages)));
       }
 
       // Initialize broadcasters (excluding host)
@@ -289,12 +243,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
           }
         }
         if (initialBroadcasters.isNotEmpty) {
-          context.read<CallRequestBloc>().add(
-            LoadInitialBroadcasters(initialBroadcasters),
-          );
-          debugPrint(
-            "🎤 Loaded ${initialBroadcasters.length} existing broadcasters (host excluded)",
-          );
+          context.read<CallRequestBloc>().add(LoadInitialBroadcasters(initialBroadcasters));
+          debugPrint("🎤 Loaded ${initialBroadcasters.length} existing broadcasters (host excluded)");
         }
       }
 
@@ -303,22 +253,13 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
         final initialRequests = roomData.callRequests.map((request) {
           return CallRequestModel(
             userId: request.id,
-            userDetails: UserDetails(
-              id: request.id,
-              avatar: request.avatar,
-              name: request.name,
-              uid: request.uid,
-            ),
+            userDetails: UserDetails(id: request.id, avatar: request.avatar, name: request.name, uid: request.uid),
             roomId: roomData.roomId,
           );
         }).toList();
 
-        context.read<CallRequestBloc>().add(
-          LoadCallRequestList(initialRequests),
-        );
-        debugPrint(
-          "📞 Loaded ${initialRequests.length} existing call requests",
-        );
+        context.read<CallRequestBloc>().add(LoadCallRequestList(initialRequests));
+        debugPrint("📞 Loaded ${initialRequests.length} existing call requests");
       }
 
       // Initialize members as active viewers (excluding host)
@@ -346,9 +287,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
           _seedInitialViewers(initialViewers);
         }
 
-        debugPrint(
-          "👥 Loaded ${initialViewers.length} existing members as viewers",
-        );
+        debugPrint("👥 Loaded ${initialViewers.length} existing members as viewers");
       }
 
       // Set room ID if not already set
@@ -360,15 +299,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       debugPrint("✅ Successfully initialized from existing room data");
     }
   }
-
-  // ✅ REMOVED: _debugDiamondStatus() - Unused debug method (27 lines)
-  // ✅ REMOVED: _updateUserDiamonds() - Unused method for updating local activeViewers diamonds (58 lines)
-  // Both methods are now redundant - viewer data is managed by LiveStreamBloc
-
-  /// Calculate total bonus diamonds earned from daily streaming bonuses (configurable intervals)
-  // int _calculateTotalBonusDiamonds() {
-  //   return _totalBonusDiamonds;
-  // }
 
   /// Convert HostDetails to JoinedUserModel and initialize existing viewers
   void _initializeExistingViewers() {
@@ -393,9 +323,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
         _seedInitialViewers(initialViewers);
       }
 
-      debugPrint(
-        "Initialized ${initialViewers.length} existing viewers (host excluded)",
-      );
+      debugPrint("Initialized ${initialViewers.length} existing viewers (host excluded)");
     }
 
     // Note: Host coins initialization moved to _loadUidAndDispatchEvent after userId is set
@@ -442,13 +370,9 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
 
         context.read<GiftBloc>().add(LoadInitialGifts([syntheticGift]));
         _lastGiftCount = 1;
-        debugPrint(
-          "✅ Added synthetic gift for host coins: ${widget.hostCoins} to host ID: $hostId",
-        );
+        debugPrint("✅ Added synthetic gift for host coins: ${widget.hostCoins} to host ID: $hostId");
       } else {
-        debugPrint(
-          "⚠️ Could not initialize host coins - host ID is null or empty",
-        );
+        debugPrint("⚠️ Could not initialize host coins - host ID is null or empty");
         debugPrint("   widget.hostUserId: ${widget.hostUserId}");
         debugPrint("   userId: $userId");
         debugPrint("   isHost: $isHost");
@@ -498,10 +422,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   }
 
   void _seedInitialViewers(List<JoinedUserModel> viewers) {
-    if (viewers.isEmpty) {
-      return;
-    }
-
+    if (viewers.isEmpty) return;
     context.read<LiveStreamBloc>().add(SeedInitialViewers(viewers));
   }
 
@@ -511,19 +432,12 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
 
     // Notify for new pending requests
     final pendingIds = pendingRequests.map((request) => request.userId).toSet();
-    final newRequests = pendingRequests
-        .where((request) => !_knownPendingRequestIds.contains(request.userId))
-        .toList();
+    final newRequests = pendingRequests.where((request) => !_knownPendingRequestIds.contains(request.userId)).toList();
 
     if (newRequests.isNotEmpty) {
       final request = newRequests.first;
-      _showSnackBar(
-        '📞 ${request.userDetails.name} wants to join the call',
-        Colors.blue,
-      );
-      debugPrint(
-        "📱 New call request: ${request.userDetails.name} (${request.userId})",
-      );
+      _showSnackBar('📞 ${request.userDetails.name} wants to join the call', Colors.blue);
+      debugPrint("📱 New call request: ${request.userDetails.name} (${request.userId})");
     }
 
     _knownPendingRequestIds
@@ -568,22 +482,17 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     _giftAnimationTimer?.cancel();
 
     if (mounted && !_animationPlaying) {
-      setState(() {
-        _animationPlaying = true;
-      });
+      setState(() => _animationPlaying = true);
     }
   }
 
   //Sent/Send Message
   void _emitMessageToSocket(String message) {
     final trimmed = message.trim();
-    if (trimmed.isEmpty) {
-      return;
-    }
+    if (trimmed.isEmpty) return;
 
     final sessionState = _sessionState;
-    final roomIdentifier =
-        sessionState.currentRoomId ?? _currentRoomId ?? roomId;
+    final roomIdentifier = sessionState.currentRoomId ?? _currentRoomId ?? roomId;
 
     if (roomIdentifier.isEmpty) {
       _showSnackBar('❌ Room not ready, please try again', Colors.red);
@@ -607,6 +516,24 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     );
   }
 
+  // Audio Caller Button Text
+  String _getAudioCallerText(LiveSessionState sessionState) {
+    if (sessionState.isJoiningAudioCaller) {
+      return 'Joining...';
+    }
+    return sessionState.isAudioCaller ? 'Leave' : 'Join';
+  }
+
+  // Toggle Microphone
+  void _toggleMute() {
+    final sessionState = _sessionState;
+    if (sessionState.isHost || sessionState.isAudioCaller) {
+      context.read<LiveStreamBloc>().add(const ToggleMicrophone());
+    } else {
+      _showSnackBar('🎤 Only hosts and audio callers can use microphone', Colors.orange);
+    }
+  }
+
   // Make Admin
   void _makeAdmin(String userId) {
     final currentRoom = _currentRoomId ?? roomId;
@@ -615,9 +542,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       return;
     }
 
-    context.read<ModerationBloc>().add(
-      ModerationToggleAdmin(roomId: currentRoom, userId: userId),
-    );
+    context.read<ModerationBloc>().add(ModerationToggleAdmin(roomId: currentRoom, userId: userId));
   }
 
   // Remove Admin
@@ -628,9 +553,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       return;
     }
 
-    context.read<ModerationBloc>().add(
-      ModerationToggleAdmin(roomId: currentRoom, userId: userId),
-    );
+    context.read<ModerationBloc>().add(ModerationToggleAdmin(roomId: currentRoom, userId: userId));
   }
 
   /// Ban User
@@ -641,9 +564,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       return;
     }
 
-    context.read<ModerationBloc>().add(
-      ModerationBanUser(roomId: currentRoom, userId: userId),
-    );
+    context.read<ModerationBloc>().add(ModerationBanUser(roomId: currentRoom, userId: userId));
   }
 
   /// Mute User
@@ -654,9 +575,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       return;
     }
 
-    context.read<ModerationBloc>().add(
-      ModerationMuteUser(roomId: currentRoom, userId: userId),
-    );
+    context.read<ModerationBloc>().add(ModerationMuteUser(roomId: currentRoom, userId: userId));
   }
 
   /// Check if current user is in the muted users list
@@ -670,9 +589,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   /// Force mute current user when they are administratively muted
   void _forceMuteCurrentUser(ModerationState moderationState) {
     final liveState = context.read<LiveStreamBloc>().state;
-    final isMuted = liveState is LiveStreamStreaming
-        ? !liveState.isMicEnabled
-        : false;
+    final isMuted = liveState is LiveStreamStreaming ? !liveState.isMicEnabled : false;
     final sessionState = _sessionState;
     final isAuthorized = sessionState.isHost || sessionState.isAudioCaller;
 
@@ -686,16 +603,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   /// Check if current user is an admin
   bool _isCurrentUserAdmin(ModerationState moderationState) {
     final currentUserId = userId;
-    if (currentUserId == null) {
-      return false;
-    }
-
+    if (currentUserId == null) return false;
     return moderationState.adminList.any((admin) => admin.id == currentUserId);
-  }
-
-  /// Check if current user is the host
-  bool _isCurrentUserHost() {
-    return isHost;
   }
 
   /// Show snackbar message
@@ -704,21 +613,13 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       // Remove current snackbar before showing a new one
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: color,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        ..showSnackBar(SnackBar(content: Text(message), backgroundColor: color, duration: const Duration(seconds: 2)));
     }
   }
 
   /// Handle session-level force exit events surfaced by the cubit
   void _handleHostDisconnection(String reason) {
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     debugPrint("🚨 $reason - Exiting live screen...");
     _showSnackBar('📱 $reason', Colors.red);
@@ -728,47 +629,9 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
 
     // Give the user a moment to read the message before leaving
     Future.delayed(const Duration(milliseconds: 1500), () {
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      if (mounted) Navigator.of(context).pop();
     });
   }
-
-  // ✅ DEPRECATED: Stream timer now managed by LiveStreamBloc
-  // Commented out to use BLoC's timer instead
-  // Start stream timer
-  // void _startStreamTimer() {
-  //   // Only set start time if not already set (for existing streams)
-  //   _streamStartTime ??= DateTime.now();
-  //
-  //   _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-  //     if (mounted && _streamStartTime != null) {
-  //       setState(() {
-  //         _streamDuration = DateTime.now().difference(_streamStartTime!);
-  //       });
-  //
-  //       // Check for bonus milestones for hosts only
-  //       if (isHost &&
-  //           _streamDuration.inMinutes >= _bonusIntervalMinutes &&
-  //           !_isCallingBonusAPI) {
-  //         int currentMilestone =
-  //             (_streamDuration.inMinutes ~/ _bonusIntervalMinutes) *
-  //             _bonusIntervalMinutes;
-  //
-  //         // Only call API if we've reached a new milestone
-  //         if (currentMilestone > _lastBonusMilestone) {
-  //           _callDailyBonusAPI();
-  //         }
-  //       }
-  //     }
-  //   });
-  // }
-  //
-  // // Stop stream timer
-  // void _stopStreamTimer() {
-  //   _durationTimer?.cancel();
-  //   _durationTimer = null;
-  // }
 
   // Format duration to string
   String _formatDuration(Duration duration) {
@@ -778,17 +641,6 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     String seconds = twoDigits(duration.inSeconds.remainder(60));
     return "$hours:$minutes:$seconds";
   }
-
-  // ✅ REMOVED: _playAnimation() - unused animation method
-
-  // ✅ DEPRECATED: Call daily bonus API - Now handled by LiveStreamBloc
-  // BLoC automatically calls bonus API at milestones via UpdateStreamDuration handler
-  // For stream end, dispatch CallDailyBonus event
-  // Commented out to use BLoC's implementation instead
-  //
-  // Future<void> _callDailyBonusAPI({bool isStreamEnd = false}) async {
-  //   ... [old implementation commented out]
-  // }
 
   // End live stream
   void _endLiveStream() async {
@@ -825,16 +677,11 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
         int earnedDiamonds = 0;
         int totalGifts = 0;
         if (giftState is GiftLoaded) {
-          earnedDiamonds = GiftModel.totalDiamondsForHost(
-            giftState.gifts,
-            auth.user.id,
-          );
+          earnedDiamonds = GiftModel.totalDiamondsForHost(giftState.gifts, auth.user.id);
           totalGifts = giftState.gifts.length;
         }
 
-        final totalDuration = liveStateBeforeEnd is LiveStreamStreaming
-            ? liveStateBeforeEnd.duration
-            : _streamDuration;
+        final totalDuration = liveStateBeforeEnd is LiveStreamStreaming ? liveStateBeforeEnd.duration : _streamDuration;
 
         context.go(
           AppRoutes.liveSummary,
@@ -862,18 +709,19 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     }
   }
 
+  /// ################################################################# Build Method Start #################################################################
+  /// ################################################################# Build Method Start #################################################################
+  /// ################################################################# Build Method Start #################################################################
   @override
   Widget build(BuildContext context) {
     return MultiBlocListener(
       listeners: [
+        /// ✅ Listen to Live Session SnackBar for notifications
         BlocListener<LiveSessionCubit, LiveSessionState>(
-          listenWhen: (previous, current) =>
-              previous.snackBar != current.snackBar,
+          listenWhen: (previous, current) => previous.snackBar != current.snackBar,
           listener: (context, state) {
             final snackBar = state.snackBar;
-            if (snackBar == null) {
-              return;
-            }
+            if (snackBar == null) return;
 
             Color color;
             switch (snackBar.type) {
@@ -895,9 +743,10 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
             context.read<LiveSessionCubit>().clearSnackBar();
           },
         ),
+
+        /// ✅ Listen to Live Session Force Exit Reason for host disconnections
         BlocListener<LiveSessionCubit, LiveSessionState>(
-          listenWhen: (previous, current) =>
-              previous.forceExitReason != current.forceExitReason,
+          listenWhen: (previous, current) => previous.forceExitReason != current.forceExitReason,
           listener: (context, state) {
             final reason = state.forceExitReason;
             if (reason != null && reason.isNotEmpty) {
@@ -906,9 +755,10 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
             }
           },
         ),
+
+        /// ✅ Listen to Live Session Current Room ID for room updates
         BlocListener<LiveSessionCubit, LiveSessionState>(
-          listenWhen: (previous, current) =>
-              previous.currentRoomId != current.currentRoomId,
+          listenWhen: (previous, current) => previous.currentRoomId != current.currentRoomId,
           listener: (context, state) {
             final roomId = state.currentRoomId;
             if (roomId != null && roomId.isNotEmpty) {
@@ -922,16 +772,19 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
             }
           },
         ),
+
+        /// ✅ Listen to Live Session Error Message for errors
         BlocListener<LiveSessionCubit, LiveSessionState>(
           listenWhen: (previous, current) =>
-              previous.status != current.status &&
-              current.status == LiveSessionStatus.error,
+              previous.status != current.status && current.status == LiveSessionStatus.error,
           listener: (context, state) {
             if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
               _showSnackBar('❌ ${state.errorMessage}', Colors.red);
             }
           },
         ),
+
+        /// ✅ Listen to Call Request Bloc for call requests
         BlocListener<CallRequestBloc, CallRequestState>(
           listener: (context, state) {
             if (state is CallRequestLoaded) {
@@ -939,13 +792,12 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
             } else if (state is CallRequestError) {
               _showSnackBar('❌ ${state.message}', Colors.red);
             } else if (state is CallRequestJoinSubmitted) {
-              _showSnackBar(
-                '🎤 Call request sent. Awaiting host approval...',
-                Colors.blue,
-              );
+              _showSnackBar('🎤 Call request sent. Awaiting host approval...', Colors.blue);
             }
           },
         ),
+
+        /// ✅ Listen to Gift Bloc for gift updates
         BlocListener<GiftBloc, GiftState>(
           listener: (context, state) {
             if (state is GiftLoaded) {
@@ -958,6 +810,8 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
             }
           },
         ),
+
+        /// ✅ Listen to Moderation Bloc for admin and mute updates
         BlocListener<ModerationBloc, ModerationState>(
           listener: (context, state) {
             if (!mounted) return;
@@ -972,8 +826,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
 
             if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
               _showSnackBar('❌ ${state.errorMessage}', Colors.red);
-            } else if (state.successMessage != null &&
-                state.successMessage!.isNotEmpty) {
+            } else if (state.successMessage != null && state.successMessage!.isNotEmpty) {
               Color color;
               switch (state.lastAction) {
                 case ModerationAction.muteRequested:
@@ -990,72 +843,44 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
               _showSnackBar(state.successMessage!, color);
             }
 
-            if ((state.errorMessage != null &&
-                    state.errorMessage!.isNotEmpty) ||
-                (state.successMessage != null &&
-                    state.successMessage!.isNotEmpty)) {
-              context.read<ModerationBloc>().add(
-                const ModerationClearNotification(),
-              );
+            if ((state.errorMessage != null && state.errorMessage!.isNotEmpty) ||
+                (state.successMessage != null && state.successMessage!.isNotEmpty)) {
+              context.read<ModerationBloc>().add(const ModerationClearNotification());
             }
           },
         ),
-        // ✅ Listen to LiveStreamBloc for camera/mic changes
+
+        /// ✅ Listen to LiveStreamBloc for mic changes
         BlocListener<LiveStreamBloc, LiveStreamState>(
           listenWhen: (previous, current) {
-            // Only listen when in streaming state and camera/mic changed
-            if (previous is LiveStreamStreaming &&
-                current is LiveStreamStreaming) {
-              return previous.isCameraEnabled != current.isCameraEnabled ||
-                  previous.isMicEnabled != current.isMicEnabled;
+            // Only listen when in streaming state and mic changed
+            if (previous is LiveStreamStreaming && current is LiveStreamStreaming) {
+              return previous.isMicEnabled != current.isMicEnabled;
             }
             return false;
           },
           listener: (context, state) async {
             if (state is LiveStreamStreaming) {
               final sessionCubit = context.read<LiveSessionCubit>();
-              final sessionState = sessionCubit.state;
-
-              if (sessionState.localUserJoined) {
-                try {
-                  await sessionCubit.applyCameraState(state.isCameraEnabled);
-
-                  if (state.isCameraEnabled) {
-                    _showSnackBar(
-                      '📷 Camera turned on - You are now visible!',
-                      Colors.green,
-                    );
-                  } else {
-                    _showSnackBar(
-                      '📷 Camera turned off - Audio only mode',
-                      Colors.orange,
-                    );
-                  }
-                } catch (error) {
-                  debugPrint('❌ Error applying camera state: $error');
+              try {
+                await sessionCubit.applyMicrophoneState(state.isMicEnabled);
+                if (!state.isMicEnabled) {
+                  _showSnackBar('🔇 Microphone muted', Colors.orange);
+                } else {
+                  _showSnackBar('🎤 Microphone unmuted', Colors.green);
                 }
-
-                try {
-                  await sessionCubit.applyMicrophoneState(state.isMicEnabled);
-
-                  if (!state.isMicEnabled) {
-                    _showSnackBar('🔇 Microphone muted', Colors.orange);
-                  } else {
-                    _showSnackBar('🎤 Microphone unmuted', Colors.green);
-                  }
-                } catch (error) {
-                  debugPrint('❌ Error applying microphone state: $error');
-                }
+              } catch (error) {
+                debugPrint('❌ Error applying microphone state: $error');
               }
             }
           },
         ),
-        // ✅ Listen for viewer changes and remove disconnected users from call list
+
+        /// ✅ Listen for viewer changes and remove disconnected users from call list
         BlocListener<LiveStreamBloc, LiveStreamState>(
           listenWhen: (previous, current) {
             // Only listen when in streaming state
-            if (previous is LiveStreamStreaming &&
-                current is LiveStreamStreaming) {
+            if (previous is LiveStreamStreaming && current is LiveStreamStreaming) {
               // Trigger when viewers list changes
               return previous.viewers != current.viewers;
             }
@@ -1065,17 +890,13 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
             if (state is LiveStreamStreaming) {
               // Find viewers that were in _previousViewers but not in current state.viewers
               for (var oldViewer in _previousViewers) {
-                bool stillExists = state.viewers.any(
-                  (v) => v.id == oldViewer.id,
-                );
+                bool stillExists = state.viewers.any((v) => v.id == oldViewer.id);
                 if (!stillExists) {
                   // This user left - remove from call requests
                   debugPrint(
                     "🚪 [DISCONNECT] Viewer ${oldViewer.name} (${oldViewer.id}) left stream - removing from all calls",
                   );
-                  context.read<CallRequestBloc>().add(
-                    UserDisconnected(oldViewer.id),
-                  );
+                  context.read<CallRequestBloc>().add(UserDisconnected(oldViewer.id));
                 }
               }
 
@@ -1085,13 +906,14 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
           },
         ),
       ],
+
+      /// ################################################################# UI Start #################################################################
+      /// ################################################################# UI Start #################################################################
+      /// ################################################################# UI Start #################################################################
       child: PopScope(
         canPop: false,
         onPopInvokedWithResult: (bool didPop, Object? result) {
-          if (didPop) {
-            return;
-          }
-
+          if (didPop) return;
           _endLiveStream();
           debugPrint('Back navigation invoked: (cleanup triggered)');
         },
@@ -1100,10 +922,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
             if (state is! AuthAuthenticated) {
               return Scaffold(
                 body: Center(
-                  child: Text(
-                    'Please log in to start live streaming',
-                    style: TextStyle(fontSize: 18.sp),
-                  ),
+                  child: Text('Please log in to start live streaming', style: TextStyle(fontSize: 18.sp)),
                 ),
               );
             } else {
@@ -1113,13 +932,11 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                   children: [
                     _buildVideoView(sessionState),
 
-                    // ✅ Gift animation with BlocBuilder
+                    /// ✅ Gift animation with BlocBuilder
                     if (_animationPlaying)
                       BlocBuilder<GiftBloc, GiftState>(
                         builder: (context, giftState) {
-                          final gifts = giftState is GiftLoaded
-                              ? giftState.gifts
-                              : <GiftModel>[];
+                          final gifts = giftState is GiftLoaded ? giftState.gifts : <GiftModel>[];
                           return AnimatedLayer(
                             gifts: gifts,
                             onCompleted: () {
@@ -1133,34 +950,26 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                         },
                       ),
 
-                    // * This contaimer holds the livestream options,
+                    /// * This contaimer holds the livestream options,
                     SafeArea(
                       child: Container(
-                        margin: EdgeInsets.symmetric(
-                          horizontal: 20.w,
-                          vertical: 30.h,
-                        ),
+                        margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 30.h),
                         child: LayoutBuilder(
                           builder: (context, constraints) {
                             return SingleChildScrollView(
                               physics: NeverScrollableScrollPhysics(),
                               child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  minHeight: constraints.maxHeight,
-                                ),
+                                constraints: BoxConstraints(minHeight: constraints.maxHeight),
                                 child: IntrinsicHeight(
                                   child: Column(
                                     children: [
                                       // this is the top row
                                       Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           if (isHost)
                                             HostInfo(
-                                              imageUrl:
-                                                  state.user.avatar ??
-                                                  "https://thispersondoesnotexist.com/",
+                                              imageUrl: state.user.avatar ?? "https://thispersondoesnotexist.com/",
                                               name: state.user.name,
                                               id: state.user.id.substring(0, 4),
                                               hostUserId: state.user.id,
@@ -1168,64 +977,41 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                             )
                                           else
                                             HostInfo(
-                                              imageUrl:
-                                                  widget.hostAvatar ??
-                                                  "https://thispersondoesnotexist.com/",
+                                              imageUrl: widget.hostAvatar ?? "https://thispersondoesnotexist.com/",
                                               name: widget.hostName ?? "Host",
-                                              id:
-                                                  widget.hostUserId?.substring(
-                                                    0,
-                                                    4,
-                                                  ) ??
-                                                  "Host",
-                                              hostUserId:
-                                                  widget.hostUserId ?? "",
+                                              id: widget.hostUserId?.substring(0, 4) ?? "Host",
+                                              hostUserId: widget.hostUserId ?? "",
                                               currentUserId: state.user.id,
                                             ),
                                           Spacer(),
                                           // *show the viewers - ✅ Now using LiveStreamBloc state
-                                          BlocBuilder<
-                                            LiveStreamBloc,
-                                            LiveStreamState
-                                          >(
+                                          BlocBuilder<LiveStreamBloc, LiveStreamState>(
                                             builder: (context, liveState) {
-                                              final viewers =
-                                                  liveState
-                                                      is LiveStreamStreaming
+                                              final viewers = liveState is LiveStreamStreaming
                                                   ? liveState.viewers
                                                   : <JoinedUserModel>[];
 
                                               return ActiveViewers(
                                                 activeUserList: viewers,
-                                                hostUserId: isHost
-                                                    ? userId
-                                                    : widget.hostUserId,
-                                                hostName: isHost
-                                                    ? state.user.name
-                                                    : widget.hostName,
-                                                hostAvatar: isHost
-                                                    ? state.user.avatar
-                                                    : widget.hostAvatar,
+                                                hostUserId: isHost ? userId : widget.hostUserId,
+                                                hostName: isHost ? state.user.name : widget.hostName,
+                                                hostAvatar: isHost ? state.user.avatar : widget.hostAvatar,
                                               );
                                             },
                                           ),
 
-                                          // * to show the leave button
+                                          /// * to show the leave button
                                           (isHost)
                                               ? GestureDetector(
                                                   onTap: () {
                                                     EndStreamOverlay.show(
                                                       context,
                                                       onKeepStream: () {
-                                                        debugPrint(
-                                                          "Keep stream pressed",
-                                                        );
+                                                        debugPrint("Keep stream pressed");
                                                       },
                                                       onEndStream: () {
                                                         _endLiveStream();
-                                                        debugPrint(
-                                                          "End stream pressed",
-                                                        );
+                                                        debugPrint("End stream pressed");
                                                       },
                                                     );
                                                   },
@@ -1238,49 +1024,32 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                               : InkWell(
                                                   onTap: () {
                                                     _endLiveStream();
-                                                    debugPrint(
-                                                      "Disconnect pressed",
-                                                    );
+                                                    debugPrint("Disconnect pressed");
                                                   },
-                                                  child: Image.asset(
-                                                    "assets/icons/live_exit_icon.png",
-                                                    height: 50.h,
-                                                  ),
+                                                  child: Image.asset("assets/icons/live_exit_icon.png", height: 50.h),
                                                 ),
                                         ],
                                       ),
                                       SizedBox(height: 10.h),
 
-                                      //  this is the second row TODO:  diamond and star count display
+                                      ///  this is the second row: diamond and star count display
                                       Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           BlocBuilder<GiftBloc, GiftState>(
                                             builder: (context, giftState) {
-                                              final hostId = isHost
-                                                  ? userId
-                                                  : widget.hostUserId;
-                                              final gifts =
-                                                  giftState is GiftLoaded
+                                              final hostId = isHost ? userId : widget.hostUserId;
+                                              final gifts = giftState is GiftLoaded
                                                   ? giftState.gifts
                                                   : const <GiftModel>[];
                                               int diamondTotal = 0;
                                               if (hostId != null) {
-                                                diamondTotal =
-                                                    GiftModel.totalDiamondsForHost(
-                                                      gifts,
-                                                      hostId,
-                                                    );
+                                                diamondTotal = GiftModel.totalDiamondsForHost(gifts, hostId);
                                               }
 
                                               return DiamondStarStatus(
-                                                diamonCount:
-                                                    AppUtils.formatNumber(
-                                                      diamondTotal,
-                                                    ),
-                                                starCount:
-                                                    AppUtils.formatNumber(0),
+                                                diamonCount: AppUtils.formatNumber(diamondTotal),
+                                                starCount: AppUtils.formatNumber(0),
                                               );
                                             },
                                           ),
@@ -1301,23 +1070,14 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                         alignment: Alignment.centerLeft,
                                         child: BlocBuilder<ChatBloc, ChatState>(
                                           builder: (context, chatState) {
-                                            final messages =
-                                                chatState is ChatLoaded
+                                            final messages = chatState is ChatLoaded
                                                 ? chatState.messages
                                                 : <ChatModel>[];
-                                            final callState = context
-                                                .watch<CallRequestBloc>()
-                                                .state;
+                                            final callState = context.watch<CallRequestBloc>().state;
                                             final isCallingNow =
-                                                callState
-                                                    is CallRequestLoaded &&
-                                                callState
-                                                    .activeBroadcasters
-                                                    .isNotEmpty;
-                                            return LiveChatWidget(
-                                              isCallingNow: isCallingNow,
-                                              messages: messages,
-                                            );
+                                                callState is CallRequestLoaded &&
+                                                callState.activeBroadcasters.isNotEmpty;
+                                            return LiveChatWidget(isCallingNow: isCallingNow, messages: messages);
                                           },
                                         ),
                                       ),
@@ -1327,46 +1087,32 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                       // the bottom buttons
                                       if (isHost)
                                         Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceAround,
+                                          mainAxisAlignment: MainAxisAlignment.spaceAround,
                                           children: [
                                             InkWell(
                                               onTap: () {
                                                 showSendMessageBottomSheet(
                                                   context,
                                                   onSendMessage: (message) {
-                                                    print(
-                                                      "Send message pressed",
-                                                    );
-                                                    _emitMessageToSocket(
-                                                      message,
-                                                    );
+                                                    print("Send message pressed");
+                                                    _emitMessageToSocket(message);
                                                   },
                                                 );
                                               },
                                               child: Stack(
                                                 children: [
-                                                  Image.asset(
-                                                    "assets/icons/message_icon.png",
-                                                    height: 40.h,
-                                                  ),
+                                                  Image.asset("assets/icons/message_icon.png", height: 40.h),
                                                   Positioned(
                                                     left: 10.w,
                                                     top: 0,
                                                     bottom: 0,
                                                     child: Row(
                                                       children: [
-                                                        Image.asset(
-                                                          "assets/icons/message_user_icon.png",
-                                                          height: 20.h,
-                                                        ),
+                                                        Image.asset("assets/icons/message_user_icon.png", height: 20.h),
                                                         SizedBox(width: 5.w),
                                                         Text(
                                                           'Say Hello!',
-                                                          style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontSize: 18.sp,
-                                                          ),
+                                                          style: TextStyle(color: Colors.white, fontSize: 18.sp),
                                                         ),
                                                       ],
                                                     ),
@@ -1375,56 +1121,35 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                               ),
                                             ),
                                             CustomLiveButton(
-                                              iconPath:
-                                                  "assets/icons/gift_user_icon.png",
+                                              iconPath: "assets/icons/gift_user_icon.png",
                                               onTap: () {
                                                 // ✅ Get viewers from BLoC state
-                                                final liveState = context
-                                                    .read<LiveStreamBloc>()
-                                                    .state;
-                                                final viewers =
-                                                    liveState
-                                                        is LiveStreamStreaming
+                                                final liveState = context.read<LiveStreamBloc>().state;
+                                                final viewers = liveState is LiveStreamStreaming
                                                     ? liveState.viewers
                                                     : <JoinedUserModel>[];
 
                                                 showGiftBottomSheet(
                                                   context,
                                                   activeViewers: viewers,
-                                                  roomId:
-                                                      _currentRoomId ?? roomId,
-                                                  hostUserId: isHost
-                                                      ? userId
-                                                      : widget.hostUserId,
-                                                  hostName: isHost
-                                                      ? state.user.name
-                                                      : widget.hostName,
-                                                  hostAvatar: isHost
-                                                      ? state.user.avatar
-                                                      : widget.hostAvatar,
+                                                  roomId: _currentRoomId ?? roomId,
+                                                  hostUserId: isHost ? userId : widget.hostUserId,
+                                                  hostName: isHost ? state.user.name : widget.hostName,
+                                                  hostAvatar: isHost ? state.user.avatar : widget.hostAvatar,
                                                 );
                                               },
                                             ),
                                             CustomLiveButton(
-                                              iconPath:
-                                                  "assets/icons/pk_icon.png",
+                                              iconPath: "assets/icons/pk_icon.png",
                                               onTap: () {
                                                 // _playAnimation();
-                                                _showSnackBar(
-                                                  '🎶 Not implemented yet',
-                                                  Colors.green,
-                                                );
+                                                _showSnackBar('🎶 Not implemented yet', Colors.green);
                                                 // showMusicBottomSheet(context);
                                               },
                                             ),
-                                            BlocBuilder<
-                                              LiveStreamBloc,
-                                              LiveStreamState
-                                            >(
+                                            BlocBuilder<LiveStreamBloc, LiveStreamState>(
                                               builder: (context, liveState) {
-                                                final isMuted =
-                                                    liveState
-                                                        is LiveStreamStreaming
+                                                final isMuted = liveState is LiveStreamStreaming
                                                     ? !liveState.isMicEnabled
                                                     : true;
                                                 return CustomLiveButton(
@@ -1438,137 +1163,83 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                               },
                                             ),
                                             CustomLiveButton(
-                                              iconPath:
-                                                  "assets/icons/call_icon.png",
+                                              iconPath: "assets/icons/call_icon.png",
                                               onTap: () {
-                                                final audioCallerCount =
-                                                    sessionState
-                                                        .audioCallerUids
-                                                        .length;
+                                                final audioCallerCount = sessionState.audioCallerUids.length;
                                                 if (audioCallerCount > 0) {
                                                   _showSnackBar(
                                                     '🎤 $audioCallerCount audio caller${audioCallerCount > 1 ? 's' : ''} connected',
                                                     Colors.green,
                                                   );
                                                 } else {
-                                                  _showSnackBar(
-                                                    '📞 Waiting for audio callers to join...',
-                                                    Colors.blue,
-                                                  );
+                                                  _showSnackBar('📞 Waiting for audio callers to join...', Colors.blue);
                                                 }
                                                 // Capture the outer context with BLoC access
                                                 final outerContext = context;
-                                                final callRequestBloc =
-                                                    outerContext
-                                                        .read<
-                                                          CallRequestBloc
-                                                        >();
+                                                final callRequestBloc = outerContext.read<CallRequestBloc>();
 
                                                 showModalBottomSheet(
                                                   context: outerContext,
                                                   useRootNavigator: false,
                                                   isScrollControlled: true,
-                                                  backgroundColor:
-                                                      Colors.transparent,
+                                                  backgroundColor: Colors.transparent,
                                                   builder: (sheetContext) {
                                                     return BlocProvider.value(
                                                       value: callRequestBloc,
-                                                      child:
-                                                          BlocBuilder<
-                                                            CallRequestBloc,
-                                                            CallRequestState
-                                                          >(
-                                                            builder:
-                                                                (
-                                                                  context,
-                                                                  callRequestState,
-                                                                ) {
-                                                                  final pendingRequests =
-                                                                      callRequestState
-                                                                          is CallRequestLoaded
-                                                                      ? callRequestState
-                                                                            .pendingRequests
-                                                                      : <
-                                                                          CallRequestModel
-                                                                        >[];
-                                                                  final activeBroadcasters =
-                                                                      callRequestState
-                                                                          is CallRequestLoaded
-                                                                      ? callRequestState
-                                                                            .activeBroadcasters
-                                                                      : <
-                                                                          BroadcasterModel
-                                                                        >[];
+                                                      child: BlocBuilder<CallRequestBloc, CallRequestState>(
+                                                        builder: (context, callRequestState) {
+                                                          final pendingRequests = callRequestState is CallRequestLoaded
+                                                              ? callRequestState.pendingRequests
+                                                              : <CallRequestModel>[];
+                                                          final activeBroadcasters =
+                                                              callRequestState is CallRequestLoaded
+                                                              ? callRequestState.activeBroadcasters
+                                                              : <BroadcasterModel>[];
 
-                                                                  // ✅ Filter out host from activeBroadcasters for call management display
-                                                                  final hostId =
-                                                                      isHost
-                                                                      ? userId
-                                                                      : widget
-                                                                            .hostUserId;
-                                                                  final filteredBroadcasters = activeBroadcasters
-                                                                      .where(
-                                                                        (b) =>
-                                                                            b.id !=
-                                                                                hostId &&
-                                                                            b.id !=
-                                                                                widget.hostUserId &&
-                                                                            !(isHost &&
-                                                                                b.id ==
-                                                                                    userId),
-                                                                      )
-                                                                      .toList();
+                                                          // ✅ Filter out host from activeBroadcasters for call management display
+                                                          final hostId = isHost ? userId : widget.hostUserId;
+                                                          final filteredBroadcasters = activeBroadcasters
+                                                              .where(
+                                                                (b) =>
+                                                                    b.id != hostId &&
+                                                                    b.id != widget.hostUserId &&
+                                                                    !(isHost && b.id == userId),
+                                                              )
+                                                              .toList();
 
-                                                                  return CallManageBottomSheet(
-                                                                    onAcceptCall: (userId) {
-                                                                      debugPrint(
-                                                                        "Accepting call request from $userId",
-                                                                      );
-                                                                      callRequestBloc.add(
-                                                                        AcceptCallRequest(
-                                                                          userId:
-                                                                              userId,
-                                                                          roomId:
-                                                                              _currentRoomId ??
-                                                                              '',
-                                                                        ),
-                                                                      );
-                                                                    },
-                                                                    onRejectCall: (userId) {
-                                                                      debugPrint(
-                                                                        "Rejecting call request from $userId",
-                                                                      );
-                                                                      callRequestBloc.add(
-                                                                        RejectCallRequest(
-                                                                          userId:
-                                                                              userId,
-                                                                          roomId:
-                                                                              _currentRoomId ??
-                                                                              '',
-                                                                        ),
-                                                                      );
-                                                                    },
-                                                                    onKickUser: (userId) {
-                                                                      callRequestBloc.add(
-                                                                        RemoveBroadcaster(
-                                                                          userId:
-                                                                              userId,
-                                                                          roomId:
-                                                                              _currentRoomId ??
-                                                                              '',
-                                                                        ),
-                                                                      );
-                                                                      debugPrint(
-                                                                        "Kicking user $userId from call",
-                                                                      );
-                                                                    },
-                                                                    callers:
-                                                                        pendingRequests,
-                                                                    inCallList:
-                                                                        filteredBroadcasters,
-                                                                  );
-                                                                },
-                                                          ),
+                                                          return CallManageBottomSheet(
+                                                            onAcceptCall: (userId) {
+                                                              debugPrint("Accepting call request from $userId");
+                                                              callRequestBloc.add(
+                                                                AcceptCallRequest(
+                                                                  userId: userId,
+                                                                  roomId: _currentRoomId ?? '',
+                                                                ),
+                                                              );
+                                                            },
+                                                            onRejectCall: (userId) {
+                                                              debugPrint("Rejecting call request from $userId");
+                                                              callRequestBloc.add(
+                                                                RejectCallRequest(
+                                                                  userId: userId,
+                                                                  roomId: _currentRoomId ?? '',
+                                                                ),
+                                                              );
+                                                            },
+                                                            onKickUser: (userId) {
+                                                              callRequestBloc.add(
+                                                                RemoveBroadcaster(
+                                                                  userId: userId,
+                                                                  roomId: _currentRoomId ?? '',
+                                                                ),
+                                                              );
+                                                              debugPrint("Kicking user $userId from call");
+                                                            },
+                                                            callers: pendingRequests,
+                                                            inCallList: filteredBroadcasters,
+                                                          );
+                                                        },
+                                                      ),
                                                     );
                                                   },
                                                 );
@@ -1576,16 +1247,11 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                             ),
 
                                             CustomLiveButton(
-                                              iconPath:
-                                                  "assets/icons/menu_icon.png",
+                                              iconPath: "assets/icons/menu_icon.png",
                                               onTap: () {
                                                 // ✅ Get duration from BLoC state
-                                                final liveState = context
-                                                    .read<LiveStreamBloc>()
-                                                    .state;
-                                                final streamDuration =
-                                                    liveState
-                                                        is LiveStreamStreaming
+                                                final liveState = context.read<LiveStreamBloc>().state;
+                                                final streamDuration = liveState is LiveStreamStreaming
                                                     ? liveState.duration
                                                     : Duration.zero;
 
@@ -1593,8 +1259,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                                   context,
                                                   userId: userId,
                                                   isHost: isHost,
-                                                  streamDuration:
-                                                      streamDuration,
+                                                  streamDuration: streamDuration,
                                                 );
                                               },
                                             ),
@@ -1602,8 +1267,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                         )
                                       else
                                         Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceAround,
+                                          mainAxisAlignment: MainAxisAlignment.spaceAround,
                                           children: [
                                             InkWell(
                                               onTap: () {
@@ -1614,38 +1278,25 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                                 showSendMessageBottomSheet(
                                                   context,
                                                   onSendMessage: (message) {
-                                                    print(
-                                                      "Send message pressed",
-                                                    );
-                                                    _emitMessageToSocket(
-                                                      message,
-                                                    );
+                                                    print("Send message pressed");
+                                                    _emitMessageToSocket(message);
                                                   },
                                                 );
                                               },
                                               child: Stack(
                                                 children: [
-                                                  Image.asset(
-                                                    "assets/icons/message_icon.png",
-                                                    height: 40.h,
-                                                  ),
+                                                  Image.asset("assets/icons/message_icon.png", height: 40.h),
                                                   Positioned(
                                                     left: 10,
                                                     top: 0,
                                                     bottom: 0,
                                                     child: Row(
                                                       children: [
-                                                        Image.asset(
-                                                          "assets/icons/message_user_icon.png",
-                                                          height: 20.h,
-                                                        ),
+                                                        Image.asset("assets/icons/message_user_icon.png", height: 20.h),
                                                         SizedBox(width: 5.w),
                                                         Text(
                                                           'Say Hello!',
-                                                          style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontSize: 18.sp,
-                                                          ),
+                                                          style: TextStyle(color: Colors.white, fontSize: 18.sp),
                                                         ),
                                                       ],
                                                     ),
@@ -1655,99 +1306,67 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                             ),
 
                                             CustomLiveButton(
-                                              iconPath:
-                                                  "assets/icons/gift_user_icon.png",
+                                              iconPath: "assets/icons/gift_user_icon.png",
                                               onTap: () {
                                                 // ✅ Get viewers from BLoC state
-                                                final liveState = context
-                                                    .read<LiveStreamBloc>()
-                                                    .state;
-                                                final viewers =
-                                                    liveState
-                                                        is LiveStreamStreaming
+                                                final liveState = context.read<LiveStreamBloc>().state;
+                                                final viewers = liveState is LiveStreamStreaming
                                                     ? liveState.viewers
                                                     : <JoinedUserModel>[];
 
                                                 showGiftBottomSheet(
                                                   context,
                                                   activeViewers: viewers,
-                                                  roomId:
-                                                      _currentRoomId ?? roomId,
-                                                  hostUserId: isHost
-                                                      ? userId
-                                                      : widget.hostUserId,
-                                                  hostName: isHost
-                                                      ? state.user.name
-                                                      : widget.hostName,
-                                                  hostAvatar: isHost
-                                                      ? state.user.avatar
-                                                      : widget.hostAvatar,
+                                                  roomId: _currentRoomId ?? roomId,
+                                                  hostUserId: isHost ? userId : widget.hostUserId,
+                                                  hostName: isHost ? state.user.name : widget.hostName,
+                                                  hostAvatar: isHost ? state.user.avatar : widget.hostAvatar,
                                                 );
                                               },
                                               height: 40.h,
                                             ),
 
                                             CustomLiveButton(
-                                              iconPath:
-                                                  "assets/icons/game_user_icon.png",
+                                              iconPath: "assets/icons/game_user_icon.png",
                                               onTap: () {
                                                 // ✅ Get duration from BLoC state
-                                                final liveState = context
-                                                    .read<LiveStreamBloc>()
-                                                    .state;
-                                                final streamDuration =
-                                                    liveState
-                                                        is LiveStreamStreaming
+                                                final liveState = context.read<LiveStreamBloc>().state;
+                                                final streamDuration = liveState is LiveStreamStreaming
                                                     ? liveState.duration
                                                     : Duration.zero;
 
                                                 showGameBottomSheet(
                                                   context,
                                                   userId: userId,
-                                                  streamDuration:
-                                                      streamDuration,
+                                                  streamDuration: streamDuration,
                                                 );
                                               },
                                               height: 40.h,
                                             ),
                                             CustomLiveButton(
-                                              iconPath:
-                                                  "assets/icons/share_user_icon.png",
+                                              iconPath: "assets/icons/share_user_icon.png",
                                               onTap: () {},
                                               height: 40.h,
                                             ),
                                             CustomLiveButton(
-                                              iconPath:
-                                                  "assets/icons/menu_icon.png",
+                                              iconPath: "assets/icons/menu_icon.png",
                                               onTap: () {
-                                                final liveState = context
-                                                    .read<LiveStreamBloc>()
-                                                    .state;
-                                                final isMuted =
-                                                    liveState
-                                                        is LiveStreamStreaming
+                                                final liveState = context.read<LiveStreamBloc>().state;
+                                                final isMuted = liveState is LiveStreamStreaming
                                                     ? !liveState.isMicEnabled
                                                     : true;
-                                                final streamDuration =
-                                                    liveState
-                                                        is LiveStreamStreaming
+                                                final streamDuration = liveState is LiveStreamStreaming
                                                     ? liveState.duration
                                                     : Duration.zero;
-                                                final moderationState = context
-                                                    .read<ModerationBloc>()
-                                                    .state;
+                                                final moderationState = context.read<ModerationBloc>().state;
                                                 showMenuBottomSheet(
                                                   context,
                                                   userId: userId,
                                                   isHost: isHost,
                                                   isMuted: isMuted,
-                                                  isAdminMuted:
-                                                      _isCurrentUserMuted(
-                                                        moderationState,
-                                                      ),
+                                                  isAdminMuted: _isCurrentUserMuted(moderationState),
                                                   onToggleMute: _toggleMute,
-                                                  streamDuration:
-                                                      streamDuration,
+                                                  streamDuration: streamDuration,
                                                 );
                                               },
                                               height: 40.h,
@@ -1769,9 +1388,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                       right: 30.w,
                       child: BlocBuilder<CallRequestBloc, CallRequestState>(
                         builder: (context, callState) {
-                          final moderationState = context
-                              .watch<ModerationBloc>()
-                              .state;
+                          final moderationState = context.watch<ModerationBloc>().state;
                           final hostId = isHost ? userId : widget.hostUserId;
                           final broadcasters = callState is CallRequestLoaded
                               ? callState.activeBroadcasters
@@ -1780,8 +1397,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                           final hostIdentifiers = <String>{
                             if (hostId != null) hostId,
                             if (widget.hostUserId != null) widget.hostUserId!,
-                            if (isHost && sessionState.userId != null)
-                              sessionState.userId!,
+                            if (isHost && sessionState.userId != null) sessionState.userId!,
                           };
 
                           final displayBroadcasters = broadcasters
@@ -1789,31 +1405,21 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                               .toList();
 
                           debugPrint('🎤 [UI] displayBroadcasters computed:');
-                          debugPrint(
-                            '🎤 [UI] Total broadcasters: ${broadcasters.length}',
-                          );
-                          debugPrint(
-                            '🎤 [UI] hostIdentifiers: $hostIdentifiers',
-                          );
-                          debugPrint(
-                            '🎤 [UI] displayBroadcasters count: ${displayBroadcasters.length}',
-                          );
+                          debugPrint('🎤 [UI] Total broadcasters: ${broadcasters.length}');
+                          debugPrint('🎤 [UI] hostIdentifiers: $hostIdentifiers');
+                          debugPrint('🎤 [UI] displayBroadcasters count: ${displayBroadcasters.length}');
                           for (var i = 0; i < displayBroadcasters.length; i++) {
                             final b = displayBroadcasters[i];
-                            debugPrint(
-                              '🎤 [UI]   [$i] ID: ${b.id}, Name: ${b.name}',
-                            );
+                            debugPrint('🎤 [UI]   [$i] ID: ${b.id}, Name: ${b.name}');
                           }
 
                           WhoAmI resolveRole(String broadcasterId) {
                             final authState = context.read<AuthBloc>().state;
-                            final currentUserId = authState is AuthAuthenticated
-                                ? authState.user.id
-                                : userId;
+                            final currentUserId = authState is AuthAuthenticated ? authState.user.id : userId;
 
                             if (_isCurrentUserAdmin(moderationState)) {
                               return WhoAmI.admin;
-                            } else if (_isCurrentUserHost()) {
+                            } else if (isHost) {
                               return WhoAmI.host;
                             } else if (broadcasterId == currentUserId) {
                               return WhoAmI.myself;
@@ -1823,8 +1429,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                           }
 
                           final currentRoomId = _currentRoomId ?? roomId;
-                          final callRequestBloc = context
-                              .read<CallRequestBloc>();
+                          final callRequestBloc = context.read<CallRequestBloc>();
 
                           final children = <Widget>[
                             ...displayBroadcasters.map((broadcaster) {
@@ -1832,46 +1437,28 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                 whoAmI: resolveRole(broadcaster.id),
                                 userId: broadcaster.id,
                                 userName: broadcaster.name,
-                                userImage: broadcaster.avatar.isNotEmpty
-                                    ? broadcaster.avatar
-                                    : null,
+                                userImage: broadcaster.avatar.isNotEmpty ? broadcaster.avatar : null,
                                 onDisconnect: () {
                                   if (currentRoomId.isEmpty) {
-                                    _showSnackBar(
-                                      '❌ Room not ready, please try again',
-                                      Colors.red,
-                                    );
+                                    _showSnackBar('❌ Room not ready, please try again', Colors.red);
                                     return;
                                   }
 
-                                  callRequestBloc.add(
-                                    RemoveBroadcaster(
-                                      userId: broadcaster.id,
-                                      roomId: currentRoomId,
-                                    ),
-                                  );
+                                  callRequestBloc.add(RemoveBroadcaster(userId: broadcaster.id, roomId: currentRoomId));
                                 },
                                 onMute: () {
                                   _muteUser(broadcaster.id);
                                 },
                                 onManage: () {
-                                  debugPrint(
-                                    "Open manage for: ${broadcaster.id}",
-                                  );
+                                  debugPrint("Open manage for: ${broadcaster.id}");
                                 },
                                 onSetAdmin: (id) {
                                   _makeAdmin(id);
-                                  _showSnackBar(
-                                    '👑 Set as admin',
-                                    Colors.green,
-                                  );
+                                  _showSnackBar('👑 Set as admin', Colors.green);
                                 },
                                 onRemoveAdmin: (id) {
                                   _removeAdmin(id);
-                                  _showSnackBar(
-                                    '👤 Admin removed',
-                                    Colors.orange,
-                                  );
+                                  _showSnackBar('👤 Admin removed', Colors.orange);
                                 },
                                 adminModels: moderationState.adminList,
                                 onMuteUser: (id) {
@@ -1880,17 +1467,11 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                 },
                                 onKickOut: (id) {
                                   _banUser(id);
-                                  _showSnackBar(
-                                    '👢 User kicked out',
-                                    Colors.red,
-                                  );
+                                  _showSnackBar('👢 User kicked out', Colors.red);
                                 },
                                 onBanUser: (id) {
                                   _banUser(id);
-                                  _showSnackBar(
-                                    '⛔ User added to blocklist',
-                                    Colors.red,
-                                  );
+                                  _showSnackBar('⛔ User added to blocklist', Colors.red);
                                 },
                               );
                             }).toList(),
@@ -1901,47 +1482,34 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
 
                             final isAudioCaller = sessionState.isAudioCaller;
                             // ✅ Check if current user is in the broadcasters list (they're in call)
-                            final userInCall = displayBroadcasters.any(
-                              (b) => b.id == userId,
-                            );
+                            final userInCall = displayBroadcasters.any((b) => b.id == userId);
                             final isJoiningRequestPending =
                                 !isAudioCaller &&
                                 !userInCall &&
                                 callState is CallRequestLoaded &&
                                 userId != null &&
-                                callState.pendingRequests.any(
-                                  (request) => request.userId == userId,
-                                );
+                                callState.pendingRequests.any((request) => request.userId == userId);
                             // ✅ Check against actual displayBroadcasters count (already filtered, audio callers only)
                             final canJoinAudioCall =
                                 !sessionState.isHost &&
                                 !isAudioCaller &&
                                 !userInCall &&
-                                displayBroadcasters.length <
-                                    LiveSessionState.maxAudioCallers &&
+                                displayBroadcasters.length < LiveSessionState.maxAudioCallers &&
                                 !sessionState.isJoiningAudioCaller;
-                            final maxAudioCallers =
-                                LiveSessionState.maxAudioCallers;
+                            final maxAudioCallers = LiveSessionState.maxAudioCallers;
 
                             if (displayBroadcasters.isNotEmpty) {
                               children.add(
                                 Container(
                                   margin: EdgeInsets.only(bottom: 10.h),
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 12.w,
-                                    vertical: 6.h,
-                                  ),
+                                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                                   decoration: BoxDecoration(
                                     color: Colors.black54,
                                     borderRadius: BorderRadius.circular(15.r),
                                   ),
                                   child: Text(
                                     '🎤 ${displayBroadcasters.length}/$maxAudioCallers',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12.sp,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                    style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w500),
                                   ),
                                 ),
                               );
@@ -1950,109 +1518,55 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                             children.add(
                               GestureDetector(
                                 onTap: () {
-                                  debugPrint(
-                                    '🎤 [UI] Join/Leave button tapped',
-                                  );
-                                  debugPrint(
-                                    '🎤 [UI] isAudioCaller: $isAudioCaller',
-                                  );
+                                  debugPrint('🎤 [UI] Join/Leave button tapped');
+                                  debugPrint('🎤 [UI] isAudioCaller: $isAudioCaller');
                                   debugPrint('🎤 [UI] userInCall: $userInCall');
-                                  debugPrint(
-                                    '🎤 [UI] isJoiningRequestPending: $isJoiningRequestPending',
-                                  );
-                                  debugPrint(
-                                    '🎤 [UI] canJoinAudioCall: $canJoinAudioCall',
-                                  );
-                                  debugPrint(
-                                    '🎤 [UI] displayBroadcasters.length: ${displayBroadcasters.length}',
-                                  );
-                                  debugPrint(
-                                    '🎤 [UI] maxAudioCallers: ${LiveSessionState.maxAudioCallers}',
-                                  );
+                                  debugPrint('🎤 [UI] isJoiningRequestPending: $isJoiningRequestPending');
+                                  debugPrint('🎤 [UI] canJoinAudioCall: $canJoinAudioCall');
+                                  debugPrint('🎤 [UI] displayBroadcasters.length: ${displayBroadcasters.length}');
+                                  debugPrint('🎤 [UI] maxAudioCallers: ${LiveSessionState.maxAudioCallers}');
 
                                   if (isJoiningRequestPending) {
-                                    debugPrint(
-                                      '🎤 [UI] Already joining, waiting...',
-                                    );
-                                    _showSnackBar(
-                                      '🎤 Please wait...',
-                                      Colors.orange,
-                                    );
+                                    debugPrint('🎤 [UI] Already joining, waiting...');
+                                    _showSnackBar('🎤 Please wait...', Colors.orange);
                                     return;
                                   }
 
                                   // ✅ Check both isAudioCaller and userInCall to handle leave
                                   if (isAudioCaller || userInCall) {
-                                    debugPrint(
-                                      '🎤 [UI] ✅ User in call, initiating LEAVE',
-                                    );
+                                    debugPrint('🎤 [UI] ✅ User in call, initiating LEAVE');
                                     final currentUserId = userId;
-                                    debugPrint(
-                                      '🎤 [UI] currentUserId: $currentUserId',
-                                    );
-                                    debugPrint(
-                                      '🎤 [UI] currentRoomId: $currentRoomId',
-                                    );
+                                    debugPrint('🎤 [UI] currentUserId: $currentUserId');
+                                    debugPrint('🎤 [UI] currentRoomId: $currentRoomId');
 
-                                    if (currentUserId == null ||
-                                        currentUserId.isEmpty ||
-                                        currentRoomId.isEmpty) {
-                                      debugPrint(
-                                        '🎤 [UI] ❌ Missing userId or roomId',
-                                      );
-                                      _showSnackBar(
-                                        '❌ Unable to leave call right now',
-                                        Colors.red,
-                                      );
+                                    if (currentUserId == null || currentUserId.isEmpty || currentRoomId.isEmpty) {
+                                      debugPrint('🎤 [UI] ❌ Missing userId or roomId');
+                                      _showSnackBar('❌ Unable to leave call right now', Colors.red);
                                       return;
                                     }
 
-                                    debugPrint(
-                                      '🎤 [UI] Sending RemoveBroadcaster event to bloc',
-                                    );
+                                    debugPrint('🎤 [UI] Sending RemoveBroadcaster event to bloc');
                                     callRequestBloc.add(
-                                      RemoveBroadcaster(
-                                        userId: currentUserId,
-                                        roomId: currentRoomId,
-                                      ),
+                                      RemoveBroadcaster(userId: currentUserId, roomId: currentRoomId),
                                     );
                                     debugPrint("Leaving audio caller");
                                   } else {
-                                    debugPrint(
-                                      '🎤 [UI] 🎤 User NOT in call, checking if can JOIN',
-                                    );
+                                    debugPrint('🎤 [UI] 🎤 User NOT in call, checking if can JOIN');
                                     if (currentRoomId.isEmpty) {
                                       debugPrint('🎤 [UI] ❌ Room not ready');
-                                      _showSnackBar(
-                                        '❌ Room not ready, please try again',
-                                        Colors.red,
-                                      );
+                                      _showSnackBar('❌ Room not ready, please try again', Colors.red);
                                       return;
                                     }
 
                                     if (!canJoinAudioCall) {
-                                      debugPrint(
-                                        '🎤 [UI] ❌ Cannot join - call full or other condition failed',
-                                      );
-                                      _showSnackBar(
-                                        '🎤 Audio call is full',
-                                        Colors.red,
-                                      );
+                                      debugPrint('🎤 [UI] ❌ Cannot join - call full or other condition failed');
+                                      _showSnackBar('🎤 Audio call is full', Colors.red);
                                       return;
                                     }
 
-                                    debugPrint(
-                                      '🎤 [UI] ✅ Sending SubmitJoinCallRequest to bloc',
-                                    );
-                                    callRequestBloc.add(
-                                      SubmitJoinCallRequest(
-                                        roomId: currentRoomId,
-                                      ),
-                                    );
-                                    _showSnackBar(
-                                      '🎤 Please wait for accept call...',
-                                      Colors.orange,
-                                    );
+                                    debugPrint('🎤 [UI] ✅ Sending SubmitJoinCallRequest to bloc');
+                                    callRequestBloc.add(SubmitJoinCallRequest(roomId: currentRoomId));
+                                    _showSnackBar('🎤 Please wait for accept call...', Colors.orange);
                                     debugPrint("Join call request sent");
                                   }
                                 },
@@ -2061,9 +1575,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                   width: 80.w,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(8.r),
-                                    ),
+                                    borderRadius: BorderRadius.all(Radius.circular(8.r)),
                                     color: isJoiningRequestPending
                                         ? Colors.grey
                                         : isAudioCaller
@@ -2079,11 +1591,10 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                                           ? SizedBox(
                                               width: 40.w,
                                               height: 40.h,
-                                              child:
-                                                  const CircularProgressIndicator(
-                                                    color: Colors.white,
-                                                    strokeWidth: 3,
-                                                  ),
+                                              child: const CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 3,
+                                              ),
                                             )
                                           : SvgPicture.asset(
                                               "assets/icons/join_call_icon.svg",
@@ -2114,10 +1625,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
                             children.add(SizedBox(height: 180.h));
                           }
 
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: children,
-                          );
+                          return Column(mainAxisSize: MainAxisSize.min, children: children);
                         },
                       ),
                     ),
@@ -2133,39 +1641,30 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
 
   // Main video view with multi-broadcaster support
   Widget _buildVideoView(LiveSessionState sessionState) {
-    final isInitializing =
-        sessionState.status == LiveSessionStatus.initializingAgora;
+    final isInitializing = sessionState.status == LiveSessionStatus.initializingAgora;
 
     if (isInitializing) {
       debugPrint('📺 [VIDEO] Initializing Agora engine...');
       return Container(
         color: Colors.black,
-        child: const Center(
-          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-        ),
+        child: const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)),
       );
     }
 
     // ✅ CRITICAL FIX: Only show loading for hosts during connection
     // Viewers should show video view once they join, even if waiting for remote video
-    if (sessionState.isVideoConnecting &&
-        !sessionState.isVideoReady &&
-        sessionState.isHost) {
+    if (sessionState.isVideoConnecting && !sessionState.isVideoReady && sessionState.isHost) {
       debugPrint('📺 [VIDEO] Host connecting...');
       return Container(
         color: Colors.black,
-        child: const Center(
-          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-        ),
+        child: const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)),
       );
     }
 
     if (sessionState.engine == null) {
       return Container(
         color: Colors.black,
-        child: const Center(
-          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-        ),
+        child: const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)),
       );
     }
 
@@ -2177,25 +1676,16 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
 
   /// Build multi-broadcaster view for host
   Widget _buildHostMultiView(LiveSessionState sessionState) {
-    final allVideoBroadcasters = <int>[
-      if (sessionState.localUserJoined) 0,
-      ...sessionState.videoCallerUids,
-    ];
+    final allVideoBroadcasters = <int>[if (sessionState.localUserJoined) 0, ...sessionState.videoCallerUids];
 
     if (allVideoBroadcasters.isEmpty || !sessionState.localUserJoined) {
       return Container(
         color: Colors.black,
-        child: const Center(
-          child: CircularProgressIndicator(color: Colors.white),
-        ),
+        child: const Center(child: CircularProgressIndicator(color: Colors.white)),
       );
     }
 
-    return _buildMultiVideoLayout(
-      sessionState,
-      allVideoBroadcasters,
-      isHostView: true,
-    );
+    return _buildMultiVideoLayout(sessionState, allVideoBroadcasters, isHostView: true);
   }
 
   /// Build multi-broadcaster view for audience
@@ -2206,9 +1696,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
     // ✅ CRITICAL FIX: Display video from the user who is actually sending video
     // Use videoCallerUids instead of remoteUsers because the first remote user
     // might not be the one broadcasting video (race condition with onUserJoined vs onRemoteVideoStateChanged)
-    final hostVideoUid = sessionState.videoCallerUids.isNotEmpty
-        ? sessionState.videoCallerUids.first
-        : null;
+    final hostVideoUid = sessionState.videoCallerUids.isNotEmpty ? sessionState.videoCallerUids.first : null;
 
     // ✅ FIX: Show video view once joined, even if waiting for remoteUsers callback
     // remoteUsers might be empty initially due to race condition with onUserJoined
@@ -2219,9 +1707,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       debugPrint('📺 [AUDIENCE] User not yet joined channel...');
       return Container(
         color: Colors.black,
-        child: const Center(
-          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-        ),
+        child: const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)),
       );
     }
 
@@ -2234,12 +1720,7 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       return Stack(
         children: [
           Container(color: Colors.black),
-          const Center(
-            child: CircularProgressIndicator(
-              color: Colors.white,
-              strokeWidth: 3,
-            ),
-          ),
+          const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)),
         ],
       );
     }
@@ -2248,36 +1729,20 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   }
 
   /// Build dynamic multi-video layout based on number of broadcasters
-  Widget _buildMultiVideoLayout(
-    LiveSessionState sessionState,
-    List<int> broadcasterUids, {
-    required bool isHostView,
-  }) {
+  Widget _buildMultiVideoLayout(LiveSessionState sessionState, List<int> broadcasterUids, {required bool isHostView}) {
     // ✅ Display the first broadcaster (prioritized by video capability)
-    final displayUid = isHost
-        ? 0
-        : (broadcasterUids.isNotEmpty ? broadcasterUids.first : 0);
+    final displayUid = isHost ? 0 : (broadcasterUids.isNotEmpty ? broadcasterUids.first : 0);
 
-    return _buildSingleVideoView(
-      sessionState,
-      displayUid,
-      isHostView: isHostView,
-    );
+    return _buildSingleVideoView(sessionState, displayUid, isHostView: isHostView);
   }
 
   /// Single broadcaster view with video readiness checks
-  Widget _buildSingleVideoView(
-    LiveSessionState sessionState,
-    int uid, {
-    required bool isHostView,
-  }) {
+  Widget _buildSingleVideoView(LiveSessionState sessionState, int uid, {required bool isHostView}) {
     final engine = sessionState.engine;
     if (engine == null) {
       return Container(
         color: Colors.black,
-        child: const Center(
-          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-        ),
+        child: const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)),
       );
     }
 
@@ -2285,27 +1750,18 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
       return Stack(
         children: [
           AgoraVideoView(
-            controller: VideoViewController(
-              rtcEngine: engine,
-              canvas: const VideoCanvas(uid: 0),
-            ),
+            controller: VideoViewController(rtcEngine: engine, canvas: const VideoCanvas(uid: 0)),
           ),
           if (!sessionState.isLocalVideoReady && isHost)
             Container(
               color: Colors.black.withValues(alpha: 0.8),
-              child: const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
-              ),
+              child: const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
             ),
         ],
       );
     }
 
-    final shouldShowVideoLoading =
-        !sessionState.isVideoReady && !isHost && !isHostView;
+    final shouldShowVideoLoading = !sessionState.isVideoReady && !isHost && !isHostView;
 
     debugPrint(
       '🎥 [VIDEO] Rendering remote video: uid=$uid, shouldShowLoading=$shouldShowVideoLoading, isVideoReady=${sessionState.isVideoReady}, isHost=$isHost, isHostView=$isHostView',
@@ -2319,21 +1775,14 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
             controller: VideoViewController.remote(
               rtcEngine: engine,
               canvas: VideoCanvas(uid: uid),
-              connection: RtcConnection(
-                channelId: sessionState.currentRoomId ?? roomId,
-              ),
+              connection: RtcConnection(channelId: sessionState.currentRoomId ?? roomId),
             ),
           ),
         ),
         if (shouldShowVideoLoading)
           Container(
             color: Colors.black.withValues(alpha: 0.8),
-            child: const Center(
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2,
-              ),
-            ),
+            child: const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
           ),
       ],
     );
@@ -2342,14 +1791,10 @@ class _GoliveScreenContentState extends State<_GoliveScreenContent> {
   @override
   void dispose() {
     debugPrint("🧹 Disposing video live screen...");
-
-    _titleController.dispose();
     _giftAnimationTimer?.cancel();
-
     _knownPendingRequestIds.clear();
     _knownBroadcasterIds.clear();
     _chatMessages.clear();
-
     debugPrint("✅ Video live screen disposed");
     super.dispose();
   }
