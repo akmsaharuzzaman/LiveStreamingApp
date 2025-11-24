@@ -11,12 +11,12 @@ class AgoraTokenService {
   /// [channelName] - The channel name to join
   /// [uid] - User ID (use 0 for dynamic assignment)
   /// [role] - User role: 'publisher' or 'subscriber'
-  /// [expireTime] - Token expiration time in seconds (default: 1 hour)
+  /// [expireTime] - Token expiration time in seconds (default: 24 hour)
   static Future<AgoraTokenResponse> getRtcToken({
     required String channelName,
     int uid = 0,
     String role = 'publisher',
-    int expireTime = 3600,
+    int expireTime = 86400,
   }) async {
     try {
       final response = await http.post(
@@ -49,10 +49,10 @@ class AgoraTokenService {
   /// Generate RTM token for real-time messaging
   ///
   /// [uid] - User ID as string
-  /// [expireTime] - Token expiration time in seconds (default: 1 hour)
+  /// [expireTime] - Token expiration time in seconds (default: 24 hour)
   static Future<AgoraTokenResponse> getRtmToken({
     required String uid,
-    int expireTime = 3600,
+    int expireTime = 86400,
   }) async {
     try {
       final response = await http.post(
