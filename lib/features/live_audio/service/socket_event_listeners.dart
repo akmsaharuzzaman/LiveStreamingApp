@@ -47,6 +47,8 @@ class AudioSocketEventListeners {
   final StreamController<int> _updateHostBonusController = StreamController<int>.broadcast(); // 15
   // Sent audio gifts events
   final StreamController<GiftModel> _sentAudioGiftsController = StreamController<GiftModel>.broadcast(); // 16
+  // Sent audio emoji events
+  final StreamController<dynamic> _recievedAudioEmojiController = StreamController<dynamic>.broadcast(); // 18
   // Muted users stream
   final StreamController<String> _mutedUserIdController = StreamController<String>.broadcast();
 
@@ -84,6 +86,7 @@ class AudioSocketEventListeners {
   // Stream<List<String>> get unbanUserStream => _unbanUserController.stream; // 14
   Stream<int> get updateHostBonusStream => _updateHostBonusController.stream; // 15 - Host bonus events
   Stream<GiftModel> get sentAudioGiftsStream => _sentAudioGiftsController.stream; // 16 - Sent audio gifts events
+  Stream<dynamic> get recievedAudioEmojiStream => _recievedAudioEmojiController.stream; // 18 - Sent audio emoji events
   // Muted users stream
   Stream<String> get mutedUserIdStream => _mutedUserIdController.stream;
 
@@ -120,6 +123,7 @@ class AudioSocketEventListeners {
     // socket.on(AudioSocketConstants.muteUnmuteUserEvent, _handleMuteUnmuteUser);
     socket.on(AudioSocketConstants.updateHostBonusEvent, _handleUpdateHostBonus); // 15
     socket.on(AudioSocketConstants.sentAudioGiftsEvent, _handleSentAudioGifts); // 16
+    socket.on(AudioSocketConstants.sendAudioEmojiEvent, _handleRecievedAudioEmoji); // 18
   }
 
   /// Clear all event listeners
@@ -141,6 +145,7 @@ class AudioSocketEventListeners {
     // socket.off(AudioSocketConstants.unbanUserEvent);
     socket.off(AudioSocketConstants.updateHostBonusEvent);
     socket.off(AudioSocketConstants.sentAudioGiftsEvent);
+    socket.off(AudioSocketConstants.sendAudioEmojiEvent);
   }
 
   void _handleGetAllRooms(dynamic data) {
@@ -403,6 +408,22 @@ class AudioSocketEventListeners {
     }
   }
 
+  void _handleRecievedAudioEmoji(dynamic data) {
+    _log('🎁 Audio recieved audio emoji listener response: $data');
+    // var demoResponse = {
+    //   "success": true,
+    //   "message": "Successfully sent emoji",
+    //   "data": {"seatKey": "seat-1", "emoji": "1", "sender": "Md. Hasibul Hossain"},
+    // };
+    try {
+      if (data is Map<String, dynamic>) {
+        _recievedAudioEmojiController.add(data);
+      }
+    } catch (e) {
+      _log('🎁 Audio recieved audio emoji listener error: $e');
+    }
+  }
+
   /// Dispose all stream controllers
   void dispose() {
     _getAllRoomsController.close();
@@ -422,5 +443,7 @@ class AudioSocketEventListeners {
     // _unbanUserController.close();
     _updateHostBonusController.close();
     _mutedUserIdController.close();
+    _sentAudioGiftsController.close();
+    _recievedAudioEmojiController.close();
   }
 }

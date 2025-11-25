@@ -29,6 +29,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
   StreamSubscription? _leaveSeatSubscription;
   StreamSubscription? _removeFromSeatSubscription;
   StreamSubscription? _lockUnlockSeatSubscription;
+  StreamSubscription? _recievedAudioEmojiSubscription;
   // Chat events
   StreamSubscription? _sendMessageSubscription;
   // User management events
@@ -72,6 +73,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     on<RemoveFromSeatEvent>(_onRemoveFromSeat);
     on<MuteUserFromSeatEvent>(_onMuteUserFromSeat);
     on<LockUnlockSeatEvent>(_onLockUnlockSeat);
+    on<SendAudioEmojiEvent>(_onSendAudioEmoji);
 
     // Chat events
     on<SendMessageEvent>(_onSendMessage);
@@ -107,6 +109,8 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     on<SeatJoinedEvent>(_onSeatJoined);
     on<SeatLeftEvent>(_onSeatLeft);
     on<SeatLockUnlockedEvent>(_onSeatLockUnlocked);
+    on<AudioEmojiEvent>(_onAudioEmoji);
+    on<RemoveAudioEmojiEvent>(_onRemoveAudioEmoji);
   }
 
   void _setupSocketSubscriptions() {
@@ -207,6 +211,10 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
       _handleSeatLockUnlock(data);
     });
 
+    _recievedAudioEmojiSubscription = _repository.recievedAudioEmojiStream.listen((data) {
+      _handleAudioEmoji(data);
+    });
+
     // Chat messages
     _sendMessageSubscription = _repository.sendMessageStream.listen((message) {
       add(NewMessageReceivedEvent(message: message));
@@ -276,6 +284,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     _leaveSeatSubscription?.cancel();
     _removeFromSeatSubscription?.cancel();
     _lockUnlockSeatSubscription?.cancel();
+    _recievedAudioEmojiSubscription?.cancel();
     _sendMessageSubscription?.cancel();
     _banUserSubscription?.cancel();
     _muteUserSubscription?.cancel();
@@ -420,6 +429,10 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
 
   Future<void> _onLockUnlockSeat(LockUnlockSeatEvent event, Emitter<AudioRoomState> emit) async {
     await _repository.lockUnlockSeat(roomId: event.roomId, seatKey: event.seatKey);
+  }
+
+  Future<void> _onSendAudioEmoji(SendAudioEmojiEvent event, Emitter<AudioRoomState> emit) async {
+    await _repository.sendAudioEmoji(roomId: event.roomId, seatKey: event.seatKey, emoji: event.emoji);
   }
 
   Future<void> _onSendMessage(SendMessageEvent event, Emitter<AudioRoomState> emit) async {
@@ -638,9 +651,7 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
           seatsData: currentState.roomData!.seatsData.copyWith(seats: newSeats),
         );
         emit(currentState.copyWith(roomData: newRoomData));
-        debugPrint(
-          "🔒 Seat ${event.seatKey} lock status updated to: ${event.available ? 'UNLOCKED' : 'LOCKED'}",
-        );
+        debugPrint("🔒 Seat ${event.seatKey} lock status updated to: ${event.available ? 'UNLOCKED' : 'LOCKED'}");
       }
     }
   }
@@ -684,10 +695,58 @@ class AudioRoomBloc extends Bloc<AudioRoomEvent, AudioRoomState> {
     debugPrint('🔒 Lock/Unlock seat Bloc response: ${jsonEncode(seatData)}');
     // Update room data with seat lock status change from server
     if (seatData['seatKey'] != null && seatData['available'] != null) {
-      add(SeatLockUnlockedEvent(
-        seatKey: seatData['seatKey']!,
-        available: seatData['available']!,
-      ));
+      add(SeatLockUnlockedEvent(seatKey: seatData['seatKey']!, available: seatData['available']!));
+    }
+  }
+
+  void _handleAudioEmoji(Map<String, dynamic> seatData) {
+    // var demoResponse = {
+    //   "success": true,
+    //   "message": "Successfully sent emoji",
+    //   "data": {"seatKey": "seat-1", "emoji": "1", "sender": "Md. Hasibul Hossain"},
+    // };
+    debugPrint('🎁 Audio recieved audio emoji Bloc response: ${jsonEncode(seatData)}');
+    // Update room data with seat lock status change from server
+    final data = seatData['data'];
+    if (data != null && data['seatKey'] != null && data['emoji'] != null) {
+      add(AudioEmojiEvent(seatKey: data['seatKey']!.toString(), emoji: data['emoji']!.toString()));
+    }
+  }
+
+  Future<void> _onAudioEmoji(AudioEmojiEvent event, Emitter<AudioRoomState> emit) async {
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+
+      // Update active emojis map
+      final updatedEmojis = Map<String, String>.from(currentState.activeEmojis);
+      updatedEmojis[event.seatKey] = event.emoji;
+
+      emit(currentState.copyWith(activeEmojis: updatedEmojis));
+
+      // Remove emoji after 6 seconds
+      // Note: We don't await this, it runs in background
+      Future.delayed(const Duration(seconds: 6), () {
+        if (!isClosed && state is AudioRoomLoaded) {
+          // We need to get the *latest* state to safely remove
+          // But since we can't access 'state' safely inside async gap without risk,
+          // we dispatch a new internal event or just use a safe approach.
+          // Actually, for Bloc, it's better to dispatch an event to remove it to ensure state consistency.
+          // But adding a new event just for cleanup might be overkill if we can just emit.
+          // However, we can't emit after async gap in Bloc v8+ without using the emitter passed to the handler.
+          // But the handler has finished.
+          // So we MUST dispatch an event.
+          add(RemoveAudioEmojiEvent(seatKey: event.seatKey));
+        }
+      });
+    }
+  }
+
+  void _onRemoveAudioEmoji(RemoveAudioEmojiEvent event, Emitter<AudioRoomState> emit) {
+    if (state is AudioRoomLoaded) {
+      final currentState = state as AudioRoomLoaded;
+      final updatedEmojis = Map<String, String>.from(currentState.activeEmojis);
+      updatedEmojis.remove(event.seatKey);
+      emit(currentState.copyWith(activeEmojis: updatedEmojis));
     }
   }
 

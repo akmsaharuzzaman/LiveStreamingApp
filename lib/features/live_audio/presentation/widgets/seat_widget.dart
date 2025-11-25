@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/models/audio_member_model.dart';
 import '../../data/models/seat_model.dart';
 import '../../data/models/audio_room_details.dart';
+import 'emoji_bottom_sheet.dart';
 
 class SeatWidget extends StatefulWidget {
   final int numberOfSeats;
@@ -26,6 +27,7 @@ class SeatWidget extends StatefulWidget {
   final Function(String seatId)? onLockUnlockSeat;
   final bool isHost;
   final List<int>? activeSpeakersUIDList;
+  final Map<String, String> activeEmojis;
 
   const SeatWidget({
     super.key,
@@ -44,6 +46,7 @@ class SeatWidget extends StatefulWidget {
     this.onLockUnlockSeat,
     this.isHost = false,
     this.activeSpeakersUIDList,
+    this.activeEmojis = const {},
   });
 
   @override
@@ -119,7 +122,7 @@ class _SeatWidgetState extends State<SeatWidget> {
 
     // Initialize special seat (premium seat)
     specialSeatData = SeatModel(
-      id: 'premiumSeat',
+      id: 'premium',
       name: widget.premiumSeat?.member?.name,
       avatar: widget.premiumSeat?.member?.avatar,
       userId: widget.premiumSeat?.member?.id,
@@ -530,6 +533,8 @@ class _SeatWidgetState extends State<SeatWidget> {
                   child: Icon(Icons.mic_off, color: Colors.grey[700], size: 14.sp),
                 ),
               ),
+            // Emoji Overlay
+            _buildEmojiOverlay(hostSeatData.id),
           ],
         ),
 
@@ -668,6 +673,9 @@ class _SeatWidgetState extends State<SeatWidget> {
                     child: Icon(Icons.mic, color: Colors.grey[700], size: 14.sp),
                   ),
                 ),
+
+              // Emoji Overlay
+              _buildEmojiOverlay(premiumSeatData.id),
             ],
           ),
 
@@ -822,6 +830,9 @@ class _SeatWidgetState extends State<SeatWidget> {
                     ),
                   ),
               ],
+
+              // Emoji Overlay
+              _buildEmojiOverlay(seat.id),
             ],
           ),
 
@@ -837,5 +848,24 @@ class _SeatWidgetState extends State<SeatWidget> {
         ],
       ),
     );
+  }
+
+  Widget _buildEmojiOverlay(String seatId) {
+    final emojiIndexStr = widget.activeEmojis[seatId];
+    if (emojiIndexStr != null) {
+      final int? index = int.tryParse(emojiIndexStr);
+      if (index != null && index >= 0 && index < emojis.length) {
+        return Positioned.fill(
+          child: Center(
+            child: SizedBox(
+              width: 90.w,
+              height: 90.w,
+              child: SVGAEasyPlayer(assetsName: emojis[index], fit: BoxFit.contain),
+            ),
+          ),
+        );
+      }
+    }
+    return const SizedBox.shrink();
   }
 }

@@ -21,6 +21,7 @@ class AudioSocketConstants {
   static const String updateHostBonusEvent = 'update-audio-host-coins'; // 15
   static const String sentAudioGiftsEvent = 'sent-audio-gift'; // 16
   static const String lockUnlockSeatEvent = 'lock-unlock-audio-seat'; // 17
+  static const String sendAudioEmojiEvent = 'send-audio-emoji'; // 18
 
   // Connection timeouts
   static const Duration connectionTimeout = Duration(seconds: 60);

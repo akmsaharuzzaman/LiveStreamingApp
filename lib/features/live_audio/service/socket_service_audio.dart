@@ -80,6 +80,8 @@ class AudioSocketService {
   Stream<int> get updateHostBonusStream => _eventListeners.updateHostBonusStream;
   // Sent audio gifts events
   Stream<GiftModel> get sentAudioGiftsStream => _eventListeners.sentAudioGiftsStream;
+  // Sent audio emoji events
+  Stream<dynamic> get recievedAudioEmojiStream => _eventListeners.recievedAudioEmojiStream;
   // Muted users stream
   Stream<String> get mutedUserIdStream => _eventListeners.mutedUserIdStream;
 
@@ -176,6 +178,9 @@ class AudioSocketService {
 
   Future<bool> lockUnlockSeat({required String roomId, required String seatKey}) =>
       _seatOperations.lockUnlockSeat(roomId: roomId, seatKey: seatKey);
+
+  Future<bool> sendAudioEmoji({required String roomId, required String seatKey, required String emoji}) =>
+      _seatOperations.sendAudioEmoji(roomId: roomId, seatKey: seatKey, emoji: emoji);
 
   /// User operations
   Future<bool> banUser(String targetUserId) => _userOperations.banUser(targetUserId);

@@ -1,5 +1,8 @@
+import 'package:dlstarlive/features/live_audio/presentation/bloc/audio_room_event.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svga_easyplayer/flutter_svga_easyplayer.dart';
+import 'package:dlstarlive/features/live_audio/presentation/bloc/audio_room_bloc.dart';
 
 const List<String> emojis = [
   'assets/icons/audio_room/emojis/Emoji 1.svga',
@@ -17,7 +20,7 @@ const List<String> emojis = [
   'assets/icons/audio_room/emojis/Emoji 13.svga',
 ];
 
-void showEmojiBottomSheet(BuildContext context) {
+void showEmojiBottomSheet(BuildContext context, String roomId, String seatKey) {
   showModalBottomSheet(
     context: context,
     isDismissible: true,
@@ -44,8 +47,16 @@ void showEmojiBottomSheet(BuildContext context) {
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 5, childAspectRatio: 1),
                 itemCount: emojis.length,
                 itemBuilder: (context, index) {
-                  return Center(
-                    child: SizedBox(width: 50, height: 50, child: SVGAEasyPlayer(assetsName: emojis[index])),
+                  return InkWell(
+                    onTap: () {
+                      context.read<AudioRoomBloc>().add(
+                        SendAudioEmojiEvent(roomId: roomId, seatKey: seatKey, emoji: "$index"),
+                      );
+                      Navigator.pop(context);
+                    },
+                    child: Center(
+                      child: SizedBox(width: 50, height: 50, child: SVGAEasyPlayer(assetsName: emojis[index])),
+                    ),
                   );
                 },
               ),

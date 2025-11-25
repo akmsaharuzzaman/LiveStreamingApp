@@ -752,6 +752,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                                 onLockUnlockSeat: _lockUnlockSeat,
                                 isHost: roomState.isHost,
                                 activeSpeakersUIDList: _activeSpeakersNotifier.activeSpeakerUIDs.toList(),
+                                activeEmojis: roomState.activeEmojis,
                               );
                             },
                           ),
@@ -904,7 +905,7 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
         color: Colors.transparent,
         child:
             roomState.isHost ||
-                (roomState.roomData?.seatsData.seats?.values.any((entry) => entry.member?.id != authState.user.id) ??
+                (roomState.roomData?.seatsData.seats?.values.any((entry) => entry.member?.id == authState.user.id) ??
                     false)
             ? Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -926,14 +927,28 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   CustomLiveButton(
                     iconPath: "assets/icons/emoji_icon.png",
                     onTap: () {
-                      // _showSnackBar('🎶 Not implemented yet', Colors.red);
-                      showEmojiBottomSheet(context);
+                      String seatKey = "";
+                      if (roomState.isHost) {
+                        seatKey = "host";
+                      } else if (roomState.roomData?.premiumSeat.member?.id == authState.user.id) {
+                        seatKey = "premium";
+                      } else {
+                        roomState.roomData?.seatsData.seats?.forEach((key, value) {
+                          if (value.member?.id == authState.user.id) seatKey = key;
+                        });
+                      }
+                      if (seatKey.isEmpty) {
+                        _showSnackBar('Only seat users can use emoji', Colors.red);
+                        return;
+                      } else {
+                        _showSnackBar('Sending emoji from $seatKey', Colors.green);
+                        showEmojiBottomSheet(context, roomState.currentRoomId ?? widget.roomId, seatKey);
+                      }
                     },
                   ),
                   CustomLiveButton(
                     iconPath: isMuted ? "assets/icons/mute_icon.png" : "assets/icons/unmute_icon.png",
                     onTap: () {
-                      // _showSnackBar('🔇 Not implemented yet', Colors.red);
                       _toggleMuteUnmute();
                     },
                   ),
@@ -952,7 +967,6 @@ class _AudioGoLiveScreenState extends State<AudioGoLiveScreen> {
                   CustomLiveButton(
                     iconPath: "assets/icons/gift_user_icon.png",
                     onTap: () {
-                      // _showSnackBar('🎁 Not implemented yet', Colors.red);
                       showAudioGiftBottomSheet(
                         context,
                         activeViewers: roomState.listeners,

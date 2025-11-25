@@ -113,6 +113,15 @@ class LockUnlockSeatEvent extends AudioRoomEvent {
   List<Object?> get props => [roomId, seatKey];
 }
 
+class SendAudioEmojiEvent extends AudioRoomEvent {
+  final String roomId;
+  final String seatKey;
+  final String emoji;
+  const SendAudioEmojiEvent({required this.roomId, required this.seatKey, required this.emoji});
+  @override
+  List<Object?> get props => [roomId, seatKey, emoji];
+}
+
 /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Chat Events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 class SendMessageEvent extends AudioRoomEvent {
   final String roomId;
@@ -237,6 +246,21 @@ class SeatLockUnlockedEvent extends AudioRoomEvent {
   const SeatLockUnlockedEvent({required this.seatKey, required this.available});
   @override
   List<Object?> get props => [seatKey, available];
+}
+
+class AudioEmojiEvent extends AudioRoomEvent {
+  final String seatKey;
+  final String emoji;
+  const AudioEmojiEvent({required this.seatKey, required this.emoji});
+  @override
+  List<Object?> get props => [seatKey, emoji];
+}
+
+class RemoveAudioEmojiEvent extends AudioRoomEvent {
+  final String seatKey;
+  const RemoveAudioEmojiEvent({required this.seatKey});
+  @override
+  List<Object?> get props => [seatKey];
 }
 
 /// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Helper method events @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@

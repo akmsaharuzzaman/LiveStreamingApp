@@ -15,6 +15,7 @@ class AudioSocketSeatOperations {
   /// leaveSeat
   /// removeFromSeat
   /// muteUserFromSeat
+  /// sendAudioEmoji
 
   void setSocket(socket_io.Socket socket) {
     this.socket = socket;
@@ -114,14 +115,29 @@ class AudioSocketSeatOperations {
     try {
       _log('🔒 Toggling lock for seat: $seatKey in room: $roomId');
 
-      socket.emit(AudioSocketConstants.lockUnlockSeatEvent, {
-        'roomId': roomId,
-        'seatKey': seatKey,
-      });
+      socket.emit(AudioSocketConstants.lockUnlockSeatEvent, {'roomId': roomId, 'seatKey': seatKey});
       return true;
     } catch (e) {
       _log('❌ Error locking/unlocking seat: $e');
       errorController.add({'status': 'error', 'message': 'Failed to lock/unlock seat: $e'});
+      return false;
+    }
+  }
+
+  /// Send audio emoji
+  Future<bool> sendAudioEmoji({required String roomId, required String seatKey, required String emoji}) async {
+    if (!_isConnected) {
+      errorController.add({'status': 'error', 'message': 'Socket not connected'});
+      return false;
+    }
+
+    try {
+      _log('💬 Sending audio emoji: $seatKey');
+      socket.emit(AudioSocketConstants.sendAudioEmojiEvent, {'roomId': roomId, 'seatKey': seatKey, 'emoji': emoji});
+      return true;
+    } catch (e) {
+      _log('❌ Error sending audio emoji: $e');
+      errorController.add({'status': 'error', 'message': 'Failed to send audio emoji: $e'});
       return false;
     }
   }

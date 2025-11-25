@@ -39,6 +39,8 @@ class AudioRoomRepository {
   Stream<int> get updateHostBonusStream => _socketService.updateHostBonusStream;
   // Sent audio gifts stream
   Stream<GiftModel> get sentAudioGiftsStream => _socketService.sentAudioGiftsStream;
+  // Sent audio emoji stream
+  Stream<dynamic> get recievedAudioEmojiStream => _socketService.recievedAudioEmojiStream;
   // Muted users stream
   Stream<String> get mutedUserIdStream => _socketService.mutedUserIdStream;
   // Error stream
@@ -78,6 +80,9 @@ class AudioRoomRepository {
 
   Future<bool> lockUnlockSeat({required String roomId, required String seatKey}) =>
       _socketService.lockUnlockSeat(roomId: roomId, seatKey: seatKey);
+
+  Future<bool> sendAudioEmoji({required String roomId, required String seatKey, required String emoji}) =>
+      _socketService.sendAudioEmoji(roomId: roomId, seatKey: seatKey, emoji: emoji);
 
   /// Chat operations
   Future<bool> sendMessage(String roomId, String message) => _socketService.sendMessage(roomId, message);
